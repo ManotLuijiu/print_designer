@@ -13,7 +13,7 @@ app_license = "AGPLv3"
 # include js, css files in header of desk.html
 # app_include_js = ""
 
-app_include_css = ["/assets/print_designer/css/thai_fonts.css"]
+# app_include_css = ["/assets/print_designer/css/thai_fonts.css"]
 
 
 # include js, css files in header of web template
