@@ -13,6 +13,8 @@ app_license = "AGPLv3"
 # include js, css files in header of desk.html
 # app_include_js = ""
 
+app_include_css = ["/assets/print_designer/css/thai_fonts.css"]
+
 
 # include js, css files in header of web template
 # web_include_css = "/assets/print_designer/css/print_designer.css"
@@ -27,8 +29,8 @@ app_license = "AGPLv3"
 
 # include js in page
 page_js = {
-	"print": "print_designer/client_scripts/print.js",
-	"point-of-sale": "print_designer/client_scripts/point_of_sale.js",
+    "print": "print_designer/client_scripts/print.js",
+    "point-of-sale": "print_designer/client_scripts/point_of_sale.js",
 }
 
 # include js in doctype views
@@ -59,12 +61,12 @@ doctype_js = {"Print Format": "print_designer/client_scripts/print_format.js"}
 
 # add methods and filters to jinja environment
 jinja = {
-	"methods": [
-		"print_designer.print_designer.page.print_designer.print_designer.render_user_text",
-		"print_designer.print_designer.page.print_designer.print_designer.convert_css",
-		"print_designer.print_designer.page.print_designer.print_designer.convert_uom",
-		"print_designer.print_designer.page.print_designer.print_designer.get_barcode",
-	]
+    "methods": [
+        "print_designer.print_designer.page.print_designer.print_designer.render_user_text",
+        "print_designer.print_designer.page.print_designer.print_designer.convert_css",
+        "print_designer.print_designer.page.print_designer.print_designer.convert_uom",
+        "print_designer.print_designer.page.print_designer.print_designer.get_barcode",
+    ]
 }
 
 # Installation
@@ -119,7 +121,7 @@ pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
+    "Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
 }
 
 # Path Relative to the app folder where default templates should be stored
