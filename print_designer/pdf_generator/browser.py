@@ -81,6 +81,10 @@ class Browser:
 
 	def set_options(self, options):
 		self.options = options
+		# Extract copy-related options
+		self.copy_count = self.options.get("copy_count", 0) if self.options else 0
+		self.copy_labels = self.options.get("copy_labels", [frappe._("Original"), frappe._("Copy")]) if self.options else [frappe._("Original"), frappe._("Copy")]
+		self.copy_watermark = self.options.get("copy_watermark", True) if self.options else True
 
 	def new_page(self, page_type):
 		"""

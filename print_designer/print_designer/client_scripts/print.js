@@ -145,6 +145,21 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       format: this.selected_format(),
       _lang: this.lang_code,
     });
+
+    // Add copy parameters if enabled
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      params.set('copy_count', this.copy_count_item.value || 2);
+      if (this.copy_labels_item.value) {
+        params.set('copy_labels', this.copy_labels_item.value);
+      }
+      params.set('copy_watermark', 'true');
+      params.set('pdf_generator', 'chrome'); // Force Chrome generator for copy functionality
+      console.log('Copy parameters added to preview:', {
+        copy_count: this.copy_count_item.value || 2,
+        copy_labels: this.copy_labels_item.value,
+        pdf_generator: 'chrome'
+      });
+    }
     console.log('params', params);
     let url = `${
       window.location.origin
@@ -310,6 +325,52 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     this.sidebar_dynamic_section = $(
       `<div class="dynamic-settings"></div>`,
     ).appendTo(this.sidebar);
+
+    // Add copy options section
+    this.copy_section = $(`
+      <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
+      </div>
+    `).appendTo(this.sidebar);
+
+    // Enable copies checkbox
+    this.enable_copies_item = this.add_sidebar_item({
+      fieldtype: 'Check',
+      fieldname: 'enable_copies',
+      label: __('Generate Multiple Copies'),
+      default: 0,
+      change: () => {
+        if (this.enable_copies_item.value) {
+          this.copy_count_item.$wrapper.show();
+          this.copy_labels_item.$wrapper.show();
+        } else {
+          this.copy_count_item.$wrapper.hide();
+          this.copy_labels_item.$wrapper.hide();
+        }
+      },
+    });
+
+    // Number of copies
+    this.copy_count_item = this.add_sidebar_item({
+      fieldtype: 'Int',
+      fieldname: 'copy_count',
+      label: __('Number of Copies'),
+      default: 2,
+      description: __('Total number of copies to generate'),
+    });
+
+    // Custom labels
+    this.copy_labels_item = this.add_sidebar_item({
+      fieldtype: 'Small Text',
+      fieldname: 'copy_labels',
+      label: __('Copy Labels'),
+      placeholder: __('Original, Copy') + ' (' + __('Optional') + ')',
+      description: __('Comma-separated labels for each copy'),
+    });
+
+    // Initially hide copy options
+    this.copy_count_item.$wrapper.hide();
+    this.copy_labels_item.$wrapper.hide();
   }
   set_default_print_language() {
     super.set_default_print_language();
@@ -341,6 +402,43 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       this.frm.meta.default_print_format,
     );
   }
+  render_pdf() {
+    // Construct PDF URL like the parent class
+    let params = new URLSearchParams({
+      doctype: this.frm.doctype,
+      name: this.frm.docname,
+      format: this.selected_format(),
+      _lang: this.lang_code,
+    });
+
+    // Add letterhead if selected
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
+      params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add copy parameters if enabled
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      params.set('copy_count', this.copy_count_item.value || 2);
+      if (this.copy_labels_item.value) {
+        params.set('copy_labels', this.copy_labels_item.value);
+      }
+      params.set('copy_watermark', 'true');
+      params.set('pdf_generator', 'chrome'); // Force Chrome generator for copy functionality
+      console.log('Copy parameters added:', {
+        copy_count: this.copy_count_item.value || 2,
+        copy_labels: this.copy_labels_item.value,
+        pdf_generator: 'chrome'
+      });
+    }
+    
+    // Construct the full URL
+    let url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    console.log('PDF URL with copy parameters:', url);
+    
+    // Open the PDF download
+    window.open(url, '_blank');
+  }
+
   download_pdf() {
     this.pdfDoc.getData().then((arrBuff) => {
       const downloadFile = (blob, fileName) => {
