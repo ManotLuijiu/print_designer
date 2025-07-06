@@ -40,6 +40,7 @@ def after_install():
 	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
 	on_print_designer_install()
 	add_pdf_generator_option()
+	set_chrome_as_default_for_print_designer()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
 
@@ -316,6 +317,42 @@ def calculate_platform():
 
 def add_pdf_generator_option():
 	set_pdf_generator_option("add")
+
+
+def set_chrome_as_default_for_print_designer():
+	"""Set Chrome as default PDF generator for all Print Designer formats"""
+	try:
+		# Update all existing Print Designer formats to use Chrome
+		print_designer_formats = frappe.get_all(
+			"Print Format",
+			filters={"print_designer": 1},
+			fields=["name", "pdf_generator"]
+		)
+		
+		for format_doc in print_designer_formats:
+			try:
+				frappe.db.set_value(
+					"Print Format",
+					format_doc.name,
+					"pdf_generator",
+					"chrome"
+				)
+				click.echo(f"Set Chrome PDF generator for Print Designer format: {format_doc.name}")
+			except Exception as e:
+				click.echo(f"Failed to update format '{format_doc.name}': {str(e)}")
+		
+		frappe.db.commit()
+		if print_designer_formats:
+			click.echo(f"Updated {len(print_designer_formats)} Print Designer formats to use Chrome PDF generator")
+	except Exception as e:
+		click.echo(f"Error setting Chrome as default for Print Designer formats: {str(e)}")
+
+
+def set_chrome_for_print_designer_format(doc, method):
+	"""Automatically set Chrome PDF generator when print_designer field is enabled"""
+	# If Print Designer is enabled, ensure Chrome PDF generator is used
+	if doc.print_designer and doc.pdf_generator != "chrome":
+		doc.pdf_generator = "chrome"
 
 
 def set_pdf_generator_option(action: Literal["add", "remove"]):

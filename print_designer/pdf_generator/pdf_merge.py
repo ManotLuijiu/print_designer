@@ -188,13 +188,69 @@ class PDFTransformer:
 		return self.get_file_data_from_writer(final_writer)
 
 	def _add_watermark_to_page(self, page, label):
-		"""Add watermark to page - simplified version that just returns the page
-		
-		For now, this creates copies without visible watermarks.
-		The copies can be distinguished by their position in the document.
-		Future enhancement: Add proper watermarking when a free solution is available.
-		"""
-		# For now, just return the original page
-		# Users will get 2 identical copies which they can manually label
-		# This is still useful for creating duplicate copies for filing
-		return page
+		"""Add text label to page by creating a text overlay"""
+		import frappe
+		from io import BytesIO
+		try:
+			# Try to create a simple text overlay using reportlab (if available)
+			from reportlab.pdfgen import canvas
+			from reportlab.lib.pagesizes import letter
+			
+			# Get page dimensions  
+			width = float(page.mediabox.width)
+			height = float(page.mediabox.height)
+			
+			# Create a text overlay PDF
+			packet = BytesIO()
+			can = canvas.Canvas(packet, pagesize=(width, height))
+			
+			# Set text properties
+			can.setFont("Helvetica-Bold", 12)
+			can.setFillColorRGB(0.7, 0.7, 0.7)  # Light gray
+			
+			# Position text in top-right corner
+			can.drawString(width - 100, height - 30, label)
+			can.save()
+			
+			# Move to the beginning of the StringIO buffer
+			packet.seek(0)
+			
+			# Create a new PDF reader for the overlay
+			from pypdf import PdfReader
+			overlay_pdf = PdfReader(packet)
+			
+			# Merge the overlay with the original page
+			page.merge_page(overlay_pdf.pages[0])
+			
+			return page
+			
+		except ImportError:
+			# Fallback: Add a simple annotation-style text
+			try:
+				from pypdf.generic import DictionaryObject, TextStringObject, ArrayObject, FloatObject, NameObject, BooleanObject
+				
+				# Create a simple text annotation (this might not be visible in all viewers)
+				width = float(page.mediabox.width)
+				height = float(page.mediabox.height)
+				
+				annotation = DictionaryObject({
+					NameObject("/Type"): NameObject("/Annot"),
+					NameObject("/Subtype"): NameObject("/Text"),
+					NameObject("/Rect"): ArrayObject([FloatObject(width-100), FloatObject(height-30), 
+										FloatObject(width-10), FloatObject(height-10)]),
+					NameObject("/Contents"): TextStringObject(label),
+					NameObject("/Open"): BooleanObject(True)
+				})
+				
+				if "/Annots" in page:
+					page["/Annots"].append(annotation)
+				else:
+					page[NameObject("/Annots")] = ArrayObject([annotation])
+					
+				return page
+			except Exception as e:
+				frappe.logger().info(f"Could not add text annotation: {e}")
+				return page
+		except Exception as e:
+			frappe.logger().info(f"Could not add text overlay: {e}")
+			return page

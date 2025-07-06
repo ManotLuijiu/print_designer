@@ -130,13 +130,11 @@ pd_standard_format_folder = "default_templates"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Print Format": {
+		"before_save": "print_designer.install.set_chrome_for_print_designer_format",
+	}
+}
 
 # Scheduled Tasks
 # ---------------

@@ -180,10 +180,10 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       super.preview();
       frappe.show_alert(
         {
-          message: __('Manot Said Error Generating PDF...'),
+          message: __('Error generating PDF. Please check Chrome browser setup.'),
           indicator: 'red',
         },
-        10,
+        5,
       );
     };
     const onPdfLoad = () => {
@@ -197,6 +197,19 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
   }
   printit() {
     let me = this;
+    
+    // If copy functionality is enabled, use our custom logic
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      // For copies, redirect to PDF download instead of direct printing
+      // since browser printing doesn't support our copy logic
+      frappe.show_alert({
+        message: __('Multiple copies detected. Downloading PDF for printing...'),
+        indicator: 'blue'
+      });
+      this.render_pdf();
+      return;
+    }
+    
     // Enable Network Printing
     if (parseInt(this.print_settings.enable_print_server)) {
       super.printit();
@@ -310,6 +323,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         if (this.language_item.value == this.language_item.last_value) return;
         this.toolbar_language_selector.set_value(this.language_item.value);
         this.set_user_lang();
+        this.refresh_copy_options_labels();
         this.preview();
       },
     });
@@ -326,51 +340,80 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       `<div class="dynamic-settings"></div>`,
     ).appendTo(this.sidebar);
 
-    // Add copy options section
-    this.copy_section = $(`
-      <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
-        <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
-      </div>
-    `).appendTo(this.sidebar);
+    // Add copy options section only if not already added
+    if (!this.copy_options_initialized) {
+      this.copy_options_initialized = true;
+      
+      this.copy_section = $(`
+        <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
+        </div>
+      `).appendTo(this.sidebar);
 
-    // Enable copies checkbox
-    this.enable_copies_item = this.add_sidebar_item({
-      fieldtype: 'Check',
-      fieldname: 'enable_copies',
-      label: __('Generate Multiple Copies'),
-      default: 0,
-      change: () => {
-        if (this.enable_copies_item.value) {
-          this.copy_count_item.$wrapper.show();
-          this.copy_labels_item.$wrapper.show();
-        } else {
-          this.copy_count_item.$wrapper.hide();
-          this.copy_labels_item.$wrapper.hide();
-        }
-      },
-    });
+      // Enable copies checkbox
+      this.enable_copies_item = this.add_sidebar_item({
+        fieldtype: 'Check',
+        fieldname: 'enable_copies',
+        label: __('Generate Multiple Copies'),
+        default: 0,
+        change: () => {
+          if (this.enable_copies_item.value) {
+            this.copy_count_item.$wrapper.show();
+            this.copy_labels_item.$wrapper.show();
+          } else {
+            this.copy_count_item.$wrapper.hide();
+            this.copy_labels_item.$wrapper.hide();
+          }
+        },
+      });
 
-    // Number of copies
-    this.copy_count_item = this.add_sidebar_item({
-      fieldtype: 'Int',
-      fieldname: 'copy_count',
-      label: __('Number of Copies'),
-      default: 2,
-      description: __('Total number of copies to generate'),
-    });
+      // Number of copies
+      this.copy_count_item = this.add_sidebar_item({
+        fieldtype: 'Int',
+        fieldname: 'copy_count',
+        label: __('Number of Copies'),
+        default: 2,
+        description: __('Total number of copies to generate'),
+      });
 
-    // Custom labels
-    this.copy_labels_item = this.add_sidebar_item({
-      fieldtype: 'Small Text',
-      fieldname: 'copy_labels',
-      label: __('Copy Labels'),
-      placeholder: __('Original, Copy') + ' (' + __('Optional') + ')',
-      description: __('Comma-separated labels for each copy'),
-    });
+      // Custom labels
+      this.copy_labels_item = this.add_sidebar_item({
+        fieldtype: 'Small Text',
+        fieldname: 'copy_labels',
+        label: __('Copy Labels'),
+        placeholder: __('Original, Copy') + ' (' + __('Optional') + ')',
+        description: __('Comma-separated labels for each copy'),
+      });
 
-    // Initially hide copy options
-    this.copy_count_item.$wrapper.hide();
-    this.copy_labels_item.$wrapper.hide();
+      // Initially hide copy options
+      this.copy_count_item.$wrapper.hide();
+      this.copy_labels_item.$wrapper.hide();
+    }
+  }
+  refresh_copy_options_labels() {
+    // Refresh copy options section title and labels after language change
+    if (this.copy_section) {
+      this.copy_section.find('div:first').text(__('Copy Options'));
+    }
+    
+    // Refresh field labels
+    if (this.enable_copies_item) {
+      this.enable_copies_item.df.label = __('Generate Multiple Copies');
+      this.enable_copies_item.refresh();
+    }
+    
+    if (this.copy_count_item) {
+      this.copy_count_item.df.label = __('Number of Copies');
+      this.copy_count_item.df.description = __('Total number of copies to generate');
+      this.copy_count_item.refresh();
+    }
+    
+    if (this.copy_labels_item) {
+      this.copy_labels_item.df.label = __('Copy Labels');
+      this.copy_labels_item.df.placeholder = __('Original, Copy') + ' (' + __('Optional') + ')';
+      this.copy_labels_item.df.description = __('Comma-separated labels for each copy');
+      this.copy_labels_item.refresh();
+    }
   }
   set_default_print_language() {
     super.set_default_print_language();
