@@ -147,18 +147,32 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     });
 
     // Add copy parameters if enabled
+    let using_chrome_preview = false;
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      params.set('copy_watermark', 'true');
-      params.set('pdf_generator', 'chrome'); // Force Chrome generator for copy functionality
-      console.log('Copy parameters added to preview:', {
+      // Use wkhtmltopdf PDF generator
+      params.set('pdf_generator', 'wkhtmltopdf');
+      using_chrome_preview = false; // Set to false since server forces wkhtmltopdf
+      
+      console.log('Copy parameters added to preview (using wkhtmltopdf):', {
         copy_count: this.copy_count_item.value || 2,
         copy_labels: this.copy_labels_item.value,
-        pdf_generator: 'chrome'
+        pdf_generator: 'wkhtmltopdf'
       });
+    }
+
+    // Add letterhead if selected (only for wkhtmltopdf, not Chrome)
+    if (this.letterhead_selector && this.letterhead_selector.val() && !using_chrome_preview) {
+      params.set('letterhead', this.letterhead_selector.val());
+    } else if (this.letterhead_selector && this.letterhead_selector.val() && using_chrome_preview) {
+      // Inform user that Letter Head is not available with Chrome PDF generator
+      frappe.show_alert({
+        message: __('Letter Head is not available when using Chrome PDF generator (copy functionality). Use wkhtmltopdf for Letter Head support.'),
+        indicator: 'orange'
+      }, 5);
     }
     console.log('params', params);
     let url = `${
@@ -219,6 +233,8 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
   }
   show(frm) {
     super.show(frm);
+    // Restore user's preferred language after parent initialization
+    this.restore_user_language();
     this.inner_msg = this.page.add_inner_message(`
 				<a style="line-height: 2.4" href="/app/print-designer?doctype=${this.frm.doctype}">
 					${__('Try the new Print Designer')}
@@ -419,6 +435,26 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     super.set_default_print_language();
     this.toolbar_language_selector.$input.val(this.lang_code);
   }
+  set_user_lang() {
+    // Update lang_code when language is changed
+    this.lang_code = this.language_item.value || 'en';
+    // Store user's language preference in localStorage
+    localStorage.setItem('print_designer_language', this.lang_code);
+    super.set_user_lang();
+  }
+  restore_user_language() {
+    // Restore user's preferred language from localStorage
+    const stored_lang = localStorage.getItem('print_designer_language');
+    if (stored_lang && stored_lang !== this.lang_code) {
+      this.lang_code = stored_lang;
+      if (this.language_item) {
+        this.language_item.set_value(stored_lang);
+      }
+      if (this.toolbar_language_selector) {
+        this.toolbar_language_selector.set_value(stored_lang);
+      }
+    }
+  }
   set_default_print_format() {
     super.set_default_print_format();
     if (
@@ -454,24 +490,33 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       _lang: this.lang_code,
     });
 
-    // Add letterhead if selected
-    if (this.letterhead_selector && this.letterhead_selector.val()) {
-      params.set('letterhead', this.letterhead_selector.val());
-    }
-
     // Add copy parameters if enabled
+    let using_chrome = false;
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      params.set('copy_watermark', 'true');
-      params.set('pdf_generator', 'chrome'); // Force Chrome generator for copy functionality
-      console.log('Copy parameters added:', {
-        copy_count: this.copy_count_item.value || 2,
-        copy_labels: this.copy_labels_item.value,
-        pdf_generator: 'chrome'
-      });
+      // Use wkhtmltopdf PDF generator
+      params.set('pdf_generator', 'wkhtmltopdf');
+      using_chrome = false; // Set to false since server forces wkhtmltopdf
+      
+      // Inform user about the change
+      frappe.show_alert({
+        message: __('Copy functionality now uses wkhtmltopdf for stability. Letter Head is available.'),
+        indicator: 'blue'
+      }, 5);
+    }
+
+    // Add letterhead if selected (only for wkhtmltopdf, not Chrome)
+    if (this.letterhead_selector && this.letterhead_selector.val() && !using_chrome) {
+      params.set('letterhead', this.letterhead_selector.val());
+    } else if (this.letterhead_selector && this.letterhead_selector.val() && using_chrome) {
+      // Inform user that Letter Head is not available with Chrome PDF generator
+      frappe.show_alert({
+        message: __('Letter Head is not available when using Chrome PDF generator (copy functionality). Use wkhtmltopdf for Letter Head support.'),
+        indicator: 'orange'
+      }, 5);
     }
     
     // Construct the full URL

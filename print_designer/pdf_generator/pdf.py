@@ -9,17 +9,16 @@ from print_designer.pdf_generator.pdf_merge import PDFTransformer
 
 def before_request():
 	if frappe.request.path == "/api/method/frappe.utils.print_format.download_pdf":
-		frappe.local.form_dict.pdf_generator = (
+		original_pdf_generator = (
 			frappe.request.args.get(
 				"pdf_generator",
 				frappe.get_cached_value("Print Format", frappe.request.args.get("format"), "pdf_generator"),
 			)
 			or "wkhtmltopdf"
 		)
-		if frappe.local.form_dict.pdf_generator == "chrome":
-			# Initialize the browser
-			FrappePDFGenerator()
-			return
+		
+		# Use wkhtmltopdf for Print Designer formats
+		frappe.local.form_dict.pdf_generator = "wkhtmltopdf"
 
 
 def after_request():
@@ -34,25 +33,51 @@ def after_request():
 
 @measure_time
 def get_pdf(print_format, html, options, output, pdf_generator=None):
-	if pdf_generator != "chrome":
-		# Use the default pdf generator
-		return
+	# Chrome PDF generation is disabled - Print Designer now uses wkhtmltopdf
+	return
 	
 	# Extract copy parameters from form_dict (URL parameters)
 	copy_count = cint(frappe.form_dict.get("copy_count", 0))
 	copy_labels = frappe.form_dict.get("copy_labels", "")
 	copy_watermark = frappe.form_dict.get("copy_watermark", "true").lower() == "true"
 	
+	
+	# Get watermark settings from Print Format if available
+	watermark_settings = None
+	if print_format:
+		try:
+			pf_doc = frappe.get_cached_doc("Print Format", print_format)
+			watermark_settings = pf_doc.get("watermark_settings")
+		except:
+			pass
+	
 	# Debug logging
-	frappe.logger().info(f"PDF Generation Debug - copy_count: {copy_count}, copy_labels: {copy_labels}, pdf_generator: {pdf_generator}")
-	frappe.logger().info(f"Form dict keys: {list(frappe.form_dict.keys())}")
-	frappe.logger().info(f"Options: {options}")
+	frappe.logger().info(f"PDF Generation Debug - copy_count: {copy_count}, copy_labels: {copy_labels}, watermark_settings: {watermark_settings}")
 	
 	# Add copy parameters to options
 	if not options:
 		options = {}
 	
-	if copy_count > 1:
+	# Apply watermark settings from Print Format
+	if watermark_settings and watermark_settings != "None":
+		if watermark_settings == "Original on First Page":
+			options["watermark_mode"] = "first_page_only"
+			options["watermark_labels"] = [frappe._("Original")]
+			options["copy_watermark"] = True
+		elif watermark_settings == "Copy on All Pages":
+			options["watermark_mode"] = "all_pages"
+			options["watermark_labels"] = [frappe._("Copy")]
+			options["copy_watermark"] = True
+		elif watermark_settings == "Original,Copy on Sequence":
+			options["watermark_mode"] = "sequence"
+			options["watermark_labels"] = [frappe._("Original"), frappe._("Copy")]
+			options["copy_watermark"] = True
+		else:
+			options["copy_watermark"] = False
+		
+		# Watermark functionality disabled - chrome support removed
+	elif copy_count > 1:
+		# Legacy multiple copies behavior
 		options["copy_count"] = copy_count
 		# Use translated labels if no custom labels provided
 		if copy_labels:

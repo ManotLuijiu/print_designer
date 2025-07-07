@@ -104,8 +104,15 @@ class PDFTransformer:
 		if self.encrypt_password:
 			writer.encrypt(self.encrypt_password)
 
-		# Check if we need to generate copies
-		if hasattr(self.browser, 'copy_count') and self.browser.copy_count > 1:
+		# Check if we need to apply watermarks or generate copies
+		watermark_mode = getattr(self.browser, 'watermark_mode', None)
+		copy_watermark = getattr(self.browser, 'copy_watermark', False)
+		
+		if watermark_mode and copy_watermark:
+			frappe.logger().info(f"Applying watermarks with mode: {watermark_mode}")
+			merged_pdf_data = self.get_file_data_from_writer(writer)
+			return self._generate_watermarked_pdf(merged_pdf_data)
+		elif hasattr(self.browser, 'copy_count') and self.browser.copy_count > 1:
 			frappe.logger().info(f"Generating {self.browser.copy_count} copies (with header/footer)")
 			merged_pdf_data = self.get_file_data_from_writer(writer)
 			return self._generate_copies_from_data(merged_pdf_data)
@@ -185,6 +192,47 @@ class PDFTransformer:
 		if self.encrypt_password:
 			final_writer.encrypt(self.encrypt_password)
 
+		return self.get_file_data_from_writer(final_writer)
+
+	def _generate_watermarked_pdf(self, merged_pdf_data):
+		"""Generate PDF with watermarks based on watermark mode"""
+		import frappe
+		from io import BytesIO
+		
+		pdf_reader = PdfReader(BytesIO(merged_pdf_data))
+		final_writer = PdfWriter()
+		
+		watermark_mode = getattr(self.browser, 'watermark_mode', 'sequence')
+		watermark_labels = getattr(self.browser, 'watermark_labels', [frappe._("Original"), frappe._("Copy")])
+		
+		# Add pages with appropriate watermarks based on mode
+		for page_num, page in enumerate(pdf_reader.pages):
+			label = None
+			
+			if watermark_mode == "first_page_only":
+				# Only first page gets watermark
+				if page_num == 0:
+					label = watermark_labels[0] if watermark_labels else frappe._("Original")
+			elif watermark_mode == "all_pages":
+				# All pages get the same watermark
+				label = watermark_labels[0] if watermark_labels else frappe._("Copy")
+			elif watermark_mode == "sequence":
+				# Pages alternate between labels
+				label_index = page_num % len(watermark_labels) if watermark_labels else page_num % 2
+				if watermark_labels:
+					label = watermark_labels[label_index]
+				else:
+					label = frappe._("Original") if label_index == 0 else frappe._("Copy")
+			
+			if label:
+				watermarked_page = self._add_watermark_to_page(page, label)
+				final_writer.add_page(watermarked_page)
+			else:
+				final_writer.add_page(page)
+		
+		if self.encrypt_password:
+			final_writer.encrypt(self.encrypt_password)
+		
 		return self.get_file_data_from_writer(final_writer)
 
 	def _add_watermark_to_page(self, page, label):

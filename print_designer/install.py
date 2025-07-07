@@ -39,8 +39,8 @@ def before_install():
 def after_install():
 	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
 	on_print_designer_install()
-	add_pdf_generator_option()
-	set_chrome_as_default_for_print_designer()
+	remove_chrome_pdf_generator_option()
+	set_wkhtmltopdf_as_default_for_print_designer()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
 
@@ -315,14 +315,14 @@ def calculate_platform():
 	return "<unknown>"
 
 
-def add_pdf_generator_option():
-	set_pdf_generator_option("add")
+def remove_chrome_pdf_generator_option():
+	set_pdf_generator_option("remove")
 
 
-def set_chrome_as_default_for_print_designer():
-	"""Set Chrome as default PDF generator for all Print Designer formats"""
+def set_wkhtmltopdf_as_default_for_print_designer():
+	"""Set wkhtmltopdf as default PDF generator for all Print Designer formats"""
 	try:
-		# Update all existing Print Designer formats to use Chrome
+		# Update all existing Print Designer formats to use wkhtmltopdf
 		print_designer_formats = frappe.get_all(
 			"Print Format",
 			filters={"print_designer": 1},
@@ -335,33 +335,30 @@ def set_chrome_as_default_for_print_designer():
 					"Print Format",
 					format_doc.name,
 					"pdf_generator",
-					"chrome"
+					"wkhtmltopdf"
 				)
-				click.echo(f"Set Chrome PDF generator for Print Designer format: {format_doc.name}")
+				click.echo(f"Set wkhtmltopdf PDF generator for Print Designer format: {format_doc.name}")
 			except Exception as e:
 				click.echo(f"Failed to update format '{format_doc.name}': {str(e)}")
 		
 		frappe.db.commit()
 		if print_designer_formats:
-			click.echo(f"Updated {len(print_designer_formats)} Print Designer formats to use Chrome PDF generator")
+			click.echo(f"Updated {len(print_designer_formats)} Print Designer formats to use wkhtmltopdf PDF generator")
 	except Exception as e:
-		click.echo(f"Error setting Chrome as default for Print Designer formats: {str(e)}")
+		click.echo(f"Error setting wkhtmltopdf as default for Print Designer formats: {str(e)}")
 
 
 def set_chrome_for_print_designer_format(doc, method):
-	"""Automatically set Chrome PDF generator when print_designer field is enabled"""
-	# If Print Designer is enabled, ensure Chrome PDF generator is used
-	if doc.print_designer and doc.pdf_generator != "chrome":
-		doc.pdf_generator = "chrome"
+	"""Automatically set wkhtmltopdf PDF generator when print_designer field is enabled"""
+	# If Print Designer is enabled, ensure wkhtmltopdf PDF generator is used
+	if doc.print_designer and doc.pdf_generator not in ["", "wkhtmltopdf"]:
+		doc.pdf_generator = "wkhtmltopdf"
 
 
 def set_pdf_generator_option(action: Literal["add", "remove"]):
 	options = (frappe.get_meta("Print Format").get_field("pdf_generator").options).split("\n")
 
-	if action == "add":
-		if "chrome" not in options:
-			options.append("chrome")
-	elif action == "remove":
+	if action == "remove":
 		if "chrome" in options:
 			options.remove("chrome")
 

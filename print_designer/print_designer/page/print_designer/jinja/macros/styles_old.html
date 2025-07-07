@@ -4,9 +4,6 @@
         box-sizing: border-box;
         padding: 0in;
         max-width: {{convert_uom(number=settings.page.width, to_uom="mm")}} !important;
-        dpi: {{settings.PDFPrintDPI or 96}}mm;
-        page-width: {{convert_uom(number=settings.page.width, to_uom="mm")}};
-        page-height: {{convert_uom(number=settings.page.height, to_uom="mm")}};
         margin-top:{{convert_uom(number=settings.page.headerHeightWithMargin or settings.page.marginTop, to_uom='mm')}};
         margin-bottom:{{convert_uom(number=settings.page.footerHeightWithMargin or settings.page.marginBottom, to_uom='mm')}};
         margin-left:{{convert_uom(number=settings.page.marginLeft, to_uom='mm')}};
@@ -81,22 +78,20 @@
     .flexDirectionColumn .baseSpanTag .valueSpanTag {
         display: block;
     }
-    /* https://github.com/wkhtmltopdf/wkhtmltopdf/issues/1522 */
+    /* Simplified layout for wkhtmltopdf compatibility */
     .relative-row {
-        display: -webkit-box;
-        display: -webkit-flex;
-        display: flex;
+        display: block;
         border-width: 0 !important;
-        flex: auto;
+        width: 100%;
     }
     .relative-column {
         border-width: 0px !important;
         border-color: transparent !important;
-        flex-direction: column;
-        flex: auto;
+        display: block;
+        width: 100%;
     }
     * {
-        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
     }
 </style>
 {% endmacro %}
