@@ -147,7 +147,6 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     });
 
     // Add copy parameters if enabled
-    let using_chrome_preview = false;
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
@@ -155,7 +154,6 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       }
       // Use wkhtmltopdf PDF generator
       params.set('pdf_generator', 'wkhtmltopdf');
-      using_chrome_preview = false; // Set to false since server forces wkhtmltopdf
       
       console.log('Copy parameters added to preview (using wkhtmltopdf):', {
         copy_count: this.copy_count_item.value || 2,
@@ -164,15 +162,9 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       });
     }
 
-    // Add letterhead if selected (only for wkhtmltopdf, not Chrome)
-    if (this.letterhead_selector && this.letterhead_selector.val() && !using_chrome_preview) {
+    // Add letterhead if selected (works with wkhtmltopdf)
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
       params.set('letterhead', this.letterhead_selector.val());
-    } else if (this.letterhead_selector && this.letterhead_selector.val() && using_chrome_preview) {
-      // Inform user that Letter Head is not available with Chrome PDF generator
-      frappe.show_alert({
-        message: __('Letter Head is not available when using Chrome PDF generator (copy functionality). Use wkhtmltopdf for Letter Head support.'),
-        indicator: 'orange'
-      }, 5);
     }
     console.log('params', params);
     let url = `${
@@ -194,7 +186,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       super.preview();
       frappe.show_alert(
         {
-          message: __('Error generating PDF. Please check Chrome browser setup.'),
+          message: __('Error generating PDF. Please check your PDF settings or try refreshing.'),
           indicator: 'red',
         },
         5,
@@ -491,7 +483,6 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     });
 
     // Add copy parameters if enabled
-    let using_chrome = false;
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
@@ -499,24 +490,17 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       }
       // Use wkhtmltopdf PDF generator
       params.set('pdf_generator', 'wkhtmltopdf');
-      using_chrome = false; // Set to false since server forces wkhtmltopdf
       
       // Inform user about the change
       frappe.show_alert({
-        message: __('Copy functionality now uses wkhtmltopdf for stability. Letter Head is available.'),
+        message: __('Copy functionality uses wkhtmltopdf for compatibility. Letter Head is available.'),
         indicator: 'blue'
       }, 5);
     }
 
-    // Add letterhead if selected (only for wkhtmltopdf, not Chrome)
-    if (this.letterhead_selector && this.letterhead_selector.val() && !using_chrome) {
+    // Add letterhead if selected (works with wkhtmltopdf)
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
       params.set('letterhead', this.letterhead_selector.val());
-    } else if (this.letterhead_selector && this.letterhead_selector.val() && using_chrome) {
-      // Inform user that Letter Head is not available with Chrome PDF generator
-      frappe.show_alert({
-        message: __('Letter Head is not available when using Chrome PDF generator (copy functionality). Use wkhtmltopdf for Letter Head support.'),
-        indicator: 'orange'
-      }, 5);
     }
     
     // Construct the full URL
