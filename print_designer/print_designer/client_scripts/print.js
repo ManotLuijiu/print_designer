@@ -503,12 +503,16 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         valid: response.ok && response.headers.get('content-type')?.includes('application/pdf'),
         status: response.status,
         statusText: response.statusText,
-        contentType: response.headers.get('content-type')
+        contentType: response.headers.get('content-type'),
+        isPermissionError: response.status === 403,
+        isServerError: response.status >= 500,
+        isClientError: response.status >= 400 && response.status < 500
       };
     } catch (error) {
       return {
         valid: false,
-        error: error.message
+        error: error.message,
+        isNetworkError: true
       };
     }
   }
@@ -648,6 +652,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     // Reset retry flags for each new PDF generation
     this.pdf_retry_attempted = false;
     this.iframe_fallback_attempted = false;
+    this.letterhead_retry_attempted = false;
 
     const pdfEl = this.createPdfEl(url, wrapperContainer);
     const onError = () => {
@@ -668,89 +673,200 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         format: params.get('format')
       });
       
-      // Try alternative PDF generators if auto-selection failed
-      const currentGenerator = params.get('pdf_generator');
-      const alternativeGenerators = ['wkhtmltopdf', 'chrome'].filter(g => g !== currentGenerator);
-      
-      if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted) {
-        this.pdf_retry_attempted = true;
-        const nextGenerator = alternativeGenerators[0];
-        
-        // Log the retry attempt
-        if (window.pdfLogger) {
-          window.pdfLogger.logPDFRetry(
-            url,
-            nextGenerator,
-            currentGenerator,
-            1
-          );
-        }
-        
-        frappe.show_alert({
-          message: __('Retrying with {0} generator...', [nextGenerator]),
-          indicator: 'blue'
-        }, 3);
-        
-        // Retry with different generator
-        params.set('pdf_generator', nextGenerator);
-        const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
-        
-        // Remove the failed PDF object and create a new one
-        setTimeout(() => {
-          if (pdfEl.parentNode) {
-            pdfEl.parentNode.removeChild(pdfEl);
-          }
-          
-          // Create a new PDF object for the retry
-          const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
-          
-          // Set up event listeners for the new PDF object
-          newPdfEl.addEventListener('load', () => {
-            if (freezeTimeout) {
-              clearTimeout(freezeTimeout);
-            }
-            onPdfLoad();
-          });
-          
-          newPdfEl.addEventListener('error', () => {
-            if (freezeTimeout) {
-              clearTimeout(freezeTimeout);
-            }
-            onError();
-          });
-          
-          // Reset freeze timeout for retry
-          resetFreezeTimeout();
-        }, 1000);
-        
-        return;
-      }
-      
-      // Before trying fallbacks, check if the PDF URL is valid
+      // Before trying retries or fallbacks, check if the PDF URL is valid
       this.checkPDFUrl(url).then(urlCheck => {
-        if (!urlCheck.valid) {
-          // Server-side error, show specific error message
-          let errorMessage = __('PDF generation failed on server');
-          if (urlCheck.status) {
-            errorMessage += ` (${urlCheck.status}: ${urlCheck.statusText})`;
-          }
-          if (urlCheck.error) {
-            errorMessage += ` - ${urlCheck.error}`;
+        // Handle specific error types
+        if (urlCheck.isPermissionError) {
+          // 403 Forbidden - This might be due to letterhead permissions
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_PERMISSION_ERROR', 'PDF generation failed due to permission error', {
+              url: url,
+              status: urlCheck.status,
+              statusText: urlCheck.statusText,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format'),
+              hasLetterhead: !!(this.letterhead_selector && this.letterhead_selector.val())
+            }, 'ERROR');
           }
           
-          if (window.pdfLogger) {
-            window.pdfLogger.log('PDF_SERVER_ERROR', 'Server-side PDF generation error', {
-              url: url,
-              urlCheck: urlCheck,
-              generator: params.get('pdf_generator'),
-              format: params.get('format')
-            }, 'ERROR');
+          // If letterhead is selected, try without it
+          if (this.letterhead_selector && this.letterhead_selector.val() && !this.letterhead_retry_attempted) {
+            this.letterhead_retry_attempted = true;
+            
+            frappe.show_alert({
+              message: __('Permission denied with letterhead. Retrying without letterhead...'),
+              indicator: 'orange'
+            }, 3);
+            
+            // Remove letterhead and retry
+            const originalLetterhead = this.letterhead_selector.val();
+            this.letterhead_selector.val('');
+            params.delete('letterhead');
+            
+            const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+            
+            setTimeout(() => {
+              if (pdfEl.parentNode) {
+                pdfEl.parentNode.removeChild(pdfEl);
+              }
+              
+              // Create a new PDF object for the retry
+              const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
+              
+              // Set up event listeners for the new PDF object
+              newPdfEl.addEventListener('load', () => {
+                if (freezeTimeout) {
+                  clearTimeout(freezeTimeout);
+                }
+                onPdfLoad();
+                
+                // Notify user about successful retry without letterhead
+                frappe.show_alert({
+                  message: __('PDF generated successfully without letterhead'),
+                  indicator: 'green'
+                }, 3);
+              });
+              
+              newPdfEl.addEventListener('error', () => {
+                if (freezeTimeout) {
+                  clearTimeout(freezeTimeout);
+                }
+                // Restore letterhead selection for user
+                this.letterhead_selector.val(originalLetterhead);
+                onError();
+              });
+              
+              // Reset freeze timeout for retry
+              resetFreezeTimeout();
+            }, 1000);
+            
+            return;
+          }
+          
+          let errorMessage = __('PDF generation failed: Access denied (403)');
+          if (this.letterhead_selector && this.letterhead_selector.val()) {
+            errorMessage += '. ' + __('This might be due to letterhead permissions. Try generating without letterhead.');
           }
           
           frappe.show_alert({
             message: errorMessage,
             indicator: 'red'
+          }, 10);
+          
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+        
+        if (urlCheck.isServerError) {
+          // 500+ Server Error - Don't retry with different generators, this is a server issue
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_SERVER_ERROR', 'PDF generation failed due to server error', {
+              url: url,
+              status: urlCheck.status,
+              statusText: urlCheck.statusText,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
+          
+          frappe.show_alert({
+            message: __('PDF generation failed: Server error ({0}). Please try again later.', [urlCheck.status]),
+            indicator: 'red'
           }, 8);
+          
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+        
+        if (urlCheck.isNetworkError) {
+          // Network error - Don't retry with different generators
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_NETWORK_ERROR', 'PDF generation failed due to network error', {
+              url: url,
+              error: urlCheck.error,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
+          
+          frappe.show_alert({
+            message: __('PDF generation failed: Network error. Please check your connection.'),
+            indicator: 'red'
+          }, 8);
+          
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+        
+        // Try alternative PDF generators if auto-selection failed (only for client-side display issues)
+        const currentGenerator = params.get('pdf_generator');
+        const alternativeGenerators = ['wkhtmltopdf', 'chrome'].filter(g => g !== currentGenerator);
+        
+        if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted && !urlCheck.isClientError) {
+          this.pdf_retry_attempted = true;
+          const nextGenerator = alternativeGenerators[0];
+          
+          // Log the retry attempt
+          if (window.pdfLogger) {
+            window.pdfLogger.logPDFRetry(
+              url,
+              nextGenerator,
+              currentGenerator,
+              1
+            );
+          }
+          
+          frappe.show_alert({
+            message: __('Retrying with {0} generator...', [nextGenerator]),
+            indicator: 'blue'
+          }, 3);
+          
+          // Retry with different generator
+          params.set('pdf_generator', nextGenerator);
+          const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+          
+          // Remove the failed PDF object and create a new one
+          setTimeout(() => {
+            if (pdfEl.parentNode) {
+              pdfEl.parentNode.removeChild(pdfEl);
+            }
+            
+            // Create a new PDF object for the retry
+            const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
+            
+            // Set up event listeners for the new PDF object
+            newPdfEl.addEventListener('load', () => {
+              if (freezeTimeout) {
+                clearTimeout(freezeTimeout);
+              }
+              onPdfLoad();
+            });
+            
+            newPdfEl.addEventListener('error', () => {
+              if (freezeTimeout) {
+                clearTimeout(freezeTimeout);
+              }
+              onError();
+            });
+            
+            // Reset freeze timeout for retry
+            resetFreezeTimeout();
+          }, 1000);
+          
+          return;
+        }
+        
+        // For other client errors or when retries are exhausted, continue with fallback logic
+        if (!urlCheck.valid) {
+          // Other unhandled errors
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_UNKNOWN_ERROR', 'PDF generation failed with unknown error', {
+              url: url,
+              urlCheck: urlCheck,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
           
           this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           return;
