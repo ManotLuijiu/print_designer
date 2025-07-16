@@ -701,9 +701,46 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
             // Remove letterhead and retry
             const originalLetterhead = this.letterhead_selector.val();
             this.letterhead_selector.val('');
-            params.delete('letterhead');
             
-            const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+            // Create new params object without letterhead
+            const retryParams = new URLSearchParams({
+              doctype: this.frm.doc.doctype,
+              name: this.frm.doc.name,
+              format: this.selected_format(),
+              _lang: this.lang_code,
+            });
+            
+            // Add PDF generator parameter if not auto
+            const selected_generator = this.selected_pdf_generator || 'auto';
+            if (selected_generator !== 'auto') {
+              retryParams.set('pdf_generator', selected_generator);
+            }
+            
+            // Add copy parameters if enabled (but NO letterhead)
+            if (this.enable_copies_item && this.enable_copies_item.value) {
+              retryParams.set('copy_count', this.copy_count_item.value || 2);
+              if (this.copy_labels_item.value) {
+                retryParams.set('copy_labels', this.copy_labels_item.value);
+              }
+              
+              // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+              if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+                retryParams.set('pdf_generator', 'wkhtmltopdf');
+              }
+            }
+            
+            const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+            
+            // Log the retry attempt
+            if (window.pdfLogger) {
+              window.pdfLogger.log('PDF_LETTERHEAD_RETRY', 'Retrying PDF generation without letterhead due to permission error', {
+                originalUrl: url,
+                retryUrl: retryUrl,
+                originalLetterhead: originalLetterhead,
+                generator: selected_generator,
+                format: this.selected_format()
+              }, 'INFO');
+            }
             
             setTimeout(() => {
               if (pdfEl.parentNode) {
