@@ -7,7 +7,11 @@ import frappe
 def get_logger(name="print_designer"):
     """Creates and returns a logger for the Print Designer app."""
     
-    log_file = os.path.join(frappe.utils.get_bench_path(), "logs", "print_designer.log")
+    log_dir = os.path.join(frappe.utils.get_bench_path(), "logs", "print_designer")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
+    log_file = os.path.join(log_dir, "print_designer.log")
     
     # Create a logger
     logger = logging.getLogger(name)
