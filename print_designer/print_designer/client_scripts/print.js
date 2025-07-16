@@ -700,7 +700,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
             
             // Remove letterhead and retry
             const originalLetterhead = this.letterhead_selector.val();
-            this.letterhead_selector.val('');
+            this.letterhead_selector.val('').trigger('change');
             
             // Create new params object without letterhead
             const retryParams = new URLSearchParams({
@@ -743,12 +743,29 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
             }
             
             setTimeout(() => {
+              // Clean up existing PDF objects
               if (pdfEl.parentNode) {
                 pdfEl.parentNode.removeChild(pdfEl);
               }
               
-              // Create a new PDF object for the retry
-              const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
+              // Also clean up any existing retry objects
+              const existingRetryEl = document.getElementById('pd-pdf-viewer-retry');
+              if (existingRetryEl && existingRetryEl.parentNode) {
+                existingRetryEl.parentNode.removeChild(existingRetryEl);
+              }
+              
+              // Create a completely new PDF object for the retry (not reusing the ID)
+              const newPdfEl = document.createElement('object');
+              newPdfEl.id = 'pd-pdf-viewer-retry';
+              newPdfEl.type = 'application/pdf';
+              newPdfEl.data = retryUrl;
+              newPdfEl.style.height = '0px';
+              newPdfEl.style.width = document.getElementsByClassName('main-section')[0].offsetWidth + 'px';
+              wrapperContainer.appendChild(newPdfEl);
+              
+              // Debug: Confirm the retry URL
+              console.log('Letterhead retry URL:', retryUrl);
+              console.log('Letterhead present in retry URL:', retryUrl.includes('letterhead'));
               
               // Set up event listeners for the new PDF object
               newPdfEl.addEventListener('load', () => {
@@ -770,7 +787,27 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
                 }
                 // Restore letterhead selection for user
                 this.letterhead_selector.val(originalLetterhead);
-                onError();
+                
+                // Create a new error handler for the retry attempt
+                const onRetryError = () => {
+                  if (window.pdfLogger) {
+                    window.pdfLogger.log('PDF_LETTERHEAD_RETRY_FAILED', 'PDF generation failed even without letterhead', {
+                      retryUrl: retryUrl,
+                      originalLetterhead: originalLetterhead,
+                      generator: selected_generator,
+                      format: this.selected_format()
+                    }, 'ERROR');
+                  }
+                  
+                  frappe.show_alert({
+                    message: __('PDF generation failed even without letterhead. This may be a server or permissions issue.'),
+                    indicator: 'red'
+                  }, 8);
+                  
+                  this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                };
+                
+                onRetryError();
               });
               
               // Reset freeze timeout for retry
