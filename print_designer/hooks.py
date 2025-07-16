@@ -77,10 +77,20 @@ jinja = {
 
 before_install = "print_designer.install.before_install"
 after_install = "print_designer.install.after_install"
-after_app_install = "print_designer.install.after_app_install"
+after_app_install = [
+    "print_designer.install.after_app_install",
+    "print_designer.utils.override_thailand.override_thailand_monkey_patch"
+]
+
+# Startup hooks
+# -------------
+on_startup = "print_designer.startup.initialize_print_designer"
 
 # Initialize protection against third-party app conflicts
-after_migrate = "print_designer.utils.print_protection.initialize_print_protection"
+after_migrate = [
+    "print_designer.utils.print_protection.initialize_print_protection",
+    "print_designer.utils.override_thailand.override_thailand_monkey_patch"
+]
 
 # Uninstallation
 # ------------

@@ -103,9 +103,6 @@ class SafePDFClient {
     buildSafeURL(method, params) {
         const urlParams = new URLSearchParams();
         
-        // Add method
-        urlParams.append('method', method);
-        
         // Add parameters
         Object.keys(params).forEach(key => {
             if (params[key] !== undefined && params[key] !== null) {

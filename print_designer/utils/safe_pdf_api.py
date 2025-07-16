@@ -61,10 +61,53 @@ def safe_download_pdf(
             return
             
     except Exception as e:
+        error_msg = str(e)
+        
+        # Check if this is a typical third-party conflict error
+        if any(pattern in error_msg for pattern in ['add_comment_info', 'Unknown column', 'erpnext_thailand']):
+            # This is definitely a third-party conflict, try bypass
+            try:
+                # Use the original frappe functions directly
+                html = original_get_print(
+                    doctype=doctype,
+                    name=name,
+                    print_format=format,
+                    doc=doc,
+                    no_letterhead=no_letterhead,
+                    letterhead=letterhead,
+                    pdf_generator=pdf_generator,
+                    **kwargs
+                )
+                
+                if html:
+                    pdf_data = original_get_pdf(html)
+                    
+                    # Set response headers for PDF download
+                    frappe.local.response.filename = f"{name}.pdf"
+                    frappe.local.response.filecontent = pdf_data
+                    frappe.local.response.type = "pdf"
+                    
+                    # Log successful bypass
+                    frappe.log_error(
+                        title="Print Designer - Third Party Conflict Bypassed",
+                        message=f"Successfully bypassed third-party conflict: {error_msg}"
+                    )
+                    
+                    return
+                    
+            except Exception as bypass_error:
+                # Log both errors
+                frappe.log_error(
+                    title="Print Designer - Bypass Also Failed",
+                    message=f"Both safe and bypass methods failed. "
+                           f"Original error: {error_msg}. "
+                           f"Bypass error: {str(bypass_error)}"
+                )
+        
         # Log the error
         frappe.log_error(
             title="Print Designer - Safe PDF Download Failed",
-            message=f"Safe PDF download failed: {str(e)}"
+            message=f"Safe PDF download failed: {error_msg}"
         )
         
         # Try direct original download_pdf as last resort
@@ -83,10 +126,10 @@ def safe_download_pdf(
             frappe.log_error(
                 title="Print Designer - All PDF Methods Failed",
                 message=f"Both safe and original PDF methods failed. "
-                       f"Original error: {str(e)}. "
+                       f"Original error: {error_msg}. "
                        f"Fallback error: {str(fallback_error)}"
             )
-            frappe.throw(f"PDF generation failed: {str(e)}")
+            frappe.throw(f"PDF generation failed: {error_msg}")
 
 @frappe.whitelist()
 def safe_get_print_html(
