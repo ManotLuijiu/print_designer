@@ -1,4 +1,7 @@
-CUSTOM_FIELDS = {
+from .signature_fields import get_signature_fields
+
+# Print Designer specific custom fields
+PRINT_DESIGNER_CUSTOM_FIELDS = {
 	"Print Format": [
 		{
 			"default": "0",
@@ -69,4 +72,10 @@ CUSTOM_FIELDS = {
 			"description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"
 		},
 	]
+}
+
+# Combine Print Designer fields with Signature fields
+CUSTOM_FIELDS = {
+	**PRINT_DESIGNER_CUSTOM_FIELDS,
+	**get_signature_fields()
 }

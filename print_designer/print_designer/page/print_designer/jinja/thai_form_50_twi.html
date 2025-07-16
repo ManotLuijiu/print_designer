@@ -1,0 +1,426 @@
+{%- from "print_designer/print_designer/page/print_designer/jinja/thai_withholding_tax_macros.html" 
+    import format_thai_tax_id, thai_buddhist_year, format_thai_amount, thai_month_name, format_withholding_type, checkbox -%}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หนังสือรับรองการหักภาษี ณ ที่จ่าย (ฟอร์ม 50 ทวิ)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', 'THSarabunNew', Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.2;
+            color: #000;
+            margin: 0;
+            padding: 15px;
+        }
+        
+        .form-50-twi {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            border: 2px solid #000;
+            padding: 15px;
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+        
+        .form-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+        
+        .form-subtitle {
+            font-size: 12px;
+            margin: 2px 0;
+        }
+        
+        .section {
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            background-color: #f0f0f0;
+            padding: 3px 6px;
+            border: 1px solid #000;
+        }
+        
+        .field-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .field-label {
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        
+        .field-input {
+            border-bottom: 1px solid #000;
+            padding: 2px 5px;
+            margin: 0 5px;
+            min-width: 100px;
+            display: inline-block;
+        }
+        
+        .field-input.wide {
+            min-width: 200px;
+        }
+        
+        .field-input.narrow {
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 8px 0;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .checkbox {
+            border: 1px solid #000;
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+            text-align: center;
+            line-height: 10px;
+            font-size: 10px;
+        }
+        
+        .table-section {
+            margin: 15px 0;
+        }
+        
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #000;
+        }
+        
+        .tax-table th,
+        .tax-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+        
+        .tax-table th {
+            background-color: #f0f0f0;
+            font-weight: 600;
+        }
+        
+        .tax-table .text-left {
+            text-align: left;
+        }
+        
+        .tax-table .text-right {
+            text-align: right;
+        }
+        
+        .signature-section {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 15px;
+            min-height: 80px;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 50px;
+            padding-top: 5px;
+            font-size: 10px;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                font-size: 11px;
+            }
+            
+            .form-50-twi {
+                border: 1px solid #000;
+                padding: 10px;
+            }
+            
+            .signature-box {
+                min-height: 60px;
+            }
+            
+            .signature-line {
+                margin-top: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-50-twi">
+        <!-- Form Header -->
+        <div class="form-header">
+            <div class="form-title">หนังสือรับรองการหักภาษี ณ ที่จ่าย</div>
+            <div class="form-subtitle">WITHHOLDING TAX CERTIFICATE</div>
+            <div class="form-subtitle">(ฟอร์ม 50 ทวิ / Form 50 Twi)</div>
+        </div>
+
+        <!-- Payer Information Section -->
+        <div class="section">
+            <div class="section-title">ส่วนที่ 1 ข้อมูลผู้จ่ายเงิน (Payer Information)</div>
+            
+            <div class="field-row">
+                <span class="field-label">ชื่อ-นามสกุล/ชื่อบริษัท:</span>
+                <span class="field-input wide">{{ doc.company or "" }}</span>
+            </div>
+            
+            <div class="field-row">
+                <span class="field-label">เลขประจำตัวผู้เสียภาษี:</span>
+                <span class="field-input">{{ format_thai_tax_id(frappe.get_value("Company", doc.company, "tax_id")) }}</span>
+            </div>
+            
+            <div class="field-row">
+                <span class="field-label">ที่อยู่:</span>
+                <span class="field-input wide">
+                    {%- set company_address = frappe.get_value("Company", doc.company, "address") -%}
+                    {{ company_address or "" }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Payee Information Section -->
+        <div class="section">
+            <div class="section-title">ส่วนที่ 2 ข้อมูลผู้รับเงิน (Payee Information)</div>
+            
+            <div class="field-row">
+                <span class="field-label">ชื่อ-นามสกุล/ชื่อบริษัท:</span>
+                <span class="field-input wide">{{ doc.party_name or doc.party or "" }}</span>
+            </div>
+            
+            <div class="field-row">
+                <span class="field-label">เลขประจำตัวผู้เสียภาษี/เลขบัตรประชาชน:</span>
+                <span class="field-input">
+                    {%- if doc.party_type == "Supplier" -%}
+                        {{ format_thai_tax_id(frappe.get_value("Supplier", doc.party, "tax_id")) }}
+                    {%- elif doc.party_type == "Employee" -%}
+                        {{ frappe.get_value("Employee", doc.party, "aadhaar_no") or "" }}
+                    {%- endif -%}
+                </span>
+            </div>
+            
+            <div class="field-row">
+                <span class="field-label">ที่อยู่:</span>
+                <span class="field-input wide">
+                    {%- if doc.party_type == "Supplier" -%}
+                        {%- set supplier_address = frappe.get_value("Supplier", doc.party, "supplier_primary_address") -%}
+                        {{ supplier_address or "" }}
+                    {%- elif doc.party_type == "Employee" -%}
+                        {%- set employee_address = frappe.get_value("Employee", doc.party, "current_address") -%}
+                        {{ employee_address or "" }}
+                    {%- endif -%}
+                </span>
+            </div>
+        </div>
+
+        <!-- Payment Period Section -->
+        <div class="section">
+            <div class="section-title">ส่วนที่ 3 ระยะเวลาการจ่ายเงิน (Payment Period)</div>
+            
+            <div class="field-row">
+                <span class="field-label">จ่ายในรอบ เดือน:</span>
+                <span class="field-input narrow">{{ thai_month_name(doc.posting_date.month if doc.posting_date else "") }}</span>
+                <span class="field-label">ปี พ.ศ.:</span>
+                <span class="field-input narrow">{{ thai_buddhist_year(doc.posting_date) if doc.posting_date else "" }}</span>
+            </div>
+        </div>
+
+        <!-- Payment Type Section -->
+        <div class="section">
+            <div class="section-title">ส่วนที่ 4 ประเภทเงินได้ (Income Type)</div>
+            
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    {{ checkbox(doc.party_type == "Employee") }}
+                    <span>เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส</span>
+                </div>
+                <div class="checkbox-item">
+                    {{ checkbox(doc.party_type == "Supplier") }}
+                    <span>ค่าจ้างทำของ ค่าเช่า ค่าขนส่ง ค่าบริการ</span>
+                </div>
+                <div class="checkbox-item">
+                    {{ checkbox(false) }}
+                    <span>ค่านายหน้าและค่าแนะนำ</span>
+                </div>
+                <div class="checkbox-item">
+                    {{ checkbox(false) }}
+                    <span>ค่าเช่าทรัพย์สิน</span>
+                </div>
+                <div class="checkbox-item">
+                    {{ checkbox(false) }}
+                    <span>ค่าขายทรัพย์สิน</span>
+                </div>
+                <div class="checkbox-item">
+                    {{ checkbox(false) }}
+                    <span>อื่นๆ (ระบุ)</span>
+                    <span class="field-input">{{ doc.remarks or "" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tax Calculation Table -->
+        <div class="section">
+            <div class="section-title">ส่วนที่ 5 การคำนวณภาษี (Tax Calculation)</div>
+            
+            <table class="tax-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">วันที่จ่าย<br>Payment Date</th>
+                        <th rowspan="2">รายการเงินได้<br>Income Description</th>
+                        <th colspan="2">จำนวนเงิน (บาท)<br>Amount (Baht)</th>
+                        <th rowspan="2">อัตราภาษี<br>Tax Rate (%)</th>
+                        <th rowspan="2">ภาษีที่หัก<br>Tax Withheld</th>
+                    </tr>
+                    <tr>
+                        <th>จำนวนเงินที่จ่าย<br>Amount Paid</th>
+                        <th>ภาษีที่ต้องหัก<br>Taxable Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%- set total_paid = 0 -%}
+                    {%- set total_taxable = 0 -%}
+                    {%- set total_tax = 0 -%}
+                    
+                    {# If this is from Payment Entry, get reference data #}
+                    {%- if doc.doctype == "Payment Entry" and doc.references -%}
+                        {%- for reference in doc.references -%}
+                            {%- if reference.reference_doctype in ["Purchase Invoice", "Journal Entry"] -%}
+                                {%- set ref_doc = frappe.get_doc(reference.reference_doctype, reference.reference_name) -%}
+                                {%- set tax_amount = ref_doc.total_taxes_and_charges or 0 -%}
+                                {%- set taxable_amount = reference.allocated_amount - tax_amount -%}
+                                {%- set withholding_rate = 3.0 -%} {# Default withholding rate #}
+                                {%- set withholding_amount = (taxable_amount * withholding_rate / 100) -%}
+                                
+                                <tr>
+                                    <td>{{ doc.posting_date.strftime('%d/%m/%Y') if doc.posting_date else '' }}</td>
+                                    <td class="text-left">{{ ref_doc.subject or reference.reference_name }}</td>
+                                    <td class="text-right">{{ format_thai_amount(reference.allocated_amount) }}</td>
+                                    <td class="text-right">{{ format_thai_amount(taxable_amount) }}</td>
+                                    <td>{{ withholding_rate }}</td>
+                                    <td class="text-right">{{ format_thai_amount(withholding_amount) }}</td>
+                                </tr>
+                                
+                                {%- set total_paid = total_paid + reference.allocated_amount -%}
+                                {%- set total_taxable = total_taxable + taxable_amount -%}
+                                {%- set total_tax = total_tax + withholding_amount -%}
+                            {%- endif -%}
+                        {%- endfor -%}
+                    {%- else -%}
+                        {# Default single row for other document types #}
+                        {%- set tax_rate = 3.0 -%}
+                        {%- set paid_amount = doc.paid_amount or doc.grand_total or 0 -%}
+                        {%- set tax_amount = paid_amount * tax_rate / 100 -%}
+                        
+                        <tr>
+                            <td>{{ doc.posting_date.strftime('%d/%m/%Y') if doc.posting_date else '' }}</td>
+                            <td class="text-left">{{ doc.subject or doc.name }}</td>
+                            <td class="text-right">{{ format_thai_amount(paid_amount) }}</td>
+                            <td class="text-right">{{ format_thai_amount(paid_amount) }}</td>
+                            <td>{{ tax_rate }}</td>
+                            <td class="text-right">{{ format_thai_amount(tax_amount) }}</td>
+                        </tr>
+                        
+                        {%- set total_paid = paid_amount -%}
+                        {%- set total_taxable = paid_amount -%}
+                        {%- set total_tax = tax_amount -%}
+                    {%- endif -%}
+                    
+                    <!-- Totals Row -->
+                    <tr style="font-weight: 600; background-color: #f0f0f0;">
+                        <td colspan="2">รวม (Total)</td>
+                        <td class="text-right">{{ format_thai_amount(total_paid) }}</td>
+                        <td class="text-right">{{ format_thai_amount(total_taxable) }}</td>
+                        <td>-</td>
+                        <td class="text-right">{{ format_thai_amount(total_tax) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="section">
+            <div class="field-row">
+                <span class="field-label">ภาษีที่หักและนำส่งรวม:</span>
+                <span class="field-input">{{ format_thai_amount(total_tax) }}</span>
+                <span class="field-label">บาท</span>
+            </div>
+            
+            <div class="field-row">
+                <span class="field-label">ได้นำส่งเงินภาษีดังกล่าวแล้ว เมื่อวันที่:</span>
+                <span class="field-input">{{ doc.posting_date.strftime('%d/%m/%Y') if doc.posting_date else '' }}</span>
+            </div>
+        </div>
+
+        <!-- Signature Section -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div>ผู้มีหน้าที่หักภาษี ณ ที่จ่าย</div>
+                <div>(Tax Withholding Agent)</div>
+                <div class="signature-line">
+                    ลงชื่อ.....................................
+                </div>
+                <div style="margin-top: 5px; font-size: 10px;">
+                    ({{ frappe.session.user_fullname or frappe.session.user }})
+                </div>
+                <div style="margin-top: 10px; font-size: 10px;">
+                    วันที่: {{ frappe.utils.today().strftime('%d/%m/%Y') }}
+                </div>
+            </div>
+            
+            <div class="signature-box">
+                <div>ผู้รับรองการหักภาษี ณ ที่จ่าย</div>
+                <div>(Tax Withholding Recipient)</div>
+                <div class="signature-line">
+                    ลงชื่อ.....................................
+                </div>
+                <div style="margin-top: 5px; font-size: 10px;">
+                    ({{ doc.party_name or doc.party }})
+                </div>
+                <div style="margin-top: 10px; font-size: 10px;">
+                    วันที่: ....../....../..........
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top: 15px; text-align: center; font-size: 10px; color: #666;">
+            <p>แบบฟอร์มนี้ใช้สำหรับออกหนังสือรับรองการหักภาษี ณ ที่จ่าย ตามพระราชบัญญัติภาษีเงินได้</p>
+            <p>This form is used for issuing withholding tax certificates under the Revenue Code</p>
+        </div>
+    </div>
+</body>
+</html>
