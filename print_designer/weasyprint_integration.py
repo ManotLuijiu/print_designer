@@ -4,7 +4,7 @@ Provides better PDF generation than wkhtmltopdf with modern CSS support
 """
 
 import frappe
-from frappe.utils.weasyprint import get_pdf as weasyprint_get_pdf
+from frappe.utils.weasyprint import import_weasyprint
 
 
 def get_pdf_with_weasyprint(html, options=None):
@@ -13,9 +13,22 @@ def get_pdf_with_weasyprint(html, options=None):
 	This provides better CSS support than wkhtmltopdf
 	"""
 	try:
-		# WeasyPrint handles modern CSS better than wkhtmltopdf
-		# No need for extensive CSS cleaning
-		return weasyprint_get_pdf(html, options)
+		# Import WeasyPrint classes using Frappe's helper
+		HTML, CSS = import_weasyprint()
+		
+		# Use WeasyPrint to generate PDF directly
+		base_url = frappe.utils.get_url()
+		html_doc = HTML(string=html, base_url=base_url)
+		
+		# Apply CSS if provided in options
+		stylesheets = []
+		if options and options.get('css'):
+			stylesheets.append(CSS(string=options['css']))
+		
+		# Render the PDF
+		pdf_doc = html_doc.render(stylesheets=stylesheets)
+		return pdf_doc.write_pdf()
+		
 	except Exception as e:
 		frappe.log_error(
 			title="WeasyPrint PDF Generation Failed",
@@ -31,8 +44,9 @@ def should_use_weasyprint():
 	Check if WeasyPrint should be used instead of wkhtmltopdf
 	"""
 	try:
-		# Check if WeasyPrint is available and enabled in Print Settings
-		from weasyprint import HTML
+		# Check if WeasyPrint is available using Frappe's helper
+		from frappe.utils.weasyprint import import_weasyprint
+		HTML, CSS = import_weasyprint()
 		
 		# Check Print Settings for PDF generation method
 		print_settings = frappe.get_single("Print Settings")
