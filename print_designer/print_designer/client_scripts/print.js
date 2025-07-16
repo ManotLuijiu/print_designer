@@ -203,13 +203,14 @@ class PDFGenerationLogger {
 
     logPDFRetry(url, newGenerator, previousGenerator, retryCount) {
         this.recordGeneratorAttempt(previousGenerator, false);
-        return this.log('PDF_GENERATION_RETRY', `Retrying PDF generation with ${newGenerator}`, {
-            url,
-            newGenerator,
-            previousGenerator,
-            retryCount,
-            retryReason: `${previousGenerator} failed or timed out`
-        }, 'WARNING');
+        return this.log('PDF_GENERATION_RETRY', `Retrying PDF generation with ${newGenerator}`,
+            {
+                url,
+                newGenerator,
+                previousGenerator,
+                retryCount,
+                retryReason: `${previousGenerator} failed or timed out`
+            }, 'WARNING');
     }
 
     logPDFSuccess(url, generator, format) {
@@ -750,7 +751,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     this.letterhead_retry_attempted = false;
 
     const pdfEl = this.createPdfEl(url, wrapperContainer);
-    const onPdfLoad = () => {
+    const onError = () => {
       // Log the error with comprehensive details
       if (window.pdfLogger) {
         window.pdfLogger.logPDFError(
@@ -1669,7 +1670,8 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         message: __('PDF logs exported successfully'),
         indicator: 'green'
       });
-    } catch (error) {
+    }
+    catch (error) {
       frappe.show_alert({
         message: __('Error exporting logs: {0}', [error.message]),
         indicator: 'red'
