@@ -496,6 +496,57 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     return downloadEl;
   }
   
+  getFormDefaultLanguage() {
+    // Try to get language from the form document in order of preference
+    
+    // 1. Check if document has a language field
+    if (this.frm.doc && this.frm.doc.language) {
+      console.log('Using document language:', this.frm.doc.language);
+      return this.frm.doc.language;
+    }
+    
+    // 2. Check if document has a customer with default language
+    if (this.frm.doc && this.frm.doc.customer_language) {
+      return this.frm.doc.customer_language;
+    }
+    
+    // 3. Check if document has a party_name with language (for invoices, quotations)
+    if (this.frm.doc && this.frm.doc.party_name && this.frm.doc.customer) {
+      // This would require a server call to get customer language, so we'll skip for now
+    }
+    
+    // 4. Check if document has a territory with default language
+    if (this.frm.doc && this.frm.doc.territory) {
+      // This would also require a server call, so we'll skip for now
+    }
+    
+    // 5. Check if doctype has a default language in meta
+    if (this.frm.meta && this.frm.meta.default_language) {
+      return this.frm.meta.default_language;
+    }
+    
+    // 6. Check if document has a company with default language
+    if (this.frm.doc && this.frm.doc.company) {
+      // This would require a server call to get company language, so we'll skip for now
+    }
+    
+    // 7. Fall back to user's selected language from the language selector
+    if (this.language_item && this.language_item.value) {
+      return this.language_item.value;
+    }
+    
+    // 8. Fall back to stored user language preference
+    const stored_lang = localStorage.getItem('print_designer_language');
+    if (stored_lang) {
+      return stored_lang;
+    }
+    
+    // 9. Final fallback to user's GUI language
+    const fallbackLang = this.lang_code || 'en';
+    console.log('Using fallback language (user GUI):', fallbackLang);
+    return fallbackLang;
+  }
+  
   async checkPDFUrl(url) {
     try {
       const response = await fetch(url, { method: 'HEAD' });
@@ -582,7 +633,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       doctype: this.frm.doc.doctype,
       name: this.frm.doc.name,
       format: this.selected_format(),
-      _lang: this.lang_code,
+      _lang: this.getFormDefaultLanguage(),
     });
 
     // Add PDF generator parameter - only send if not auto
@@ -647,6 +698,16 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     // Log PDF generation start
     if (window.pdfLogger) {
       window.pdfLogger.logPDFStart(url, params.get('pdf_generator') || 'auto', params.get('format'));
+      
+      // Log language information
+      window.pdfLogger.log('PDF_LANGUAGE_INFO', 'PDF generation language selection', {
+        selectedLanguage: this.getFormDefaultLanguage(),
+        documentLanguage: this.frm.doc?.language || 'not set',
+        customerLanguage: this.frm.doc?.customer_language || 'not set',
+        userGuiLanguage: this.lang_code || 'not set',
+        languageSelectorValue: this.language_item?.value || 'not set',
+        storedLanguage: localStorage.getItem('print_designer_language') || 'not set'
+      }, 'INFO');
     }
 
     // Reset retry flags for each new PDF generation
@@ -707,7 +768,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
               doctype: this.frm.doc.doctype,
               name: this.frm.doc.name,
               format: this.selected_format(),
-              _lang: this.lang_code,
+              _lang: this.getFormDefaultLanguage(),
             });
             
             // Add PDF generator parameter if not auto
@@ -788,26 +849,49 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
                 // Restore letterhead selection for user
                 this.letterhead_selector.val(originalLetterhead);
                 
-                // Create a new error handler for the retry attempt
-                const onRetryError = () => {
-                  if (window.pdfLogger) {
-                    window.pdfLogger.log('PDF_LETTERHEAD_RETRY_FAILED', 'PDF generation failed even without letterhead', {
-                      retryUrl: retryUrl,
-                      originalLetterhead: originalLetterhead,
-                      generator: selected_generator,
-                      format: this.selected_format()
-                    }, 'ERROR');
-                  }
-                  
-                  frappe.show_alert({
-                    message: __('PDF generation failed even without letterhead. This may be a server or permissions issue.'),
-                    indicator: 'red'
-                  }, 8);
-                  
-                  this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                // Create a new error handler for the retry attempt that uses the retry URL
+                const handleRetryError = () => {
+                  // Check the retry URL instead of the original URL
+                  this.checkPDFUrl(retryUrl).then(urlCheck => {
+                    if (window.pdfLogger) {
+                      window.pdfLogger.log('PDF_LETTERHEAD_RETRY_FAILED', 'PDF generation failed even without letterhead', {
+                        retryUrl: retryUrl,
+                        originalLetterhead: originalLetterhead,
+                        generator: selected_generator,
+                        format: this.selected_format(),
+                        urlCheck: urlCheck
+                      }, 'ERROR');
+                    }
+                    
+                    let errorMessage;
+                    if (urlCheck.isPermissionError) {
+                      errorMessage = __('PDF generation failed: Access denied even without letterhead. This may be a deeper permissions issue.');
+                    } else if (urlCheck.isServerError) {
+                      errorMessage = __('PDF generation failed: Server error ({0}). Please try again later.', [urlCheck.status]);
+                    } else if (urlCheck.isNetworkError) {
+                      errorMessage = __('PDF generation failed: Network error. Please check your connection.');
+                    } else {
+                      errorMessage = __('PDF generation failed even without letterhead. This may be a server or permissions issue.');
+                    }
+                    
+                    frappe.show_alert({
+                      message: errorMessage,
+                      indicator: 'red'
+                    }, 8);
+                    
+                    this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                  }).catch(() => {
+                    // Error checking URL, show generic message
+                    frappe.show_alert({
+                      message: __('PDF generation failed even without letterhead. This may be a server or permissions issue.'),
+                      indicator: 'red'
+                    }, 8);
+                    
+                    this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                  });
                 };
                 
-                onRetryError();
+                handleRetryError();
               });
               
               // Reset freeze timeout for retry
@@ -1397,7 +1481,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       doctype: this.frm.doctype,
       name: this.frm.docname,
       format: this.selected_format(),
-      _lang: this.lang_code,
+      _lang: this.getFormDefaultLanguage(),
     });
 
     // Add PDF generator parameter - only send if not auto
