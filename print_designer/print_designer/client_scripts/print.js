@@ -750,7 +750,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     this.letterhead_retry_attempted = false;
 
     const pdfEl = this.createPdfEl(url, wrapperContainer);
-    const onError = () => {
+    const onPdfLoad = () => {
       // Log the error with comprehensive details
       if (window.pdfLogger) {
         window.pdfLogger.logPDFError(
