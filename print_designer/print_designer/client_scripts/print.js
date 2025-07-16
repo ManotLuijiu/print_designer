@@ -146,19 +146,28 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       _lang: this.lang_code,
     });
 
+    // Add PDF generator parameter
+    const selected_generator = this.selected_pdf_generator || 'auto';
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
+
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      // Use wkhtmltopdf PDF generator
-      params.set('pdf_generator', 'wkhtmltopdf');
       
-      console.log('Copy parameters added to preview (using wkhtmltopdf):', {
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+      }
+      
+      console.log('Copy parameters added to preview:', {
         copy_count: this.copy_count_item.value || 2,
         copy_labels: this.copy_labels_item.value,
-        pdf_generator: 'wkhtmltopdf'
+        pdf_generator: params.get('pdf_generator')
       });
     }
 
@@ -346,6 +355,41 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       `<div class="dynamic-settings"></div>`,
     ).appendTo(this.sidebar);
 
+    // Add PDF generator selection section
+    if (!this.pdf_generator_initialized) {
+      this.pdf_generator_initialized = true;
+      
+      this.pdf_generator_section = $(`
+        <div class="pdf-generator-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('PDF Generator')}</div>
+        </div>
+      `).appendTo(this.sidebar);
+
+      // PDF Generator selector
+      this.pdf_generator_item = this.add_sidebar_item({
+        fieldtype: 'Select',
+        fieldname: 'pdf_generator',
+        label: __('PDF Generator'),
+        options: [
+          'auto',
+          'WeasyPrint', 
+          'wkhtmltopdf',
+          'chrome'
+        ].join('\n'),
+        default: 'auto',
+        description: __('Auto selects the best available generator'),
+        change: () => {
+          if (this.pdf_generator_item.value === 'auto') {
+            // Let the system choose the best generator
+            this.selected_pdf_generator = null;
+          } else {
+            this.selected_pdf_generator = this.pdf_generator_item.value;
+          }
+          this.preview(); // Refresh preview with new generator
+        },
+      });
+    }
+
     // Add copy options section only if not already added
     if (!this.copy_options_initialized) {
       this.copy_options_initialized = true;
@@ -480,20 +524,29 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       _lang: this.lang_code,
     });
 
+    // Add PDF generator parameter
+    const selected_generator = this.selected_pdf_generator || 'auto';
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
+
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      // Use wkhtmltopdf PDF generator
-      params.set('pdf_generator', 'wkhtmltopdf');
       
-      // Inform user about the change
-      frappe.show_alert({
-        message: __('Copy functionality uses wkhtmltopdf for compatibility. Letter Head is available.'),
-        indicator: 'blue'
-      }, 5);
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+        
+        // Inform user about the change
+        frappe.show_alert({
+          message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
+          indicator: 'blue'
+        }, 5);
+      }
     }
 
     // Add letterhead if selected (works with wkhtmltopdf)

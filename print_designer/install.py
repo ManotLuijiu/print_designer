@@ -349,10 +349,21 @@ def set_wkhtmltopdf_as_default_for_print_designer():
 
 
 def set_wkhtmltopdf_for_print_designer_format(doc, method):
-	"""Automatically set wkhtmltopdf PDF generator when print_designer field is enabled"""
-	# If Print Designer is enabled, ensure wkhtmltopdf PDF generator is used
-	if doc.print_designer and doc.pdf_generator not in ["", "wkhtmltopdf"]:
-		doc.pdf_generator = "wkhtmltopdf"
+	"""Set appropriate PDF generator for Print Designer formats"""
+	if doc.print_designer:
+		# If no generator specified, set a default (prefer WeasyPrint if available)
+		if not doc.pdf_generator:
+			try:
+				import weasyprint
+				doc.pdf_generator = "WeasyPrint"
+			except ImportError:
+				doc.pdf_generator = "wkhtmltopdf"
+		
+		# Validate that the selected generator is supported
+		supported_generators = ["wkhtmltopdf", "WeasyPrint", "chrome"]
+		if doc.pdf_generator not in supported_generators:
+			# Fallback to wkhtmltopdf for unsupported generators
+			doc.pdf_generator = "wkhtmltopdf"
 
 
 def set_pdf_generator_option(action: Literal["add", "remove"]):
