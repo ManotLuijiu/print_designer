@@ -101,7 +101,7 @@ class PDFGenerationLogger {
             this.isProcessing = true;
             
             await frappe.call({
-                method: 'print_designer.print_designer.page.print_designer.print_designer.log_pdf_generation_issue',
+                method: 'print_designer.pdf_logging.log_pdf_generation_issue',
                 args: {
                     event_type: logEntry.eventType,
                     message: logEntry.message,
@@ -259,7 +259,7 @@ class PDFGenerationLogger {
     async getRecentLogs(limit = 50, logLevel = null) {
         try {
             const response = await frappe.call({
-                method: 'print_designer.print_designer.page.print_designer.print_designer.get_pdf_generation_logs',
+                method: 'print_designer.pdf_logging.get_pdf_generation_logs',
                 args: {
                     limit,
                     log_level: logLevel
@@ -276,7 +276,7 @@ class PDFGenerationLogger {
     async clearLogs() {
         try {
             const response = await frappe.call({
-                method: 'print_designer.print_designer.page.print_designer.print_designer.clear_pdf_generation_logs'
+                method: 'print_designer.pdf_logging.clear_pdf_generation_logs'
             });
             
             return response.message;
@@ -442,6 +442,99 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 
     return pdfEl;
   }
+  
+  createPdfFallback(url, wrapperContainer) {
+    // Create an iframe fallback for browsers without PDF plugin support
+    let iframeEl = document.getElementById('pd-pdf-iframe');
+    if (!iframeEl) {
+      iframeEl = document.createElement('iframe');
+      iframeEl.id = 'pd-pdf-iframe';
+      iframeEl.style.width = '100%';
+      iframeEl.style.height = 'calc(100vh - var(--page-head-height) - var(--navbar-height))';
+      iframeEl.style.border = 'none';
+      wrapperContainer.appendChild(iframeEl);
+    }
+    
+    iframeEl.src = url;
+    return iframeEl;
+  }
+  
+  createDownloadFallback(url, wrapperContainer) {
+    // Create download fallback when PDF can't be displayed
+    let downloadEl = document.getElementById('pd-pdf-download');
+    if (!downloadEl) {
+      downloadEl = document.createElement('div');
+      downloadEl.id = 'pd-pdf-download';
+      downloadEl.style.textAlign = 'center';
+      downloadEl.style.padding = '50px';
+      downloadEl.style.backgroundColor = '#f8f9fa';
+      downloadEl.style.border = '2px dashed #dee2e6';
+      downloadEl.style.borderRadius = '8px';
+      downloadEl.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+        </div>
+        <h4 style="margin-bottom: 10px; color: #495057;">${__('PDF Preview Unavailable')}</h4>
+        <p style="color: #6c757d; margin-bottom: 20px;">${__('Your browser cannot display PDFs inline. Please download the PDF to view it.')}</p>
+        <a href="${url}" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px;">${__('Download PDF')}</a>
+      `;
+      wrapperContainer.appendChild(downloadEl);
+    }
+    
+    // Update the download link
+    const downloadLink = downloadEl.querySelector('a');
+    if (downloadLink) {
+      downloadLink.href = url;
+    }
+    
+    return downloadEl;
+  }
+  
+  showDownloadFallback(url, wrapperContainer, canvasContainer) {
+    // Log final failure
+    if (window.pdfLogger) {
+      window.pdfLogger.log('PDF_GENERATION_FINAL_FAILURE', 'All PDF generation and display attempts failed', {
+        url: url,
+        attempts: this.pdf_retry_attempted ? 2 : 1,
+        iframe_attempted: this.iframe_fallback_attempted || false,
+        fallback_type: 'download'
+      }, 'CRITICAL');
+    }
+    
+    // Hide loading indicator
+    canvasContainer.style.display = 'none';
+    
+    // Hide any existing PDF elements
+    const existingPdfEl = document.getElementById('pd-pdf-viewer');
+    if (existingPdfEl) {
+      existingPdfEl.style.display = 'none';
+    }
+    
+    const existingIframeEl = document.getElementById('pd-pdf-iframe');
+    if (existingIframeEl) {
+      existingIframeEl.style.display = 'none';
+    }
+    
+    // Show download fallback
+    const downloadEl = this.createDownloadFallback(url, wrapperContainer);
+    downloadEl.style.display = 'block';
+    
+    // Show detailed error with suggestions
+    frappe.show_alert(
+      {
+        message: __('PDF cannot be displayed inline. Please download the PDF to view it, or try using a different PDF generator from the sidebar.'),
+        indicator: 'orange',
+      },
+      8,
+    );
+  }
+  
   async designer_pdf(print_format) {
     // Initialize logging for this PDF generation session
     if (window.pdfLogger) {
@@ -463,7 +556,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     )[0];
     canvasContainer.style.minHeight = page_settings.height + 'px';
     canvasContainer.style.width = page_settings.width + 'px';
-    canvasContainer.innerHTML = `${frappe.render_template('print_skeleton_loading')}`;
+    
     let params = new URLSearchParams({
       doctype: this.frm.doc.doctype,
       name: this.frm.doc.name,
@@ -503,10 +596,39 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       window.location.origin
     }/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
 
+    // Show enhanced loading state with generator information
+    const loadingHTML = `
+      <div class="print-loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; background: #f8f9fa; border-radius: 8px; margin: 20px;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; margin-bottom: 20px;">
+          <span class="sr-only">Loading...</span>
+        </div>
+        <h4 style="color: #495057; margin-bottom: 10px;">${__('Generating PDF...')}</h4>
+        <p style="color: #6c757d; text-align: center; margin-bottom: 15px;">
+          ${__('Generator')}: <strong>${params.get('pdf_generator')}</strong><br>
+          ${__('Format')}: <strong>${params.get('format')}</strong>
+        </p>
+        <div class="progress" style="width: 200px; height: 4px; background-color: #e9ecef; border-radius: 2px; overflow: hidden;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated" 
+               role="progressbar" 
+               style="width: 100%; background-color: #007bff; animation: progress-bar-stripes 1s linear infinite;">
+          </div>
+        </div>
+        <small style="color: #6c757d; margin-top: 15px; text-align: center;">
+          ${__('This may take a few moments...')}<br>
+          ${__('If it takes too long, try switching to a different PDF generator from the sidebar.')}
+        </small>
+      </div>
+    `;
+    canvasContainer.innerHTML = loadingHTML;
+
     // Log PDF generation start
     if (window.pdfLogger) {
       window.pdfLogger.logPDFStart(url, params.get('pdf_generator'), params.get('format'));
     }
+
+    // Reset retry flags for each new PDF generation
+    this.pdf_retry_attempted = false;
+    this.iframe_fallback_attempted = false;
 
     const pdfEl = this.createPdfEl(url, wrapperContainer);
     const onError = () => {
@@ -561,37 +683,49 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         return;
       }
       
-      // Log final failure
-      if (window.pdfLogger) {
-        window.pdfLogger.log('PDF_GENERATION_FINAL_FAILURE', 'All PDF generation attempts failed', {
-          url: url,
-          attempts: this.pdf_retry_attempted ? 2 : 1,
-          finalGenerator: params.get('pdf_generator'),
-          alternativeGenerators: alternativeGenerators
-        }, 'CRITICAL');
+      // Try iframe fallback if we haven't already
+      if (!this.iframe_fallback_attempted) {
+        this.iframe_fallback_attempted = true;
+        
+        // Log iframe fallback attempt
+        if (window.pdfLogger) {
+          window.pdfLogger.log('PDF_FALLBACK_IFRAME', 'Attempting iframe fallback for PDF display', {
+            url: url,
+            generator: params.get('pdf_generator'),
+            format: params.get('format')
+          }, 'INFO');
+        }
+        
+        // Hide the failed object element
+        pdfEl.style.display = 'none';
+        
+        // Try iframe fallback
+        const iframeEl = this.createPdfFallback(url, wrapperContainer);
+        
+        // Set up iframe error handling
+        iframeEl.onload = () => {
+          canvasContainer.style.display = 'none';
+          iframeEl.style.display = 'block';
+          
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_FALLBACK_SUCCESS', 'Iframe fallback successful', {
+              url: url,
+              generator: params.get('pdf_generator'),
+              format: params.get('format')
+            }, 'INFO');
+          }
+        };
+        
+        iframeEl.onerror = () => {
+          // Even iframe failed, show download fallback
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+        };
+        
+        return;
       }
       
-      // Show fallback UI
-      this.print_wrapper.find('.print-designer-wrapper').hide();
-      this.inner_msg.show();
-      this.full_page_btn.show();
-      this.pdf_btn.show();
-      this.letterhead_selector.show();
-      this.sidebar_dynamic_section.show();
-      this.print_btn.show();
-      this.sidebar.show();
-      this.toolbar_print_format_selector.$wrapper.hide();
-      this.toolbar_language_selector.$wrapper.hide();
-      super.preview();
-      
-      // Show detailed error with suggestions
-      frappe.show_alert(
-        {
-          message: __('PDF generation failed. Try: 1) Refreshing the page, 2) Clearing browser cache, 3) Using a different PDF generator from the sidebar.'),
-          indicator: 'red',
-        },
-        8,
-      );
+      // Both object and iframe failed, show download fallback
+      this.showDownloadFallback(url, wrapperContainer, canvasContainer);
     };
     const onPdfLoad = () => {
       // Log successful PDF generation
