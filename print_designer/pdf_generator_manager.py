@@ -5,6 +5,9 @@ Manages Chrome, WeasyPrint, and wkhtmltopdf PDF generation
 
 import frappe
 from frappe.utils.data import cint
+from .logger import get_logger
+
+logger = get_logger()
 
 
 class PDFGeneratorManager:
@@ -55,15 +58,24 @@ class PDFGeneratorManager:
 	@staticmethod
 	def generate_pdf(print_format, html, options=None, output=None):
 		"""Generate PDF using the appropriate generator"""
-		generator = PDFGeneratorManager.determine_generator(
-			frappe.form_dict.get("pdf_generator")
+		requested_generator = frappe.form_dict.get("pdf_generator")
+		generator = PDFGeneratorManager.determine_generator(requested_generator)
+		
+		logger.info(
+			f"PDF Generation Request: "
+			f"Format='{print_format.name}', "
+			f"Requested='{requested_generator}', "
+			f"Used='{generator}'"
 		)
 		
 		if generator == "chrome":
+			logger.info("Using Chrome PDF Generator")
 			return PDFGeneratorManager._generate_with_chrome(print_format, html, options, output)
 		elif generator == "WeasyPrint":
+			logger.info("Using WeasyPrint PDF Generator")
 			return PDFGeneratorManager._generate_with_weasyprint(html, options)
 		else:
+			logger.info("Falling back to Frappe's default PDF Generator (wkhtmltopdf)")
 			# Default to wkhtmltopdf (handled by Frappe core)
 			return None  # Let Frappe handle it
 	
@@ -104,6 +116,7 @@ class PDFGeneratorManager:
 			from print_designer.weasyprint_integration import get_pdf_with_weasyprint
 			return get_pdf_with_weasyprint(html, options)
 		except Exception as e:
+			logger.error(f"WeasyPrint PDF Generation Failed: {str(e)}", exc_info=True)
 			frappe.log_error(
 				title="WeasyPrint PDF Generation Failed",
 				message=f"Error: {str(e)}\nFalling back to wkhtmltopdf"
