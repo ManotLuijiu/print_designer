@@ -1,6 +1,12 @@
 // TODO: revisit and properly implement this client script
 frappe.pages['print'].on_page_load = function (wrapper) {
   frappe.require(['pdfjs.bundle.css', 'print_designer.bundle.css']);
+  
+  // Load PDF logger utility
+  frappe.require(['/assets/print_designer/js/pdf_logger.js'], () => {
+    console.log('PDF Logger loaded successfully');
+  });
+  
   frappe.ui.make_app_page({
     parent: wrapper,
   });
@@ -127,6 +133,15 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     return pdfEl;
   }
   async designer_pdf(print_format) {
+    // Initialize logging for this PDF generation session
+    if (window.pdfLogger) {
+      window.pdfLogger.log('PDF_GENERATION_INIT', 'Starting PDF generation process', {
+        print_format: print_format.name,
+        doctype: this.frm.doc.doctype,
+        docname: this.frm.doc.name
+      });
+    }
+    
     let print_designer_settings = JSON.parse(
       print_format.print_designer_settings,
     );
@@ -178,8 +193,23 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       window.location.origin
     }/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
 
+    // Log PDF generation start
+    if (window.pdfLogger) {
+      window.pdfLogger.logPDFStart(url, params.get('pdf_generator'), params.get('format'));
+    }
+
     const pdfEl = this.createPdfEl(url, wrapperContainer);
     const onError = () => {
+      // Log the error with comprehensive details
+      if (window.pdfLogger) {
+        window.pdfLogger.logPDFError(
+          url,
+          params.get('pdf_generator'),
+          params.get('format'),
+          new Error('PDF Object failed to load')
+        );
+      }
+      
       // Try to get more specific error information
       console.error('PDF Generation Error:', {
         url: url,
@@ -195,6 +225,16 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         this.pdf_retry_attempted = true;
         const nextGenerator = alternativeGenerators[0];
         
+        // Log the retry attempt
+        if (window.pdfLogger) {
+          window.pdfLogger.logPDFRetry(
+            url,
+            nextGenerator,
+            currentGenerator,
+            1
+          );
+        }
+        
         frappe.show_alert({
           message: __('Retrying with {0} generator...', [nextGenerator]),
           indicator: 'blue'
@@ -209,6 +249,16 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         }, 1000);
         
         return;
+      }
+      
+      // Log final failure
+      if (window.pdfLogger) {
+        window.pdfLogger.log('PDF_GENERATION_FINAL_FAILURE', 'All PDF generation attempts failed', {
+          url: url,
+          attempts: this.pdf_retry_attempted ? 2 : 1,
+          finalGenerator: params.get('pdf_generator'),
+          alternativeGenerators: alternativeGenerators
+        }, 'CRITICAL');
       }
       
       // Show fallback UI
@@ -234,13 +284,76 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       );
     };
     const onPdfLoad = () => {
+      // Log successful PDF generation
+      if (window.pdfLogger) {
+        window.pdfLogger.logPDFSuccess(
+          url,
+          params.get('pdf_generator'),
+          params.get('format')
+        );
+      }
+      
       canvasContainer.style.display = 'none';
       pdfEl.style.display = 'block';
       pdfEl.style.height =
         'calc(100vh - var(--page-head-height) - var(--navbar-height))';
     };
-    pdfEl.addEventListener('load', onPdfLoad);
-    pdfEl.addEventListener('error', onError);
+    // Add freeze detection with timeout
+    const FREEZE_TIMEOUT = 30000; // 30 seconds
+    let freezeTimeout;
+    
+    const resetFreezeTimeout = () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      freezeTimeout = setTimeout(() => {
+        if (window.pdfLogger) {
+          window.pdfLogger.logPDFFreeze(
+            url,
+            params.get('pdf_generator'),
+            params.get('format'),
+            FREEZE_TIMEOUT
+          );
+        }
+        
+        // Show freeze alert
+        frappe.show_alert({
+          message: __('PDF generation appears to be stuck. This may be due to server overload or network issues.'),
+          indicator: 'orange'
+        }, 10);
+        
+        // Auto-retry after showing freeze alert
+        setTimeout(() => {
+          if (confirm(__('PDF generation seems frozen. Would you like to retry?'))) {
+            location.reload();
+          }
+        }, 2000);
+      }, FREEZE_TIMEOUT);
+    };
+    
+    // Start freeze detection
+    resetFreezeTimeout();
+    
+    pdfEl.addEventListener('load', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      onPdfLoad();
+    });
+    
+    pdfEl.addEventListener('error', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      onError();
+    });
+    
+    // Clear timeout on component cleanup
+    $(document).on('beforeunload', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+    });
   }
   printit() {
     // If copy functionality is enabled, use our custom logic
@@ -283,6 +396,11 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       this.full_page_btn.hide();
       this.pdf_btn.hide();
       this.page.add_menu_item('Download PDF', () => this.render_pdf());
+      
+      // Add debug menu for PDF generation logs
+      this.page.add_menu_item('View PDF Logs', () => this.showPDFLogs());
+      this.page.add_menu_item('Export PDF Logs', () => this.exportPDFLogs());
+      this.page.add_menu_item('Clear PDF Logs', () => this.clearPDFLogs());
       this.print_btn.hide();
       this.letterhead_selector.hide();
       this.sidebar_dynamic_section.hide();
@@ -611,5 +729,93 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         `${frappe.get_route().slice(2).join('/')}.pdf`,
       );
     });
+  }
+
+  // Debug methods for PDF generation logs
+  async showPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    try {
+      const response = await window.pdfLogger.getRecentLogs(100);
+      if (response.success) {
+        const logs = response.logs.join('\n');
+        frappe.msgprint({
+          title: __('PDF Generation Logs'),
+          message: `<pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">${logs}</pre>`,
+          wide: true
+        });
+      } else {
+        frappe.show_alert({
+          message: __('Failed to retrieve logs: {0}', [response.message]),
+          indicator: 'red'
+        });
+      }
+    } catch (error) {
+      frappe.show_alert({
+        message: __('Error retrieving logs: {0}', [error.message]),
+        indicator: 'red'
+      });
+    }
+  }
+
+  exportPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    try {
+      window.pdfLogger.exportSessionLogs();
+      frappe.show_alert({
+        message: __('PDF logs exported successfully'),
+        indicator: 'green'
+      });
+    } catch (error) {
+      frappe.show_alert({
+        message: __('Error exporting logs: {0}', [error.message]),
+        indicator: 'red'
+      });
+    }
+  }
+
+  async clearPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    if (confirm(__('Are you sure you want to clear all PDF generation logs?'))) {
+      try {
+        const response = await window.pdfLogger.clearLogs();
+        if (response.success) {
+          frappe.show_alert({
+            message: __('PDF logs cleared successfully'),
+            indicator: 'green'
+          });
+        } else {
+          frappe.show_alert({
+            message: __('Failed to clear logs: {0}', [response.message]),
+            indicator: 'red'
+          });
+        }
+      } catch (error) {
+        frappe.show_alert({
+          message: __('Error clearing logs: {0}', [error.message]),
+          indicator: 'red'
+        });
+      }
+    }
   }
 };
