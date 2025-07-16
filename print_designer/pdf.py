@@ -1,10 +1,7 @@
 import hashlib
 import html
 import json
-<<<<<<< HEAD
-=======
 import re
->>>>>>> develop
 import time
 
 import frappe

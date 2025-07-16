@@ -7,10 +7,6 @@ from typing import Literal
 
 import click
 import frappe
-<<<<<<< HEAD
-from frappe.monitor import filelock
-=======
->>>>>>> develop
 import requests
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
@@ -43,12 +39,8 @@ def before_install():
 def after_install():
 	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
 	on_print_designer_install()
-<<<<<<< HEAD
-	add_pdf_generator_option()
-=======
 	remove_chrome_pdf_generator_option()
 	set_wkhtmltopdf_as_default_for_print_designer()
->>>>>>> develop
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
 
@@ -58,10 +50,6 @@ def after_app_install(app):
 		install_default_formats(app)
 
 
-<<<<<<< HEAD
-@filelock("print_designer_chromium_setup", timeout=1, is_global=True)
-=======
->>>>>>> develop
 def setup_chromium():
 	"""Setup Chromium at the bench level."""
 	# Load Chromium version from common_site_config.json or use default
@@ -327,10 +315,6 @@ def calculate_platform():
 	return "<unknown>"
 
 
-<<<<<<< HEAD
-def add_pdf_generator_option():
-	set_pdf_generator_option("add")
-=======
 def remove_chrome_pdf_generator_option():
 	set_pdf_generator_option("remove")
 
@@ -369,20 +353,12 @@ def set_chrome_for_print_designer_format(doc, method):
 	# If Print Designer is enabled, ensure wkhtmltopdf PDF generator is used
 	if doc.print_designer and doc.pdf_generator not in ["", "wkhtmltopdf"]:
 		doc.pdf_generator = "wkhtmltopdf"
->>>>>>> develop
 
 
 def set_pdf_generator_option(action: Literal["add", "remove"]):
 	options = (frappe.get_meta("Print Format").get_field("pdf_generator").options).split("\n")
 
-<<<<<<< HEAD
-	if action == "add":
-		if "chrome" not in options:
-			options.append("chrome")
-	elif action == "remove":
-=======
 	if action == "remove":
->>>>>>> develop
 		if "chrome" in options:
 			options.remove("chrome")
 

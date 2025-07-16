@@ -1,11 +1,7 @@
-<<<<<<< HEAD
-CUSTOM_FIELDS = {
-=======
 from .signature_fields import get_signature_fields
 
 # Print Designer specific custom fields
 PRINT_DESIGNER_CUSTOM_FIELDS = {
->>>>>>> develop
 	"Print Format": [
 		{
 			"default": "0",
@@ -65,10 +61,6 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
 			"default": "print_designer",
 			"insert_after": "standard",
 		},
-<<<<<<< HEAD
-	]
-}
-=======
 		{
 			"depends_on": "eval:doc.print_designer",
 			"fieldname": "watermark_settings",
@@ -87,4 +79,3 @@ CUSTOM_FIELDS = {
 	**PRINT_DESIGNER_CUSTOM_FIELDS,
 	**get_signature_fields()
 }
->>>>>>> develop
