@@ -46,8 +46,6 @@ const printDesignerDialog = () => {
 				mandatory_depends_on: (doc) => doc.action === "Create",
 			},
 			{
-<<<<<<< HEAD
-=======
 				label: __("Copy From"),
 				fieldname: "copy_from",
 				fieldtype: "Link",
@@ -64,7 +62,6 @@ const printDesignerDialog = () => {
 				},
 			},
 			{
->>>>>>> develop
 				label: __("Select Print Format"),
 				fieldname: "print_format",
 				fieldtype: "Link",
@@ -84,64 +81,11 @@ const printDesignerDialog = () => {
 		],
 		static: true,
 		primary_action_label: __("Edit"),
-<<<<<<< HEAD
-		primary_action({ action, doctype, print_format, print_format_name }) {
-=======
 		primary_action({ action, doctype, print_format, print_format_name, copy_from }) {
->>>>>>> develop
 			if (action === "Edit") {
 				frappe.set_route("print-designer", print_format);
 			} else if (action === "Create") {
 				d.get_primary_btn().prop("disabled", true);
-<<<<<<< HEAD
-				frappe.db
-					.insert({
-						doctype: "Print Format",
-						name: print_format_name,
-						doc_type: doctype,
-						print_designer: 1,
-						print_designer_header: JSON.stringify([
-							{
-								type: "page",
-								childrens: [],
-								firstPage: true,
-								oddPage: true,
-								evenPage: true,
-								lastPage: true,
-								DOMRef: null,
-							},
-						]),
-						print_designer_body: JSON.stringify([
-							{
-								type: "page",
-								index: 0,
-								DOMRef: null,
-								isDropZone: true,
-								childrens: [],
-							},
-						]),
-						print_designer_footer: JSON.stringify([
-							{
-								type: "page",
-								childrens: [],
-								firstPage: true,
-								oddPage: true,
-								evenPage: true,
-								lastPage: true,
-								DOMRef: null,
-							},
-						]),
-					})
-					.then((doc) => {
-						// Incase Route is Same, set_route() is needed to refresh.
-						set_current_doc(doc.name).then(() => {
-							frappe.set_route("print-designer", doc.name);
-						});
-					})
-					.finally(() => {
-						d.get_primary_btn().prop("disabled", false);
-					});
-=======
 				const insert_doc = (header, footer) => {
 					frappe.db
 						.insert({
@@ -200,7 +144,6 @@ const printDesignerDialog = () => {
 				} else {
 					insert_doc();
 				}
->>>>>>> develop
 			}
 		},
 		secondary_action_label: __("Exit"),

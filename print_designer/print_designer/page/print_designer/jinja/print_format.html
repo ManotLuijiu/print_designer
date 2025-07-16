@@ -9,8 +9,6 @@
 <!-- user_generated_jinja_code -->
 <!-- end of user generated code -->
 
-<<<<<<< HEAD
-=======
 <!-- Letter Head Integration - Standard Frappe Style -->
 {% if letter_head and not no_letterhead %}
 <div class="letter-head">
@@ -41,7 +39,6 @@
         </div>
         
         <!-- Content for each copy -->
->>>>>>> develop
 <div id="__print_designer">
     {% set header_available = pd_format.header.firstPage or pd_format.header.oddPage or pd_format.header.evenPage or pd_format.header.lastPage %}
     {%- if settings.page.headerHeight != 0 and header_available -%}
@@ -74,13 +71,6 @@
     {%- endif -%}
 </div>
 
-<<<<<<< HEAD
-{%- if pdf_generator == "chrome" -%}
-    {{ render_styles(settings) }}
-{%- else -%}
-    {{ render_old_styles(settings) }}
-{%- endif -%}
-=======
         <!-- Letter Head Footer - Standard Frappe Style -->
         {% if footer and not no_letterhead %}
         <div class="letter-head-footer">
@@ -142,4 +132,3 @@
 {% endif %}
 
 {{ render_old_styles(settings) }}
->>>>>>> develop

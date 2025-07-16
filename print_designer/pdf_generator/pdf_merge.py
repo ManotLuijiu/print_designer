@@ -1,10 +1,6 @@
 from io import BytesIO
 
-<<<<<<< HEAD
-from pypdf import PdfWriter, Transformation
-=======
 from pypdf import PdfWriter, Transformation, PdfReader, PageObject
->>>>>>> develop
 
 
 class PDFTransformer:
@@ -33,17 +29,11 @@ class PDFTransformer:
 			self.is_footer_dynamic = self.browser.is_footer_dynamic
 
 	def transform_pdf(self, output=None):
-<<<<<<< HEAD
-=======
 		import frappe
->>>>>>> develop
 		header = self.header_pdf
 		body = self.body_pdf
 		footer = self.footer_pdf
 
-<<<<<<< HEAD
-		if not header and not footer:
-=======
 		# Debug logging
 		copy_count = getattr(self.browser, 'copy_count', 0)
 		frappe.logger().info(f"PDFTransformer Debug - copy_count: {copy_count}, has_header: {bool(header)}, has_footer: {bool(footer)}")
@@ -54,7 +44,6 @@ class PDFTransformer:
 			if hasattr(self.browser, 'copy_count') and self.browser.copy_count > 1:
 				frappe.logger().info(f"Generating {self.browser.copy_count} copies (no header/footer)")
 				return self._generate_copies(body)
->>>>>>> develop
 			return body
 
 		body_height = body.pages[0].mediabox.top
@@ -115,8 +104,6 @@ class PDFTransformer:
 		if self.encrypt_password:
 			writer.encrypt(self.encrypt_password)
 
-<<<<<<< HEAD
-=======
 		# Check if we need to apply watermarks or generate copies
 		watermark_mode = getattr(self.browser, 'watermark_mode', None)
 		copy_watermark = getattr(self.browser, 'copy_watermark', False)
@@ -129,8 +116,6 @@ class PDFTransformer:
 			frappe.logger().info(f"Generating {self.browser.copy_count} copies (with header/footer)")
 			merged_pdf_data = self.get_file_data_from_writer(writer)
 			return self._generate_copies_from_data(merged_pdf_data)
-
->>>>>>> develop
 		return self.get_file_data_from_writer(writer)
 
 	def _transform(self, page, page_top, ty):
@@ -149,8 +134,6 @@ class PDFTransformer:
 
 		# Read up to size bytes from the object and return them
 		return stream.read()
-<<<<<<< HEAD
-=======
 
 	def _generate_copies(self, body_pdf):
 		"""Generate multiple copies of PDF with watermarks directly from PdfReader"""
@@ -318,4 +301,3 @@ class PDFTransformer:
 		except Exception as e:
 			frappe.logger().info(f"Could not add text overlay: {e}")
 			return page
->>>>>>> develop

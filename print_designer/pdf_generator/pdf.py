@@ -19,7 +19,6 @@ def before_request():
 		
 		# Use wkhtmltopdf for Print Designer formats
 		frappe.local.form_dict.pdf_generator = "wkhtmltopdf"
->>>>>>> develop
 
 
 def after_request():

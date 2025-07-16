@@ -205,8 +205,6 @@ background-image: url('{{frappe.get_url()}}{{value}}');
 <!-- user_generated_jinja_code -->
 <!-- end of user generated code -->
 
-<<<<<<< HEAD
-=======
 <!-- Letter Head Integration - Standard Frappe Style (Legacy Template) -->
 {% if letter_head and not no_letterhead %}
 <div class="letter-head">
@@ -218,8 +216,6 @@ background-image: url('{{frappe.get_url()}}{{value}}');
     {% endif %}
 </div>
 {% endif %}
-
->>>>>>> develop
     {% set renderHeader = render_element(headerElement[0].childrens, send_to_jinja) %}
     {% set renderBody =  render_element(bodyElement[0].childrens, send_to_jinja) %}
     {% set renderFooter = render_element(footerElement[0].childrens, send_to_jinja) %}
@@ -256,8 +252,6 @@ background-image: url('{{frappe.get_url()}}{{value}}');
             <div style="width: 100%; position: relative; top:0px; left: 0px; height:{{ settings.page.footerHeightWithMargin }}px; ">{% if footerElement %}{{ renderFooter }}{%endif%}</div>
             </div>
     </div>
-<<<<<<< HEAD
-=======
 
 <!-- Letter Head Footer - Standard Frappe Style (Legacy Template) -->
 {% if footer and not no_letterhead %}
@@ -270,7 +264,6 @@ background-image: url('{{frappe.get_url()}}{{value}}');
     {% endif %}
 </div>
 {% endif %}
->>>>>>> develop
 <style>
     .print-format {
         box-sizing: border-box;
