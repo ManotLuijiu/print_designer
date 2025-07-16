@@ -148,9 +148,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 
     // Add PDF generator parameter
     const selected_generator = this.selected_pdf_generator || 'auto';
-    if (selected_generator !== 'auto') {
-      params.set('pdf_generator', selected_generator);
-    }
+    params.set('pdf_generator', selected_generator);
 
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
@@ -560,9 +558,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 
     // Add PDF generator parameter
     const selected_generator = this.selected_pdf_generator || 'auto';
-    if (selected_generator !== 'auto') {
-      params.set('pdf_generator', selected_generator);
-    }
+    params.set('pdf_generator', selected_generator);
 
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
