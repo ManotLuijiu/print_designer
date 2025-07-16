@@ -1,3 +1,6 @@
+import frappe
+from frappe.utils.data import cint
+
 from print_designer.pdf import measure_time
 from print_designer.pdf_generator_manager import PDFGeneratorManager
 
@@ -9,4 +12,8 @@ def get_pdf(print_format, html, options, output, **kwargs):
 	This function is called by Frappe's PDF generation workflow and delegates
 	to the PDFGeneratorManager.
 	"""
+	if not cint(getattr(print_format, "print_designer", 0)):
+		# Not a print designer format, let Frappe handle it.
+		return None
+	
 	return PDFGeneratorManager.generate_pdf(print_format, html, options, output)

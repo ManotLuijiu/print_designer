@@ -273,9 +273,13 @@ class Browser:
 				raise frappe.ValidationError("Page size is required")
 			if page_size == "CUSTOM":
 				raise frappe.ValidationError("Custom page size requires page-height and page-width")
+
 			size = PageSize.get(page_size)
 			if not size:
-				raise frappe.ValidationError("Invalid page size")
+				# Handle the case where an invalid page size is provided
+				# You could log an error, use a default, or raise a more specific error
+				# For now, let's raise a validation error.
+								raise frappe.ValidationError(f"Invalid page size: {page_size}")
 
 			options["page-height"] = convert_uom(size["height"], "mm", "px", only_number=True)
 			options["page-width"] = convert_uom(size["width"], "mm", "px", only_number=True)
