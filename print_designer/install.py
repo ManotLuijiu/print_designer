@@ -348,7 +348,7 @@ def set_wkhtmltopdf_as_default_for_print_designer():
 		click.echo(f"Error setting wkhtmltopdf as default for Print Designer formats: {str(e)}")
 
 
-def set_chrome_for_print_designer_format(doc, method):
+def set_wkhtmltopdf_for_print_designer_format(doc, method):
 	"""Automatically set wkhtmltopdf PDF generator when print_designer field is enabled"""
 	# If Print Designer is enabled, ensure wkhtmltopdf PDF generator is used
 	if doc.print_designer and doc.pdf_generator not in ["", "wkhtmltopdf"]:

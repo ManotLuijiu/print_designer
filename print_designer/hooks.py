@@ -93,11 +93,10 @@ pdf_footer_html = "print_designer.pdf.pdf_header_footer_html"
 get_print_format_template = "print_designer.pdf.get_print_format_template"
 
 
-before_request = ["print_designer.pdf_generator.pdf.before_request"]
-
-after_request = ["print_designer.pdf_generator.pdf.after_request"]
-
-pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
+# Chrome PDF generator hooks removed - Print Designer now uses wkhtmltopdf/WeasyPrint
+# before_request = ["print_designer.pdf_generator.pdf.before_request"]
+# after_request = ["print_designer.pdf_generator.pdf.after_request"]  
+# pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
 
 override_doctype_class = {
     "Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
@@ -108,6 +107,6 @@ pd_standard_format_folder = "default_templates"
 
 doc_events = {
 	"Print Format": {
-		"before_save": "print_designer.install.set_chrome_for_print_designer_format",
+		"before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
 	}
 }

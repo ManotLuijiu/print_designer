@@ -13,6 +13,7 @@ dependencies = [
     "python-barcode~=0.15.1",
     "websockets",
     "distro",
+    "weasyprint"
 ]
 
 [build-system]

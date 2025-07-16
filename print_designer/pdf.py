@@ -176,11 +176,17 @@ def pdf_body_html(print_format, jenv, args, template):
 				"enable_copies": True
 			})
 		
-		# Add Letter Head using standard Frappe Letter Head system (only for wkhtmltopdf)
-		pdf_generator = frappe.form_dict.get("pdf_generator", "wkhtmltopdf")
+		# Determine best PDF generator: WeasyPrint > wkhtmltopdf
+		from print_designer.weasyprint_integration import should_use_weasyprint
+		pdf_generator = frappe.form_dict.get("pdf_generator")
+		
+		if not pdf_generator:
+			# Auto-select best available PDF generator
+			pdf_generator = "WeasyPrint" if should_use_weasyprint() else "wkhtmltopdf"
+		
 		letterhead = frappe.form_dict.get("letterhead")
 		no_letterhead = frappe.form_dict.get("no_letterhead")
-		# Since Chrome is disabled, this condition is always true for Print Designer
+		# Letter Head works with both wkhtmltopdf and WeasyPrint
 		if not no_letterhead and letterhead:
 			try:
 				# Use standard Frappe Letter Head function
@@ -230,17 +236,22 @@ def pdf_body_html(print_format, jenv, args, template):
 		else:
 			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
 
-		# Clean CSS for wkhtmltopdf compatibility BEFORE template rendering
-		if args["pdf_generator"] == "wkhtmltopdf":
-			# Clean inline CSS from the settings.css if it exists
-			if "settings" in args and "css" in args["settings"]:
-				original_css = args["settings"]["css"]
+		# Clean CSS based on PDF generator BEFORE template rendering
+		if "settings" in args and "css" in args["settings"]:
+			original_css = args["settings"]["css"]
+			
+			if args["pdf_generator"] == "WeasyPrint":
+				from print_designer.weasyprint_integration import clean_css_for_weasyprint
+				cleaned_css = clean_css_for_weasyprint(original_css)
+			else:
+				# wkhtmltopdf needs more aggressive CSS cleaning
 				cleaned_css = clean_css_for_wkhtmltopdf(original_css)
-				args["settings"]["css"] = cleaned_css
-				
-				# Debug logging
-				if frappe.conf.developer_mode:
-					frappe.logger().info(f"Print Designer CSS cleaning: Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
+			
+			args["settings"]["css"] = cleaned_css
+			
+			# Debug logging
+			if frappe.conf.developer_mode:
+				frappe.logger().info(f"Print Designer CSS cleaning ({args['pdf_generator']}): Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
 		# replace placeholder comment with user provided jinja code
 		template_source = template.replace(
 			"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
@@ -249,8 +260,17 @@ def pdf_body_html(print_format, jenv, args, template):
 			template = jenv.from_string(template_source)
 			rendered_html = template.render(args, filters={"len": len})
 			
-			# Additional CSS cleaning of rendered HTML for wkhtmltopdf
-			if args["pdf_generator"] == "wkhtmltopdf":
+			# Additional CSS cleaning of rendered HTML based on PDF generator
+			if args["pdf_generator"] == "WeasyPrint":
+				# WeasyPrint supports modern CSS better, minimal cleaning needed
+				from print_designer.weasyprint_integration import clean_css_for_weasyprint
+				rendered_html = re.sub(
+					r'(<style[^>]*>)(.*?)(</style>)',
+					lambda m: m.group(1) + clean_css_for_weasyprint(m.group(2)) + m.group(3),
+					rendered_html,
+					flags=re.DOTALL
+				)
+			elif args["pdf_generator"] == "wkhtmltopdf":
 				# Extract and clean CSS from style tags in the rendered HTML
 				rendered_html = re.sub(
 					r'(<style[^>]*>)(.*?)(</style>)',
