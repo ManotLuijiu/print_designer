@@ -666,9 +666,43 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       params.set('letterhead', this.letterhead_selector.val());
     }
     console.log('params', params);
-    let url = `${
-      window.location.origin
-    }/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    
+    // Initialize safe PDF client and get URL
+    let url;
+    if (window.safePDFClient) {
+      try {
+        await window.safePDFClient.initialize();
+        
+        // Convert URLSearchParams to object for safe client
+        const paramsObj = {};
+        for (const [key, value] of params.entries()) {
+          paramsObj[key] = value;
+        }
+        
+        url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
+        
+        // Log safe client usage
+        if (window.pdfLogger) {
+          window.pdfLogger.log('PDF_SAFE_CLIENT_USED', 'Using safe PDF client for URL generation', {
+            safeEndpoints: window.safePDFClient.isUsingSafeEndpoints(),
+            conflicts: window.safePDFClient.getDetectedConflicts(),
+            generatedUrl: url
+          });
+        }
+      } catch (error) {
+        console.error('Print Designer: Safe PDF client failed, using standard URL:', error);
+        url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+        
+        if (window.pdfLogger) {
+          window.pdfLogger.log('PDF_SAFE_CLIENT_FAILED', 'Safe PDF client failed, using standard URL', {
+            error: error.message,
+            fallbackUrl: url
+          });
+        }
+      }
+    } else {
+      url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    }
 
     // Show enhanced loading state with generator information
     const loadingHTML = `
@@ -735,7 +769,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       });
       
       // Before trying retries or fallbacks, check if the PDF URL is valid
-      this.checkPDFUrl(url).then(urlCheck => {
+      this.checkPDFUrl(url).then(async urlCheck => {
         // Handle specific error types
         if (urlCheck.isPermissionError) {
           // 403 Forbidden - This might be due to letterhead permissions
@@ -790,7 +824,20 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
               }
             }
             
-            const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+            let retryUrl;
+            if (window.safePDFClient) {
+              try {
+                const retryParamsObj = {};
+                for (const [key, value] of retryParams.entries()) {
+                  retryParamsObj[key] = value;
+                }
+                retryUrl = await window.safePDFClient.getPDFDownloadURL(retryParamsObj);
+              } catch (error) {
+                retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+              }
+            } else {
+              retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+            }
             
             // Log the retry attempt
             if (window.pdfLogger) {
@@ -981,7 +1028,20 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
           
           // Retry with different generator
           params.set('pdf_generator', nextGenerator);
-          const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+          let retryUrl;
+          if (window.safePDFClient) {
+            try {
+              const retryParamsObj = {};
+              for (const [key, value] of params.entries()) {
+                retryParamsObj[key] = value;
+              }
+              retryUrl = await window.safePDFClient.getPDFDownloadURL(retryParamsObj);
+            } catch (error) {
+              retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+            }
+          } else {
+            retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+          }
           
           // Remove the failed PDF object and create a new one
           setTimeout(() => {
@@ -1475,7 +1535,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       this.frm.meta.default_print_format,
     );
   }
-  render_pdf() {
+  async render_pdf() {
     // Construct PDF URL like the parent class
     let params = new URLSearchParams({
       doctype: this.frm.doctype,
@@ -1515,7 +1575,25 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     }
     
     // Construct the full URL
-    let url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    let url;
+    if (window.safePDFClient) {
+      try {
+        await window.safePDFClient.initialize();
+        
+        // Convert URLSearchParams to object for safe client
+        const paramsObj = {};
+        for (const [key, value] of params.entries()) {
+          paramsObj[key] = value;
+        }
+        
+        url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
+      } catch (error) {
+        console.error('Print Designer: Safe PDF client failed for copy printing, using standard URL:', error);
+        url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+      }
+    } else {
+      url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    }
     console.log('PDF URL with copy parameters:', url);
     
     // Open the PDF download

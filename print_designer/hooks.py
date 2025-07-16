@@ -29,7 +29,10 @@ app_license = "AGPLv3"
 
 # include js in page
 page_js = {
-    "print": "print_designer/client_scripts/print.js",
+    "print": [
+        "print_designer/client_scripts/safe_pdf_client.js",
+        "print_designer/client_scripts/print.js"
+    ],
     "point-of-sale": "print_designer/client_scripts/point_of_sale.js",
 }
 
@@ -75,6 +78,9 @@ jinja = {
 before_install = "print_designer.install.before_install"
 after_install = "print_designer.install.after_install"
 after_app_install = "print_designer.install.after_app_install"
+
+# Initialize protection against third-party app conflicts
+after_migrate = "print_designer.utils.print_protection.initialize_print_protection"
 
 # Uninstallation
 # ------------
