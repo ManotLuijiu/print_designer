@@ -581,9 +581,11 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       _lang: this.lang_code,
     });
 
-    // Add PDF generator parameter
+    // Add PDF generator parameter - only send if not auto
     const selected_generator = this.selected_pdf_generator || 'auto';
-    params.set('pdf_generator', selected_generator);
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
 
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
@@ -640,7 +642,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 
     // Log PDF generation start
     if (window.pdfLogger) {
-      window.pdfLogger.logPDFStart(url, params.get('pdf_generator'), params.get('format'));
+      window.pdfLogger.logPDFStart(url, params.get('pdf_generator') || 'auto', params.get('format'));
     }
 
     // Reset retry flags for each new PDF generation
@@ -653,7 +655,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       if (window.pdfLogger) {
         window.pdfLogger.logPDFError(
           url,
-          params.get('pdf_generator'),
+          params.get('pdf_generator') || 'auto',
           params.get('format'),
           new Error('PDF Object failed to load')
         );
@@ -662,13 +664,13 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       // Try to get more specific error information
       console.error('PDF Generation Error:', {
         url: url,
-        generator: params.get('pdf_generator'),
+        generator: params.get('pdf_generator') || 'auto',
         format: params.get('format')
       });
       
       // Try alternative PDF generators if auto-selection failed
       const currentGenerator = params.get('pdf_generator');
-      const alternativeGenerators = ['wkhtmltopdf', 'WeasyPrint', 'chrome'].filter(g => g !== currentGenerator);
+      const alternativeGenerators = ['wkhtmltopdf', 'chrome'].filter(g => g !== currentGenerator);
       
       if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted) {
         this.pdf_retry_attempted = true;
@@ -1057,12 +1059,11 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
         label: __('PDF Generator'),
         options: [
           'auto',
-          'WeasyPrint', 
           'wkhtmltopdf',
           'chrome'
         ].join('\n'),
         default: 'auto',
-        description: __('Auto selects the best available generator'),
+        description: __('Auto lets server choose the best available generator'),
         change: () => {
           if (this.pdf_generator_item.value === 'auto') {
             // Let the system choose the best generator
@@ -1209,9 +1210,11 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       _lang: this.lang_code,
     });
 
-    // Add PDF generator parameter
+    // Add PDF generator parameter - only send if not auto
     const selected_generator = this.selected_pdf_generator || 'auto';
-    params.set('pdf_generator', selected_generator);
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
 
     // Add copy parameters if enabled
     if (this.enable_copies_item && this.enable_copies_item.value) {
