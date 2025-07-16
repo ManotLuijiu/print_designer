@@ -131,10 +131,6 @@ def get_image_docfields():
 	return image_docfields
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
 @frappe.whitelist()
 def convert_css(css_obj):
 	string_css = ""

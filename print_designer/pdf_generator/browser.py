@@ -81,8 +81,6 @@ class Browser:
 
 	def set_options(self, options):
 		self.options = options
-<<<<<<< HEAD
-=======
 		# Extract copy-related options
 		self.copy_count = self.options.get("copy_count", 0) if self.options else 0
 		self.copy_labels = self.options.get("copy_labels", [frappe._("Original"), frappe._("Copy")]) if self.options else [frappe._("Original"), frappe._("Copy")]
@@ -91,7 +89,6 @@ class Browser:
 		# Extract watermark-related options
 		self.watermark_mode = self.options.get("watermark_mode") if self.options else None
 		self.watermark_labels = self.options.get("watermark_labels", [frappe._("Original"), frappe._("Copy")]) if self.options else [frappe._("Original"), frappe._("Copy")]
->>>>>>> develop
 
 	def new_page(self, page_type):
 		"""

@@ -10,15 +10,6 @@ from frappe.utils.error import log_error
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import pdf_body_html as fw_pdf_body_html
 
-<<<<<<< HEAD
-
-def pdf_header_footer_html(soup, head, content, styles, html_id, css):
-	if soup.find(id="__print_designer"):
-		if frappe.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
-			path = "print_designer/page/print_designer/jinja/header_footer.html"
-		else:
-			path = "print_designer/page/print_designer/jinja/header_footer_old.html"
-=======
 # Import cint with fallback
 try:
 	from frappe.utils import cint
@@ -106,7 +97,6 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 	if soup.find(id="__print_designer"):
 		# Always use old header/footer template (chrome support removed)
 		path = "print_designer/page/print_designer/jinja/header_footer_old.html"
->>>>>>> develop
 		try:
 			return frappe.render_template(
 				path,
@@ -133,12 +123,7 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 
 		# same default path is defined in fw pdf_header_html function if no path is passed it will use default path
 		path = "templates/print_formats/pdf_header_footer.html"
-<<<<<<< HEAD
-		if frappe.local.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
-			path = "print_designer/pdf_generator/framework fromats/pdf_header_footer_chrome.html"
-=======
 		# Chrome PDF generation is disabled - always use default path
->>>>>>> develop
 
 		if html_id == "header-html":
 			return pdf_header_html(
@@ -178,8 +163,6 @@ def pdf_body_html(print_format, jenv, args, template):
 				"pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
 			}
 		)
-<<<<<<< HEAD
-=======
 		
 		# Handle copy functionality with wkhtmltopdf (since Chrome is disabled)
 		copy_count = cint(frappe.form_dict.get("copy_count", 0))
@@ -241,15 +224,12 @@ def pdf_body_html(print_format, jenv, args, template):
 				frappe.log_error(title="Letter Head Error in Print Designer", message=f"Error processing Letter Head: {str(e)}")
 				# Continue without Letter Head
 				pass
->>>>>>> develop
 
 		if not is_older_schema(settings=settings, current_version="1.1.0"):
 			args.update({"pd_format": json.loads(print_format.print_designer_print_format)})
 		else:
 			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
 
-<<<<<<< HEAD
-=======
 		# Clean CSS for wkhtmltopdf compatibility BEFORE template rendering
 		if args["pdf_generator"] == "wkhtmltopdf":
 			# Clean inline CSS from the settings.css if it exists
@@ -261,17 +241,12 @@ def pdf_body_html(print_format, jenv, args, template):
 				# Debug logging
 				if frappe.conf.developer_mode:
 					frappe.logger().info(f"Print Designer CSS cleaning: Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
-
->>>>>>> develop
 		# replace placeholder comment with user provided jinja code
 		template_source = template.replace(
 			"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
 		)
 		try:
 			template = jenv.from_string(template_source)
-<<<<<<< HEAD
-			return template.render(args, filters={"len": len})
-=======
 			rendered_html = template.render(args, filters={"len": len})
 			
 			# Additional CSS cleaning of rendered HTML for wkhtmltopdf
@@ -379,7 +354,6 @@ def pdf_body_html(print_format, jenv, args, template):
 					frappe.logger().info(f"Debug HTML saved to: {debug_file}")
 			
 			return rendered_html
->>>>>>> develop
 
 		except Exception as e:
 			error = log_error(title=e, reference_doctype="Print Format", reference_name=print_format.name)

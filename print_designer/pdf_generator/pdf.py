@@ -9,23 +9,13 @@ from print_designer.pdf_generator.pdf_merge import PDFTransformer
 
 def before_request():
 	if frappe.request.path == "/api/method/frappe.utils.print_format.download_pdf":
-<<<<<<< HEAD
-		frappe.local.form_dict.pdf_generator = (
-=======
 		original_pdf_generator = (
->>>>>>> develop
 			frappe.request.args.get(
 				"pdf_generator",
 				frappe.get_cached_value("Print Format", frappe.request.args.get("format"), "pdf_generator"),
 			)
 			or "wkhtmltopdf"
 		)
-<<<<<<< HEAD
-		if frappe.local.form_dict.pdf_generator == "chrome":
-			# Initialize the browser
-			FrappePDFGenerator()
-			return
-=======
 		
 		# Use wkhtmltopdf for Print Designer formats
 		frappe.local.form_dict.pdf_generator = "wkhtmltopdf"
@@ -44,11 +34,6 @@ def after_request():
 
 @measure_time
 def get_pdf(print_format, html, options, output, pdf_generator=None):
-<<<<<<< HEAD
-	if pdf_generator != "chrome":
-		# Use the default pdf generator
-		return
-=======
 	# Chrome PDF generation is disabled - Print Designer now uses wkhtmltopdf
 	return
 	
@@ -106,7 +91,6 @@ def get_pdf(print_format, html, options, output, pdf_generator=None):
 			]
 		options["copy_watermark"] = copy_watermark
 	
->>>>>>> develop
 	# scrubbing url to expand url is not required as we have set url.
 	# also, planning to remove network requests anyway 🤞
 	generator = FrappePDFGenerator()
