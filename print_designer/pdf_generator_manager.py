@@ -38,7 +38,7 @@ class PDFGeneratorManager:
 		available = PDFGeneratorManager.get_available_generators()
 		
 		# If specific generator requested and available, use it
-		if requested_generator and requested_generator in available:
+		if requested_generator and requested_generator != 'auto' and requested_generator in available:
 			return requested_generator
 		
 		# Auto-select priority: WeasyPrint > wkhtmltopdf > chrome
