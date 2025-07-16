@@ -1,0 +1,52 @@
+{%- macro format_thai_tax_id(tax_id) -%}
+  {%- if tax_id -%}
+    {%- set digits = tax_id | string | list -%}
+    {%- if digits | length == 13 -%}
+      {{ digits[0] }}-{{ digits[1:5] | join('') }}-{{ digits[5:10] | join('') }}-{{ digits[10:12] | join('') }}-{{ digits[12] }}
+    {%- else -%}
+      {{ tax_id }}
+    {%- endif -%}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro thai_buddhist_year(date) -%}
+  {%- if date -%}
+    {{ date.year + 543 }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro format_thai_amount(amount) -%}
+  {%- if amount -%}
+    {{ '{:,.2f}'.format(amount) }}
+  {%- else -%}
+    0.00
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro thai_month_name(month_num) -%}
+  {%- set thai_months = [
+    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+  ] -%}
+  {%- if month_num and month_num >= 1 and month_num <= 12 -%}
+    {{ thai_months[month_num - 1] }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro format_withholding_type(payment_type) -%}
+  {%- if payment_type == "Employee" -%}
+    เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส
+  {%- elif payment_type == "Supplier" -%}
+    การจ้างทำของ ค่าเช่า ค่าขนส่ง ค่าบริการ
+  {%- elif payment_type == "Contractor" -%}
+    ค่าจ้างทำของ ค่าก่อสร้าง
+  {%- else -%}
+    อื่นๆ
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro checkbox(condition) -%}
+  <span style="border: 1px solid #000; padding: 2px 4px; margin: 0 2px;">
+    {%- if condition -%}✓{%- else -%}&nbsp;&nbsp;{%- endif -%}
+  </span>
+{%- endmacro -%}

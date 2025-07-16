@@ -8,7 +8,12 @@ export const globalStyles = {
 		mainRuleSelector: ".staticText",
 		style: {
 			display: "inline-block",
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "14px",
 			fontWeight: 400,
 			color: "#000000",
@@ -51,7 +56,12 @@ export const globalStyles = {
 		labelRuleSelector: ".dynamicText .label-text",
 		style: {
 			display: "inline-block",
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "14px",
 			fontWeight: 400,
 			color: "#000000",
@@ -83,7 +93,12 @@ export const globalStyles = {
 			opacity: 1,
 		},
 		labelStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "14px",
 			fontWeight: 600,
 			color: "#000000",
@@ -214,7 +229,12 @@ export const globalStyles = {
 		altRuleSelector: ".printTable tr:nth-child(even) td",
 		labelRuleSelector: ".printTable .label-text",
 		style: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "10px",
 			fontWeight: 400,
 			color: "#000000",
@@ -246,7 +266,12 @@ export const globalStyles = {
 			opacity: 1,
 		},
 		labelStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "10px",
 			fontWeight: 600,
 			color: "#000000",
@@ -277,7 +302,12 @@ export const globalStyles = {
 			zIndex: 1,
 		},
 		headerStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			// fontFamily: "Inter",
+			fontFamily: "Sarabun",
+>>>>>>> develop
 			fontSize: "11px",
 			fontWeight: 600,
 			color: "#000000",

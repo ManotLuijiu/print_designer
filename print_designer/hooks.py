@@ -98,6 +98,7 @@ before_request = ["print_designer.pdf_generator.pdf.before_request"]
 after_request = ["print_designer.pdf_generator.pdf.after_request"]
 
 pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
+<<<<<<< HEAD
 # Desk Notifications
 # ------------------
 # See frappe.core.notifications.get_notification_config
@@ -119,6 +120,8 @@ pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
 # DocType Class
 # ---------------
 # Override standard doctype classes
+=======
+>>>>>>> develop
 
 override_doctype_class = {
     "Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
@@ -126,6 +129,7 @@ override_doctype_class = {
 
 # Path Relative to the app folder where default templates should be stored
 pd_standard_format_folder = "default_templates"
+<<<<<<< HEAD
 # Document Events
 # ---------------
 # Hook on document methods and events
@@ -227,3 +231,11 @@ scheduler_events = {
 # auth_hooks = [
 # 	"print_designer.auth.validate"
 # ]
+=======
+
+doc_events = {
+	"Print Format": {
+		"before_save": "print_designer.install.set_chrome_for_print_designer_format",
+	}
+}
+>>>>>>> develop

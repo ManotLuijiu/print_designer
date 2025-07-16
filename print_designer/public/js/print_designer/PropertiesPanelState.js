@@ -702,7 +702,11 @@ export const createPropertiesPanel = () => {
 								const idx = {
 									fieldname: "idx",
 									fieldtype: "Int",
+<<<<<<< HEAD
 									label: "No",
+=======
+									label: "No.",
+>>>>>>> develop
 									options: undefined,
 									tableName: currentEL["table"],
 								};

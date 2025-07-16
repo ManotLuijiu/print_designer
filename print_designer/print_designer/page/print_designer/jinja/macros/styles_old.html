@@ -4,9 +4,12 @@
         box-sizing: border-box;
         padding: 0in;
         max-width: {{convert_uom(number=settings.page.width, to_uom="mm")}} !important;
+<<<<<<< HEAD
         dpi: {{settings.PDFPrintDPI or 96}}mm;
         page-width: {{convert_uom(number=settings.page.width, to_uom="mm")}};
         page-height: {{convert_uom(number=settings.page.height, to_uom="mm")}};
+=======
+>>>>>>> develop
         margin-top:{{convert_uom(number=settings.page.headerHeightWithMargin or settings.page.marginTop, to_uom='mm')}};
         margin-bottom:{{convert_uom(number=settings.page.footerHeightWithMargin or settings.page.marginBottom, to_uom='mm')}};
         margin-left:{{convert_uom(number=settings.page.marginLeft, to_uom='mm')}};
@@ -81,6 +84,7 @@
     .flexDirectionColumn .baseSpanTag .valueSpanTag {
         display: block;
     }
+<<<<<<< HEAD
     /* https://github.com/wkhtmltopdf/wkhtmltopdf/issues/1522 */
     .relative-row {
         display: -webkit-box;
@@ -88,15 +92,30 @@
         display: flex;
         border-width: 0 !important;
         flex: auto;
+=======
+    /* Simplified layout for wkhtmltopdf compatibility */
+    .relative-row {
+        display: block;
+        border-width: 0 !important;
+        width: 100%;
+>>>>>>> develop
     }
     .relative-column {
         border-width: 0px !important;
         border-color: transparent !important;
+<<<<<<< HEAD
         flex-direction: column;
         flex: auto;
     }
     * {
         -webkit-box-sizing: border-box;
+=======
+        display: block;
+        width: 100%;
+    }
+    * {
+        box-sizing: border-box;
+>>>>>>> develop
     }
 </style>
 {% endmacro %}

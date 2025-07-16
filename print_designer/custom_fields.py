@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 CUSTOM_FIELDS = {
+=======
+from .signature_fields import get_signature_fields
+
+# Print Designer specific custom fields
+PRINT_DESIGNER_CUSTOM_FIELDS = {
+>>>>>>> develop
 	"Print Format": [
 		{
 			"default": "0",
@@ -58,5 +65,26 @@ CUSTOM_FIELDS = {
 			"default": "print_designer",
 			"insert_after": "standard",
 		},
+<<<<<<< HEAD
 	]
 }
+=======
+		{
+			"depends_on": "eval:doc.print_designer",
+			"fieldname": "watermark_settings",
+			"fieldtype": "Select",
+			"label": "Watermark per Page",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "print_designer_template_app",
+			"description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"
+		},
+	]
+}
+
+# Combine Print Designer fields with Signature fields
+CUSTOM_FIELDS = {
+	**PRINT_DESIGNER_CUSTOM_FIELDS,
+	**get_signature_fields()
+}
+>>>>>>> develop

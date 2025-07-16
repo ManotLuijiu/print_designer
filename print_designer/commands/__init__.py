@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import click
 
 
@@ -9,3 +10,6 @@ def setup_chorme():
 
 
 commands = [setup_chorme]
+=======
+# Commands package for Print Designer
+>>>>>>> develop

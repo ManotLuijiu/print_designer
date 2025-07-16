@@ -9,6 +9,39 @@
 <!-- user_generated_jinja_code -->
 <!-- end of user generated code -->
 
+<<<<<<< HEAD
+=======
+<!-- Letter Head Integration - Standard Frappe Style -->
+{% if letter_head and not no_letterhead %}
+<div class="letter-head">
+    {{ letter_head | safe }}
+    {% if letter_head_data and letter_head_data.header_script %}
+    <script>
+        {{ letter_head_data.header_script | safe }}
+    </script>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Handle multiple copies for wkhtmltopdf -->
+{% if enable_copies and copy_count > 1 %}
+    {% for copy_index in range(copy_count) %}
+        {% set copy_label = copy_labels[copy_index] if copy_index < copy_labels|length else copy_labels[-1] %}
+        {% set current_copy = copy_index + 1 %}
+        
+        <!-- Copy separator (page break for multiple copies) -->
+        {% if copy_index > 0 %}
+        <div style="page-break-before: always;"></div>
+        {% endif %}
+        
+        <!-- Copy watermark -->
+        <div class="copy-watermark" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+             font-size: 72px; color: rgba(200, 200, 200, 0.3); z-index: -1; pointer-events: none;">
+            {{ copy_label }}
+        </div>
+        
+        <!-- Content for each copy -->
+>>>>>>> develop
 <div id="__print_designer">
     {% set header_available = pd_format.header.firstPage or pd_format.header.oddPage or pd_format.header.evenPage or pd_format.header.lastPage %}
     {%- if settings.page.headerHeight != 0 and header_available -%}
@@ -41,8 +74,72 @@
     {%- endif -%}
 </div>
 
+<<<<<<< HEAD
 {%- if pdf_generator == "chrome" -%}
     {{ render_styles(settings) }}
 {%- else -%}
     {{ render_old_styles(settings) }}
 {%- endif -%}
+=======
+        <!-- Letter Head Footer - Standard Frappe Style -->
+        {% if footer and not no_letterhead %}
+        <div class="letter-head-footer">
+            {{ footer | safe }}
+            {% if letter_head_data and letter_head_data.footer_script %}
+            <script>
+                {{ letter_head_data.footer_script | safe }}
+            </script>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    {% endfor %}
+{% else %}
+    <!-- Single copy content when copies are not enabled -->
+    <div id="__print_designer">
+        {% set header_available = pd_format.header.firstPage or pd_format.header.oddPage or pd_format.header.evenPage or pd_format.header.lastPage %}
+        {%- if settings.page.headerHeight != 0 and header_available -%}
+        <div id="header-html">
+            <div style="position: relative; top:0px; left: 0px; width: 100%; height:{{ settings.page.headerHeightWithMargin }}px; overflow: hidden;" id="header-render-container">
+                <div class="visible-pdf" style="height: {{ settings.page.marginTop }}px;"></div>
+                <div class="hidden-pdf printview-header-margin" style="height: {{ settings.page.marginTop }}px;"></div>
+                <div class="hidden-pdf">{% if pd_format.header.firstPage %}{{ render(pd_format.header.firstPage, send_to_jinja) }}{%endif%}</div>
+                <div id="firstPageHeader" style="display: block;">{% if pd_format.header.firstPage %}{{ render(pd_format.header.firstPage, send_to_jinja) }}{%endif%}</div>
+                <div id="oddPageHeader" style="display: none;">{% if pd_format.header.oddPage %}{{ render(pd_format.header.oddPage, send_to_jinja) }}{%endif%}</div>
+                <div id="evenPageHeader" style="display: none;">{% if pd_format.header.evenPage %}{{ render(pd_format.header.evenPage, send_to_jinja) }}{%endif%}</div>
+                <div id="lastPageHeader" style="display: none;">{% if pd_format.header.lastPage %}{{ render(pd_format.header.lastPage, send_to_jinja) }}{%endif%}</div>
+            </div>
+        </div>
+        {%- endif -%}
+        {%- for body in pd_format.body -%}
+            {{ render(body.childrens, send_to_jinja) }}
+        {%- endfor -%}
+        {% set footer_available = pd_format.footer.firstPage or pd_format.footer.oddPage or pd_format.footer.evenPage or pd_format.footer.lastPage %}
+        {%- if settings.page.footerHeight != 0 and footer_available -%}
+        <div id="footer-html">
+            <div style="width: 100%; position: relative; top:0px; left: 0px; height:{{ settings.page.footerHeightWithMargin }}px;" id="footer-render-container">
+                <div class="hidden-pdf">{% if pd_format.footer.firstPage %}{{ render(pd_format.footer.firstPage, send_to_jinja) }}{%endif%}</div>
+                <div id="firstPageFooter" style="display: block;">{% if pd_format.footer.firstPage %}{{ render(pd_format.footer.firstPage, send_to_jinja) }}{%endif%}</div>
+                <div id="oddPageFooter" style="display: none;">{% if pd_format.footer.oddPage %}{{ render(pd_format.footer.oddPage, send_to_jinja) }}{%endif%}</div>
+                <div id="evenPageFooter" style="display: none;">{% if pd_format.footer.evenPage %}{{ render(pd_format.footer.evenPage, send_to_jinja) }}{%endif%}</div>
+                <div id="lastPageFooter" style="display: none;">{% if pd_format.footer.lastPage %}{{ render(pd_format.footer.lastPage, send_to_jinja) }}{%endif%}</div>
+            </div>
+        </div>
+        {%- endif -%}
+    </div>
+
+    <!-- Letter Head Footer - Standard Frappe Style -->
+    {% if footer and not no_letterhead %}
+    <div class="letter-head-footer">
+        {{ footer | safe }}
+        {% if letter_head_data and letter_head_data.footer_script %}
+        <script>
+            {{ letter_head_data.footer_script | safe }}
+        </script>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endif %}
+
+{{ render_old_styles(settings) }}
+>>>>>>> develop
