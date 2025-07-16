@@ -182,6 +182,38 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 
     const pdfEl = this.createPdfEl(url, wrapperContainer);
     const onError = () => {
+      // Try to get more specific error information
+      console.error('PDF Generation Error:', {
+        url: url,
+        generator: params.get('pdf_generator'),
+        format: params.get('format')
+      });
+      
+      // Try alternative PDF generators if auto-selection failed
+      const currentGenerator = params.get('pdf_generator');
+      const alternativeGenerators = ['wkhtmltopdf', 'WeasyPrint', 'chrome'].filter(g => g !== currentGenerator);
+      
+      if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted) {
+        this.pdf_retry_attempted = true;
+        const nextGenerator = alternativeGenerators[0];
+        
+        frappe.show_alert({
+          message: __('Retrying with {0} generator...', [nextGenerator]),
+          indicator: 'blue'
+        }, 3);
+        
+        // Retry with different generator
+        params.set('pdf_generator', nextGenerator);
+        const retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+        
+        setTimeout(() => {
+          pdfEl.data = retryUrl;
+        }, 1000);
+        
+        return;
+      }
+      
+      // Show fallback UI
       this.print_wrapper.find('.print-designer-wrapper').hide();
       this.inner_msg.show();
       this.full_page_btn.show();
@@ -193,12 +225,14 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
       this.toolbar_print_format_selector.$wrapper.hide();
       this.toolbar_language_selector.$wrapper.hide();
       super.preview();
+      
+      // Show detailed error with suggestions
       frappe.show_alert(
         {
-          message: __('Error generating PDF. Please check your PDF settings or try refreshing.'),
+          message: __('PDF generation failed. Try: 1) Refreshing the page, 2) Clearing browser cache, 3) Using a different PDF generator from the sidebar.'),
           indicator: 'red',
         },
-        5,
+        8,
       );
     };
     const onPdfLoad = () => {
