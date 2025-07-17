@@ -166,7 +166,17 @@ def pdf_body_html(print_format, jenv, args, template):
 		copy_labels = frappe.form_dict.get("copy_labels", "")
 		if copy_count > 1:
 			# For wkhtmltopdf copies, we'll use template-based approach
-			copy_labels_list = copy_labels.split(",") if copy_labels else [frappe._("Original"), frappe._("Copy")]
+			if copy_labels:
+				copy_labels_list = copy_labels.split(",")
+			else:
+				# Default labels: First copy is "Original", subsequent copies are "Copy"
+				copy_labels_list = []
+				for i in range(copy_count):
+					if i == 0:
+						copy_labels_list.append(frappe._("Original"))
+					else:
+						copy_labels_list.append(frappe._("Copy"))
+			
 			args.update({
 				"copy_count": copy_count,
 				"copy_labels": copy_labels_list,
@@ -246,134 +256,58 @@ def pdf_body_html(print_format, jenv, args, template):
 			# Debug logging
 			if frappe.conf.developer_mode:
 				frappe.logger().info(f"Print Designer CSS cleaning ({args['pdf_generator']}): Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
-		# Handle both string template and Jinja2 Template object
-		if hasattr(template, 'render'):
-			# Template is already a Jinja2 Template object (from HTML preview)
-			rendered_html = template.render(args, filters={"len": len})
-		else:
-			# Template is a string (from PDF generation), process it
-			template_source = template.replace(
-				"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
-			)
-			template_obj = jenv.from_string(template_source)
-			rendered_html = template_obj.render(args, filters={"len": len})
+		try:
+			# Handle both string template and Jinja2 Template object
+			if hasattr(template, 'render'):
+				# Template is already a Jinja2 Template object (from HTML preview)
+				rendered_html = template.render(args, filters={"len": len})
+			else:
+				# Template is a string (from PDF generation), process it
+				template_source = template.replace(
+					"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
+				)
+				template_obj = jenv.from_string(template_source)
+				rendered_html = template_obj.render(args, filters={"len": len})
 			
-			# Additional CSS cleaning of rendered HTML based on PDF generator
-			if args["pdf_generator"] == "WeasyPrint":
-				# WeasyPrint supports modern CSS better, minimal cleaning needed
-				from print_designer.weasyprint_integration import clean_css_for_weasyprint
-				rendered_html = re.sub(
-					r'(<style[^>]*>)(.*?)(</style>)',
-					lambda m: m.group(1) + clean_css_for_weasyprint(m.group(2)) + m.group(3),
-					rendered_html,
-					flags=re.DOTALL
-				)
-			elif args["pdf_generator"] == "wkhtmltopdf":
-				# Extract and clean CSS from style tags in the rendered HTML
-				rendered_html = re.sub(
-					r'(<style[^>]*>)(.*?)(</style>)',
-					lambda m: m.group(1) + clean_css_for_wkhtmltopdf(m.group(2)) + m.group(3),
-					rendered_html,
-					flags=re.DOTALL
-				)
-				
-				# Nuclear option: Always use minimal CSS for wkhtmltopdf to prevent crashes
-				# Replace all style tags with minimal safe CSS (no borders unless explicitly designed)
-				minimal_css = """
-				.print-format { 
-					font-family: Arial, sans-serif; 
-					font-size: 12px; 
-					box-sizing: border-box;
-					padding: 0;
-					margin: 0;
-				}
-				.staticText { 
-					display: inline-block; 
-					font-family: Arial, sans-serif;
-					font-size: 12px;
-				}
-				.dynamicText { 
-					display: inline-block; 
-					font-family: Arial, sans-serif;
-					font-size: 12px;
-				}
-				.printTable { 
-					border-collapse: collapse; 
-					width: 100%; 
-					font-family: Arial, sans-serif;
-					font-size: 12px;
-				}
-				.printTable td, .printTable th { 
-					padding: 5px; 
-					text-align: left;
-					vertical-align: top;
-				}
-				.rectangle { 
-					display: block;
-				}
-				.image {
-					display: block;
-					max-width: 100%;
-				}
-				.barcode {
-					display: block;
-				}
-				#__print_designer {
-					position: relative;
-				}
-				/* Force remove all borders with highest specificity */
-				* {
-					border: none !important;
-					border-width: 0 !important;
-					border-style: none !important;
-					border-color: transparent !important;
-					outline: none !important;
-				}
-				"""
-				rendered_html = re.sub(
-					r'<style[^>]*>.*?</style>',
-					f'<style>{minimal_css}</style>',
-					rendered_html,
-					flags=re.DOTALL
-				)
-				
-				# Also remove border-related inline styles from HTML elements
-				border_patterns = [
-					r'border[^:;]*:[^;]*;?',
-					r'border-[^:;]*:[^;]*;?',
-					r'outline[^:;]*:[^;]*;?'
-				]
-				
-				for pattern in border_patterns:
-					# Remove border properties from style attributes
+			# Check if this is actual PDF generation or HTML preview
+			# PDF generation will have as_pdf=True in form_dict or trigger_print
+			is_pdf_generation = (
+				frappe.form_dict.get("as_pdf") or 
+				frappe.form_dict.get("trigger_print") or
+				args.get("trigger_print") or
+				frappe.form_dict.get("_doctype") == "PDF"
+			)
+			
+			# Only apply CSS cleaning for actual PDF generation, not HTML preview
+			if is_pdf_generation:
+				if args["pdf_generator"] == "WeasyPrint":
+					# WeasyPrint supports modern CSS better, minimal cleaning needed
+					from print_designer.weasyprint_integration import clean_css_for_weasyprint
 					rendered_html = re.sub(
-						r'(style="[^"]*?)' + pattern + r'([^"]*")',
-						r'\1\2',
+						r'(<style[^>]*>)(.*?)(</style>)',
+						lambda m: m.group(1) + clean_css_for_weasyprint(m.group(2)) + m.group(3),
 						rendered_html,
-						flags=re.IGNORECASE
+						flags=re.DOTALL
 					)
+				elif args["pdf_generator"] == "wkhtmltopdf":
+					# Only apply basic CSS cleaning for wkhtmltopdf, no nuclear CSS
 					rendered_html = re.sub(
-						r"(style='[^']*?)" + pattern + r"([^']*')",
-						r'\1\2',
+						r'(<style[^>]*>)(.*?)(</style>)',
+						lambda m: m.group(1) + clean_css_for_wkhtmltopdf(m.group(2)) + m.group(3),
 						rendered_html,
-						flags=re.IGNORECASE
+						flags=re.DOTALL
 					)
-				
+					
+					if frappe.conf.developer_mode:
+						frappe.logger().info("Applied basic CSS cleaning for wkhtmltopdf compatibility")
+			else:
+				# For HTML preview, keep original CSS completely untouched
 				if frappe.conf.developer_mode:
-					frappe.logger().info("Applied minimal CSS for wkhtmltopdf compatibility")
-				
-				# Debug: Save cleaned HTML for inspection in developer mode
-				if frappe.conf.developer_mode:
-					import tempfile
-					import os
-					debug_file = os.path.join(tempfile.gettempdir(), f"print_designer_debug_{print_format.name}.html")
-					with open(debug_file, 'w', encoding='utf-8') as f:
-						f.write(rendered_html)
-					frappe.logger().info(f"Debug HTML saved to: {debug_file}")
+					frappe.logger().info("HTML preview mode - keeping original CSS untouched")
 			
 			return rendered_html
 
-		except Exception as e:
+	except Exception as e:
 			error = log_error(title=e, reference_doctype="Print Format", reference_name=print_format.name)
 			if frappe.conf.developer_mode:
 				return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.<hr /><h3>Error rendering print format: {error.reference_name}</h3><h4>{error.method}</h4><pre>{html.escape(error.error)}</pre>"
@@ -405,20 +339,28 @@ def _prepare_print_designer_context(print_format, args):
 		return
 	
 	try:
+		# Check if print_designer_settings exists and is not None
+		if not print_format.print_designer_settings:
+			frappe.log_error(
+				title="Print Designer Settings Missing",
+				message=f"Print Format '{print_format.name}' has print_designer enabled but print_designer_settings is None"
+			)
+			return
+		
 		settings = json.loads(print_format.print_designer_settings)
 		
 		# Always prepare the core elements
 		args.update({
-			"headerElement": json.loads(print_format.print_designer_header),
-			"bodyElement": json.loads(print_format.print_designer_body),
-			"footerElement": json.loads(print_format.print_designer_footer),
+			"headerElement": json.loads(print_format.print_designer_header or "[]"),
+			"bodyElement": json.loads(print_format.print_designer_body or "[]"),
+			"footerElement": json.loads(print_format.print_designer_footer or "[]"),
 			"settings": settings,
 			"pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
 		})
 		
 		# Set pd_format for newer schema
 		if not is_older_schema(settings=settings, current_version="1.1.0"):
-			args.update({"pd_format": json.loads(print_format.print_designer_print_format)})
+			args.update({"pd_format": json.loads(print_format.print_designer_print_format or "{}")})
 		else:
 			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
 		
@@ -456,6 +398,14 @@ def is_older_schema(settings, current_version):
 def get_print_format_template(jenv, print_format):
 	# if print format is created using print designer, then use print designer template
 	if print_format and print_format.print_designer and print_format.print_designer_body:
+		# Check if print_designer_settings exists and is not None
+		if not print_format.print_designer_settings:
+			frappe.log_error(
+				title="Print Designer Settings Missing",
+				message=f"Print Format '{print_format.name}' has print_designer enabled but print_designer_settings is None"
+			)
+			return None
+		
 		settings = json.loads(print_format.print_designer_settings)
 		if is_older_schema(settings, "1.1.0"):
 			return jenv.loader.get_source(

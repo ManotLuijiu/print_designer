@@ -315,29 +315,67 @@ if (!window.pdfLogger) {
     }, 'INFO');
 }
 
-frappe.pages['print'].on_page_load = function (wrapper) {
-  frappe.require(['pdfjs.bundle.css', 'print_designer.bundle.css']);
+// Initialize print page with proper checks
+function initializePrintPage() {
+  if (!frappe.pages) {
+    frappe.pages = {};
+  }
   
-  frappe.ui.make_app_page({
-    parent: wrapper,
-  });
+  if (!frappe.pages['print']) {
+    frappe.pages['print'] = {};
+  }
+  
+  frappe.pages['print'].on_page_load = function (wrapper) {
+    console.log('Print page loading...', wrapper);
+    frappe.require(['pdfjs.bundle.css', 'print_designer.bundle.css']);
+    
+    frappe.ui.make_app_page({
+      parent: wrapper,
+    });
 
-  let print_view = new frappe.ui.form.PrintView(wrapper);
+    let print_view = new frappe.ui.form.PrintView(wrapper);
+    console.log('Print view created:', print_view);
 
   $(wrapper).bind('show', () => {
     const route = frappe.get_route();
     const doctype = route[1];
     const docname = route.slice(2).join('/');
+    console.log('Print page show event:', { route, doctype, docname });
+    
     if (!frappe.route_options || !frappe.route_options.frm) {
+      console.log('Loading document from database...');
       frappe.model.with_doc(doctype, docname, () => {
         let frm = { doctype: doctype, docname: docname };
         frm.doc = frappe.get_doc(doctype, docname);
+        console.log('Document loaded:', frm.doc);
+        
+        if (!frm.doc) {
+          console.error('Document not found:', doctype, docname);
+          frappe.show_alert({
+            message: __('Document not found: {0}', [docname]),
+            indicator: 'red'
+          });
+          return;
+        }
+        
         frappe.model.with_doctype(doctype, () => {
           frm.meta = frappe.get_meta(route[1]);
+          console.log('Meta loaded:', frm.meta);
+          
+          if (!frm.meta) {
+            console.error('DocType meta not found:', doctype);
+            frappe.show_alert({
+              message: __('DocType meta not found: {0}', [doctype]),
+              indicator: 'red'
+            });
+            return;
+          }
+          
           print_view.show(frm);
         });
       });
     } else {
+      console.log('Using route options:', frappe.route_options);
       print_view.frm = frappe.route_options.frm.doctype
         ? frappe.route_options.frm
         : frappe.route_options.frm.frm;
@@ -345,7 +383,47 @@ frappe.pages['print'].on_page_load = function (wrapper) {
       print_view.show(print_view.frm);
     }
   });
-};
+}
+
+// Initialize the print page when the script loads
+function safeInitializePrintPage() {
+  try {
+    if (typeof frappe !== 'undefined' && frappe.ready) {
+      frappe.ready(() => {
+        try {
+          initializePrintPage();
+        } catch (error) {
+          console.error('Error initializing print page:', error);
+          // Fallback to basic initialization
+          if (frappe.pages) {
+            frappe.pages['print'] = { on_page_load: function() {} };
+          }
+        }
+      });
+    } else {
+      // Fallback: Initialize after DOM is loaded
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          try {
+            initializePrintPage();
+          } catch (error) {
+            console.error('Error initializing print page on DOM load:', error);
+          }
+        });
+      } else {
+        try {
+          initializePrintPage();
+        } catch (error) {
+          console.error('Error initializing print page immediately:', error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Fatal error in print page initialization:', error);
+  }
+}
+
+safeInitializePrintPage();
 frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
   constructor(wrapper) {
     super(wrapper);
@@ -1244,6 +1322,7 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     super.printit();
   }
   show(frm) {
+    console.log('PrintView.show called with:', frm);
     super.show(frm);
     // Restore user's preferred language after parent initialization
     this.restore_user_language();
