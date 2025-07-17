@@ -20,6 +20,15 @@ class SafePDFClient {
 
         try {
             // Check for third-party conflicts
+            if (typeof frappe === 'undefined' || !frappe.call) {
+                console.warn('Print Designer: Frappe not available, using safe endpoints by default');
+                this.safeEndpointsRecommended = true;
+                this.conflictsFound = true;
+                this.conflictsChecked = true;
+                this.initialized = true;
+                return;
+            }
+            
             const response = await frappe.call({
                 method: 'print_designer.utils.safe_pdf_api.check_third_party_conflicts',
                 freeze: false,
@@ -81,6 +90,10 @@ class SafePDFClient {
         if (this.safeEndpointsRecommended) {
             // Use safe endpoint
             try {
+                if (typeof frappe === 'undefined' || !frappe.call) {
+                    throw new Error('Frappe not available');
+                }
+                
                 const response = await frappe.call({
                     method: 'print_designer.utils.safe_pdf_api.safe_get_print_html',
                     args: params,
@@ -93,6 +106,9 @@ class SafePDFClient {
             }
         } else {
             // Use standard method
+            if (typeof frappe === 'undefined' || !frappe.get_print) {
+                throw new Error('Frappe not available');
+            }
             return frappe.get_print(params);
         }
     }
@@ -133,6 +149,11 @@ class SafePDFClient {
      */
     async getPDFGenerationInfo() {
         try {
+            if (typeof frappe === 'undefined' || !frappe.call) {
+                console.warn('Print Designer: Frappe not available for PDF generation info');
+                return null;
+            }
+            
             const response = await frappe.call({
                 method: 'print_designer.utils.safe_pdf_api.get_pdf_generation_info',
                 freeze: false
@@ -193,12 +214,28 @@ if (typeof generatePDF !== 'undefined') {
 }
 
 // Add debug information to the global scope
-frappe.provide('frappe.print_designer');
-frappe.print_designer.safe_pdf_client = window.safePDFClient;
+if (typeof frappe !== 'undefined' && frappe.provide) {
+    frappe.provide('frappe.print_designer');
+    frappe.print_designer.safe_pdf_client = window.safePDFClient;
+}
 
-// Initialize on page load
-frappe.ready(() => {
+// Initialize on page load with fallback if frappe.ready is not available
+function initializeSafePDFClient() {
     window.safePDFClient.initialize();
-});
+}
+
+if (typeof frappe !== 'undefined' && frappe.ready) {
+    frappe.ready(() => {
+        initializeSafePDFClient();
+    });
+} else {
+    // Fallback: Initialize after DOM is loaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeSafePDFClient);
+    } else {
+        // DOM is already loaded
+        initializeSafePDFClient();
+    }
+}
 
 console.log('Print Designer: Safe PDF Client loaded');

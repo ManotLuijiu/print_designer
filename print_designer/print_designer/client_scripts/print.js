@@ -623,12 +623,23 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
     );
     let page_settings = print_designer_settings.page;
     let canvasContainer = document.getElementById('preview-container');
+
+    // Add preview-mode class for CSS targeting
+    canvasContainer.classList.add('preview-mode');
+
     canvasContainer.style.display = 'block';
     const wrapperContainer = document.getElementsByClassName(
       'print-designer-wrapper',
     )[0];
-    canvasContainer.style.minHeight = page_settings.height + 'px';
-    canvasContainer.style.width = page_settings.width + 'px';
+    // canvasContainer.style.minHeight = page_settings.height + 'px';
+    // canvasContainer.style.width = page_settings.width + 'px';
+
+    // Ensure proper container styling for preview
+    canvasContainer.style.backgroundColor = 'white';
+    canvasContainer.style.position = 'relative';
+    canvasContainer.style.minHeight = page_settings.height + 'mm';
+    canvasContainer.style.width = page_settings.width + 'mm';
+    canvasContainer.style.margin = '0 auto';
     
     let params = new URLSearchParams({
       doctype: this.frm.doc.doctype,

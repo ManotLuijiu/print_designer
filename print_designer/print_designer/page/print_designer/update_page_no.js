@@ -35,27 +35,139 @@ const add_wrapper = (clone, wrapper) => {
 	wrapper.appendChild(clone);
 	return wrapper;
 };
-// TODO: only generate 4 header / footers if page no is not used
+// Helper function to compare if two elements have the same content
+const areElementsEqual = (elem1, elem2) => {
+	if (!elem1 || !elem2) return false;
+	return elem1.innerHTML === elem2.innerHTML;
+};
+
+// Only generate different header/footers if content is actually different
 const extract_elements = (template, type) => {
-	extracted = {
-		even: template.querySelector(`#evenPage${type}`).cloneNode(true),
-		odd: template.querySelector(`#oddPage${type}`).cloneNode(true),
-		last: template.querySelector(`#lastPage${type}`).cloneNode(true),
+	const firstPageElement = template.querySelector(`#firstPage${type}`);
+	const evenPageElement = template.querySelector(`#evenPage${type}`);
+	const oddPageElement = template.querySelector(`#oddPage${type}`);
+	const lastPageElement = template.querySelector(`#lastPage${type}`);
+
+	// Check if we're in a copy generation context (multiple __print_designer divs)
+	const printDesignerDivs = document.querySelectorAll('#__print_designer');
+	const isMultipleCopies = printDesignerDivs.length > 1;
+	
+	// Check if template has already optimized content (marked with data-content-shared)
+	const isContentShared = firstPageElement?.getAttribute('data-content-shared') === 'true';
+	
+	// Skip optimization if multiple copies are being generated
+	if (isMultipleCopies) {
+		// For copies, always use original logic to avoid conflicts
+		const extracted = {
+			even: evenPageElement?.cloneNode(true),
+			odd: oddPageElement?.cloneNode(true),
+			last: lastPageElement?.cloneNode(true),
+		};
+
+		if (extracted.even) {
+			extracted.even.style.display = "block";
+			evenPageElement?.remove();
+		}
+		if (extracted.odd) {
+			extracted.odd.style.display = "block";
+			oddPageElement?.remove();
+		}
+		if (extracted.last) {
+			extracted.last.style.display = "block";
+			lastPageElement?.remove();
+		}
+
+		firstPageElement.style.display = "none";
+		if (extracted.even) extracted.even = add_wrapper(extracted.even, template);
+		if (extracted.odd) extracted.odd = add_wrapper(extracted.odd, template);
+		if (extracted.last) extracted.last = add_wrapper(extracted.last, template);
+		firstPageElement.style.display = "block";
+
+		return extracted;
+	}
+	
+	if (isContentShared) {
+		// Template has already optimized content, clean up empty elements
+		if (evenPageElement?.innerHTML.trim() === '') evenPageElement.remove();
+		if (oddPageElement?.innerHTML.trim() === '') oddPageElement.remove();
+		if (lastPageElement?.innerHTML.trim() === '') lastPageElement.remove();
+		
+		// Return the same element for all page types
+		const sharedElement = firstPageElement.cloneNode(true);
+		sharedElement.style.display = "block";
+		sharedElement.removeAttribute('data-content-shared');
+		
+		return {
+			even: add_wrapper(sharedElement.cloneNode(true), template),
+			odd: add_wrapper(sharedElement.cloneNode(true), template),
+			last: add_wrapper(sharedElement.cloneNode(true), template),
+		};
+	}
+
+	// Check if all elements have the same content as firstPage
+	const evenSameAsFirst = areElementsEqual(firstPageElement, evenPageElement);
+	const oddSameAsFirst = areElementsEqual(firstPageElement, oddPageElement);
+	const lastSameAsFirst = areElementsEqual(firstPageElement, lastPageElement);
+
+	// If all content is the same, just reuse the first page element
+	if (evenSameAsFirst && oddSameAsFirst && lastSameAsFirst) {
+		// Remove duplicate elements since they're identical
+		evenPageElement?.remove();
+		oddPageElement?.remove();
+		lastPageElement?.remove();
+		
+		// Return the same element for all page types
+		const sharedElement = firstPageElement.cloneNode(true);
+		sharedElement.style.display = "block";
+		
+		return {
+			even: add_wrapper(sharedElement.cloneNode(true), template),
+			odd: add_wrapper(sharedElement.cloneNode(true), template),
+			last: add_wrapper(sharedElement.cloneNode(true), template),
+		};
+	}
+
+	// Original logic for when content is actually different
+	const extracted = {
+		even: evenPageElement?.cloneNode(true),
+		odd: oddPageElement?.cloneNode(true),
+		last: lastPageElement?.cloneNode(true),
 	};
 
-	extracted.even.style.display = "block";
-	extracted.odd.style.display = "block";
-	extracted.last.style.display = "block";
+	// Set display and clean up only if elements exist and are different
+	if (extracted.even && !evenSameAsFirst) {
+		extracted.even.style.display = "block";
+		evenPageElement.remove();
+	} else if (evenSameAsFirst) {
+		extracted.even = firstPageElement.cloneNode(true);
+		extracted.even.style.display = "block";
+		evenPageElement?.remove();
+	}
 
-	template.querySelector(`#evenPage${type}`).remove();
-	template.querySelector(`#oddPage${type}`).remove();
-	template.querySelector(`#lastPage${type}`).remove();
+	if (extracted.odd && !oddSameAsFirst) {
+		extracted.odd.style.display = "block";
+		oddPageElement.remove();
+	} else if (oddSameAsFirst) {
+		extracted.odd = firstPageElement.cloneNode(true);
+		extracted.odd.style.display = "block";
+		oddPageElement?.remove();
+	}
 
-	template.querySelector(`#firstPage${type}`).style.display = "none";
-	extracted.even = add_wrapper(extracted.even, template);
-	extracted.odd = add_wrapper(extracted.odd, template);
-	extracted.last = add_wrapper(extracted.last, template);
-	template.querySelector(`#firstPage${type}`).style.display = "block";
+	if (extracted.last && !lastSameAsFirst) {
+		extracted.last.style.display = "block";
+		lastPageElement.remove();
+	} else if (lastSameAsFirst) {
+		extracted.last = firstPageElement.cloneNode(true);
+		extracted.last.style.display = "block";
+		lastPageElement?.remove();
+	}
+
+	// Wrap elements with template structure
+	firstPageElement.style.display = "none";
+	if (extracted.even) extracted.even = add_wrapper(extracted.even, template);
+	if (extracted.odd) extracted.odd = add_wrapper(extracted.odd, template);
+	if (extracted.last) extracted.last = add_wrapper(extracted.last, template);
+	firstPageElement.style.display = "block";
 
 	return extracted;
 };
