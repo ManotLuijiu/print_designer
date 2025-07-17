@@ -307,7 +307,7 @@ def pdf_body_html(print_format, jenv, args, template):
 			
 			return rendered_html
 
-	except Exception as e:
+		except Exception as e:
 			error = log_error(title=e, reference_doctype="Print Format", reference_name=print_format.name)
 			if frappe.conf.developer_mode:
 				return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.<hr /><h3>Error rendering print format: {error.reference_name}</h3><h4>{error.method}</h4><pre>{html.escape(error.error)}</pre>"

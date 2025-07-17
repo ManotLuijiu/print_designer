@@ -1793,4 +1793,3 @@ function extendPrintView() {
 
 // Call the function to extend PrintView
 extendPrintView();
-}
