@@ -149,20 +149,17 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 
 def pdf_body_html(print_format, jenv, args, template):
 	if print_format and print_format.print_designer and print_format.print_designer_body:
+		# Ensure we have the necessary data for both PDF and HTML generation
+		_prepare_print_designer_context(print_format, args)
 		print_format_name = hashlib.md5(print_format.name.encode(), usedforsecurity=False).hexdigest()
 		add_data_to_monitor(print_designer=print_format_name, print_designer_action="download_pdf")
 
-		settings = json.loads(print_format.print_designer_settings)
-
-		args.update(
-			{
-				"headerElement": json.loads(print_format.print_designer_header),
-				"bodyElement": json.loads(print_format.print_designer_body),
-				"footerElement": json.loads(print_format.print_designer_footer),
-				"settings": settings,
-				"pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
-			}
-		)
+		settings = args["settings"]  # Already set by _prepare_print_designer_context
+		
+		# Debug: Check if pd_format is available for HTML preview
+		if frappe.conf.developer_mode:
+			has_pd_format = "pd_format" in args
+			frappe.logger().info(f"Print Designer HTML generation - pd_format available: {has_pd_format}, template type: {type(template)}")
 		
 		# Handle copy functionality with wkhtmltopdf (since Chrome is disabled)
 		copy_count = cint(frappe.form_dict.get("copy_count", 0))
@@ -231,10 +228,7 @@ def pdf_body_html(print_format, jenv, args, template):
 				# Continue without Letter Head
 				pass
 
-		if not is_older_schema(settings=settings, current_version="1.1.0"):
-			args.update({"pd_format": json.loads(print_format.print_designer_print_format)})
-		else:
-			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
+		# pd_format and afterTableElement are already set by _prepare_print_designer_context
 
 		# Clean CSS based on PDF generator BEFORE template rendering
 		if "settings" in args and "css" in args["settings"]:
@@ -252,13 +246,17 @@ def pdf_body_html(print_format, jenv, args, template):
 			# Debug logging
 			if frappe.conf.developer_mode:
 				frappe.logger().info(f"Print Designer CSS cleaning ({args['pdf_generator']}): Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
-		# replace placeholder comment with user provided jinja code
-		template_source = template.replace(
-			"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
-		)
-		try:
-			template = jenv.from_string(template_source)
+		# Handle both string template and Jinja2 Template object
+		if hasattr(template, 'render'):
+			# Template is already a Jinja2 Template object (from HTML preview)
 			rendered_html = template.render(args, filters={"len": len})
+		else:
+			# Template is a string (from PDF generation), process it
+			template_source = template.replace(
+				"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
+			)
+			template_obj = jenv.from_string(template_source)
+			rendered_html = template_obj.render(args, filters={"len": len})
 			
 			# Additional CSS cleaning of rendered HTML based on PDF generator
 			if args["pdf_generator"] == "WeasyPrint":
@@ -382,6 +380,57 @@ def pdf_body_html(print_format, jenv, args, template):
 			else:
 				return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.</h1>"
 	return fw_pdf_body_html(template, args)
+
+
+def before_print(print_format=None, **kwargs):
+	"""
+	Before print hook to prepare Print Designer context.
+	Called before both PDF and HTML generation.
+	"""
+	if print_format and hasattr(print_format, 'print_designer') and print_format.print_designer:
+		# Prepare the args dict if it's not passed
+		args = kwargs.get('args', {})
+		_prepare_print_designer_context(print_format, args)
+		# Update the kwargs with prepared args
+		kwargs['args'] = args
+	return kwargs
+
+
+def _prepare_print_designer_context(print_format, args):
+	"""
+	Prepare the context variables needed for Print Designer templates.
+	This ensures both PDF and HTML generation have the required variables.
+	"""
+	if not (print_format and print_format.print_designer and print_format.print_designer_body):
+		return
+	
+	try:
+		settings = json.loads(print_format.print_designer_settings)
+		
+		# Always prepare the core elements
+		args.update({
+			"headerElement": json.loads(print_format.print_designer_header),
+			"bodyElement": json.loads(print_format.print_designer_body),
+			"footerElement": json.loads(print_format.print_designer_footer),
+			"settings": settings,
+			"pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
+		})
+		
+		# Set pd_format for newer schema
+		if not is_older_schema(settings=settings, current_version="1.1.0"):
+			args.update({"pd_format": json.loads(print_format.print_designer_print_format)})
+		else:
+			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
+		
+		# Set send_to_jinja flag if not already set
+		if "send_to_jinja" not in args:
+			args["send_to_jinja"] = True
+			
+	except Exception as e:
+		frappe.log_error(
+			title="Print Designer Context Preparation Error",
+			message=f"Error preparing context for print format '{print_format.name}': {str(e)}"
+		)
 
 
 def is_older_schema(settings, current_version):

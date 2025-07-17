@@ -40,6 +40,7 @@ def after_install():
 	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
 	on_print_designer_install()
 	remove_chrome_pdf_generator_option()
+	add_weasyprint_pdf_generator_option()
 	set_wkhtmltopdf_as_default_for_print_designer()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
@@ -319,6 +320,16 @@ def remove_chrome_pdf_generator_option():
 	set_pdf_generator_option("remove")
 
 
+def add_weasyprint_pdf_generator_option():
+	"""Add WeasyPrint to PDF Generator options if available"""
+	try:
+		import weasyprint
+		set_pdf_generator_option("add")
+		click.echo("Added WeasyPrint to PDF Generator options")
+	except ImportError:
+		click.echo("WeasyPrint not available, skipping addition to PDF Generator options")
+
+
 def set_wkhtmltopdf_as_default_for_print_designer():
 	"""Set wkhtmltopdf as default PDF generator for all Print Designer formats"""
 	try:
@@ -369,7 +380,11 @@ def set_wkhtmltopdf_for_print_designer_format(doc, method):
 def set_pdf_generator_option(action: Literal["add", "remove"]):
 	options = (frappe.get_meta("Print Format").get_field("pdf_generator").options).split("\n")
 
-	if action == "remove":
+	if action == "add":
+		# Add WeasyPrint if not already present
+		if "WeasyPrint" not in options:
+			options.append("WeasyPrint")
+	elif action == "remove":
 		if "chrome" in options:
 			options.remove("chrome")
 
