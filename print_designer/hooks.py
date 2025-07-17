@@ -84,7 +84,10 @@ after_app_install = [
 
 # Startup hooks
 # -------------
-on_startup = "print_designer.startup.initialize_print_designer"
+on_startup = [
+	"print_designer.startup.initialize_print_designer",
+	"print_designer.hooks.override_erpnext_install"
+]
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
@@ -121,5 +124,44 @@ pd_standard_format_folder = "default_templates"
 doc_events = {
 	"Print Format": {
 		"before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
+	},
+	"Sales Invoice": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Purchase Invoice": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Sales Order": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Purchase Order": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Quotation": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Delivery Note": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Purchase Receipt": {
+		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
 	}
 }
+
+# Monkey patch ERPNext install function
+def override_erpnext_install():
+	"""Override ERPNext's create_print_setting_custom_fields function"""
+	try:
+		import erpnext.setup.install
+		from print_designer.overrides.erpnext_install import create_print_setting_custom_fields
+		
+		# Replace the function
+		erpnext.setup.install.create_print_setting_custom_fields = create_print_setting_custom_fields
+		
+	except ImportError:
+		# ERPNext not installed, skip override
+		pass
+	except Exception as e:
+		import frappe
+		frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+

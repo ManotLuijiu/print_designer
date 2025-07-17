@@ -421,6 +421,23 @@ function extendPrintView() {
     this.header_prepend_container = $(
       `<div class="print_selectors flex col align-items-center"></div>`,
     ).prependTo(this.page.page_actions);
+
+    // Add copy controls container to the top right
+    this.copy_controls_container = $(
+      `<div class="copy-controls-container" style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 15px;">
+        <div class="copy-count-control" style="display: flex; align-items: center; gap: 5px;">
+          <span style="font-size: 12px; color: #666;">${__('Copies:')}</span>
+          <button class="btn btn-xs btn-secondary copy-decrease" style="padding: 2px 6px; font-size: 12px;">-</button>
+          <input type="number" class="form-control copy-count-input" style="width: 50px; height: 26px; font-size: 12px; text-align: center;" value="1" min="1" max="10">
+          <button class="btn btn-xs btn-secondary copy-increase" style="padding: 2px 6px; font-size: 12px;">+</button>
+        </div>
+        <div class="copy-labels-control" style="display: flex; align-items: center; gap: 5px;">
+          <input type="text" class="form-control original-label-input" style="width: 70px; height: 26px; font-size: 12px;" placeholder="${__('Original')}" value="${__('Original')}">
+          <input type="text" class="form-control copy-label-input" style="width: 70px; height: 26px; font-size: 12px;" placeholder="${__('Copy')}" value="${__('Copy')}">
+        </div>
+      </div>`,
+    ).appendTo(this.page.page_actions);
+
     this.toolbar_print_format_selector = frappe.ui.form.make_control({
       df: {
         fieldtype: 'Link',
@@ -471,17 +488,90 @@ function extendPrintView() {
     this.toolbar_language_selector.$input_area.addClass(
       'my-0 px-3 hidden-xs hidden-md',
     );
+
+    // Setup copy controls event handlers
+    this.setup_copy_controls();
+
     this.sidebar_toggle = $('.page-head').find('.sidebar-toggle-btn');
     $(document.body).on('toggleSidebar', () => {
       if (this.sidebar.is(':hidden')) {
         this.toolbar_print_format_selector.$wrapper.show();
         this.toolbar_language_selector.$wrapper.show();
+        this.copy_controls_container.show();
       } else {
         this.toolbar_print_format_selector.$wrapper.hide();
         this.toolbar_language_selector.$wrapper.hide();
+        this.copy_controls_container.hide();
       }
     });
   }
+  
+  setup_copy_controls() {
+    // Get references to the copy controls
+    this.copy_count_input = this.copy_controls_container.find('.copy-count-input');
+    this.copy_decrease_btn = this.copy_controls_container.find('.copy-decrease');
+    this.copy_increase_btn = this.copy_controls_container.find('.copy-increase');
+    this.original_label_input = this.copy_controls_container.find('.original-label-input');
+    this.copy_label_input = this.copy_controls_container.find('.copy-label-input');
+
+    // Setup event handlers for copy count controls
+    this.copy_decrease_btn.on('click', () => {
+      let currentValue = parseInt(this.copy_count_input.val()) || 1;
+      if (currentValue > 1) {
+        this.copy_count_input.val(currentValue - 1);
+        this.sync_copy_controls_with_sidebar();
+      }
+    });
+
+    this.copy_increase_btn.on('click', () => {
+      let currentValue = parseInt(this.copy_count_input.val()) || 1;
+      if (currentValue < 10) {
+        this.copy_count_input.val(currentValue + 1);
+        this.sync_copy_controls_with_sidebar();
+      }
+    });
+
+    // Handle direct input changes
+    this.copy_count_input.on('change', () => {
+      let value = parseInt(this.copy_count_input.val()) || 1;
+      if (value < 1) value = 1;
+      if (value > 10) value = 10;
+      this.copy_count_input.val(value);
+      this.sync_copy_controls_with_sidebar();
+    });
+
+    // Handle label changes
+    this.original_label_input.on('change', () => {
+      this.sync_copy_controls_with_sidebar();
+    });
+
+    this.copy_label_input.on('change', () => {
+      this.sync_copy_controls_with_sidebar();
+    });
+  }
+
+  sync_copy_controls_with_sidebar() {
+    // Sync the top-right copy controls with the sidebar copy options
+    if (this.copy_count_item) {
+      const count = parseInt(this.copy_count_input.val()) || 1;
+      this.copy_count_item.set_value(count);
+      
+      // Auto-enable copies if count > 1
+      if (count > 1) {
+        if (this.enable_copies_item) {
+          this.enable_copies_item.set_value(1);
+        }
+      }
+    }
+
+    if (this.copy_labels_item) {
+      const originalLabel = this.original_label_input.val() || __('Original');
+      const copyLabel = this.copy_label_input.val() || __('Copy');
+      const labels = `${originalLabel}, ${copyLabel}`;
+      this.copy_labels_item.set_value(labels);
+    }
+  }
+
   createPdfEl(url, wrapperContainer) {
     const mainSectionWidth =
       document.getElementsByClassName('main-section')[0].offsetWidth + 'px';
@@ -1421,6 +1511,9 @@ function extendPrintView() {
     });
     this.print_format_selector = this.print_format_item.$input;
 
+    // Initialize print settings
+    this.load_print_settings();
+
     this.language_item = this.add_sidebar_item({
       fieldtype: 'Link',
       fieldname: 'language',
@@ -1488,10 +1581,36 @@ function extendPrintView() {
       }
     }
 
-    // Add copy options section only if not already added
-    if (!this.copy_options_initialized) {
-      this.copy_options_initialized = true;
-      
+    // Copy options will be set up after print settings are loaded
+  }
+  
+  load_print_settings() {
+    // Load print settings to get copy configuration
+    frappe.call({
+      method: 'frappe.client.get_single',
+      args: {
+        doctype: 'Print Settings'
+      },
+      callback: (r) => {
+        if (r.message) {
+          this.print_settings = r.message;
+          // Setup copy options after settings are loaded
+          this.setup_copy_options();
+        }
+      }
+    });
+  }
+  
+  setup_copy_options() {
+    // Don't setup if already initialized or settings not loaded
+    if (this.copy_options_initialized || !this.print_settings) {
+      return;
+    }
+    
+    this.copy_options_initialized = true;
+    
+    // Only show copy options if enabled in print settings
+    if (this.print_settings.enable_multiple_copies) {
       this.copy_section = $(`
         <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
           <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
@@ -1511,6 +1630,10 @@ function extendPrintView() {
           } else {
             this.copy_count_item.$wrapper.hide();
             this.copy_labels_item.$wrapper.hide();
+            // Reset top-right controls when disabled
+            if (this.copy_count_input) {
+              this.copy_count_input.val(1);
+            }
           }
         },
       });
@@ -1520,8 +1643,14 @@ function extendPrintView() {
         fieldtype: 'Int',
         fieldname: 'copy_count',
         label: __('Number of Copies'),
-        default: 2,
+        default: this.print_settings.default_copy_count || 2,
         description: __('Total number of copies to generate'),
+        change: () => {
+          // Sync sidebar changes back to top-right controls
+          if (this.copy_count_input) {
+            this.copy_count_input.val(this.copy_count_item.value || 1);
+          }
+        },
       });
 
       // Custom labels
@@ -1529,8 +1658,21 @@ function extendPrintView() {
         fieldtype: 'Small Text',
         fieldname: 'copy_labels',
         label: __('Copy Labels'),
-        placeholder: __('Original, Copy') + ' (' + __('Optional') + ')',
+        placeholder: (this.print_settings.default_original_label || __('Original')) + ', ' + 
+                    (this.print_settings.default_copy_label || __('Copy')) + ' (' + __('Optional') + ')',
+        default: (this.print_settings.default_original_label || __('Original')) + ', ' + 
+                (this.print_settings.default_copy_label || __('Copy')),
         description: __('Comma-separated labels for each copy'),
+        change: () => {
+          // Sync sidebar changes back to top-right controls
+          if (this.original_label_input && this.copy_label_input) {
+            const labels = (this.copy_labels_item.value || '').split(',');
+            const originalLabel = labels[0] ? labels[0].trim() : this.print_settings.default_original_label || __('Original');
+            const copyLabel = labels[1] ? labels[1].trim() : this.print_settings.default_copy_label || __('Copy');
+            this.original_label_input.val(originalLabel);
+            this.copy_label_input.val(copyLabel);
+          }
+        },
       });
 
       // Initially hide copy options
@@ -1538,6 +1680,7 @@ function extendPrintView() {
       this.copy_labels_item.$wrapper.hide();
     }
   }
+  
   refresh_copy_options_labels() {
     // Refresh copy options section title and labels after language change
     if (this.copy_section) {
@@ -1628,8 +1771,28 @@ function extendPrintView() {
       params.set('pdf_generator', selected_generator);
     }
 
-    // Add copy parameters if enabled
-    if (this.enable_copies_item && this.enable_copies_item.value) {
+    // Add copy parameters from top-right controls
+    const copyCount = this.copy_count_input ? parseInt(this.copy_count_input.val()) || 1 : 1;
+    if (copyCount > 1) {
+      params.set('copy_count', copyCount);
+      
+      // Get labels from top-right controls
+      const originalLabel = this.original_label_input ? this.original_label_input.val() || __('Original') : __('Original');
+      const copyLabel = this.copy_label_input ? this.copy_label_input.val() || __('Copy') : __('Copy');
+      params.set('copy_labels', `${originalLabel}, ${copyLabel}`);
+      
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+        
+        // Inform user about the change
+        frappe.show_alert({
+          message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
+          indicator: 'blue'
+        }, 5);
+      }
+    } else if (this.enable_copies_item && this.enable_copies_item.value) {
+      // Fallback to sidebar controls if top-right controls are not available
       params.set('copy_count', this.copy_count_item.value || 2);
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);

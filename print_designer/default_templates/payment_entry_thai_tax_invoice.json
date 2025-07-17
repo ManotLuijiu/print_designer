@@ -17,7 +17,7 @@
   "print_format_builder": 0,
   "print_format_type": "Jinja",
   "html": "<!-- This will be populated by Print Designer -->",
-  "css": ".print-format { font-family: 'Sarabun', Arial, sans-serif; }",
+  "css": ".print-format { font-family: 'Sarabun', sans-serif; }",
   "margin_top": 15,
   "margin_bottom": 15,
   "margin_left": 10,

@@ -48,7 +48,7 @@ def install_thai_payment_format(context):
             "default_print_language": "th",
             "css": """
 .print-format {
-    font-family: 'Sarabun', 'THSarabunNew', Arial, sans-serif;
+    font-family: 'Sarabun', sans-serif;
     font-size: 14px;
     line-height: 1.4;
 }

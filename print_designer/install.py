@@ -42,6 +42,7 @@ def after_install():
 	remove_chrome_pdf_generator_option()
 	add_weasyprint_pdf_generator_option()
 	set_wkhtmltopdf_as_default_for_print_designer()
+	setup_print_designer_settings()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
 
@@ -396,3 +397,38 @@ def set_pdf_generator_option(action: Literal["add", "remove"]):
 		"Text",
 		validate_fields_for_doctype=False,
 	)
+
+
+def setup_print_designer_settings():
+	"""Setup default print designer settings for copy functionality"""
+	
+	try:
+		# Get or create Print Settings single
+		print_settings = frappe.get_single("Print Settings")
+		
+		# Set default values if not already set
+		if not print_settings.get("enable_multiple_copies"):
+			print_settings.enable_multiple_copies = 1  # Enable by default
+		
+		if not print_settings.get("default_copy_count"):
+			print_settings.default_copy_count = 2
+		
+		if not print_settings.get("default_original_label"):
+			print_settings.default_original_label = frappe._("Original")
+		
+		if not print_settings.get("default_copy_label"):
+			print_settings.default_copy_label = frappe._("Copy")
+		
+		if not print_settings.get("show_copy_controls_in_toolbar"):
+			print_settings.show_copy_controls_in_toolbar = 1
+		
+		# Save the settings
+		print_settings.flags.ignore_permissions = True
+		print_settings.save()
+		
+		click.echo("Print Designer copy settings configured successfully")
+		
+	except Exception as e:
+		click.echo(f"Error setting up Print Designer settings: {str(e)}")
+		# Don't fail installation for this
+		pass

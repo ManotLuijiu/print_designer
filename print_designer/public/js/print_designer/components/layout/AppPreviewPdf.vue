@@ -69,6 +69,10 @@ const removePdfWatcher = watch(
 				for (let pageno = 1; pageno <= pdfDoc.numPages; pageno++) {
 					await renderPage(pageno);
 				}
+				
+				// Update page numbers in the original document for preview
+				updatePageNumbersInPreview(pdfDoc.numPages);
+				
 				frappe.dom.unfreeze();
 			} catch {
 				frappe.dom.unfreeze();
@@ -86,6 +90,55 @@ const removePdfWatcher = watch(
 		}
 	}
 );
+
+/**
+ * Update page numbers in the original document for preview mode
+ */
+function updatePageNumbersInPreview(totalPages) {
+	// Update page number elements in the original document
+	const currentPageElements = document.querySelectorAll('.page_info_page, .page');
+	const totalPageElements = document.querySelectorAll('.page_info_topage, .topage');
+	const fromPageElements = document.querySelectorAll('.page_info_frompage, .frompage');
+	
+	// Set page numbers (preview shows page 1 of totalPages)
+	currentPageElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim() === '{{ page }}') {
+			el.textContent = '1';
+		}
+	});
+	totalPageElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim() === '{{ topage }}') {
+			el.textContent = totalPages.toString();
+		}
+	});
+	fromPageElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim() === '{{ frompage }}') {
+			el.textContent = '1';
+		}
+	});
+	
+	// Set date/time elements
+	const dateObj = new Date();
+	const dateElements = document.querySelectorAll('.page_info_date, .date');
+	const timeElements = document.querySelectorAll('.page_info_time, .time');
+	const isodateElements = document.querySelectorAll('.page_info_isodate, .isodate');
+	
+	dateElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim().includes('{{ date }}')) {
+			el.textContent = dateObj.toLocaleDateString();
+		}
+	});
+	timeElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim().includes('{{ time }}')) {
+			el.textContent = dateObj.toLocaleTimeString();
+		}
+	});
+	isodateElements.forEach(el => {
+		if (el.textContent.trim() === '' || el.textContent.trim().includes('{{ isodate }}')) {
+			el.textContent = dateObj.toISOString();
+		}
+	});
+}
 onMounted(() => {
 	let waitingForpdfJsLib = setInterval(() => {
 		if (window.pdfjsLib) {

@@ -139,6 +139,7 @@ class PDFTransformer:
 		"""Generate multiple copies of PDF with watermarks directly from PdfReader"""
 		import frappe
 		copy_count = getattr(self.browser, 'copy_count', 2)
+		print(f"Generating {copy_count} copies of the PDF")
 		copy_labels = getattr(self.browser, 'copy_labels', [frappe._("Original"), frappe._("Copy")])
 		copy_watermark = getattr(self.browser, 'copy_watermark', True)
 

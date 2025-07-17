@@ -37,6 +37,8 @@ def install(context):
     click.echo("Installing signature fields...")
     result = install_signature_fields()
     
+    print(f"Installation completed: {result['installed']} installed, {result['failed']} failed")
+    
     if result['failed'] == 0:
         click.echo("✅ Signature fields installed successfully!")
     else:

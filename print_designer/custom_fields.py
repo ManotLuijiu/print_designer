@@ -71,6 +71,65 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
 			"insert_after": "print_designer_template_app",
 			"description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"
 		},
+	],
+	"Print Settings": [
+		{
+			"label": "Copy Settings",
+			"fieldname": "copy_settings_section",
+			"fieldtype": "Section Break",
+			"insert_after": "print_taxes_with_zero_amount",
+			"collapsible": 1,
+		},
+		{
+			"label": "Enable Multiple Copies",
+			"fieldname": "enable_multiple_copies",
+			"fieldtype": "Check",
+			"default": "0",
+			"insert_after": "copy_settings_section",
+			"description": "Enable multiple copy generation for print formats",
+		},
+		{
+			"label": "Default Copy Count",
+			"fieldname": "default_copy_count",
+			"fieldtype": "Int",
+			"default": "2",
+			"insert_after": "enable_multiple_copies",
+			"depends_on": "enable_multiple_copies",
+			"description": "Default number of copies to generate",
+		},
+		{
+			"label": "Copy Labels",
+			"fieldname": "copy_labels_column",
+			"fieldtype": "Column Break",
+			"insert_after": "default_copy_count",
+		},
+		{
+			"label": "Default Original Label",
+			"fieldname": "default_original_label",
+			"fieldtype": "Data",
+			"default": "Original",
+			"insert_after": "copy_labels_column",
+			"depends_on": "enable_multiple_copies",
+			"description": "Default label for original copy",
+		},
+		{
+			"label": "Default Copy Label",
+			"fieldname": "default_copy_label",
+			"fieldtype": "Data",
+			"default": "Copy",
+			"insert_after": "default_original_label",
+			"depends_on": "enable_multiple_copies",
+			"description": "Default label for additional copies",
+		},
+		{
+			"label": "Show Copy Controls in Toolbar",
+			"fieldname": "show_copy_controls_in_toolbar",
+			"fieldtype": "Check",
+			"default": "1",
+			"insert_after": "default_copy_label",
+			"depends_on": "enable_multiple_copies",
+			"description": "Show copy controls in print preview toolbar",
+		},
 	]
 }
 

@@ -14,6 +14,7 @@ def get_pdf(print_format, html, options, output, **kwargs):
 	"""
 	if not cint(getattr(print_format, "print_designer", 0)):
 		# Not a print designer format, let Frappe handle it.
+		print("Not a Print Designer format, using Frappe's PDF generation")
 		return None
 	
 	return PDFGeneratorManager.generate_pdf(print_format, html, options, output)

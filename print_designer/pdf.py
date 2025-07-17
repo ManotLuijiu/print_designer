@@ -278,6 +278,14 @@ def pdf_body_html(print_format, jenv, args, template):
 				frappe.form_dict.get("_doctype") == "PDF"
 			)
 			
+			# Check if this is preview mode (for page number injection)
+			is_preview_mode = (
+				frappe.form_dict.get("format") and 
+				frappe.form_dict.get("doctype") and 
+				frappe.form_dict.get("name") and
+				not is_pdf_generation
+			)
+			
 			# Only apply CSS cleaning for actual PDF generation, not HTML preview
 			if is_pdf_generation:
 				if args["pdf_generator"] == "WeasyPrint":
@@ -304,6 +312,10 @@ def pdf_body_html(print_format, jenv, args, template):
 				# For HTML preview, keep original CSS completely untouched
 				if frappe.conf.developer_mode:
 					frappe.logger().info("HTML preview mode - keeping original CSS untouched")
+			
+			# Inject page number script for preview mode
+			if is_preview_mode:
+				rendered_html = _inject_page_number_script_for_preview(rendered_html)
 			
 			return rendered_html
 
@@ -367,6 +379,9 @@ def _prepare_print_designer_context(print_format, args):
 		# Set send_to_jinja flag if not already set
 		if "send_to_jinja" not in args:
 			args["send_to_jinja"] = True
+		
+		# Enhance Thai amount in words if applicable
+		_enhance_thai_amount_in_words(print_format, args)
 			
 	except Exception as e:
 		frappe.log_error(
@@ -426,3 +441,138 @@ def measure_time(func):
 		return result
 
 	return wrapper
+
+
+def _enhance_thai_amount_in_words(print_format, args):
+	"""
+	Enhance the in_words field with Thai language support when applicable.
+	
+	Args:
+		print_format: Print format object
+		args: Template arguments dictionary
+	"""
+	try:
+		# Check if we have a document with amount fields
+		doc = args.get("doc")
+		if not doc:
+			return
+		
+		# Check if document has in_words and grand_total fields
+		if not (hasattr(doc, 'in_words') and hasattr(doc, 'grand_total')):
+			return
+		
+		# Import the Thai amount utility
+		from print_designer.utils.thai_amount_to_word import is_thai_format, thai_money_in_words
+		
+		# Check if Thai format should be used
+		if is_thai_format(print_format.name, doc):
+			# Set Thai amount in words
+			doc.in_words = thai_money_in_words(doc.grand_total or 0)
+			
+			# Also add to args for template access
+			args["thai_in_words"] = doc.in_words
+			args["use_thai_language"] = True
+			
+			if frappe.conf.developer_mode:
+				frappe.logger().info(f"Enhanced Thai amount in words for {print_format.name}: {doc.in_words}")
+	
+	except Exception as e:
+		frappe.log_error(
+			title="Thai Amount Enhancement Error",
+			message=f"Error enhancing Thai amount in words for print format '{print_format.name}': {str(e)}"
+		)
+
+
+def _inject_page_number_script_for_preview(html_content):
+	"""
+	Inject page number script into HTML for preview mode.
+	This ensures page numbers are displayed in preview mode.
+	"""
+	# Read the update_page_no.js script
+	try:
+		import os
+		script_path = os.path.join(
+			frappe.get_app_path("print_designer"),
+			"print_designer", "page", "print_designer", "update_page_no.js"
+		)
+		
+		with open(script_path, 'r') as f:
+			page_number_script = f.read()
+		
+		# Insert the script before the closing body tag
+		script_tag = f"""
+<script>
+{page_number_script}
+
+// Auto-execute page number injection for preview mode
+document.addEventListener('DOMContentLoaded', function() {{
+	// Check if this is a print designer document
+	const printDesignerDiv = document.querySelector('#__print_designer');
+	if (printDesignerDiv) {{
+		// Inject page numbers for preview mode
+		// First, find elements with page number classes
+		const pageElements = document.querySelectorAll('.page_info_page, .page, .page_info_topage, .topage, .page_info_frompage, .frompage');
+		
+		if (pageElements.length > 0) {{
+			// Set initial page numbers (preview shows page 1 of 1 by default)
+			const currentPageElements = document.querySelectorAll('.page_info_page, .page');
+			const totalPageElements = document.querySelectorAll('.page_info_topage, .topage');
+			const fromPageElements = document.querySelectorAll('.page_info_frompage, .frompage');
+			
+			currentPageElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ page }}}}') {{
+					el.textContent = '1';
+				}}
+			}});
+			totalPageElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ topage }}}}') {{
+					el.textContent = '1';
+				}}
+			}});
+			fromPageElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ frompage }}}}') {{
+					el.textContent = '1';
+				}}
+			}});
+			
+			// Set date/time elements
+			const dateObj = new Date();
+			const dateElements = document.querySelectorAll('.page_info_date, .date');
+			const timeElements = document.querySelectorAll('.page_info_time, .time');
+			const isodateElements = document.querySelectorAll('.page_info_isodate, .isodate');
+			
+			dateElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ date }}}}')) {{
+					el.textContent = dateObj.toLocaleDateString();
+				}}
+			}});
+			timeElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ time }}}}')) {{
+					el.textContent = dateObj.toLocaleTimeString();
+				}}
+			}});
+			isodateElements.forEach(el => {{
+				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ isodate }}}}')) {{
+					el.textContent = dateObj.toISOString();
+				}}
+			}});
+		}}
+	}}
+}});
+</script>
+"""
+		
+		# Insert the script before the closing body tag, or at the end if no body tag
+		if '</body>' in html_content:
+			html_content = html_content.replace('</body>', script_tag + '</body>')
+		else:
+			html_content += script_tag
+		
+		return html_content
+		
+	except Exception as e:
+		frappe.log_error(
+			title="Page Number Script Injection Error",
+			message=f"Error injecting page number script for preview: {str(e)}"
+		)
+		return html_content
