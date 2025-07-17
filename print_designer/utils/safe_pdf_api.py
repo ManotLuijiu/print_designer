@@ -7,6 +7,8 @@ import frappe
 from frappe.utils.pdf import get_pdf as original_get_pdf
 from frappe import get_print as original_get_print
 from frappe.utils.print_format import download_pdf as original_download_pdf
+from frappe.www.printview import validate_print_permission
+from frappe.translate import print_language
 from print_designer.utils.print_protection import safe_get_print
 
 @frappe.whitelist()
@@ -28,37 +30,90 @@ def safe_download_pdf(
     reliable PDF generation even when other apps monkey patch core functions.
     """
     
+    # Get the document and validate permissions using Frappe's standard method
+    try:
+        doc = doc or frappe.get_doc(doctype, name)
+        validate_print_permission(doc)
+    except Exception as permission_error:
+        frappe.log_error(
+            title="Print Designer - Permission Validation Failed",
+            message=f"Permission validation failed for {doctype} {name}: {str(permission_error)}"
+        )
+        frappe.throw("You don't have permission to access this document", frappe.PermissionError)
+    
+    # Handle HEAD requests - just return headers without body
+    if frappe.request.method == "HEAD":
+        frappe.local.response.headers = {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': f'attachment; filename="{name}.pdf"',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
+        return
+    
     # Log the request for debugging
     frappe.log_error(
         title="Print Designer - Safe PDF Download Request",
         message=f"Request: doctype={doctype}, name={name}, format={format}, "
-               f"pdf_generator={pdf_generator}, letterhead={letterhead}"
+               f"pdf_generator={pdf_generator}, letterhead={letterhead}, "
+               f"method={frappe.request.method}, user={frappe.session.user}"
     )
     
     try:
-        # First try the safe_get_print function
-        html = safe_get_print(
-            doctype=doctype,
-            name=name,
-            print_format=format,
-            doc=doc,
-            no_letterhead=no_letterhead,
-            letterhead=letterhead,
-            pdf_generator=pdf_generator,
-            **kwargs
+        # Log the attempt
+        frappe.log_error(
+            title="Print Designer - Safe PDF Generation Attempt",
+            message=f"Attempting safe PDF generation for {doctype} {name} with format {format}"
         )
         
-        # If we get HTML, convert to PDF
-        if html:
-            # Use the original get_pdf function to avoid third-party conflicts
-            pdf_data = original_get_pdf(html)
+        # Filter out parameters that are not expected by safe_get_print
+        allowed_params = {
+            'style', 'as_pdf', 'output', 'password', 'pdf_options'
+        }
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_params}
+        
+        # Handle language parameter - convert _lang to language if present
+        if '_lang' in kwargs:
+            language = kwargs['_lang']
+        
+        # Use print_language context manager like the standard Frappe function
+        with print_language(language):
+            # First try the safe_get_print function
+            html = safe_get_print(
+                doctype=doctype,
+                name=name,
+                print_format=format,
+                doc=doc,
+                no_letterhead=no_letterhead,
+                letterhead=letterhead,
+                pdf_generator=pdf_generator,
+                **filtered_kwargs
+            )
             
-            # Set response headers for PDF download
-            frappe.local.response.filename = f"{name}.pdf"
-            frappe.local.response.filecontent = pdf_data
-            frappe.local.response.type = "pdf"
-            
-            return
+            # If we get HTML, convert to PDF
+            if html:
+                # Use the original get_pdf function to avoid third-party conflicts
+                pdf_data = original_get_pdf(html)
+                
+                if pdf_data:
+                    # Set response headers for PDF download
+                    frappe.local.response.filename = f"{name}.pdf"
+                    frappe.local.response.filecontent = pdf_data
+                    frappe.local.response.type = "pdf"
+                    
+                    # Set additional headers for proper PDF handling
+                    frappe.local.response.headers = {
+                        'Content-Type': 'application/pdf',
+                        'Content-Disposition': f'attachment; filename="{name}.pdf"',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                    
+                    return pdf_data
+                else:
+                    frappe.throw("Failed to generate PDF from HTML")
             
     except Exception as e:
         error_msg = str(e)
@@ -67,7 +122,7 @@ def safe_download_pdf(
         if any(pattern in error_msg for pattern in ['add_comment_info', 'Unknown column', 'erpnext_thailand']):
             # This is definitely a third-party conflict, try bypass
             try:
-                # Use the original frappe functions directly
+                # Use the original frappe functions directly with filtered kwargs
                 html = original_get_print(
                     doctype=doctype,
                     name=name,
@@ -76,24 +131,36 @@ def safe_download_pdf(
                     no_letterhead=no_letterhead,
                     letterhead=letterhead,
                     pdf_generator=pdf_generator,
-                    **kwargs
+                    **filtered_kwargs
                 )
                 
                 if html:
                     pdf_data = original_get_pdf(html)
                     
-                    # Set response headers for PDF download
-                    frappe.local.response.filename = f"{name}.pdf"
-                    frappe.local.response.filecontent = pdf_data
-                    frappe.local.response.type = "pdf"
-                    
-                    # Log successful bypass
-                    frappe.log_error(
-                        title="Print Designer - Third Party Conflict Bypassed",
-                        message=f"Successfully bypassed third-party conflict: {error_msg}"
-                    )
-                    
-                    return
+                    if pdf_data:
+                        # Set response headers for PDF download
+                        frappe.local.response.filename = f"{name}.pdf"
+                        frappe.local.response.filecontent = pdf_data
+                        frappe.local.response.type = "pdf"
+                        
+                        # Set additional headers for proper PDF handling
+                        frappe.local.response.headers = {
+                            'Content-Type': 'application/pdf',
+                            'Content-Disposition': f'attachment; filename="{name}.pdf"',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'Expires': '0'
+                        }
+                        
+                        # Log successful bypass
+                        frappe.log_error(
+                            title="Print Designer - Third Party Conflict Bypassed",
+                            message=f"Successfully bypassed third-party conflict: {error_msg}"
+                        )
+                        
+                        return pdf_data
+                    else:
+                        frappe.throw("Failed to generate PDF from HTML")
                     
             except Exception as bypass_error:
                 # Log both errors
@@ -112,6 +179,8 @@ def safe_download_pdf(
         
         # Try direct original download_pdf as last resort
         try:
+            # Filter kwargs for original_download_pdf function
+            original_download_kwargs = {k: v for k, v in kwargs.items() if k not in ['_lang']}
             return original_download_pdf(
                 doctype=doctype,
                 name=name,
@@ -120,7 +189,7 @@ def safe_download_pdf(
                 no_letterhead=no_letterhead,
                 language=language,
                 letterhead=letterhead,
-                **kwargs
+                **original_download_kwargs
             )
         except Exception as fallback_error:
             frappe.log_error(
@@ -149,21 +218,37 @@ def safe_get_print_html(
     Returns HTML instead of PDF for preview purposes.
     """
     
+    # Get the document and validate permissions using Frappe's standard method
+    doc = frappe.get_doc(doctype, name)
+    validate_print_permission(doc)
+    
     try:
-        # Use the safe_get_print function
-        html = safe_get_print(
-            doctype=doctype,
-            name=name,
-            print_format=print_format,
-            style=style,
-            as_pdf=False,
-            no_letterhead=no_letterhead,
-            letterhead=letterhead,
-            pdf_generator=pdf_generator,
-            **kwargs
-        )
+        # Filter out parameters that are not expected by safe_get_print
+        allowed_params = {
+            'output', 'password', 'pdf_options'
+        }
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in allowed_params}
         
-        return {"html": html}
+        # Handle language parameter - convert _lang to language if present
+        if '_lang' in kwargs:
+            language = kwargs['_lang']
+        
+        # Use print_language context manager like the standard Frappe function
+        with print_language(language):
+            # Use the safe_get_print function
+            html = safe_get_print(
+                doctype=doctype,
+                name=name,
+                print_format=print_format,
+                style=style,
+                as_pdf=False,
+                no_letterhead=no_letterhead,
+                letterhead=letterhead,
+                pdf_generator=pdf_generator,
+                **filtered_kwargs
+            )
+            
+            return {"html": html}
         
     except Exception as e:
         frappe.log_error(
@@ -182,7 +267,7 @@ def safe_get_print_html(
                 no_letterhead=no_letterhead,
                 letterhead=letterhead,
                 pdf_generator=pdf_generator,
-                **kwargs
+                **filtered_kwargs
             )
             return {"html": html}
             

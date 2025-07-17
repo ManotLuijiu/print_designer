@@ -83,12 +83,15 @@ def safe_thailand_get_print(
     
     return res
 
-def override_thailand_monkey_patch():
+def override_thailand_monkey_patch(app_name=None):
     """
     Override the erpnext_thailand monkey patching with our safe version.
     
     This should be called during print_designer initialization to ensure
     our safe version is used instead of the problematic one.
+    
+    Args:
+        app_name: The name of the app being installed (passed by Frappe hooks)
     """
     
     try:
