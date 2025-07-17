@@ -1,7 +1,7 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import Designer from "./App.vue";
-import QRCode from 'qrcode'
+import QrcodeVue from 'qrcode.vue';
 class PrintDesigner {
 	constructor({ wrapper, print_format }) {
 		this.$wrapper = $(wrapper);
