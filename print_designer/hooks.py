@@ -69,6 +69,10 @@ jinja = {
         "print_designer.print_designer.page.print_designer.print_designer.convert_css",
         "print_designer.print_designer.page.print_designer.print_designer.convert_uom",
         "print_designer.print_designer.page.print_designer.print_designer.get_barcode",
+        "print_designer.utils.signature_integration.get_signature_data_for_print",
+        "print_designer.utils.signature_integration.get_signature_for_document",
+        "print_designer.utils.signature_integration.get_available_signatures",
+        "print_designer.utils.signature_integration.log_signature_usage",
     ]
 }
 
@@ -145,6 +149,10 @@ doc_events = {
 	},
 	"Purchase Receipt": {
 		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+	},
+	"Signature Basic Information": {
+		"after_insert": "print_designer.utils.signature_integration.log_signature_usage",
+		"on_update": "print_designer.utils.signature_integration.log_signature_usage",
 	}
 }
 

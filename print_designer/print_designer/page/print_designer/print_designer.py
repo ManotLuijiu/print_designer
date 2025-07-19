@@ -115,6 +115,9 @@ def get_data_from_main_template(string, doctype, docname=None, settings=None):
 @frappe.whitelist(allow_guest=False)
 def get_image_docfields():
 	docfield = frappe.qb.DocType("DocField")
+	customfield = frappe.qb.DocType("Custom Field")
+	
+	# Get standard image fields from DocField table
 	image_docfields = (
 		frappe.qb.from_(docfield)
 		.select(
@@ -128,7 +131,29 @@ def get_image_docfields():
 		.where((docfield.fieldtype == "Image") | (docfield.fieldtype == "Attach Image"))
 		.orderby(docfield.parent)
 	).run(as_dict=True)
-	return image_docfields
+	
+	# Get custom image fields from Custom Field table (including signature fields)
+	custom_image_fields = (
+		frappe.qb.from_(customfield)
+		.select(
+			customfield.name,
+			customfield.dt.as_("parent"),
+			customfield.fieldname,
+			customfield.fieldtype,
+			customfield.label,
+			customfield.options,
+		)
+		.where((customfield.fieldtype == "Image") | (customfield.fieldtype == "Attach Image"))
+		.orderby(customfield.dt)
+	).run(as_dict=True)
+	
+	# Combine both lists
+	all_image_fields = image_docfields + custom_image_fields
+	
+	# Sort by parent (DocType name)
+	all_image_fields.sort(key=lambda x: x.get("parent", ""))
+	
+	return all_image_fields
 
 
 @frappe.whitelist()
