@@ -203,7 +203,19 @@ onMounted(async () => {
 				method: "print_designer.print_designer.page.print_designer.print_designer.get_image_docfields",
 			});
 			const imageFields = [];
-			MainStore.getLinkMetaFields().forEach((field) => {
+			const linkFields = MainStore.getLinkMetaFields();
+			
+			// Add main document as a virtual link field for signature fields
+			if (MainStore.doctype) {
+				linkFields.push({
+					fieldname: "",
+					label: MainStore.doctype,
+					fieldtype: "Link",
+					options: MainStore.doctype,
+				});
+			}
+			
+			linkFields.forEach((field) => {
 				imageDocFields.message
 					.filter((image) => image.parent == field.options)
 					.forEach((el) => {
@@ -216,15 +228,23 @@ onMounted(async () => {
 							parentField: field.fieldname,
 						});
 					});
-				imageFields.forEach(async (field) => {
+			});
+			
+			// Use Promise.all to properly await all async operations
+			await Promise.all(imageFields.map(async (field) => {
+				if (field.parentField === "") {
+					// Main document field
+					field.value = MainStore.docData[field.fieldname];
+				} else {
+					// Linked document field
 					field.value = await getValue(
 						field.doctype,
 						MainStore.docData[field.parentField],
 						field.fieldname
 					);
-				});
-				MainStore.imageDocFields = imageFields;
-			});
+				}
+			}));
+			MainStore.imageDocFields = imageFields;
 		}
 		if (props.openImageModal.image) {
 			if (props.openImageModal.isDynamic) {

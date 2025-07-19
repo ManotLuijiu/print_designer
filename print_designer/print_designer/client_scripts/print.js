@@ -2,7 +2,7 @@
 
 /**
  * Print Designer PDF Generation Logger
- * 
+ *
  * Client-side utility for logging PDF generation issues to server-side log files.
  * This helps debug PDF generation freezing and other issues.
  */
@@ -14,7 +14,7 @@ class PDFGenerationLogger {
         this.maxQueueSize = 100;
         this.enableConsoleLogging = true;
         this.enableServerLogging = true;
-        
+
         // Performance monitoring
         this.performanceMetrics = {
             startTime: null,
@@ -56,7 +56,7 @@ class PDFGenerationLogger {
 
         // Add to queue
         this.logQueue.push(logEntry);
-        
+
         // Limit queue size
         if (this.logQueue.length > this.maxQueueSize) {
             this.logQueue.shift();
@@ -99,7 +99,7 @@ class PDFGenerationLogger {
 
         try {
             this.isProcessing = true;
-            
+
             await frappe.call({
                 method: 'print_designer.pdf_logging.log_pdf_generation_issue',
                 args: {
@@ -126,7 +126,7 @@ class PDFGenerationLogger {
         this.performanceMetrics.startTime = performance.now();
         this.performanceMetrics.retryCount = 0;
         this.performanceMetrics.generatorAttempts = [];
-        
+
         this.log('PDF_GENERATION_START', 'PDF generation started', {
             startTime: this.performanceMetrics.startTime
         });
@@ -135,7 +135,7 @@ class PDFGenerationLogger {
     endPerformanceMonitoring(success = true) {
         this.performanceMetrics.endTime = performance.now();
         const duration = this.performanceMetrics.endTime - this.performanceMetrics.startTime;
-        
+
         this.log(
             success ? 'PDF_GENERATION_SUCCESS' : 'PDF_GENERATION_FAILED',
             `PDF generation ${success ? 'completed' : 'failed'} in ${duration.toFixed(2)}ms`,
@@ -155,7 +155,7 @@ class PDFGenerationLogger {
             success,
             timestamp: performance.now()
         });
-        
+
         if (!success) {
             this.performanceMetrics.retryCount++;
         }
@@ -227,12 +227,12 @@ class PDFGenerationLogger {
     getBrowserInfo() {
         const userAgent = navigator.userAgent;
         let browser = 'Unknown';
-        
+
         if (userAgent.includes('Chrome')) browser = 'Chrome';
         else if (userAgent.includes('Firefox')) browser = 'Firefox';
         else if (userAgent.includes('Safari')) browser = 'Safari';
         else if (userAgent.includes('Edge')) browser = 'Edge';
-        
+
         return {
             name: browser,
             userAgent,
@@ -266,7 +266,7 @@ class PDFGenerationLogger {
                     log_level: logLevel
                 }
             });
-            
+
             return response.message;
         } catch (error) {
             console.error('Error fetching logs:', error);
@@ -279,7 +279,7 @@ class PDFGenerationLogger {
             const response = await frappe.call({
                 method: 'print_designer.pdf_logging.clear_pdf_generation_logs'
             });
-            
+
             return response.message;
         } catch (error) {
             console.error('Error clearing logs:', error);
@@ -293,7 +293,7 @@ class PDFGenerationLogger {
         const blob = new Blob([JSON.stringify(sessionLogs, null, 2)], {
             type: 'application/json'
         });
-        
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -320,27 +320,27 @@ function initializePrintPage() {
   if (!frappe.pages) {
     frappe.pages = {};
   }
-  
+
   // Don't override the core print page - let it load first
   if (!frappe.pages['print']) {
     // If the core print page hasn't loaded yet, wait for it
     setTimeout(initializePrintPage, 100);
     return;
   }
-  
+
   // Store the original on_page_load function
   const originalOnPageLoad = frappe.pages['print'].on_page_load;
-  
+
   frappe.pages['print'].on_page_load = function (wrapper) {
     console.log('Print Designer: Enhancing print page...', wrapper);
-    
+
     // Call the original page load function first
     if (originalOnPageLoad) {
       originalOnPageLoad(wrapper);
     } else {
       // Fallback to basic setup if original not available
       frappe.require(['pdfjs.bundle.css', 'print_designer.bundle.css']);
-      
+
       frappe.ui.make_app_page({
         parent: wrapper,
       });
@@ -348,7 +348,7 @@ function initializePrintPage() {
       let print_view = new frappe.ui.form.PrintView(wrapper);
       console.log('Print view created:', print_view);
     }
-    
+
     // Our enhancement will be applied through the PrintView class extension below
     console.log('Print Designer: Print page enhanced successfully');
 }
@@ -400,10 +400,10 @@ function extendPrintView() {
     setTimeout(extendPrintView, 100);
     return;
   }
-  
+
   // Store the original class
   const OriginalPrintView = frappe.ui.form.PrintView;
-  
+
   frappe.ui.form.PrintView = class PrintView extends OriginalPrintView {
   constructor(wrapper) {
     super(wrapper);
@@ -505,7 +505,7 @@ function extendPrintView() {
       }
     });
   }
-  
+
   setup_copy_controls() {
     // Get references to the copy controls
     this.copy_count_input = this.copy_controls_container.find('.copy-count-input');
@@ -555,7 +555,7 @@ function extendPrintView() {
     if (this.copy_count_item) {
       const count = parseInt(this.copy_count_input.val()) || 1;
       this.copy_count_item.set_value(count);
-      
+
       // Auto-enable copies if count > 1
       if (count > 1) {
         if (this.enable_copies_item) {
@@ -591,7 +591,7 @@ function extendPrintView() {
 
     return pdfEl;
   }
-  
+
   createPdfFallback(url, wrapperContainer) {
     // Create an iframe fallback for browsers without PDF plugin support
     let iframeEl = document.getElementById('pd-pdf-iframe');
@@ -603,11 +603,11 @@ function extendPrintView() {
       iframeEl.style.border = 'none';
       wrapperContainer.appendChild(iframeEl);
     }
-    
+
     iframeEl.src = url;
     return iframeEl;
   }
-  
+
   createDownloadFallback(url, wrapperContainer) {
     // Create download fallback when PDF can't be displayed
     let downloadEl = document.getElementById('pd-pdf-download');
@@ -635,67 +635,67 @@ function extendPrintView() {
       `;
       wrapperContainer.appendChild(downloadEl);
     }
-    
+
     // Update the download link
     const downloadLink = downloadEl.querySelector('a');
     if (downloadLink) {
       downloadLink.href = url;
     }
-    
+
     return downloadEl;
   }
-  
+
   getFormDefaultLanguage() {
     // Try to get language from the form document in order of preference
-    
+
     // 1. Check if document has a language field
     if (this.frm.doc && this.frm.doc.language) {
       console.log('Using document language:', this.frm.doc.language);
       return this.frm.doc.language;
     }
-    
+
     // 2. Check if document has a customer with default language
     if (this.frm.doc && this.frm.doc.customer_language) {
       return this.frm.doc.customer_language;
     }
-    
+
     // 3. Check if document has a party_name with language (for invoices, quotations)
     if (this.frm.doc && this.frm.doc.party_name && this.frm.doc.customer) {
       // This would require a server call to get customer language, so we'll skip for now
     }
-    
+
     // 4. Check if document has a territory with default language
     if (this.frm.doc && this.frm.doc.territory) {
       // This would also require a server call, so we'll skip for now
     }
-    
+
     // 5. Check if doctype has a default language in meta
     if (this.frm.meta && this.frm.meta.default_language) {
       return this.frm.meta.default_language;
     }
-    
+
     // 6. Check if document has a company with default language
     if (this.frm.doc && this.frm.doc.company) {
       // This would require a server call to get company language, so we'll skip for now
     }
-    
+
     // 7. Fall back to user's selected language from the language selector
     if (this.language_item && this.language_item.value) {
       return this.language_item.value;
     }
-    
+
     // 8. Fall back to stored user language preference
     const stored_lang = localStorage.getItem('print_designer_language');
     if (stored_lang) {
       return stored_lang;
     }
-    
+
     // 9. Final fallback to user's GUI language
     const fallbackLang = this.lang_code || 'en';
     console.log('Using fallback language (user GUI):', fallbackLang);
     return fallbackLang;
   }
-  
+
   async checkPDFUrl(url) {
     try {
       const response = await fetch(url, { method: 'HEAD' });
@@ -716,7 +716,7 @@ function extendPrintView() {
       };
     }
   }
-  
+
   showDownloadFallback(url, wrapperContainer, canvasContainer) {
     // Log final failure
     if (window.pdfLogger) {
@@ -727,25 +727,25 @@ function extendPrintView() {
         fallback_type: 'download'
       }, 'CRITICAL');
     }
-    
+
     // Hide loading indicator
     canvasContainer.style.display = 'none';
-    
+
     // Hide any existing PDF elements
     const existingPdfEl = document.getElementById('pd-pdf-viewer');
     if (existingPdfEl) {
       existingPdfEl.style.display = 'none';
     }
-    
+
     const existingIframeEl = document.getElementById('pd-pdf-iframe');
     if (existingIframeEl) {
       existingIframeEl.style.display = 'none';
     }
-    
+
     // Show download fallback
     const downloadEl = this.createDownloadFallback(url, wrapperContainer);
     downloadEl.style.display = 'block';
-    
+
     // Show detailed error with suggestions
     frappe.show_alert(
       {
@@ -755,7 +755,7 @@ function extendPrintView() {
       8,
     );
   }
-  
+
   async designer_pdf(print_format) {
     // Initialize logging for this PDF generation session
     if (window.pdfLogger) {
@@ -765,7 +765,7 @@ function extendPrintView() {
         docname: this.frm.doc.name
       });
     }
-    
+
     let print_designer_settings = JSON.parse(
       print_format.print_designer_settings,
     );
@@ -788,7 +788,7 @@ function extendPrintView() {
     canvasContainer.style.minHeight = page_settings.height + 'mm';
     canvasContainer.style.width = page_settings.width + 'mm';
     canvasContainer.style.margin = '0 auto';
-    
+
     let params = new URLSearchParams({
       doctype: this.frm.doc.doctype,
       name: this.frm.doc.name,
@@ -808,12 +808,12 @@ function extendPrintView() {
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      
+
       // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
       if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
         params.set('pdf_generator', 'wkhtmltopdf');
       }
-      
+
       console.log('Copy parameters added to preview:', {
         copy_count: this.copy_count_item.value || 2,
         copy_labels: this.copy_labels_item.value,
@@ -826,21 +826,21 @@ function extendPrintView() {
       params.set('letterhead', this.letterhead_selector.val());
     }
     console.log('params', params);
-    
+
     // Initialize safe PDF client and get URL
     let url;
     if (window.safePDFClient) {
       try {
         await window.safePDFClient.initialize();
-        
+
         // Convert URLSearchParams to object for safe client
         const paramsObj = {};
         for (const [key, value] of params.entries()) {
           paramsObj[key] = value;
         }
-        
+
         url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
-        
+
         // Log safe client usage
         if (window.pdfLogger) {
           window.pdfLogger.log('PDF_SAFE_CLIENT_USED', 'Using safe PDF client for URL generation', {
@@ -852,7 +852,7 @@ function extendPrintView() {
       } catch (error) {
         console.error('Print Designer: Safe PDF client failed, using standard URL:', error);
         url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
-        
+
         if (window.pdfLogger) {
           window.pdfLogger.log('PDF_SAFE_CLIENT_FAILED', 'Safe PDF client failed, using standard URL', {
             error: error.message,
@@ -876,8 +876,8 @@ function extendPrintView() {
           ${__('Format')}: <strong>${params.get('format')}</strong>
         </p>
         <div class="progress" style="width: 200px; height: 4px; background-color: #e9ecef; border-radius: 2px; overflow: hidden;">
-          <div class="progress-bar progress-bar-striped progress-bar-animated" 
-               role="progressbar" 
+          <div class="progress-bar progress-bar-striped progress-bar-animated"
+               role="progressbar"
                style="width: 100%; background-color: #007bff; animation: progress-bar-stripes 1s linear infinite;">
           </div>
         </div>
@@ -892,7 +892,7 @@ function extendPrintView() {
     // Log PDF generation start
     if (window.pdfLogger) {
       window.pdfLogger.logPDFStart(url, params.get('pdf_generator') || 'auto', params.get('format'));
-      
+
       // Log language information
       window.pdfLogger.log('PDF_LANGUAGE_INFO', 'PDF generation language selection', {
         selectedLanguage: this.getFormDefaultLanguage(),
@@ -920,14 +920,14 @@ function extendPrintView() {
           new Error('PDF Object failed to load')
         );
       }
-      
+
       // Try to get more specific error information
       console.error('PDF Generation Error:', {
         url: url,
         generator: params.get('pdf_generator') || 'auto',
         format: params.get('format')
       });
-      
+
       // Before trying retries or fallbacks, check if the PDF URL is valid
       this.checkPDFUrl(url).then(async urlCheck => {
         // Handle specific error types
@@ -943,20 +943,20 @@ function extendPrintView() {
               hasLetterhead: !!(this.letterhead_selector && this.letterhead_selector.val())
             }, 'ERROR');
           }
-          
+
           // If letterhead is selected, try without it
           if (this.letterhead_selector && this.letterhead_selector.val() && !this.letterhead_retry_attempted) {
             this.letterhead_retry_attempted = true;
-            
+
             frappe.show_alert({
               message: __('Permission denied with letterhead. Retrying without letterhead...'),
               indicator: 'orange'
             }, 3);
-            
+
             // Remove letterhead and retry
             const originalLetterhead = this.letterhead_selector.val();
             this.letterhead_selector.val('').trigger('change');
-            
+
             // Create new params object without letterhead
             const retryParams = new URLSearchParams({
               doctype: this.frm.doc.doctype,
@@ -964,26 +964,26 @@ function extendPrintView() {
               format: this.selected_format(),
               _lang: this.getFormDefaultLanguage(),
             });
-            
+
             // Add PDF generator parameter if not auto
             const selected_generator = this.selected_pdf_generator || 'auto';
             if (selected_generator !== 'auto') {
               retryParams.set('pdf_generator', selected_generator);
             }
-            
+
             // Add copy parameters if enabled (but NO letterhead)
             if (this.enable_copies_item && this.enable_copies_item.value) {
               retryParams.set('copy_count', this.copy_count_item.value || 2);
               if (this.copy_labels_item.value) {
                 retryParams.set('copy_labels', this.copy_labels_item.value);
               }
-              
+
               // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
               if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
                 retryParams.set('pdf_generator', 'wkhtmltopdf');
               }
             }
-            
+
             let retryUrl;
             if (window.safePDFClient) {
               try {
@@ -998,7 +998,7 @@ function extendPrintView() {
             } else {
               retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
             }
-            
+
             // Log the retry attempt
             if (window.pdfLogger) {
               window.pdfLogger.log('PDF_LETTERHEAD_RETRY', 'Retrying PDF generation without letterhead due to permission error', {
@@ -1009,19 +1009,19 @@ function extendPrintView() {
                 format: this.selected_format()
               }, 'INFO');
             }
-            
+
             setTimeout(() => {
               // Clean up existing PDF objects
               if (pdfEl.parentNode) {
                 pdfEl.parentNode.removeChild(pdfEl);
               }
-              
+
               // Also clean up any existing retry objects
               const existingRetryEl = document.getElementById('pd-pdf-viewer-retry');
               if (existingRetryEl && existingRetryEl.parentNode) {
                 existingRetryEl.parentNode.removeChild(existingRetryEl);
               }
-              
+
               // Create a completely new PDF object for the retry (not reusing the ID)
               const newPdfEl = document.createElement('object');
               newPdfEl.id = 'pd-pdf-viewer-retry';
@@ -1030,32 +1030,32 @@ function extendPrintView() {
               newPdfEl.style.height = '0px';
               newPdfEl.style.width = document.getElementsByClassName('main-section')[0].offsetWidth + 'px';
               wrapperContainer.appendChild(newPdfEl);
-              
+
               // Debug: Confirm the retry URL
               console.log('Letterhead retry URL:', retryUrl);
               console.log('Letterhead present in retry URL:', retryUrl.includes('letterhead'));
-              
+
               // Set up event listeners for the new PDF object
               newPdfEl.addEventListener('load', () => {
                 if (freezeTimeout) {
                   clearTimeout(freezeTimeout);
                 }
                 onPdfLoad();
-                
+
                 // Notify user about successful retry without letterhead
                 frappe.show_alert({
                   message: __('PDF generated successfully without letterhead'),
                   indicator: 'green'
                 }, 3);
               });
-              
+
               newPdfEl.addEventListener('error', () => {
                 if (freezeTimeout) {
                   clearTimeout(freezeTimeout);
                 }
                 // Restore letterhead selection for user
                 this.letterhead_selector.val(originalLetterhead);
-                
+
                 // Create a new error handler for the retry attempt that uses the retry URL
                 const handleRetryError = () => {
                   // Check the retry URL instead of the original URL
@@ -1069,7 +1069,7 @@ function extendPrintView() {
                         urlCheck: urlCheck
                       }, 'ERROR');
                     }
-                    
+
                     let errorMessage;
                     if (urlCheck.isPermissionError) {
                       errorMessage = __('PDF generation failed: Access denied even without letterhead. This may be a deeper permissions issue.');
@@ -1080,12 +1080,12 @@ function extendPrintView() {
                     } else {
                       errorMessage = __('PDF generation failed even without letterhead. This may be a server or permissions issue.');
                     }
-                    
+
                     frappe.show_alert({
                       message: errorMessage,
                       indicator: 'red'
                     }, 8);
-                    
+
                     this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
                   }).catch(() => {
                     // Error checking URL, show generic message
@@ -1093,35 +1093,35 @@ function extendPrintView() {
                       message: __('PDF generation failed even without letterhead. This may be a server or permissions issue.'),
                       indicator: 'red'
                     }, 8);
-                    
+
                     this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
                   });
                 };
-                
+
                 handleRetryError();
               });
-              
+
               // Reset freeze timeout for retry
               resetFreezeTimeout();
             }, 1000);
-            
+
             return;
           }
-          
+
           let errorMessage = __('PDF generation failed: Access denied (403)');
           if (this.letterhead_selector && this.letterhead_selector.val()) {
             errorMessage += '. ' + __('This might be due to letterhead permissions. Try generating without letterhead.');
           }
-          
+
           frappe.show_alert({
             message: errorMessage,
             indicator: 'red'
           }, 10);
-          
+
           this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           return;
         }
-        
+
         if (urlCheck.isServerError) {
           // 500+ Server Error - Don't retry with different generators, this is a server issue
           if (window.pdfLogger) {
@@ -1133,16 +1133,16 @@ function extendPrintView() {
               format: params.get('format')
             }, 'ERROR');
           }
-          
+
           frappe.show_alert({
             message: __('PDF generation failed: Server error ({0}). Please try again later.', [urlCheck.status]),
             indicator: 'red'
           }, 8);
-          
+
           this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           return;
         }
-        
+
         if (urlCheck.isNetworkError) {
           // Network error - Don't retry with different generators
           if (window.pdfLogger) {
@@ -1153,24 +1153,24 @@ function extendPrintView() {
               format: params.get('format')
             }, 'ERROR');
           }
-          
+
           frappe.show_alert({
             message: __('PDF generation failed: Network error. Please check your connection.'),
             indicator: 'red'
           }, 8);
-          
+
           this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           return;
         }
-        
+
         // Try alternative PDF generators if auto-selection failed (only for client-side display issues)
         const currentGenerator = params.get('pdf_generator');
         const alternativeGenerators = ['wkhtmltopdf', 'chrome'].filter(g => g !== currentGenerator);
-        
+
         if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted && !urlCheck.isClientError) {
           this.pdf_retry_attempted = true;
           const nextGenerator = alternativeGenerators[0];
-          
+
           // Log the retry attempt
           if (window.pdfLogger) {
             window.pdfLogger.logPDFRetry(
@@ -1180,12 +1180,12 @@ function extendPrintView() {
               1
             );
           }
-          
+
           frappe.show_alert({
             message: __('Retrying with {0} generator...', [nextGenerator]),
             indicator: 'blue'
           }, 3);
-          
+
           // Retry with different generator
           params.set('pdf_generator', nextGenerator);
           let retryUrl;
@@ -1202,16 +1202,16 @@ function extendPrintView() {
           } else {
             retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
           }
-          
+
           // Remove the failed PDF object and create a new one
           setTimeout(() => {
             if (pdfEl.parentNode) {
               pdfEl.parentNode.removeChild(pdfEl);
             }
-            
+
             // Create a new PDF object for the retry
             const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
-            
+
             // Set up event listeners for the new PDF object
             newPdfEl.addEventListener('load', () => {
               if (freezeTimeout) {
@@ -1219,21 +1219,21 @@ function extendPrintView() {
               }
               onPdfLoad();
             });
-            
+
             newPdfEl.addEventListener('error', () => {
               if (freezeTimeout) {
                 clearTimeout(freezeTimeout);
               }
               onError();
             });
-            
+
             // Reset freeze timeout for retry
             resetFreezeTimeout();
           }, 1000);
-          
+
           return;
         }
-        
+
         // For other client errors or when retries are exhausted, continue with fallback logic
         if (!urlCheck.valid) {
           // Other unhandled errors
@@ -1245,15 +1245,15 @@ function extendPrintView() {
               format: params.get('format')
             }, 'ERROR');
           }
-          
+
           this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           return;
         }
-        
+
         // PDF URL is valid, try iframe fallback if we haven't already
         if (!this.iframe_fallback_attempted) {
           this.iframe_fallback_attempted = true;
-          
+
           // Log iframe fallback attempt
           if (window.pdfLogger) {
             window.pdfLogger.log('PDF_FALLBACK_IFRAME', 'Attempting iframe fallback for PDF display', {
@@ -1262,18 +1262,18 @@ function extendPrintView() {
               format: params.get('format')
             }, 'INFO');
           }
-          
+
           // Hide the failed object element
           pdfEl.style.display = 'none';
-          
+
           // Try iframe fallback
           const iframeEl = this.createPdfFallback(url, wrapperContainer);
-          
+
           // Set up iframe error handling
           iframeEl.onload = () => {
             canvasContainer.style.display = 'none';
             iframeEl.style.display = 'block';
-            
+
             if (window.pdfLogger) {
               window.pdfLogger.log('PDF_FALLBACK_SUCCESS', 'Iframe fallback successful', {
                 url: url,
@@ -1282,15 +1282,15 @@ function extendPrintView() {
               }, 'INFO');
             }
           };
-          
+
           iframeEl.onerror = () => {
             // Even iframe failed, show download fallback
             this.showDownloadFallback(url, wrapperContainer, canvasContainer);
           };
-          
+
           return;
         }
-        
+
         // Both object and iframe failed, show download fallback
         this.showDownloadFallback(url, wrapperContainer, canvasContainer);
       }).catch(error => {
@@ -1308,7 +1308,7 @@ function extendPrintView() {
           params.get('format')
         );
       }
-      
+
       canvasContainer.style.display = 'none';
       pdfEl.style.display = 'block';
       pdfEl.style.height =
@@ -1317,7 +1317,7 @@ function extendPrintView() {
     // Add freeze detection with timeout
     const FREEZE_TIMEOUT = 30000; // 30 seconds
     let freezeTimeout;
-    
+
     const resetFreezeTimeout = () => {
       if (freezeTimeout) {
         clearTimeout(freezeTimeout);
@@ -1331,13 +1331,13 @@ function extendPrintView() {
             FREEZE_TIMEOUT
           );
         }
-        
+
         // Show freeze alert
         frappe.show_alert({
           message: __('PDF generation appears to be stuck. This may be due to server overload or network issues.'),
           indicator: 'orange'
         }, 10);
-        
+
         // Auto-retry after showing freeze alert
         setTimeout(() => {
           if (confirm(__('PDF generation seems frozen. Would you like to retry?'))) {
@@ -1346,24 +1346,24 @@ function extendPrintView() {
         }, 2000);
       }, FREEZE_TIMEOUT);
     };
-    
+
     // Start freeze detection
     resetFreezeTimeout();
-    
+
     pdfEl.addEventListener('load', () => {
       if (freezeTimeout) {
         clearTimeout(freezeTimeout);
       }
       onPdfLoad();
     });
-    
+
     pdfEl.addEventListener('error', () => {
       if (freezeTimeout) {
         clearTimeout(freezeTimeout);
       }
       onError();
     });
-    
+
     // Clear timeout on component cleanup
     $(document).on('beforeunload', () => {
       if (freezeTimeout) {
@@ -1383,7 +1383,7 @@ function extendPrintView() {
       this.render_pdf();
       return;
     }
-    
+
     // Enable Network Printing
     if (parseInt(this.print_settings.enable_print_server)) {
       super.printit();
@@ -1413,7 +1413,7 @@ function extendPrintView() {
       this.full_page_btn.hide();
       this.pdf_btn.hide();
       this.page.add_menu_item('Download PDF', () => this.render_pdf());
-      
+
       // Add debug menu for PDF generation logs
       this.page.add_menu_item('View PDF Logs', () => this.showPDFLogs());
       this.page.add_menu_item('Export PDF Logs', () => this.exportPDFLogs());
@@ -1543,7 +1543,7 @@ function extendPrintView() {
     // Add PDF generator selection section
     if (!this.pdf_generator_initialized) {
       this.pdf_generator_initialized = true;
-      
+
       this.pdf_generator_section = $(`
         <div class="pdf-generator-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
           <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('PDF Generator')}</div>
@@ -1573,7 +1573,7 @@ function extendPrintView() {
           this.preview(); // Refresh preview with new generator
         },
       });
-      
+
       // Add WeasyPrint option to PDF generator if available
       if (this.pdf_generator_item && this.pdf_generator_item.df.options.indexOf('WeasyPrint') === -1) {
         this.pdf_generator_item.df.options = this.pdf_generator_item.df.options.replace('chrome', 'WeasyPrint\nchrome');
@@ -1583,7 +1583,7 @@ function extendPrintView() {
 
     // Copy options will be set up after print settings are loaded
   }
-  
+
   load_print_settings() {
     // Load print settings to get copy configuration
     frappe.call({
@@ -1600,15 +1600,15 @@ function extendPrintView() {
       }
     });
   }
-  
+
   setup_copy_options() {
     // Don't setup if already initialized or settings not loaded
     if (this.copy_options_initialized || !this.print_settings) {
       return;
     }
-    
+
     this.copy_options_initialized = true;
-    
+
     // Only show copy options if enabled in print settings
     if (this.print_settings.enable_multiple_copies) {
       this.copy_section = $(`
@@ -1658,9 +1658,9 @@ function extendPrintView() {
         fieldtype: 'Small Text',
         fieldname: 'copy_labels',
         label: __('Copy Labels'),
-        placeholder: (this.print_settings.default_original_label || __('Original')) + ', ' + 
+        placeholder: (this.print_settings.default_original_label || __('Original')) + ', ' +
                     (this.print_settings.default_copy_label || __('Copy')) + ' (' + __('Optional') + ')',
-        default: (this.print_settings.default_original_label || __('Original')) + ', ' + 
+        default: (this.print_settings.default_original_label || __('Original')) + ', ' +
                 (this.print_settings.default_copy_label || __('Copy')),
         description: __('Comma-separated labels for each copy'),
         change: () => {
@@ -1680,25 +1680,25 @@ function extendPrintView() {
       this.copy_labels_item.$wrapper.hide();
     }
   }
-  
+
   refresh_copy_options_labels() {
     // Refresh copy options section title and labels after language change
     if (this.copy_section) {
       this.copy_section.find('div:first').text(__('Copy Options'));
     }
-    
+
     // Refresh field labels
     if (this.enable_copies_item) {
       this.enable_copies_item.df.label = __('Generate Multiple Copies');
       this.enable_copies_item.refresh();
     }
-    
+
     if (this.copy_count_item) {
       this.copy_count_item.df.label = __('Number of Copies');
       this.copy_count_item.df.description = __('Total number of copies to generate');
       this.copy_count_item.refresh();
     }
-    
+
     if (this.copy_labels_item) {
       this.copy_labels_item.df.label = __('Copy Labels');
       this.copy_labels_item.df.placeholder = __('Original, Copy') + ' (' + __('Optional') + ')';
@@ -1775,16 +1775,16 @@ function extendPrintView() {
     const copyCount = this.copy_count_input ? parseInt(this.copy_count_input.val()) || 1 : 1;
     if (copyCount > 1) {
       params.set('copy_count', copyCount);
-      
+
       // Get labels from top-right controls
       const originalLabel = this.original_label_input ? this.original_label_input.val() || __('Original') : __('Original');
       const copyLabel = this.copy_label_input ? this.copy_label_input.val() || __('Copy') : __('Copy');
       params.set('copy_labels', `${originalLabel}, ${copyLabel}`);
-      
+
       // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
       if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
         params.set('pdf_generator', 'wkhtmltopdf');
-        
+
         // Inform user about the change
         frappe.show_alert({
           message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
@@ -1797,11 +1797,11 @@ function extendPrintView() {
       if (this.copy_labels_item.value) {
         params.set('copy_labels', this.copy_labels_item.value);
       }
-      
+
       // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
       if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
         params.set('pdf_generator', 'wkhtmltopdf');
-        
+
         // Inform user about the change
         frappe.show_alert({
           message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
@@ -1814,19 +1814,19 @@ function extendPrintView() {
     if (this.letterhead_selector && this.letterhead_selector.val()) {
       params.set('letterhead', this.letterhead_selector.val());
     }
-    
+
     // Construct the full URL
     let url;
     if (window.safePDFClient) {
       try {
         await window.safePDFClient.initialize();
-        
+
         // Convert URLSearchParams to object for safe client
         const paramsObj = {};
         for (const [key, value] of params.entries()) {
           paramsObj[key] = value;
         }
-        
+
         url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
       } catch (error) {
         console.error('Print Designer: Safe PDF client failed for copy printing, using standard URL:', error);
@@ -1836,7 +1836,7 @@ function extendPrintView() {
       url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
     }
     console.log('PDF URL with copy parameters:', url);
-    
+
     // Open the PDF download
     window.open(url, '_blank');
   }
@@ -1957,3 +1957,4 @@ function extendPrintView() {
 // Call the function to extend PrintView
 extendPrintView();
 }
+

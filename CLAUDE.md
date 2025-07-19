@@ -150,3 +150,8 @@ Key workflow:
 - macOS: Install Xcode Command Line Tools and Homebrew dependencies
 - Linux ARM: Install build-essential and Cairo dependencies
 - Verify wkhtmltopdf version compatibility (0.12.5+ with patched qt)
+
+## Issue
+
+ The issue is in /home/frappe/frappe-bench/apps/print_designer/print_designer/public/js/print_designer/components/la
+  yout/AppImageModal.vue around lines 201-227:
