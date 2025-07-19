@@ -13,7 +13,12 @@ app_license = "AGPLv3"
 # include js, css files in header of desk.html
 # app_include_js = ""
 
-# app_include_css = ["/assets/print_designer/css/thai_fonts.css"]
+app_include_css = [
+    "thai_fonts.bundle.css",
+    "signature_stamp.bundle.css",
+    "signature_preview.bundle.css",
+]
+# app_include_css = "thai_business_suite.app.bundle.css"
 
 
 # include js, css files in header of web template
@@ -31,13 +36,16 @@ app_license = "AGPLv3"
 page_js = {
     "print": [
         "print_designer/client_scripts/safe_pdf_client.js",
-        "print_designer/client_scripts/print.js"
+        "print_designer/client_scripts/print.js",
     ],
     "point-of-sale": "print_designer/client_scripts/point_of_sale.js",
 }
 
 # include js in doctype views
-doctype_js = {"Print Format": "print_designer/client_scripts/print_format.js"}
+doctype_js = {
+    "Print Format": "print_designer/client_scripts/print_format.js",
+    "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js"
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -73,7 +81,21 @@ jinja = {
         "print_designer.utils.signature_integration.get_signature_for_document",
         "print_designer.utils.signature_integration.get_available_signatures",
         "print_designer.utils.signature_integration.log_signature_usage",
+        # NEW: Signature and stamp methods
+        "print_designer.utils.signature_stamp.get_signature_and_stamp_context",
+        "print_designer.utils.signature_stamp.get_signature_image_url",
+        "print_designer.utils.signature_stamp.get_company_stamp_url",
+        "print_designer.utils.signature_stamp.get_signature_image",
+        "print_designer.utils.signature_stamp.get_company_stamp_image",
     ]
+}
+
+# Boot session enhancements
+boot_session = "print_designer.utils.signature_stamp.boot_session"
+
+# Override whitelisted methods to support signature and stamp in PDF generation
+override_whitelisted_methods = {
+    "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp"
 }
 
 # Installation
@@ -83,20 +105,22 @@ before_install = "print_designer.install.before_install"
 after_install = "print_designer.install.after_install"
 after_app_install = [
     "print_designer.install.after_app_install",
-    "print_designer.utils.override_thailand.override_thailand_monkey_patch"
+    "print_designer.utils.override_thailand.override_thailand_monkey_patch",
 ]
 
 # Startup hooks
 # -------------
 on_startup = [
-	"print_designer.startup.initialize_print_designer",
-	"print_designer.hooks.override_erpnext_install"
+    "print_designer.startup.initialize_print_designer",
+    "print_designer.hooks.override_erpnext_install",
+    # NEW: Initialize signature and stamp patches
+    "print_designer.utils.signature_stamp.startup_patches",
 ]
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
-    "print_designer.utils.override_thailand.override_thailand_monkey_patch"
+    "print_designer.utils.override_thailand.override_thailand_monkey_patch",
 ]
 
 # Uninstallation
@@ -126,50 +150,79 @@ override_doctype_class = {
 pd_standard_format_folder = "default_templates"
 
 doc_events = {
-	"Print Format": {
-		"before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
-	},
-	"Sales Invoice": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Purchase Invoice": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Sales Order": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Purchase Order": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Quotation": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Delivery Note": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Purchase Receipt": {
-		"before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-	},
-	"Signature Basic Information": {
-		"after_insert": "print_designer.utils.signature_integration.log_signature_usage",
-		"on_update": "print_designer.utils.signature_integration.log_signature_usage",
-	}
+    "Print Format": {
+        "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
+    },
+    "Sales Invoice": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Purchase Invoice": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Sales Order": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Purchase Order": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Quotation": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Delivery Note": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Purchase Receipt": {
+        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    },
+    "Signature Basic Information": {
+        "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
+        "on_update": "print_designer.utils.signature_integration.handle_signature_save",
+        "after_save": "print_designer.api.signature_sync.auto_sync_on_signature_save",
+    },
+    # NEW: Digital Signature and Company Stamp events
+    "Digital Signature": {
+        "after_insert": "print_designer.utils.signature_stamp.log_signature_usage",
+        "on_update": "print_designer.utils.signature_stamp.log_signature_usage",
+        "before_save": "print_designer.utils.signature_stamp.validate_signature_permissions",
+    },
+    "Company Stamp": {
+        "after_insert": "print_designer.utils.signature_stamp.log_stamp_usage",
+        "on_update": "print_designer.utils.signature_stamp.log_stamp_usage",
+        "before_save": "print_designer.utils.signature_stamp.validate_stamp_permissions",
+    },
 }
+
 
 # Monkey patch ERPNext install function
 def override_erpnext_install():
-	"""Override ERPNext's create_print_setting_custom_fields function"""
-	try:
-		import erpnext.setup.install
-		from print_designer.overrides.erpnext_install import create_print_setting_custom_fields
-		
-		# Replace the function
-		erpnext.setup.install.create_print_setting_custom_fields = create_print_setting_custom_fields
-		
-	except ImportError:
-		# ERPNext not installed, skip override
-		pass
-	except Exception as e:
-		import frappe
-		frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+    """Override ERPNext's create_print_setting_custom_fields function"""
+    try:
+        import erpnext.setup.install
+        from print_designer.overrides.erpnext_install import (
+            create_print_setting_custom_fields,
+        )
 
+        # Replace the function
+        erpnext.setup.install.create_print_setting_custom_fields = (
+            create_print_setting_custom_fields
+        )
+
+    except ImportError:
+        # ERPNext not installed, skip override
+        pass
+    except Exception as e:
+        import frappe
+
+        frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+
+
+# NEW: Permission handlers for signature and stamp access
+permission_query_conditions = {
+    "Digital Signature": "print_designer.utils.signature_stamp.get_signature_permission_query_conditions",
+    "Company Stamp": "print_designer.utils.signature_stamp.get_stamp_permission_query_conditions",
+}
+
+has_permission = {
+    "Digital Signature": "print_designer.utils.signature_stamp.has_signature_permission",
+    "Company Stamp": "print_designer.utils.signature_stamp.has_stamp_permission",
+}

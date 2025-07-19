@@ -153,3 +153,11 @@ def get_available_signatures():
                                       "signature_data", "width", "height", "user_id"])
     
     return signatures
+
+def handle_signature_save(doc, method):
+    """Handle Signature Basic Information save events"""
+    
+    # This is a wrapper function for the hooks system
+    # We don't need to log usage here since this is just creating/updating the signature record
+    # Usage logging should happen when the signature is actually used in a print format
+    pass

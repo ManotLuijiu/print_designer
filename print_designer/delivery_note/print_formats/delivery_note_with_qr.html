@@ -1,0 +1,25 @@
+<!-- Add this to your print format -->
+<div class="signature-section" style="margin-top: 30px;">
+    <div class="row">
+        <div class="col-xs-6">
+            <div class="signature-box">
+                <p><strong>Customer Signature:</strong></p>
+                <div style="border: 1px solid #ddd; height: 80px; margin: 10px 0;"></div>
+                <p style="font-size: 12px;">By signing, customer confirms receipt of goods in good condition</p>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <div class="qr-section" style="text-align: center;">
+                <p><strong>Scan to Approve Delivery:</strong></p>
+                {% if doc.name %}
+                    <img src="{{ frappe.call('custom_app.delivery_note.generate_approval_qr_code', delivery_note_name=doc.name) }}" 
+                         style="width: 100px; height: 100px;">
+                {% endif %}
+                <p style="font-size: 10px; margin-top: 5px;">
+                    Scan QR code with mobile phone<br>
+                    for digital signature confirmation
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

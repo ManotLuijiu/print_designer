@@ -1,0 +1,130 @@
+<!-- File: print_designer/print_designer/page/print_designer/jinja/macros/signature_stamp.html -->
+
+{% macro render_digital_signature(position="bottom-right", width="150px", height="75px",
+                                  style="", show_title=false) -%}
+{%- if signature_image -%}
+<div class="digital-signature-container"
+     style="position: absolute;
+            {% if position == "bottom-right" %}bottom: 20px; right: 20px;{% endif %}
+            {% if position == "bottom-left" %}bottom: 20px; left: 20px;{% endif %}
+            {% if position == "top-right" %}top: 20px; right: 20px;{% endif %}
+            {% if position == "top-left" %}top: 20px; left: 20px;{% endif %}
+            {% if position == "center" %}top: 50%; left: 50%; transform: translate(-50%, -50%);{% endif %}
+            width: {{ width }}; height: {{ height }};
+            {{ style }}">
+    {% if show_title and signature_title %}
+    <div class="signature-title" style="text-align: center; font-size: 10px; margin-bottom: 5px;">
+        {{ signature_title }}
+    </div>
+    {% endif %}
+    <img src="{{ frappe.get_url() }}{{ signature_image }}"
+         alt="Digital Signature"
+         style="width: 100%; height: 100%; object-fit: contain; border: 1px solid #ddd;">
+    {% if show_title and signature_description %}
+    <div class="signature-description" style="text-align: center; font-size: 8px; margin-top: 5px; color: #666;">
+        {{ signature_description }}
+    </div>
+    {% endif %}
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro render_company_stamp(position="top-right", width="100px", height="100px",
+                              style="", show_title=false, show_type=false) -%}
+{%- if company_stamp_image -%}
+<div class="company-stamp-container"
+     style="position: absolute;
+            {% if position == "bottom-right" %}bottom: 20px; right: 20px;{% endif %}
+            {% if position == "bottom-left" %}bottom: 20px; left: 20px;{% endif %}
+            {% if position == "top-right" %}top: 20px; right: 20px;{% endif %}
+            {% if position == "top-left" %}top: 20px; left: 20px;{% endif %}
+            {% if position == "center" %}top: 50%; left: 50%; transform: translate(-50%, -50%);{% endif %}
+            width: {{ width }}; height: {{ height }};
+            {{ style }}">
+    {% if show_title and company_stamp_title %}
+    <div class="stamp-title" style="text-align: center; font-size: 9px; margin-bottom: 3px; font-weight: bold;">
+        {{ company_stamp_title }}
+    </div>
+    {% endif %}
+    <img src="{{ frappe.get_url() }}{{ company_stamp_image }}"
+         alt="Company Stamp"
+         style="width: 100%; height: 100%; object-fit: contain;">
+    {% if show_type and company_stamp_type %}
+    <div class="stamp-type" style="text-align: center; font-size: 7px; margin-top: 3px; color: #888;">
+        {{ company_stamp_type }}
+    </div>
+    {% endif %}
+</div>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro render_approval_section(include_signature=true, include_stamp=true,
+                                signature_position="bottom-left", stamp_position="bottom-right",
+                                section_title="APPROVED", show_date=true) -%}
+<div class="approval-section" style="position: relative; margin-top: 50px; page-break-inside: avoid;">
+    {% if section_title %}
+    <div class="approval-title" style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+        {{ section_title }}
+    </div>
+    {% endif %}
+
+    <div class="approval-content" style="position: relative; height: 120px; border: 1px solid #ddd; padding: 10px;">
+        {% if include_signature %}
+        {{ render_digital_signature(position=signature_position, width="120px", height="60px", show_title=true) }}
+        {% endif %}
+
+        {% if include_stamp %}
+        {{ render_company_stamp(position=stamp_position, width="80px", height="80px", show_title=true, show_type=true) }}
+        {% endif %}
+
+        {% if show_date %}
+        <div class="approval-date" style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 10px;">
+            Date: {{ frappe.utils.nowdate() }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro render_qr_approval_section(qr_data, qr_size="80px", include_signature=false,
+                                   include_stamp=true, section_title="SCAN TO APPROVE") -%}
+<div class="qr-approval-section" style="position: relative; margin-top: 30px; page-break-inside: avoid;">
+    {% if section_title %}
+    <div class="qr-approval-title" style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 20px;">
+        {{ section_title }}
+    </div>
+    {% endif %}
+
+    <div class="qr-approval-content" style="display: flex; align-items: center; justify-content: space-around; border: 1px solid #ddd; padding: 15px;">
+        <!-- QR Code Section -->
+        <div class="qr-code-section" style="text-align: center;">
+            {{ render_barcode({"type": "barcode", "dynamicContent": [{"value": qr_data, "is_static": true}], "barcodeType": "qrcode", "width": qr_size, "height": qr_size}) }}
+            <div style="font-size: 8px; margin-top: 5px; color: #666;">Scan to Approve</div>
+        </div>
+
+        <!-- Approval Status Section -->
+        <div class="approval-status-section" style="flex-grow: 1; margin-left: 20px;">
+            <div style="border: 2px dashed #ccc; padding: 15px; text-align: center; min-height: 60px;">
+                {% if include_signature and signature_image %}
+                <img src="{{ frappe.get_url() }}{{ signature_image }}"
+                     alt="Approved"
+                     style="max-width: 100px; max-height: 40px; object-fit: contain;">
+                {% else %}
+                <div style="color: #999; font-size: 10px;">
+                    Status: Pending Approval<br>
+                    <span style="font-size: 8px;">Signature will appear after approval</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Company Stamp Section -->
+        {% if include_stamp %}
+        <div class="stamp-section" style="margin-left: 15px;">
+            {{ render_company_stamp(position="relative", width="60px", height="60px",
+                                   style="position: relative; top: 0; left: 0;") }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{%- endmacro %}

@@ -756,6 +756,21 @@ function extendPrintView() {
     );
   }
 
+  // Enhanced print parameters to include signature and stamp
+  get_print_params() {
+    let params = super.get_print_params ? super.get_print_params() : {};
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.digital_signature = this.signature_selector.val();
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.company_stamp = this.company_stamp_selector.val();
+    }
+
+    return params;
+  }
+
   async designer_pdf(print_format) {
     // Initialize logging for this PDF generation session
     if (window.pdfLogger) {
@@ -825,6 +840,15 @@ function extendPrintView() {
     if (this.letterhead_selector && this.letterhead_selector.val()) {
       params.set('letterhead', this.letterhead_selector.val());
     }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
+    }
+
     console.log('params', params);
 
     // Initialize safe PDF client and get URL
@@ -902,6 +926,15 @@ function extendPrintView() {
         languageSelectorValue: this.language_item?.value || 'not set',
         storedLanguage: localStorage.getItem('print_designer_language') || 'not set'
       }, 'INFO');
+
+      // Log signature and stamp usage
+      if (params.get('digital_signature') || params.get('company_stamp')) {
+        window.pdfLogger.log('PDF_SIGNATURE_STAMP_INFO', 'PDF generation with signature/stamp', {
+          digitalSignature: params.get('digital_signature') || 'not selected',
+          companyStamp: params.get('company_stamp') || 'not selected',
+          letterhead: params.get('letterhead') || 'not selected'
+        }, 'INFO');
+      }
     }
 
     // Reset retry flags for each new PDF generation
@@ -982,6 +1015,14 @@ function extendPrintView() {
               if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
                 retryParams.set('pdf_generator', 'wkhtmltopdf');
               }
+            }
+
+            // Add signature and stamp parameters (keep these)
+            if (this.signature_selector && this.signature_selector.val()) {
+              retryParams.set('digital_signature', this.signature_selector.val());
+            }
+            if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+              retryParams.set('company_stamp', this.company_stamp_selector.val());
             }
 
             let retryUrl;
@@ -1396,6 +1437,8 @@ function extendPrintView() {
     super.show(frm);
     // Restore user's preferred language after parent initialization
     this.restore_user_language();
+    // Set default signature and stamp when showing
+    this.set_default_signature_and_stamp();
     this.inner_msg = this.page.add_inner_message(`
 				<a style="line-height: 2.4" href="/app/print-designer?doctype=${this.frm.doctype}">
 					${__('Try the new Print Designer')}
@@ -1420,6 +1463,8 @@ function extendPrintView() {
       this.page.add_menu_item('Clear PDF Logs', () => this.clearPDFLogs());
       this.print_btn.hide();
       this.letterhead_selector.hide();
+      this.signature_selector.hide();
+      this.company_stamp_selector.hide();
       this.sidebar_dynamic_section.hide();
       // Keep sidebar visible for print designer formats but hide redundant sections
       this.sidebar.show();
@@ -1440,6 +1485,8 @@ function extendPrintView() {
     this.pdf_btn.show();
     this.print_btn.show();
     this.letterhead_selector.show();
+    this.signature_selector.show();
+    this.company_stamp_selector.show();
     this.sidebar_dynamic_section.show();
     this.sidebar.show();
     // Restore sidebar form elements for non-print designer formats
@@ -1536,6 +1583,59 @@ function extendPrintView() {
       placeholder: __('Letter Head'),
       change: () => this.preview(),
     }).$input;
+
+    // NEW: Digital Signature selector
+    this.signature_selector = this.add_sidebar_item({
+      fieldtype: "Link",
+      fieldname: "digital_signature",
+      options: "Digital Signature",
+      placeholder: __("Digital Signature"),
+      get_query: () => {
+        let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+        return {
+          filters: {
+            is_active: 1,
+            company: ["in", [company, ""]]
+          }
+        };
+      },
+      change: () => this.preview(),
+    }).$input;
+
+    // NEW: Company Stamp selector
+    this.company_stamp_selector = this.add_sidebar_item({
+      fieldtype: "Link",
+      fieldname: "company_stamp",
+      options: "Company Stamp",
+      placeholder: __("Company Stamp"),
+      get_query: () => {
+        let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+        let doctype = this.frm.doctype;
+
+        // Map doctypes to usage purposes
+        let usage_mapping = {
+          "Sales Invoice": "Invoice",
+          "Purchase Invoice": "Invoice",
+          "Delivery Note": "Delivery Note",
+          "Sales Order": "Sales Order",
+          "Purchase Order": "Purchase Order",
+          "Payment Entry": "Payment",
+          "Payment Request": "Payment"
+        };
+
+        let usage_purpose = usage_mapping[doctype] || "General";
+
+        return {
+          filters: {
+            is_active: 1,
+            company: company,
+            usage_purpose: ["in", [usage_purpose, "All Documents", ""]]
+          }
+        };
+      },
+      change: () => this.preview(),
+    }).$input;
+
     this.sidebar_dynamic_section = $(
       `<div class="dynamic-settings"></div>`,
     ).appendTo(this.sidebar);
@@ -1706,6 +1806,52 @@ function extendPrintView() {
       this.copy_labels_item.refresh();
     }
   }
+
+  // Set default values for signature and stamp based on company
+  set_default_signature_and_stamp() {
+    let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+
+    if (company && !this.signature_selector.val()) {
+      // Try to set default signature for company
+      frappe.db.get_list("Digital Signature", {
+        filters: { company: company, is_active: 1 },
+        limit: 1,
+        order_by: "creation desc"
+      }).then(signatures => {
+        if (signatures.length > 0) {
+          this.signature_selector.val(signatures[0].name);
+        }
+      });
+    }
+
+    if (company && !this.company_stamp_selector.val()) {
+      // Try to set default stamp for company and doctype
+      let doctype = this.frm.doctype;
+      let usage_mapping = {
+        "Sales Invoice": "Invoice",
+        "Purchase Invoice": "Invoice",
+        "Delivery Note": "Delivery Note",
+        "Sales Order": "Sales Order",
+        "Purchase Order": "Purchase Order"
+      };
+      let usage_purpose = usage_mapping[doctype] || "General";
+
+      frappe.db.get_list("Company Stamp", {
+        filters: {
+          company: company,
+          is_active: 1,
+          usage_purpose: ["in", [usage_purpose, "All Documents"]]
+        },
+        limit: 1,
+        order_by: "creation desc"
+      }).then(stamps => {
+        if (stamps.length > 0) {
+          this.company_stamp_selector.val(stamps[0].name);
+        }
+      });
+    }
+  }
+
   set_default_print_language() {
     super.set_default_print_language();
     this.toolbar_language_selector.$input.val(this.lang_code);
@@ -1813,6 +1959,14 @@ function extendPrintView() {
     // Add letterhead if selected (works with wkhtmltopdf)
     if (this.letterhead_selector && this.letterhead_selector.val()) {
       params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
     }
 
     // Construct the full URL
@@ -1956,5 +2110,5 @@ function extendPrintView() {
 
 // Call the function to extend PrintView
 extendPrintView();
-}
 
+}

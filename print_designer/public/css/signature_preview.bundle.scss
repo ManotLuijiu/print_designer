@@ -1,0 +1,97 @@
+/* Signature Preview Styles - Theme Aware */
+.signature-preview-container {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.signature-preview-image {
+    max-width: 300px;
+    max-height: 150px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--bg-color);
+}
+
+.signature-preview-placeholder {
+    text-align: center;
+    padding: 50px;
+    border: 2px dashed var(--border-color);
+    color: var(--text-muted);
+    border-radius: var(--border-radius);
+    background: var(--control-bg);
+}
+
+.signature-preview-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.signature-details-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    margin-top: 15px;
+    box-shadow: var(--shadow-base);
+}
+
+.signature-details-title {
+    margin-bottom: 10px;
+    color: var(--heading-color);
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.signature-detail-item {
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.signature-detail-item strong {
+    color: var(--text-color);
+    font-weight: 500;
+    min-width: 80px;
+    display: inline-block;
+}
+
+/* Dark theme specific adjustments */
+[data-theme="dark"] .signature-details-card {
+    background: var(--dark-bg-color);
+    border-color: var(--dark-border-color);
+}
+
+[data-theme="dark"] .signature-preview-image {
+    border-color: var(--dark-border-color);
+}
+
+[data-theme="dark"] .signature-preview-placeholder {
+    border-color: var(--dark-border-color);
+    background: var(--dark-bg-color);
+}
+
+/* Alternative using ERPNext's existing CSS variables */
+.signature-details-card-alt {
+    background: var(--bg-light-gray);
+    border: 1px solid var(--border-color);
+    padding: var(--padding-md);
+    border-radius: var(--border-radius-md);
+    margin-top: var(--margin-md);
+}
+
+.signature-details-title-alt {
+    margin-bottom: var(--margin-sm);
+    color: var(--text-on-card);
+    font-size: var(--text-md);
+    font-weight: var(--weight-medium);
+}
+
+.signature-detail-item-alt {
+    margin-bottom: var(--margin-xs);
+    color: var(--text-on-card);
+    font-size: var(--text-sm);
+}
