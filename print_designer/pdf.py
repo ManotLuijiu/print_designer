@@ -21,76 +21,25 @@ except ImportError:
 			return default
 
 
-def clean_css_for_wkhtmltopdf(css_content):
-	"""Remove CSS custom properties and problematic styles that wkhtmltopdf doesn't support"""
+def clean_css_for_wkhtmltopdf_minimal(css_content):
+	"""Minimal CSS cleaning for wkhtmltopdf - preserve design like original repository"""
 	if not css_content:
 		return css_content
 	
-	# First, aggressively remove all CSS custom property declarations
-	# Remove any line containing --print- or other CSS custom properties
-	lines = css_content.split('\n')
-	cleaned_lines = []
-	
-	for line in lines:
-		# Skip lines with CSS custom properties
-		if '--' in line and ':' in line:
-			continue
-		cleaned_lines.append(line)
-	
-	css_content = '\n'.join(cleaned_lines)
-	
-	# Remove entire blocks containing CSS custom properties
-	css_content = re.sub(r':root[^{]*\{[^}]*\}', '', css_content, flags=re.DOTALL | re.MULTILINE)
-	css_content = re.sub(r'::before[^{]*\{[^}]*\}', '', css_content, flags=re.DOTALL | re.MULTILINE)
-	css_content = re.sub(r'::after[^{]*\{[^}]*\}', '', css_content, flags=re.DOTALL | re.MULTILINE)
-	
-	# More aggressive CSS custom property removal
-	css_content = re.sub(r'--[a-zA-Z0-9_-]+\s*:\s*[^;}]+[;}]', '', css_content, flags=re.MULTILINE)
-	
-	# Remove @page rules completely
-	css_content = re.sub(r'@page[^{]*\{[^}]*\}', '', css_content, flags=re.DOTALL)
-	
-	# Remove problematic CSS properties
-	problematic_properties = [
-		r'dpi\s*:\s*[^;]+;?',
-		r'page-width\s*:\s*[^;]+;?',
-		r'page-height\s*:\s*[^;]+;?',
-		r'flex\s*:\s*[^;]+;?',
-		r'flex-direction\s*:\s*[^;]+;?',
-		r'display\s*:\s*-webkit-box\s*;?',
-		r'display\s*:\s*-webkit-flex\s*;?',
-		r'display\s*:\s*flex\s*;?',
-		r'-webkit-box-sizing\s*:\s*[^;]+;?',
-		r'object-fit\s*:\s*[^;]+;?',
-		r'object-position\s*:\s*[^;]+;?',
-		r'user-select\s*:\s*[^;]+;?',
-		r'overflow-wrap\s*:\s*[^;]+;?',
-		r'border-radius\s*:\s*[^;]+;?',
-		r'box-shadow\s*:\s*[^;]+;?',
-		r'text-overflow\s*:\s*[^;]+;?',
-		r'white-space\s*:\s*nowrap\s*;?'
+	# Following original repository approach: minimal to no CSS cleaning
+	# Only remove properties that completely break wkhtmltopdf
+	blocking_properties = [
+		r'-webkit-print-color-adjust\s*:\s*exact\s*;?',  # This specific value can cause issues
 	]
 	
-	for prop in problematic_properties:
+	for prop in blocking_properties:
 		css_content = re.sub(prop, '', css_content, flags=re.IGNORECASE | re.MULTILINE)
 	
-	# Remove Vue.js specific selectors and data attributes
-	css_content = re.sub(r'[^{]*\[data-v-[^\]]*\][^{]*\{[^}]*\}', '', css_content, flags=re.DOTALL)
-	
-	# Remove any remaining CSS custom property references
-	css_content = re.sub(r'var\([^)]*\)', 'inherit', css_content)
-	
-	# Clean up malformed CSS and empty blocks
-	css_content = re.sub(r'\{[^}]*--[^}]*\}', '{}', css_content)  # Remove blocks with remaining custom props
-	css_content = re.sub(r'[^{}]*\{\s*\}', '', css_content)  # Remove empty selectors
-	css_content = re.sub(r'\s+', ' ', css_content)  # Normalize whitespace
-	css_content = re.sub(r';\s*;+', ';', css_content)  # Remove multiple semicolons
-	css_content = re.sub(r'^\s*;\s*', '', css_content, flags=re.MULTILINE)  # Remove leading semicolons
-	
-	# Final cleanup
-	css_content = css_content.strip()
-	
-	return css_content
+	return css_content.strip()
+
+
+# REMOVED: Aggressive CSS cleaning function that breaks design
+# Original repository does not have CSS cleaning - this was causing the preview/design mismatch
 
 
 def pdf_header_footer_html(soup, head, content, styles, html_id, css):
@@ -239,23 +188,9 @@ def pdf_body_html(print_format, jenv, args, template):
 				pass
 
 		# pd_format and afterTableElement are already set by _prepare_print_designer_context
-
-		# Clean CSS based on PDF generator BEFORE template rendering
-		if "settings" in args and "css" in args["settings"]:
-			original_css = args["settings"]["css"]
-			
-			if args["pdf_generator"] == "WeasyPrint":
-				from print_designer.weasyprint_integration import clean_css_for_weasyprint
-				cleaned_css = clean_css_for_weasyprint(original_css)
-			else:
-				# wkhtmltopdf needs more aggressive CSS cleaning
-				cleaned_css = clean_css_for_wkhtmltopdf(original_css)
-			
-			args["settings"]["css"] = cleaned_css
-			
-			# Debug logging
-			if frappe.conf.developer_mode:
-				frappe.logger().info(f"Print Designer CSS cleaning ({args['pdf_generator']}): Original length: {len(original_css)}, Cleaned length: {len(cleaned_css)}")
+		
+		# Following original repository approach: NO CSS cleaning in settings
+		# Original repository passes CSS unchanged for both PDF and preview modes
 		try:
 			# Handle both string template and Jinja2 Template object
 			if hasattr(template, 'render'):
@@ -269,53 +204,21 @@ def pdf_body_html(print_format, jenv, args, template):
 				template_obj = jenv.from_string(template_source)
 				rendered_html = template_obj.render(args, filters={"len": len})
 			
-			# Check if this is actual PDF generation or HTML preview
-			# PDF generation will have as_pdf=True in form_dict or trigger_print
-			is_pdf_generation = (
+			# Following original repository approach: NO CSS cleaning in rendered HTML
+			# Original repository preserves CSS unchanged for both PDF and preview modes
+			
+			# Only inject page number script for preview mode detection
+			is_preview_mode = not (
 				frappe.form_dict.get("as_pdf") or 
 				frappe.form_dict.get("trigger_print") or
-				args.get("trigger_print") or
-				frappe.form_dict.get("_doctype") == "PDF"
+				args.get("trigger_print")
 			)
 			
-			# Check if this is preview mode (for page number injection)
-			is_preview_mode = (
-				frappe.form_dict.get("format") and 
-				frappe.form_dict.get("doctype") and 
-				frappe.form_dict.get("name") and
-				not is_pdf_generation
-			)
-			
-			# Only apply CSS cleaning for actual PDF generation, not HTML preview
-			if is_pdf_generation:
-				if args["pdf_generator"] == "WeasyPrint":
-					# WeasyPrint supports modern CSS better, minimal cleaning needed
-					from print_designer.weasyprint_integration import clean_css_for_weasyprint
-					rendered_html = re.sub(
-						r'(<style[^>]*>)(.*?)(</style>)',
-						lambda m: m.group(1) + clean_css_for_weasyprint(m.group(2)) + m.group(3),
-						rendered_html,
-						flags=re.DOTALL
-					)
-				elif args["pdf_generator"] == "wkhtmltopdf":
-					# Only apply basic CSS cleaning for wkhtmltopdf, no nuclear CSS
-					rendered_html = re.sub(
-						r'(<style[^>]*>)(.*?)(</style>)',
-						lambda m: m.group(1) + clean_css_for_wkhtmltopdf(m.group(2)) + m.group(3),
-						rendered_html,
-						flags=re.DOTALL
-					)
-					
-					if frappe.conf.developer_mode:
-						frappe.logger().info("Applied basic CSS cleaning for wkhtmltopdf compatibility")
-			else:
-				# For HTML preview, keep original CSS completely untouched
-				if frappe.conf.developer_mode:
-					frappe.logger().info("HTML preview mode - keeping original CSS untouched")
-			
-			# Inject page number script for preview mode
 			if is_preview_mode:
 				rendered_html = _inject_page_number_script_for_preview(rendered_html)
+			
+			if frappe.conf.developer_mode:
+				frappe.logger().info(f"Print Designer mode - Preview: {is_preview_mode}, preserving original CSS like original repository")
 			
 			return rendered_html
 

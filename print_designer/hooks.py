@@ -7,6 +7,12 @@ app_description = "Frappe App to Design Print Formats using interactive UI."
 app_email = "hello@frappe.io"
 app_license = "AGPLv3"
 
+# Custom bench commands
+commands = [
+	"print_designer.commands.signature_setup.setup_signatures",
+	"print_designer.commands.signature_setup.check_signature_status"
+]
+
 # Includes in <head>
 # ------------------
 
@@ -121,6 +127,7 @@ on_startup = [
 after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
+    "print_designer.api.safe_install.safe_install_signature_enhancements",
 ]
 
 # Uninstallation
@@ -138,6 +145,7 @@ pdf_body_html = "print_designer.pdf.pdf_body_html"
 pdf_footer_html = "print_designer.pdf.pdf_header_footer_html"
 
 get_print_format_template = "print_designer.pdf.get_print_format_template"
+before_print = "print_designer.pdf.before_print"
 
 
 pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"

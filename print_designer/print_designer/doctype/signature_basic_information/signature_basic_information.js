@@ -35,7 +35,6 @@ frappe.ui.form.on("Signature Basic Information", {
 
         // Add signature preview if data exists
         if (frm.doc.signature_data || frm.doc.signature_image) {
-			console.log('frm.doc from signature_basic_information',frm.doc)
             const button_label = frm.doc.signature_category === 'Company Stamp' ? __('Preview Stamp') : __('Preview Signature');
             frm.add_custom_button(button_label, function() {
                 show_signature_preview(frm);
@@ -228,39 +227,70 @@ function create_detail_section(title, details) {
 
 function show_signature_preview(frm) {
     const is_stamp = frm.doc.signature_category === 'Company Stamp';
-	console.log('is_stamp',is_stamp)
-	console.log('signature_category:', frm.doc.signature_category);
-
     const preview_title = is_stamp ? __('Stamp Preview') : __('Signature Preview');
 
-	console.log('preview_title',preview_title)
+    // Get the appropriate image source based on signature type
+    const image_source = get_signature_image_source(frm);
+    
+    // Build preview HTML
+    let preview_html = build_signature_image_html(image_source, is_stamp);
+    
+    // Add details section
+    preview_html += build_signature_details_html(frm, is_stamp);
 
-    let preview_html = '';
-	let image_found = false;
+    // Show preview dialog
+    show_preview_dialog(preview_title, preview_html);
+}
 
-    if (frm.doc.signature_data) {
-        preview_html = `<div class="signature-preview-container">
-                           <img src="${frm.doc.signature_image}"
-                                class="signature-preview-image">
-                       </div>`;
-		image_found = true;
-    } else if (frm.doc.signature_image) {
-        preview_html = `<div class="signature-preview-container">
-                           <img src="${frm.doc.signature_image}"
-                                class="signature-preview-image">
-                       </div>`;
-		image_found = true;
+function get_signature_image_source(frm) {
+    /**
+     * Get the appropriate image source based on signature type
+     * Returns the image URL/data or null if no image available
+     */
+    if (!frm.doc.signature_type) {
+        // No signature type specified, use fallback logic
+        return frm.doc.signature_image || frm.doc.signature_data || null;
     }
-
-	// If no image found, show placeholder
-    if (!image_found) {
-        preview_html = `<div class="signature-preview-placeholder">
-                           <i class="fa fa-image signature-preview-icon"></i><br>
-                           No ${is_stamp ? 'stamp' : 'signature'} image available
-                       </div>`;
+    
+    switch (frm.doc.signature_type) {
+        case 'Digital Drawing':
+            return frm.doc.signature_data || null;
+            
+        case 'Uploaded Image':
+            return frm.doc.signature_image || null;
+            
+        case 'Text Signature':
+            // For text signatures, signature_data contains the text/generated image
+            return frm.doc.signature_data || null;
+            
+        default:
+            // Unknown signature type: try both fields in order of preference
+            return frm.doc.signature_image || frm.doc.signature_data || null;
     }
+}
 
-	// Add stamp details using helper function
+function build_signature_image_html(image_source, is_stamp) {
+    /**
+     * Build HTML for signature/stamp image display
+     */
+    if (image_source) {
+        return `<div class="signature-preview-container">
+                   <img src="${image_source}" 
+                        class="signature-preview-image"
+                        alt="${is_stamp ? 'Stamp' : 'Signature'} Preview">
+               </div>`;
+    } else {
+        return `<div class="signature-preview-placeholder">
+                   <i class="fa fa-image signature-preview-icon"></i><br>
+                   No ${is_stamp ? 'stamp' : 'signature'} image available
+               </div>`;
+    }
+}
+
+function build_signature_details_html(frm, is_stamp) {
+    /**
+     * Build HTML for signature/stamp details section
+     */
     if (is_stamp) {
         const stamp_details = [
             { label: 'Type', value: frm.doc.stamp_type },
@@ -269,72 +299,38 @@ function show_signature_preview(frm) {
             { label: 'Expiry', value: frm.doc.stamp_expiry ? frappe.datetime.str_to_user(frm.doc.stamp_expiry) : null }
         ];
 
-        if (stamp_details.some(detail => detail.value)) {
-            preview_html += create_detail_section('Stamp Details', stamp_details);
-        }
+        return stamp_details.some(detail => detail.value) 
+            ? create_detail_section('Stamp Details', stamp_details)
+            : '';
     } else {
         const signature_details = [
             { label: 'Signer', value: frm.doc.signature_name },
+            { label: 'Title', value: frm.doc.signature_title },
+            { label: 'Type', value: frm.doc.signature_type },
             { label: 'Date', value: frm.doc.signature_date ? frappe.datetime.str_to_user(frm.doc.signature_date) : null },
             { label: 'Purpose', value: frm.doc.signature_purpose }
         ];
 
-        if (signature_details.some(detail => detail.value)) {
-            preview_html += create_detail_section('Signature Details', signature_details);
-        }
+        return signature_details.some(detail => detail.value)
+            ? create_detail_section('Signature Details', signature_details)
+            : '';
     }
+}
 
-    // Add stamp details if it's a company stamp
-    // if (is_stamp && (frm.doc.stamp_type || frm.doc.stamp_number || frm.doc.stamp_authority)) {
-
-	// 	preview_html += '<div class="signature-details-card">';
-    //     preview_html += '<h5 class="signature-details-title">{__(Stamp Details)}</h5>';
-
-    //     if (frm.doc.stamp_type) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Type:</strong> ${frm.doc.stamp_type}</div>`;
-    //     }
-    //     if (frm.doc.stamp_number) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Number:</strong> ${frm.doc.stamp_number}</div>`;
-    //     }
-    //     if (frm.doc.stamp_authority) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Authority:</strong> ${frm.doc.stamp_authority}</div>`;
-    //     }
-    //     if (frm.doc.stamp_expiry) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Expiry:</strong> ${frappe.datetime.str_to_user(frm.doc.stamp_expiry)}</div>`;
-    //     }
-    //     preview_html += '</div>';
-    // }
-
-	// Add signature details if it's a digital signature
-	//  if (!is_stamp) {
-    //     preview_html += '<div class="signature-details-card">';
-    //     preview_html += '<h5 class="signature-details-title">{__(Signature Details)}</h5>';
-
-    //     if (frm.doc.signature_name) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Signer:</strong> ${frm.doc.signature_name}</div>`;
-    //     }
-    //     if (frm.doc.signature_type) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Signer:</strong> ${frm.doc.signature_type}</div>`;
-    //     }
-    //     if (frm.doc.signature_date) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Date:</strong> ${frappe.datetime.str_to_user(frm.doc.signature_date)}</div>`;
-    //     }
-    //     if (frm.doc.signature_purpose) {
-    //         preview_html += `<div class="signature-detail-item"><strong>Purpose:</strong> ${frm.doc.signature_purpose}</div>`;
-    //     }
-    //     preview_html += '</div>';
-    // }
-
+function show_preview_dialog(title, html_content) {
+    /**
+     * Show the signature/stamp preview dialog
+     */
     const dialog = new frappe.ui.Dialog({
-        title: preview_title,
+        title: title,
         fields: [
             {
                 fieldtype: 'HTML',
                 fieldname: 'preview',
-                options: preview_html
+                options: html_content
             }
         ],
-		 primary_action_label: __('Close'),
+        primary_action_label: __('Close'),
         primary_action: function() {
             dialog.hide();
         }

@@ -67,23 +67,17 @@ def should_use_weasyprint():
 
 def clean_css_for_weasyprint(css_content):
 	"""
-	Minimal CSS cleaning for WeasyPrint (it supports modern CSS better)
+	Minimal CSS cleaning for WeasyPrint - following original repository approach
+	WeasyPrint supports modern CSS well, so minimal cleaning needed
 	"""
 	if not css_content:
 		return css_content
 	
-	# WeasyPrint supports most modern CSS, minimal cleaning needed
+	# Following original repository: minimal to no CSS cleaning
+	# WeasyPrint supports most modern CSS including custom properties and flexbox
+	# Only remove user-select which is not relevant for print
 	import re
 	
-	# Remove only truly problematic properties
-	problematic_properties = [
-		r'user-select\s*:\s*[^;]+;?',  # Not supported in print
-		r'-webkit-[^:]*\s*:\s*[^;]+;?',  # Remove webkit prefixes
-		r'-moz-[^:]*\s*:\s*[^;]+;?',     # Remove moz prefixes
-		r'-ms-[^:]*\s*:\s*[^;]+;?',      # Remove ms prefixes
-	]
-	
-	for prop in problematic_properties:
-		css_content = re.sub(prop, '', css_content, flags=re.IGNORECASE | re.MULTILINE)
+	css_content = re.sub(r'user-select\s*:\s*[^;]+;?', '', css_content, flags=re.IGNORECASE | re.MULTILINE)
 	
 	return css_content.strip()
