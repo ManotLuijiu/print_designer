@@ -3,58 +3,12 @@
 {% from 'print_designer/page/print_designer/jinja/macros/styles.html' import render_styles with context %}
 {% from 'print_designer/page/print_designer/jinja/macros/styles_old.html' import render_old_styles with context %}
 
-{% macro render_header_footer_optimized(sections, type_name, send_to_jinja) -%}
-{# Render header/footer sections without duplication #}
-{% if enable_copies and copy_count > 1 %}
-    {# For copies, render all sections normally #}
-    <div id="firstPage{{ type_name }}" style="display: block;">{% if sections.firstPage %}{{ render(sections.firstPage, send_to_jinja) }}{%endif%}</div>
-    <div id="oddPage{{ type_name }}" style="display: none;">{% if sections.oddPage %}{{ render(sections.oddPage, send_to_jinja) }}{%endif%}</div>
-    <div id="evenPage{{ type_name }}" style="display: none;">{% if sections.evenPage %}{{ render(sections.evenPage, send_to_jinja) }}{%endif%}</div>
-    <div id="lastPage{{ type_name }}" style="display: none;">{% if sections.lastPage %}{{ render(sections.lastPage, send_to_jinja) }}{%endif%}</div>
-{% else %}
-    {# Check if all sections have the same content #}
-    {% set first_content = sections.firstPage|string if sections.firstPage else '' %}
-    {% set odd_content = sections.oddPage|string if sections.oddPage else '' %}
-    {% set even_content = sections.evenPage|string if sections.evenPage else '' %}
-    {% set last_content = sections.lastPage|string if sections.lastPage else '' %}
-
-    {% set all_same = (first_content == odd_content == even_content == last_content) and first_content != '' %}
-
-    {% if all_same %}
-        {# All content is the same, render once #}
-        <div id="firstPage{{ type_name }}" style="display: block;" data-content-shared="true">{% if sections.firstPage %}{{ render(sections.firstPage, send_to_jinja) }}{%endif%}</div>
-        <div id="oddPage{{ type_name }}" style="display: none;" data-content-shared="true"></div>
-        <div id="evenPage{{ type_name }}" style="display: none;" data-content-shared="true"></div>
-        <div id="lastPage{{ type_name }}" style="display: none;" data-content-shared="true"></div>
-    {% else %}
-        {# Content is different, render all sections #}
-        <div id="firstPage{{ type_name }}" style="display: block;">{% if sections.firstPage %}{{ render(sections.firstPage, send_to_jinja) }}{%endif%}</div>
-        <div id="oddPage{{ type_name }}" style="display: none;">{% if sections.oddPage %}{{ render(sections.oddPage, send_to_jinja) }}{%endif%}</div>
-        <div id="evenPage{{ type_name }}" style="display: none;">{% if sections.evenPage %}{{ render(sections.evenPage, send_to_jinja) }}{%endif%}</div>
-        <div id="lastPage{{ type_name }}" style="display: none;">{% if sections.lastPage %}{{ render(sections.lastPage, send_to_jinja) }}{%endif%}</div>
-    {% endif %}
-{% endif %}
-{%- endmacro %}
-
 {{ render_google_fonts(settings) }}
 
 <!-- Don't remove this. user_generated_jinja_code tag is used as placeholder which we replace with user provided jinja template  -->
 <!-- user_generated_jinja_code -->
 <!-- end of user generated code -->
 
-<!-- Letter Head Integration - Standard Frappe Style -->
-{% if letter_head and not no_letterhead %}
-<div class="letter-head">
-    {{ letter_head | safe }}
-    {% if letter_head_data and letter_head_data.header_script %}
-    <script>
-        {{ letter_head_data.header_script | safe }}
-    </script>
-    {% endif %}
-</div>
-{% endif %}
-
-<!-- Single Print Designer Content Block -->
 <div id="__print_designer">
     {% set header_available = pd_format.header.firstPage or pd_format.header.oddPage or pd_format.header.evenPage or pd_format.header.lastPage %}
     {%- if settings.page.headerHeight != 0 and header_available -%}
@@ -62,61 +16,33 @@
         <div style="position: relative; top:0px; left: 0px; width: 100%; height:{{ settings.page.headerHeightWithMargin }}px; overflow: hidden;" id="header-render-container">
             <div class="visible-pdf" style="height: {{ settings.page.marginTop }}px;"></div>
             <div class="hidden-pdf printview-header-margin" style="height: {{ settings.page.marginTop }}px;"></div>
-            {{ render_header_footer_optimized(pd_format.header, "Header", send_to_jinja) }}
+            <div class="hidden-pdf">{% if pd_format.header.firstPage %}{{ render(pd_format.header.firstPage, send_to_jinja) }}{%endif%}</div>
+            <div id="firstPageHeader" style="display: block;">{% if pd_format.header.firstPage %}{{ render(pd_format.header.firstPage, send_to_jinja) }}{%endif%}</div>
+            <div id="oddPageHeader" style="display: none;">{% if pd_format.header.oddPage %}{{ render(pd_format.header.oddPage, send_to_jinja) }}{%endif%}</div>
+            <div id="evenPageHeader" style="display: none;">{% if pd_format.header.evenPage %}{{ render(pd_format.header.evenPage, send_to_jinja) }}{%endif%}</div>
+            <div id="lastPageHeader" style="display: none;">{% if pd_format.header.lastPage %}{{ render(pd_format.header.lastPage, send_to_jinja) }}{%endif%}</div>
         </div>
     </div>
     {%- endif -%}
-
-    <!-- Handle multiple copies for wkhtmltopdf -->
-    {% if enable_copies and copy_count > 1 %}
-        {% for copy_index in range(copy_count) %}
-            {% set copy_label = copy_labels[copy_index] if copy_index < copy_labels|length else copy_labels[-1] %}
-            {% set current_copy = copy_index + 1 %}
-            
-            <!-- Copy separator (page break for multiple copies) -->
-            {% if copy_index > 0 %}
-            <div style="page-break-before: always;"></div>
-            {% endif %}
-            
-            <!-- Copy watermark -->
-            <div class="copy-watermark" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                 font-size: 72px; color: rgba(200, 200, 200, 0.3); z-index: -1; pointer-events: none;">
-                {{ copy_label }}
-            </div>
-            
-            <!-- Body content for each copy -->
-            {%- for body in pd_format.body -%}
-                {{ render(body.childrens, send_to_jinja) }}
-            {%- endfor -%}
-            
-        {% endfor %}
-    {% else %}
-        <!-- Single copy body content -->
-        {%- for body in pd_format.body -%}
-            {{ render(body.childrens, send_to_jinja) }}
-        {%- endfor -%}
-    {% endif %}
-
+    {%- for body in pd_format.body -%}
+        {{ render(body.childrens, send_to_jinja) }}
+    {%- endfor -%}
     {% set footer_available = pd_format.footer.firstPage or pd_format.footer.oddPage or pd_format.footer.evenPage or pd_format.footer.lastPage %}
     {%- if settings.page.footerHeight != 0 and footer_available -%}
     <div id="footer-html">
         <div style="width: 100%; position: relative; top:0px; left: 0px; height:{{ settings.page.footerHeightWithMargin }}px;" id="footer-render-container">
-            {{ render_header_footer_optimized(pd_format.footer, "Footer", send_to_jinja) }}
+            <div class="hidden-pdf">{% if pd_format.footer.firstPage %}{{ render(pd_format.footer.firstPage, send_to_jinja) }}{%endif%}</div>
+            <div id="firstPageFooter" style="display: block;">{% if pd_format.footer.firstPage %}{{ render(pd_format.footer.firstPage, send_to_jinja) }}{%endif%}</div>
+            <div id="oddPageFooter" style="display: none;">{% if pd_format.footer.oddPage %}{{ render(pd_format.footer.oddPage, send_to_jinja) }}{%endif%}</div>
+            <div id="evenPageFooter" style="display: none;">{% if pd_format.footer.evenPage %}{{ render(pd_format.footer.evenPage, send_to_jinja) }}{%endif%}</div>
+            <div id="lastPageFooter" style="display: none;">{% if pd_format.footer.lastPage %}{{ render(pd_format.footer.lastPage, send_to_jinja) }}{%endif%}</div>
         </div>
     </div>
     {%- endif -%}
 </div>
 
-<!-- Letter Head Footer - Standard Frappe Style -->
-{% if footer and not no_letterhead %}
-<div class="letter-head-footer">
-    {{ footer | safe }}
-    {% if letter_head_data and letter_head_data.footer_script %}
-    <script>
-        {{ letter_head_data.footer_script | safe }}
-    </script>
-    {% endif %}
-</div>
-{% endif %}
-
-{{ render_old_styles(settings) }}
+{%- if pdf_generator == "chrome" -%}
+    {{ render_styles(settings) }}
+{%- else -%}
+    {{ render_old_styles(settings) }}
+{%- endif -%}
