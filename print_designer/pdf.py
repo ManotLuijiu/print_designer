@@ -1,7 +1,6 @@
 import hashlib
 import html
 import json
-import re
 import time
 
 import frappe
@@ -10,472 +9,189 @@ from frappe.utils.error import log_error
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import pdf_body_html as fw_pdf_body_html
 
-# Import cint with fallback
-try:
-	from frappe.utils import cint
-except ImportError:
-	def cint(value, default=0):
-		try:
-			return int(value) if value else default
-		except (ValueError, TypeError):
-			return default
-
-
-def clean_css_for_wkhtmltopdf_minimal(css_content):
-	"""Minimal CSS cleaning for wkhtmltopdf - preserve design like original repository"""
-	if not css_content:
-		return css_content
-	
-	# Following original repository approach: minimal to no CSS cleaning
-	# Only remove properties that completely break wkhtmltopdf
-	blocking_properties = [
-		r'-webkit-print-color-adjust\s*:\s*exact\s*;?',  # This specific value can cause issues
-	]
-	
-	for prop in blocking_properties:
-		css_content = re.sub(prop, '', css_content, flags=re.IGNORECASE | re.MULTILINE)
-	
-	return css_content.strip()
-
-
-# REMOVED: Aggressive CSS cleaning function that breaks design
-# Original repository does not have CSS cleaning - this was causing the preview/design mismatch
-
 
 def pdf_header_footer_html(soup, head, content, styles, html_id, css):
-	if soup.find(id="__print_designer"):
-		# Always use old header/footer template (chrome support removed)
-		path = "print_designer/page/print_designer/jinja/header_footer_old.html"
-		try:
-			return frappe.render_template(
-				path,
-				{
-					"head": head,
-					"content": content,
-					"styles": styles,
-					"html_id": html_id,
-					"css": css,
-					"headerFonts": soup.find(id="headerFontsLinkTag"),
-					"footerFonts": soup.find(id="footerFontsLinkTag"),
-					"lang": frappe.local.lang,
-					"layout_direction": "rtl" if is_rtl() else "ltr",
-				},
-			)
-		except Exception as e:
-			error = log_error(title=e, reference_doctype="Print Format")
-			frappe.throw(
-				msg=f"Something went wrong ( Error ) : If you don't know what just happened, and wish to file a ticket or issue on github, please copy the error from <b>Error Log {error.name}</b> or ask Administrator.",
-				exc=e,
-			)
-	else:
-		from frappe.utils.pdf import pdf_footer_html, pdf_header_html
+    if soup.find(id="__print_designer"):
+        if frappe.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
+            path = "print_designer/page/print_designer/jinja/header_footer.html"
+        else:
+            path = "print_designer/page/print_designer/jinja/header_footer_old.html"
+        try:
+            # Get print format language, fallback to local language if blank or not set
+            print_format_lang = frappe.local.lang
+            try:
+                print_format_name = frappe.form_dict.get("format")
+                print(f"print_format_name {print_format_name}")
+                if print_format_name:
+                    print_format_doc = frappe.get_doc("Print Format", print_format_name)
+                    print(f"print_format_doc {print_format_doc}")
+                    # Only use print format language if it's set and not blank
+                    language = (
+                        print_format_doc.get("language")
+                        if hasattr(print_format_doc, "get")
+                        else getattr(print_format_doc, "language", None)
+                    )
+                    print(f"language from pdf.py {language}")
+                    if language and str(language).strip():
+                        print_format_lang = language
+            except Exception:
+                # If print format access fails, use default language
+                pass
 
-		# same default path is defined in fw pdf_header_html function if no path is passed it will use default path
-		path = "templates/print_formats/pdf_header_footer.html"
-		# Chrome PDF generation is disabled - always use default path
+            return frappe.render_template(
+                path,
+                {
+                    "head": head,
+                    "content": content,
+                    "styles": styles,
+                    "html_id": html_id,
+                    "css": css,
+                    "headerFonts": soup.find(id="headerFontsLinkTag"),
+                    "footerFonts": soup.find(id="footerFontsLinkTag"),
+                    "lang": print_format_lang,
+                    "layout_direction": "rtl" if is_rtl() else "ltr",
+                },
+            )
+        except Exception as e:
+            error = log_error(title=e, reference_doctype="Print Format")
+            frappe.throw(
+                msg=f"Something went wrong ( Error ) : If you don't know what just happened, and wish to file a ticket or issue on github, please copy the error from <b>Error Log {error.name}</b> or ask Administrator.",
+                exc=e,
+            )
+    else:
+        from frappe.utils.pdf import pdf_footer_html, pdf_header_html
 
-		if html_id == "header-html":
-			return pdf_header_html(
-				soup=soup,
-				head=head,
-				content=content,
-				styles=styles,
-				html_id=html_id,
-				css=css,
-				path=path,
-			)
-		elif html_id == "footer-html":
-			return pdf_footer_html(
-				soup=soup,
-				head=head,
-				content=content,
-				styles=styles,
-				html_id=html_id,
-				css=css,
-				path=path,
-			)
+        # same default path is defined in fw pdf_header_html function if no path is passed it will use default path
+        path = "templates/print_formats/pdf_header_footer.html"
+        if frappe.local.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
+            path = "print_designer/pdf_generator/framework_formats/pdf_header_footer_chrome.html"
+
+        if html_id == "header-html":
+            return pdf_header_html(
+                soup=soup,
+                head=head,
+                content=content,
+                styles=styles,
+                html_id=html_id,
+                css=css,
+                path=path,
+            )
+        elif html_id == "footer-html":
+            return pdf_footer_html(
+                soup=soup,
+                head=head,
+                content=content,
+                styles=styles,
+                html_id=html_id,
+                css=css,
+                path=path,
+            )
 
 
 def pdf_body_html(print_format, jenv, args, template):
-	if print_format and print_format.print_designer and print_format.print_designer_body:
-		# Ensure we have the necessary data for both PDF and HTML generation
-		_prepare_print_designer_context(print_format, args)
-		print_format_name = hashlib.md5(print_format.name.encode(), usedforsecurity=False).hexdigest()
-		add_data_to_monitor(print_designer=print_format_name, print_designer_action="download_pdf")
+    if (
+        print_format
+        and print_format.print_designer
+        and print_format.print_designer_body
+    ):
+        print_format_name = hashlib.md5(
+            print_format.name.encode(), usedforsecurity=False
+        ).hexdigest()
+        add_data_to_monitor(
+            print_designer=print_format_name, print_designer_action="download_pdf"
+        )
 
-		settings = args["settings"]  # Already set by _prepare_print_designer_context
-		
-		# Debug: Check if pd_format is available for HTML preview
-		if frappe.conf.developer_mode:
-			has_pd_format = "pd_format" in args
-			frappe.logger().info(f"Print Designer HTML generation - pd_format available: {has_pd_format}, template type: {type(template)}")
-		
-		# Handle copy functionality with wkhtmltopdf (since Chrome is disabled)
-		copy_count = cint(frappe.form_dict.get("copy_count", 0))
-		copy_labels = frappe.form_dict.get("copy_labels", "")
-		if copy_count > 1:
-			# For wkhtmltopdf copies, we'll use template-based approach
-			if copy_labels:
-				copy_labels_list = copy_labels.split(",")
-			else:
-				# Default labels: First copy is "Original", subsequent copies are "Copy"
-				copy_labels_list = []
-				for i in range(copy_count):
-					if i == 0:
-						copy_labels_list.append(frappe._("Original"))
-					else:
-						copy_labels_list.append(frappe._("Copy"))
-			
-			args.update({
-				"copy_count": copy_count,
-				"copy_labels": copy_labels_list,
-				"enable_copies": True
-			})
-		
-		# Determine best PDF generator: WeasyPrint > wkhtmltopdf
-		from print_designer.weasyprint_integration import should_use_weasyprint
-		pdf_generator = frappe.form_dict.get("pdf_generator")
-		
-		if not pdf_generator:
-			# Auto-select best available PDF generator
-			pdf_generator = "WeasyPrint" if should_use_weasyprint() else "wkhtmltopdf"
-		
-		letterhead = frappe.form_dict.get("letterhead")
-		no_letterhead = frappe.form_dict.get("no_letterhead")
-		# Letter Head works with both wkhtmltopdf and WeasyPrint
-		if not no_letterhead and letterhead:
-			try:
-				# Use standard Frappe Letter Head function
-				from frappe.www.printview import get_letter_head
-				doc = args.get("doc")
-				letter_head_data = get_letter_head(doc, no_letterhead, letterhead)
-				
-				if letter_head_data:
-					# Prepare document context for template rendering
-					doc_context = {}
-					if doc:
-						try:
-							if hasattr(doc, 'as_dict'):
-								doc_context = doc.as_dict()
-							elif isinstance(doc, dict):
-								doc_context = doc
-							else:
-								doc_context = {}
-						except Exception:
-							doc_context = {}
-					
-					# Render Letter Head content with document context like standard Frappe
-					if letter_head_data.get("content"):
-						letter_head_data["content"] = frappe.utils.jinja.render_template(
-							letter_head_data["content"], {"doc": doc_context}
-						)
-					if letter_head_data.get("footer"):
-						letter_head_data["footer"] = frappe.utils.jinja.render_template(
-							letter_head_data["footer"], {"doc": doc_context}
-						)
-					
-					# Add Letter Head variables in standard Frappe format
-					args.update({
-						"letter_head": letter_head_data.get("content", ""),
-						"footer": letter_head_data.get("footer", ""),
-						"letter_head_data": letter_head_data,  # Full data for scripts
-						"no_letterhead": False
-					})
-			except Exception as e:
-				# Log error but don't break PDF generation
-				frappe.log_error(title="Letter Head Error in Print Designer", message=f"Error processing Letter Head: {str(e)}")
-				# Continue without Letter Head
-				pass
+        settings = json.loads(print_format.print_designer_settings)
 
-		# pd_format and afterTableElement are already set by _prepare_print_designer_context
-		
-		# Following original repository approach: NO CSS cleaning in settings
-		# Original repository passes CSS unchanged for both PDF and preview modes
-		try:
-			# Handle both string template and Jinja2 Template object
-			if hasattr(template, 'render'):
-				# Template is already a Jinja2 Template object (from HTML preview)
-				rendered_html = template.render(args, filters={"len": len})
-			else:
-				# Template is a string (from PDF generation), process it
-				template_source = template.replace(
-					"<!-- user_generated_jinja_code -->", args["settings"].get("userProvidedJinja", "")
-				)
-				template_obj = jenv.from_string(template_source)
-				rendered_html = template_obj.render(args, filters={"len": len})
-			
-			# Following original repository approach: NO CSS cleaning in rendered HTML
-			# Original repository preserves CSS unchanged for both PDF and preview modes
-			
-			# Only inject page number script for preview mode detection
-			is_preview_mode = not (
-				frappe.form_dict.get("as_pdf") or 
-				frappe.form_dict.get("trigger_print") or
-				args.get("trigger_print")
-			)
-			
-			if is_preview_mode:
-				rendered_html = _inject_page_number_script_for_preview(rendered_html)
-			
-			if frappe.conf.developer_mode:
-				frappe.logger().info(f"Print Designer mode - Preview: {is_preview_mode}, preserving original CSS like original repository")
-			
-			return rendered_html
+        args.update(
+            {
+                "headerElement": json.loads(print_format.print_designer_header),
+                "bodyElement": json.loads(print_format.print_designer_body),
+                "footerElement": json.loads(print_format.print_designer_footer),
+                "settings": settings,
+                "pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
+            }
+        )
 
-		except Exception as e:
-			error = log_error(title=e, reference_doctype="Print Format", reference_name=print_format.name)
-			if frappe.conf.developer_mode:
-				return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.<hr /><h3>Error rendering print format: {error.reference_name}</h3><h4>{error.method}</h4><pre>{html.escape(error.error)}</pre>"
-			else:
-				return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.</h1>"
-	return fw_pdf_body_html(template, args)
+        if not is_older_schema(settings=settings, current_version="1.1.0"):
+            args.update(
+                {"pd_format": json.loads(print_format.print_designer_print_format)}
+            )
+        else:
+            args.update(
+                {
+                    "afterTableElement": json.loads(
+                        print_format.print_designer_after_table or "[]"
+                    )
+                }
+            )
 
+        # replace placeholder comment with user provided jinja code
+        template_source = template.replace(
+            "<!-- user_generated_jinja_code -->",
+            args["settings"].get("userProvidedJinja", ""),
+        )
+        try:
+            template = jenv.from_string(template_source)
+            return template.render(args, filters={"len": len})
 
-def before_print(print_format=None, **kwargs):
-	"""
-	Before print hook to prepare Print Designer context.
-	Called before both PDF and HTML generation.
-	"""
-	if print_format and hasattr(print_format, 'print_designer') and print_format.print_designer:
-		# Prepare the args dict if it's not passed
-		args = kwargs.get('args', {})
-		_prepare_print_designer_context(print_format, args)
-		# Update the kwargs with prepared args
-		kwargs['args'] = args
-	return kwargs
-
-
-def _prepare_print_designer_context(print_format, args):
-	"""
-	Prepare the context variables needed for Print Designer templates.
-	This ensures both PDF and HTML generation have the required variables.
-	"""
-	if not (print_format and print_format.print_designer and print_format.print_designer_body):
-		return
-	
-	try:
-		# Check if print_designer_settings exists and is not None
-		if not print_format.print_designer_settings:
-			frappe.log_error(
-				title="Print Designer Settings Missing",
-				message=f"Print Format '{print_format.name}' has print_designer enabled but print_designer_settings is None"
-			)
-			return
-		
-		settings = json.loads(print_format.print_designer_settings)
-		
-		# Always prepare the core elements
-		args.update({
-			"headerElement": json.loads(print_format.print_designer_header or "[]"),
-			"bodyElement": json.loads(print_format.print_designer_body or "[]"),
-			"footerElement": json.loads(print_format.print_designer_footer or "[]"),
-			"settings": settings,
-			"pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
-		})
-		
-		# Set pd_format for newer schema
-		if not is_older_schema(settings=settings, current_version="1.1.0"):
-			args.update({"pd_format": json.loads(print_format.print_designer_print_format or "{}")})
-		else:
-			args.update({"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")})
-		
-		# Set send_to_jinja flag if not already set
-		if "send_to_jinja" not in args:
-			args["send_to_jinja"] = True
-		
-		# Enhance Thai amount in words if applicable
-		_enhance_thai_amount_in_words(print_format, args)
-			
-	except Exception as e:
-		frappe.log_error(
-			title="Print Designer Context Preparation Error",
-			message=f"Error preparing context for print format '{print_format.name}': {str(e)}"
-		)
+        except Exception as e:
+            error = log_error(
+                title=e,
+                reference_doctype="Print Format",
+                reference_name=print_format.name,
+            )
+            if frappe.conf.developer_mode:
+                return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.<hr /><h3>Error rendering print format: {error.reference_name}</h3><h4>{error.method}</h4><pre>{html.escape(error.error)}</pre>"
+            else:
+                return f"<h1><b>Something went wrong while rendering the print format.</b> <hr/> If you don't know what just happened, and wish to file a ticket or issue on Github <hr /> Please copy the error from <code>Error Log {error.name}</code> or ask Administrator.</h1>"
+    return fw_pdf_body_html(template, args)
 
 
 def is_older_schema(settings, current_version):
-	format_version = settings.get("schema_version", "1.0.0")
-	format_version = format_version.split(".")
-	current_version = current_version.split(".")
-	if int(format_version[0]) < int(current_version[0]):
-		return True
-	elif int(format_version[0]) == int(current_version[0]) and int(format_version[1]) < int(
-		current_version[1]
-	):
-		return True
-	elif (
-		int(format_version[0]) == int(current_version[0])
-		and int(format_version[1]) == int(current_version[1])
-		and int(format_version[2]) < int(current_version[2])
-	):
-		return True
-	else:
-		return False
+    format_version = settings.get("schema_version", "1.0.0")
+    format_version = format_version.split(".")
+    current_version = current_version.split(".")
+    if int(format_version[0]) < int(current_version[0]):
+        return True
+    elif int(format_version[0]) == int(current_version[0]) and int(
+        format_version[1]
+    ) < int(current_version[1]):
+        return True
+    elif (
+        int(format_version[0]) == int(current_version[0])
+        and int(format_version[1]) == int(current_version[1])
+        and int(format_version[2]) < int(current_version[2])
+    ):
+        return True
+    else:
+        return False
 
 
 def get_print_format_template(jenv, print_format):
-	# if print format is created using print designer, then use print designer template
-	if print_format and print_format.print_designer and print_format.print_designer_body:
-		# Check if print_designer_settings exists and is not None
-		if not print_format.print_designer_settings:
-			frappe.log_error(
-				title="Print Designer Settings Missing",
-				message=f"Print Format '{print_format.name}' has print_designer enabled but print_designer_settings is None"
-			)
-			return None
-		
-		settings = json.loads(print_format.print_designer_settings)
-		if is_older_schema(settings, "1.1.0"):
-			return jenv.loader.get_source(
-				jenv, "print_designer/page/print_designer/jinja/old_print_format.html"
-			)[0]
-		else:
-			return jenv.loader.get_source(
-				jenv, "print_designer/page/print_designer/jinja/print_format.html"
-			)[0]
+    # if print format is created using print designer, then use print designer template
+    if (
+        print_format
+        and print_format.print_designer
+        and print_format.print_designer_body
+    ):
+        settings = json.loads(print_format.print_designer_settings)
+        if is_older_schema(settings, "1.1.0"):
+            return jenv.loader.get_source(
+                jenv, "print_designer/page/print_designer/jinja/old_print_format.html"
+            )[0]
+        else:
+            return jenv.loader.get_source(
+                jenv, "print_designer/page/print_designer/jinja/print_format.html"
+            )[0]
 
 
 def measure_time(func):
-	def wrapper(*args, **kwargs):
-		start_time = time.time()
-		result = func(*args, **kwargs)
-		end_time = time.time()
-		print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds")
-		return result
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds")
+        return result
 
-	return wrapper
-
-
-def _enhance_thai_amount_in_words(print_format, args):
-	"""
-	Enhance the in_words field with Thai language support when applicable.
-	
-	Args:
-		print_format: Print format object
-		args: Template arguments dictionary
-	"""
-	try:
-		# Check if we have a document with amount fields
-		doc = args.get("doc")
-		if not doc:
-			return
-		
-		# Check if document has in_words and grand_total fields
-		if not (hasattr(doc, 'in_words') and hasattr(doc, 'grand_total')):
-			return
-		
-		# Import the Thai amount utility
-		from print_designer.utils.thai_amount_to_word import is_thai_format, thai_money_in_words
-		
-		# Check if Thai format should be used
-		if is_thai_format(print_format.name, doc):
-			# Set Thai amount in words
-			doc.in_words = thai_money_in_words(doc.grand_total or 0)
-			
-			# Also add to args for template access
-			args["thai_in_words"] = doc.in_words
-			args["use_thai_language"] = True
-			
-			if frappe.conf.developer_mode:
-				frappe.logger().info(f"Enhanced Thai amount in words for {print_format.name}: {doc.in_words}")
-	
-	except Exception as e:
-		frappe.log_error(
-			title="Thai Amount Enhancement Error",
-			message=f"Error enhancing Thai amount in words for print format '{print_format.name}': {str(e)}"
-		)
-
-
-def _inject_page_number_script_for_preview(html_content):
-	"""
-	Inject page number script into HTML for preview mode.
-	This ensures page numbers are displayed in preview mode.
-	"""
-	# Read the update_page_no.js script
-	try:
-		import os
-		script_path = os.path.join(
-			frappe.get_app_path("print_designer"),
-			"print_designer", "page", "print_designer", "update_page_no.js"
-		)
-		
-		with open(script_path, 'r') as f:
-			page_number_script = f.read()
-		
-		# Insert the script before the closing body tag
-		script_tag = f"""
-<script>
-{page_number_script}
-
-// Auto-execute page number injection for preview mode
-document.addEventListener('DOMContentLoaded', function() {{
-	// Check if this is a print designer document
-	const printDesignerDiv = document.querySelector('#__print_designer');
-	if (printDesignerDiv) {{
-		// Inject page numbers for preview mode
-		// First, find elements with page number classes
-		const pageElements = document.querySelectorAll('.page_info_page, .page, .page_info_topage, .topage, .page_info_frompage, .frompage');
-		
-		if (pageElements.length > 0) {{
-			// Set initial page numbers (preview shows page 1 of 1 by default)
-			const currentPageElements = document.querySelectorAll('.page_info_page, .page');
-			const totalPageElements = document.querySelectorAll('.page_info_topage, .topage');
-			const fromPageElements = document.querySelectorAll('.page_info_frompage, .frompage');
-			
-			currentPageElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ page }}}}') {{
-					el.textContent = '1';
-				}}
-			}});
-			totalPageElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ topage }}}}') {{
-					el.textContent = '1';
-				}}
-			}});
-			fromPageElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim() === '{{{{ frompage }}}}') {{
-					el.textContent = '1';
-				}}
-			}});
-			
-			// Set date/time elements
-			const dateObj = new Date();
-			const dateElements = document.querySelectorAll('.page_info_date, .date');
-			const timeElements = document.querySelectorAll('.page_info_time, .time');
-			const isodateElements = document.querySelectorAll('.page_info_isodate, .isodate');
-			
-			dateElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ date }}}}')) {{
-					el.textContent = dateObj.toLocaleDateString();
-				}}
-			}});
-			timeElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ time }}}}')) {{
-					el.textContent = dateObj.toLocaleTimeString();
-				}}
-			}});
-			isodateElements.forEach(el => {{
-				if (el.textContent.trim() === '' || el.textContent.trim().includes('{{{{ isodate }}}}')) {{
-					el.textContent = dateObj.toISOString();
-				}}
-			}});
-		}}
-	}}
-}});
-</script>
-"""
-		
-		# Insert the script before the closing body tag, or at the end if no body tag
-		if '</body>' in html_content:
-			html_content = html_content.replace('</body>', script_tag + '</body>')
-		else:
-			html_content += script_tag
-		
-		return html_content
-		
-	except Exception as e:
-		frappe.log_error(
-			title="Page Number Script Injection Error",
-			message=f"Error injecting page number script for preview: {str(e)}"
-		)
-		return html_content
+    return wrapper

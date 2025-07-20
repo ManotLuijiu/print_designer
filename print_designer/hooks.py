@@ -9,8 +9,8 @@ app_license = "AGPLv3"
 
 # Custom bench commands
 commands = [
-	"print_designer.commands.signature_setup.setup_signatures",
-	"print_designer.commands.signature_setup.check_signature_status"
+    "print_designer.commands.signature_setup.setup_signatures",
+    "print_designer.commands.signature_setup.check_signature_status",
 ]
 
 # Includes in <head>
@@ -50,7 +50,7 @@ page_js = {
 # include js in doctype views
 doctype_js = {
     "Print Format": "print_designer/client_scripts/print_format.js",
-    "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js"
+    "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -145,7 +145,7 @@ pdf_body_html = "print_designer.pdf.pdf_body_html"
 pdf_footer_html = "print_designer.pdf.pdf_header_footer_html"
 
 get_print_format_template = "print_designer.pdf.get_print_format_template"
-before_print = "print_designer.pdf.before_print"
+# before_print = "print_designer.pdf.before_print"
 
 
 pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
@@ -161,27 +161,27 @@ doc_events = {
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
     },
-    "Sales Invoice": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Purchase Invoice": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Sales Order": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Purchase Order": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Quotation": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Delivery Note": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
-    "Purchase Receipt": {
-        "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    },
+    # "Sales Invoice": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Purchase Invoice": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Sales Order": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Purchase Order": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Quotation": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Delivery Note": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
+    # "Purchase Receipt": {
+    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
+    # },
     "Signature Basic Information": {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
