@@ -128,6 +128,7 @@ after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.api.safe_install.safe_install_signature_enhancements",
+    "print_designer.install.ensure_custom_fields",
 ]
 
 # Uninstallation

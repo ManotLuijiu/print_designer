@@ -432,3 +432,36 @@ def setup_print_designer_settings():
 		click.echo(f"Error setting up Print Designer settings: {str(e)}")
 		# Don't fail installation for this
 		pass
+
+
+def ensure_custom_fields():
+	"""Ensure print_designer custom fields are installed after migration.
+	
+	This function runs after every migration to make sure that custom fields
+	like 'print_designer_template_app' are always present, even on fresh
+	installations or user machines.
+	"""
+	try:
+		from print_designer.custom_fields import CUSTOM_FIELDS
+		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+		
+		# Check if print_designer_template_app field exists
+		existing_field = frappe.db.get_value("Custom Field", 
+			{"fieldname": "print_designer_template_app"}, "name")
+		
+		if not existing_field:
+			click.echo("Installing missing print_designer custom fields...")
+			create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+			frappe.db.commit()
+			click.echo("✅ Print Designer custom fields installed successfully")
+		
+	except Exception as e:
+		# Log error but don't fail migration
+		frappe.log_error(f"Error ensuring print_designer custom fields: {str(e)}")
+		click.echo(f"⚠️  Warning: Could not install print_designer custom fields: {str(e)}")
+
+
+def set_wkhtmltopdf_for_print_designer_format(doc, method):
+	"""Set pdf_generator to wkhtmltopdf for print_designer formats if not set."""
+	if doc.print_designer and not doc.pdf_generator:
+		doc.pdf_generator = "wkhtmltopdf"

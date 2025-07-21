@@ -59,14 +59,23 @@ class PDFTransformer:
 				if self.is_header_dynamic:
 					p.merge_page(self._transform(header.pages[p.page_number], header_body_top, header_transform))
 				elif self.is_print_designer:
-					if p.page_number == 0:
+					# Fix header duplication: only use available header pages
+					header_page_count = len(header.pages)
+					if header_page_count == 1:
+						# Single header page - use it for all pages
 						p.merge_page(header.pages[0])
-					elif p.page_number == self.no_of_pages - 1:
-						p.merge_page(header.pages[3])
-					elif p.page_number % 2 == 0:
-						p.merge_page(header.pages[2])
 					else:
-						p.merge_page(header.pages[1])
+						# Multiple header pages - use appropriate page
+						if p.page_number == 0 and header_page_count > 0:
+							p.merge_page(header.pages[0])
+						elif p.page_number == self.no_of_pages - 1 and header_page_count > 3:
+							p.merge_page(header.pages[3])
+						elif p.page_number % 2 == 0 and header_page_count > 2:
+							p.merge_page(header.pages[2])
+						elif header_page_count > 1:
+							p.merge_page(header.pages[1])
+						else:
+							p.merge_page(header.pages[0])
 				else:
 					p.merge_page(header.pages[0])
 
@@ -74,14 +83,23 @@ class PDFTransformer:
 				if self.is_footer_dynamic:
 					p.merge_page(footer.pages[p.page_number])
 				elif self.is_print_designer:
-					if p.page_number == 0:
+					# Fix footer duplication: only use available footer pages
+					footer_page_count = len(footer.pages)
+					if footer_page_count == 1:
+						# Single footer page - use it for all pages
 						p.merge_page(footer.pages[0])
-					elif p.page_number == self.no_of_pages - 1:
-						p.merge_page(footer.pages[3])
-					elif p.page_number % 2 == 0:
-						p.merge_page(footer.pages[2])
 					else:
-						p.merge_page(footer.pages[1])
+						# Multiple footer pages - use appropriate page
+						if p.page_number == 0 and footer_page_count > 0:
+							p.merge_page(footer.pages[0])
+						elif p.page_number == self.no_of_pages - 1 and footer_page_count > 3:
+							p.merge_page(footer.pages[3])
+						elif p.page_number % 2 == 0 and footer_page_count > 2:
+							p.merge_page(footer.pages[2])
+						elif footer_page_count > 1:
+							p.merge_page(footer.pages[1])
+						else:
+							p.merge_page(footer.pages[0])
 				else:
 					p.merge_page(footer.pages[0])
 

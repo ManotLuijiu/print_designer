@@ -36,6 +36,7 @@ def after_request():
 
 @measure_time
 def get_pdf(print_format, html, options, output, pdf_generator=None):
+    print(f"pdf_generator {pdf_generator}")
     if pdf_generator != "chrome":
         # Use the default pdf generator
         return
