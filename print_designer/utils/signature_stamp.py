@@ -108,9 +108,11 @@ def download_pdf_with_signature_stamp(
     doc=None,
     no_letterhead=0,
     letterhead=None,
-    settings=None,
+    settings=None,  # Keep for backward compatibility, but won't pass to original function
     digital_signature=None,
     company_stamp=None,
+    language=None,
+    pdf_generator=None,
     **kwargs,
 ):
     """Enhanced PDF download with signature and stamp support"""
@@ -130,17 +132,25 @@ def download_pdf_with_signature_stamp(
             frappe.local.print_context = {}
         frappe.local.print_context.update(signature_stamp_context)
 
-    # Call the original download_pdf function with all parameters
-    return original_download_pdf(
-        doctype=doctype,
-        name=name,
-        format=format,
-        doc=doc,
-        no_letterhead=no_letterhead,
-        letterhead=letterhead,
-        settings=settings,
-        **kwargs,
-    )
+    # Build parameters that match the current Frappe download_pdf signature
+    pdf_params = {
+        "doctype": doctype,
+        "name": name,
+        "format": format,
+        "doc": doc,
+        "no_letterhead": no_letterhead,
+        "letterhead": letterhead,
+    }
+    
+    # Add optional parameters if they exist in current Frappe version
+    if language is not None:
+        pdf_params["language"] = language
+    if pdf_generator is not None:
+        pdf_params["pdf_generator"] = pdf_generator
+    
+    # Filter out any other kwargs that aren't supported by download_pdf
+    # Call the original download_pdf function with compatible parameters only
+    return original_download_pdf(**pdf_params)
 
 
 def startup_patches():
