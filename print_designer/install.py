@@ -455,10 +455,37 @@ def ensure_custom_fields():
 			frappe.db.commit()
 			click.echo("✅ Print Designer custom fields installed successfully")
 		
+		# Also ensure signature enhancement fields are installed
+		_ensure_signature_fields()
+		
 	except Exception as e:
 		# Log error but don't fail migration
 		frappe.log_error(f"Error ensuring print_designer custom fields: {str(e)}")
 		click.echo(f"⚠️  Warning: Could not install print_designer custom fields: {str(e)}")
+
+
+def _ensure_signature_fields():
+	"""Ensure signature enhancement fields are installed for dropdown functionality."""
+	try:
+		# Check if signature_target_field exists
+		existing_signature_field = frappe.db.get_value("Custom Field", 
+			{"fieldname": "signature_target_field", "dt": "Signature Basic Information"}, "name")
+		
+		if not existing_signature_field:
+			click.echo("Installing signature enhancement fields...")
+			
+			# Install the signature enhancement fields
+			from print_designer.api.safe_install import safe_install_signature_enhancements
+			result = safe_install_signature_enhancements()
+			
+			if result.get("success"):
+				click.echo("✅ Signature enhancement fields installed successfully")
+			else:
+				click.echo(f"⚠️  Warning: {result.get('error', 'Unknown error installing signature fields')}")
+		
+	except Exception as e:
+		frappe.log_error(f"Error ensuring signature fields: {str(e)}")
+		click.echo(f"⚠️  Warning: Could not install signature fields: {str(e)}")
 
 
 def set_wkhtmltopdf_for_print_designer_format(doc, method):

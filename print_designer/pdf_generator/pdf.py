@@ -13,7 +13,9 @@ def before_request():
             frappe.request.args.get(
                 "pdf_generator",
                 frappe.get_cached_value(
-                    "Print Format", frappe.request.args.get("format"), "pdf_generator"
+                    "Print Format",
+                    frappe.request.args.get("format") or "",
+                    "pdf_generator",
                 ),
             )
             or "wkhtmltopdf"
@@ -29,7 +31,7 @@ def after_request():
         frappe.request.path == "/api/method/frappe.utils.print_format.download_pdf"
         and FrappePDFGenerator._instance
     ):
-        # Not Heavy operation as if proccess is not available it returns
+        # Not Heavy operation as if process is not available it returns
         if not FrappePDFGenerator().USE_PERSISTENT_CHROMIUM:
             FrappePDFGenerator()._close_browser()
 
