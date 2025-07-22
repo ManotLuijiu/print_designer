@@ -26,3 +26,4 @@ print_designer.patches.update_signature_css_for_theme_support
 print_designer.patches.fix_signature_badges_width_and_count
 print_designer.patches.fix_signature_script_visibility
 print_designer.patches.v1_0.enhance_signature_basic_information
+print_designer.patches.v1_0.install_watermark_fields

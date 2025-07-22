@@ -1,0 +1,77 @@
+{%- macro watermark(element) -%}
+{%- if element.watermark and element.watermark.fieldname -%}
+    {%- if element.watermark.parent == doc.doctype -%}
+        {%- set watermark_value = doc.get(element.watermark.fieldname) -%}
+    {%- else -%}
+        {%- set watermark_value = frappe.db.get_value(element.watermark.doctype, doc[element.watermark.parentField], element.watermark.fieldname) -%}
+    {%- endif -%}
+    
+    {%- if watermark_value and watermark_value != "None" -%}
+        {%- set translated_text = frappe._(watermark_value) -%}
+        {%- set font_size = element.style.fontSize or "24px" -%}
+        {%- set font_family = element.style.fontFamily or "Arial" -%}
+        {%- set position_style = "" -%}
+        
+        {%- if element.style.position == "top-right" -%}
+            {%- set position_style = "top: 20px; right: 20px;" -%}
+        {%- elif element.style.position == "top-left" -%}
+            {%- set position_style = "top: 20px; left: 20px;" -%}
+        {%- elif element.style.position == "bottom-right" -%}
+            {%- set position_style = "bottom: 20px; right: 20px;" -%}
+        {%- elif element.style.position == "bottom-left" -%}
+            {%- set position_style = "bottom: 20px; left: 20px;" -%}
+        {%- else -%}
+            {%- set position_style = "top: 45%; left: 45%; width: 100px; margin-left: -50px;" -%}
+        {%- endif -%}
+        
+        <div 
+            class="watermark-text" 
+            style="
+                position: absolute;
+                {{ position_style }}
+                font-size: {{ font_size }};
+                color: #999999;
+                font-weight: bold;
+                font-family: {{ font_family }}, sans-serif;
+                {{ element.style.additionalCSS or '' }}
+            "
+        >
+            {{ translated_text }}
+        </div>
+    {%- endif -%}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro render_watermark_text(watermark_text, position="top-right", font_size="24px", font_family="Arial", additional_css="") -%}
+{%- if watermark_text and watermark_text != "None" -%}
+    {%- set translated_text = frappe._(watermark_text) -%}
+    {%- set position_style = "" -%}
+    
+    {%- if position == "top-right" -%}
+        {%- set position_style = "top: 20px; right: 20px;" -%}
+    {%- elif position == "top-left" -%}
+        {%- set position_style = "top: 20px; left: 20px;" -%}
+    {%- elif position == "bottom-right" -%}
+        {%- set position_style = "bottom: 20px; right: 20px;" -%}
+    {%- elif position == "bottom-left" -%}
+        {%- set position_style = "bottom: 20px; left: 20px;" -%}
+    {%- else -%}
+        {%- set position_style = "top: 45%; left: 45%; width: 100px; margin-left: -50px;" -%}
+    {%- endif -%}
+    
+    <div 
+        class="watermark-text" 
+        style="
+            position: absolute;
+            {{ position_style }}
+            font-size: {{ font_size }};
+            color: #999999;
+            font-weight: bold;
+            font-family: {{ font_family }}, sans-serif;
+            {{ additional_css }}
+        "
+    >
+        {{ translated_text }}
+    </div>
+{%- endif -%}
+{%- endmacro -%}

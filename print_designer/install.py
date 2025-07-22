@@ -43,6 +43,8 @@ def after_install():
 	add_weasyprint_pdf_generator_option()
 	set_wkhtmltopdf_as_default_for_print_designer()
 	setup_print_designer_settings()
+	# Install watermark fields for fresh installations
+	_install_watermark_fields_on_install()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
 
@@ -458,6 +460,12 @@ def ensure_custom_fields():
 		# Also ensure signature enhancement fields are installed
 		_ensure_signature_fields()
 		
+		# Ensure watermark fields are installed
+		_ensure_watermark_fields()
+		
+		# Ensure watermark field defaults are set
+		_ensure_watermark_defaults()
+		
 	except Exception as e:
 		# Log error but don't fail migration
 		frappe.log_error(f"Error ensuring print_designer custom fields: {str(e)}")
@@ -487,6 +495,53 @@ def _ensure_signature_fields():
 		frappe.log_error(f"Error ensuring signature fields: {str(e)}")
 		click.echo(f"⚠️  Warning: Could not install signature fields: {str(e)}")
 
+
+def _ensure_watermark_fields():
+	"""Ensure watermark fields are installed across all DocTypes for dynamic watermark selection."""
+	try:
+		from print_designer.print_designer.watermark_fields import install_watermark_fields
+		
+		# Check if any watermark fields exist
+		existing_watermark_field = frappe.db.get_value("Custom Field", 
+			{"fieldname": "watermark_text"}, "name")
+		
+		if not existing_watermark_field:
+			click.echo("Installing watermark fields across DocTypes...")
+			success = install_watermark_fields()
+			
+			if success:
+				frappe.db.commit()
+				click.echo("✅ Watermark fields installed successfully")
+			else:
+				click.echo("⚠️  Warning: Could not install all watermark fields")
+		else:
+			click.echo("Watermark fields already exist, skipping installation")
+		
+	except Exception as e:
+		frappe.log_error(f"Error ensuring watermark fields: {str(e)}")
+		click.echo(f"⚠️  Warning: Could not install watermark fields: {str(e)}")
+
+def _ensure_watermark_defaults():
+	"""Set defaults for watermark configuration fields"""
+	try:
+		print_settings = frappe.get_single("Print Settings")
+		
+		# Set defaults if fields are empty
+		if not print_settings.get('watermark_font_size'):
+			print_settings.watermark_font_size = 24
+		
+		if not print_settings.get('watermark_position'):
+			print_settings.watermark_position = 'Top Right'
+		
+		if not print_settings.get('watermark_font_family'):
+			print_settings.watermark_font_family = 'Arial'
+		
+		print_settings.save()
+		click.echo("✅ Watermark field defaults set successfully")
+	except Exception as e:
+		frappe.log_error(f"Error setting watermark defaults: {str(e)}")
+		click.echo(f"⚠️  Warning: Could not set watermark defaults: {str(e)}")
+
 def install_watermark_field():
 	"""Install watermark_settings field in Print Settings for sidebar functionality."""
 	try:
@@ -510,6 +565,22 @@ def install_watermark_field():
 	except Exception as e:
 		frappe.log_error(f"Error installing watermark field: {str(e)}")
 		click.echo(f"⚠️  Error installing watermark field: {str(e)}")
+
+
+def _install_watermark_fields_on_install():
+	"""Install watermark fields during fresh installation"""
+	try:
+		from print_designer.print_designer.watermark_fields import get_watermark_custom_fields
+		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+		
+		custom_fields = get_watermark_custom_fields()
+		create_custom_fields(custom_fields, update=True)
+		frappe.db.commit()
+		click.echo("✅ Watermark fields installed during installation")
+		
+	except Exception as e:
+		click.echo(f"⚠️  Warning: Could not install watermark fields during installation: {str(e)}")
+		frappe.log_error(f"Error installing watermark fields on install: {str(e)}")
 
 
 def set_wkhtmltopdf_for_print_designer_format(doc, method):

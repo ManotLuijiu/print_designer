@@ -279,6 +279,64 @@ def get_image_docfields():
     return all_image_fields
 
 
+@frappe.whitelist(allow_guest=False)
+def get_watermark_docfields():
+    """Get all watermark fields (Select fields with watermark options) for dynamic watermark selection"""
+    docfield = frappe.qb.DocType("DocField")
+    customfield = frappe.qb.DocType("Custom Field")
+
+    # Get standard watermark fields from DocField table
+    watermark_docfields = (
+        frappe.qb.from_(docfield)
+        .select(
+            docfield.name,
+            docfield.parent,
+            docfield.fieldname,
+            docfield.fieldtype,
+            docfield.label,
+            docfield.options,
+        )
+        .where(
+            (docfield.fieldtype == "Select") 
+            & (docfield.fieldname.like("%watermark%"))
+        )
+        .orderby(docfield.parent)
+    ).run(as_dict=True)
+
+    # Get custom watermark fields from Custom Field table
+    custom_watermark_fields = (
+        frappe.qb.from_(customfield)
+        .select(
+            customfield.name,
+            customfield.dt.as_("parent"),
+            customfield.fieldname,
+            customfield.fieldtype,
+            customfield.label,
+            customfield.options,
+        )
+        .where(
+            (customfield.fieldtype == "Select")
+            & (customfield.fieldname.like("%watermark%"))
+        )
+        .orderby(customfield.dt)
+    ).run(as_dict=True)
+
+    # Combine both lists
+    all_watermark_fields = watermark_docfields + custom_watermark_fields
+
+    # Filter to only include fields that have watermark-related options
+    watermark_related_fields = []
+    for field in all_watermark_fields:
+        options = field.get('options', '')
+        if options and any(keyword in options.lower() for keyword in ['original', 'copy', 'draft', 'duplicate']):
+            watermark_related_fields.append(field)
+
+    # Sort by parent (DocType name)
+    watermark_related_fields.sort(key=lambda x: x.get("parent", ""))
+
+    return watermark_related_fields
+
+
 @frappe.whitelist()
 def convert_css(css_obj):
     string_css = ""

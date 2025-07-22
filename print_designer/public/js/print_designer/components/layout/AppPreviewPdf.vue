@@ -53,6 +53,7 @@ const removePdfWatcher = watch(
 			try {
 				const printSettings = await frappe.db.get_doc('Print Settings');
 				watermarkSettings = printSettings.watermark_settings;
+				console.log('Watermark settings retrieved:', watermarkSettings);
 			} catch (error) {
 				console.warn('Could not fetch watermark settings:', error);
 			}
@@ -67,9 +68,13 @@ const removePdfWatcher = watch(
 			if (watermarkSettings && watermarkSettings !== 'None') {
 				// Map watermark settings to appropriate parameters
 				const watermarkParams = getWatermarkParams(watermarkSettings);
+				console.log('Watermark parameters:', watermarkParams);
 				if (watermarkParams) {
 					url += `&${watermarkParams}`;
+					console.log('Final PDF URL with watermarks:', url);
 				}
+			} else {
+				console.log('No watermark settings or set to None:', watermarkSettings);
 			}
 
 			/**

@@ -146,6 +146,35 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
 			"insert_after": "watermark_settings_section",
 			"description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'",
 		},
+		{
+			"label": "Watermark Font Size (px)",
+			"fieldname": "watermark_font_size",
+			"fieldtype": "Int",
+			"default": "24",
+			"insert_after": "watermark_settings",
+			"depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+			"description": "Font size for watermark text in pixels (default: 24px)",
+		},
+		{
+			"label": "Watermark Position",
+			"fieldname": "watermark_position",
+			"fieldtype": "Select",
+			"options": "Top Right\nTop Left\nBottom Right\nBottom Left\nCenter",
+			"default": "Top Right",
+			"insert_after": "watermark_font_size",
+			"depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+			"description": "Position of watermark on the page",
+		},
+		{
+			"label": "Watermark Font Family",
+			"fieldname": "watermark_font_family",
+			"fieldtype": "Select",
+			"options": "Arial\nSarabun\nTimes New Roman\nCourier New\nHelvetica\nVerdana\nGeorgia\nTahoma",
+			"default": "Arial",
+			"insert_after": "watermark_position",
+			"depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+			"description": "Font family for watermark text (Sarabun recommended for Thai unicode support)",
+		},
 	]
 }
 

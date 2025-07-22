@@ -108,14 +108,14 @@ def download_pdf_with_signature_stamp(
     doc=None,
     no_letterhead=0,
     letterhead=None,
-    settings=None,  # Keep for backward compatibility, but won't pass to original function
+    settings=None,  # Now we'll handle watermark settings from this parameter
     digital_signature=None,
     company_stamp=None,
     language=None,
     pdf_generator=None,
     **kwargs,
 ):
-    """Enhanced PDF download with signature and stamp support"""
+    """Enhanced PDF download with signature, stamp, and watermark support"""
 
     # Get signature and stamp from form_dict if not provided
     digital_signature = digital_signature or frappe.form_dict.get("digital_signature")
@@ -132,6 +132,128 @@ def download_pdf_with_signature_stamp(
             frappe.local.print_context = {}
         frappe.local.print_context.update(signature_stamp_context)
 
+    # Handle watermark settings for PDF generation
+    # Get watermark settings from Print Settings if not provided in settings parameter
+    watermark_settings = None
+    if settings:
+        # Parse settings if it's a JSON string
+        if isinstance(settings, str):
+            try:
+                parsed_settings = frappe.parse_json(settings)
+                watermark_settings = parsed_settings.get('watermark_settings')
+            except:
+                pass
+        elif isinstance(settings, dict):
+            watermark_settings = settings.get('watermark_settings')
+    
+    # If no watermark settings in parameters, get from Print Settings
+    if not watermark_settings:
+        try:
+            print_settings = frappe.get_single("Print Settings")
+            watermark_settings = print_settings.get('watermark_settings', 'None')
+        except:
+            watermark_settings = 'None'
+    
+    # Handle watermark settings for PDF generation
+    if watermark_settings and watermark_settings != 'None':
+        # We need to override the HTML generation to include watermarks
+        # First, get the HTML using frappe.get_print (without PDF)
+        from frappe.utils.print_utils import get_print
+        
+        # Get the HTML content
+        html_content = get_print(
+            doctype=doctype,
+            name=name,
+            print_format=format,
+            doc=doc,
+            no_letterhead=no_letterhead,
+            letterhead=letterhead,
+            as_pdf=False
+        )
+        
+        # Get watermark configuration from Print Settings
+        try:
+            print_settings = frappe.get_single("Print Settings")
+            font_size = print_settings.get('watermark_font_size', 24)
+            position = print_settings.get('watermark_position', 'Top Right')
+            font_family = print_settings.get('watermark_font_family', 'Arial')
+        except:
+            font_size = 24
+            position = 'Top Right'
+            font_family = 'Arial'
+        
+        # Get watermark text from multiple sources
+        watermark_text = ""
+        
+        # First, check the traditional watermark_settings from Print Settings
+        if watermark_settings == 'Original on First Page':
+            watermark_text = frappe._("Original")
+        elif watermark_settings == 'Copy on All Pages':
+            watermark_text = frappe._("Copy")
+        elif watermark_settings == 'Original,Copy on Sequence':
+            watermark_text = frappe._("Original")  # For single page, use Original
+        
+        # Then, check for dynamic watermark from document field (if available)
+        if not watermark_text:
+            try:
+                doc = frappe.get_cached_doc(doctype, name)
+                dynamic_watermark = doc.get('watermark_text')
+                if dynamic_watermark and dynamic_watermark != 'None':
+                    watermark_text = frappe._(dynamic_watermark)
+            except:
+                pass
+        
+        if watermark_text:
+            # Calculate position CSS based on selection (CSS 2.1 compatible only)
+            # PDF generation requires different positioning than HTML preview
+            position_css = ""
+            if position == 'Top Right':
+                position_css = "top: 10px; right: 20px;"  # Moved higher for PDF
+            elif position == 'Top Left':
+                position_css = "top: 10px; left: 20px;"   # Moved higher for PDF
+            elif position == 'Bottom Right':
+                position_css = "bottom: 10px; right: 20px;"
+            elif position == 'Bottom Left':
+                position_css = "bottom: 10px; left: 20px;"
+            else:  # Center - use margin-based centering for CSS 2.1 compatibility
+                position_css = "top: 45%; left: 45%; width: 100px; margin-left: -50px;"
+            
+            # Add watermark CSS and HTML (CSS 2.1 compatible only)
+            watermark_html = f'''
+            <style>
+                .watermark {{
+                    position: absolute;
+                    {position_css}
+                    font-size: {font_size}px;
+                    color: #999999;
+                    font-weight: bold;
+                    font-family: {font_family}, sans-serif;
+                }}
+            </style>
+            <div class="watermark">{watermark_text}</div>
+            '''
+            
+            # Insert watermark HTML just before the closing body tag
+            if '</body>' in html_content:
+                html_content = html_content.replace('</body>', f'{watermark_html}</body>')
+            else:
+                # If no body tag, append at the end
+                html_content += watermark_html
+        
+        # Now generate PDF from the modified HTML
+        from frappe.utils.pdf import get_pdf
+        pdf_file = get_pdf(html_content)
+        
+        # Set response similar to original download_pdf
+        if not doc:
+            doc = frappe.get_doc(doctype, name)
+        frappe.local.response.filename = "{name}.pdf".format(name=name.replace(" ", "-").replace("/", "-"))
+        frappe.local.response.filecontent = pdf_file
+        frappe.local.response.type = "pdf"
+        
+        return pdf_file
+    
+    # If no watermarks needed, use original function
     # Build parameters that match the current Frappe download_pdf signature
     pdf_params = {
         "doctype": doctype,

@@ -99,9 +99,10 @@ jinja = {
 # Boot session enhancements
 boot_session = "print_designer.utils.signature_stamp.boot_session"
 
-# Override whitelisted methods to support signature and stamp in PDF generation
+# Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
 override_whitelisted_methods = {
-    "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp"
+    "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
+    "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark"
 }
 
 # Installation
