@@ -93,6 +93,12 @@ jinja = {
         "print_designer.utils.signature_stamp.get_company_stamp_url",
         "print_designer.utils.signature_stamp.get_signature_image",
         "print_designer.utils.signature_stamp.get_company_stamp_image",
+        # Thai language methods
+        "print_designer.utils.thai_amount_to_word.thai_money_in_words",
+        "print_designer.utils.thai_amount_to_word.get_thai_in_words_for_print",
+        "print_designer.utils.thai_amount_to_word.is_thai_format",
+        "print_designer.utils.thai_amount_to_word.smart_money_in_words",
+        "print_designer.utils.thai_amount_to_word.get_smart_in_words",
     ]
 }
 
@@ -163,6 +169,7 @@ doc_events = {
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
     },
+    # Thai before_print hooks - currently disabled due to compatibility issues
     # "Sales Invoice": {
     #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
     # },

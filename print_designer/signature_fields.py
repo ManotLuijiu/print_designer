@@ -247,7 +247,7 @@ SIGNATURE_FIELDS = {
 	],
 	
 	# HR Module - Additional
-	"Offer Letter": [
+	"Job Offer": [
 		{
 			"fieldname": "hr_signature",
 			"fieldtype": "Attach Image",

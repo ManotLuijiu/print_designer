@@ -188,7 +188,7 @@ WATERMARK_FIELDS = {
 		}
 	],
 	
-	"Offer Letter": [
+	"Job Offer": [
 		{
 			"fieldname": "watermark_text",
 			"fieldtype": "Select",

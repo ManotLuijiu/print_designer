@@ -105,6 +105,11 @@ def is_thai_format(print_format_name=None, doc=None):
         bool: True if Thai language should be used
     """
 
+    # Check URL parameter directly (supports both th and ไทย)
+    lang_param = frappe.form_dict.get("_lang")
+    if lang_param and lang_param.lower() in ["th", "ไทย", "thai"]:
+        return True
+
     # Check if the current language is Thai
     if frappe.local.lang == "th":
         return True
@@ -232,6 +237,69 @@ def enhance_in_words_field(doc, print_format_name=None, method=None):
                 title="Thai Amount Enhancement Error",
                 message=f"Error enhancing in_words field for {doc.doctype} {doc.name}: {str(e)}",
             )
+
+
+def smart_money_in_words(amount, main_currency="", print_format=None):
+    """
+    Smart money in words that automatically detects Thai language context.
+    
+    This function can be used in Jinja templates as a replacement for frappe.utils.money_in_words.
+    Usage: {{ smart_money_in_words(doc.grand_total, doc.currency, format) }}
+    
+    Args:
+        amount: Amount to convert
+        main_currency: Currency (unused for Thai, kept for compatibility)
+        print_format: Print format name (optional)
+    
+    Returns:
+        str: Amount in words (Thai or English based on context)
+    """
+    # If Thai context is detected, use Thai conversion
+    if is_thai_format(print_format):
+        return thai_money_in_words(amount or 0)
+    
+    # Otherwise, use Frappe's default function
+    from frappe.utils import money_in_words as frappe_money_in_words
+    return frappe_money_in_words(amount, main_currency)
+
+
+def get_smart_in_words(doc):
+    """
+    Get smart in_words field that automatically uses Thai when appropriate.
+    This can be used as: {{ get_smart_in_words(doc) }}
+    """
+    # Check if we should use Thai format
+    if is_thai_format(frappe.form_dict.get("format"), doc):
+        return thai_money_in_words(getattr(doc, 'grand_total', 0) or 0)
+    
+    # Return original in_words field
+    return getattr(doc, 'in_words', '')
+
+
+@frappe.whitelist()
+def get_thai_in_words_for_print(doc, print_format_name=None):
+    """
+    Get Thai amount in words for use in print templates.
+    
+    This function can be called directly from Jinja templates in print formats.
+    Usage in template: {{ frappe.call('print_designer.utils.thai_amount_to_word.get_thai_in_words_for_print', doc, format) }}
+    
+    Args:
+        doc: Document object
+        print_format_name: Print format name
+    
+    Returns:
+        str: Thai amount in words or original in_words if not Thai format
+    """
+    # Check if we should use Thai format
+    if is_thai_format(print_format_name, doc):
+        try:
+            return thai_money_in_words(getattr(doc, 'grand_total', 0) or 0)
+        except:
+            pass
+    
+    # Return original in_words field as fallback
+    return getattr(doc, 'in_words', '')
 
 
 @frappe.whitelist()
