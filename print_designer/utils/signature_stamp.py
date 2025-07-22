@@ -1,7 +1,20 @@
+import json
+
 import frappe
 from frappe import _
-import json
 from frappe.utils.print_format import download_pdf as original_download_pdf
+
+"""
+#    Digital Signature
+#    * `title`: Title (Data)
+#    * `signature_image`: Signature Image (Attach Image)
+#    * `description`: Description (Small Text)
+#    * `is_active`: Is Active (Check)
+#    * `company`: Company (Link to Company)
+#    * `department`: Department (Link to Department)
+#    * `designation`: Designation (Link to Designation)
+
+"""
 
 
 def boot_session(bootinfo):
@@ -15,17 +28,21 @@ def boot_session(bootinfo):
 
 @frappe.whitelist()
 def get_signature_image(signature_name):
-    """Get signature image URL from Digital Signature doctype"""
+    """Get signature image and details from Digital Signature doctype"""
     if not signature_name:
         return None
 
     try:
         signature_doc = frappe.get_doc("Digital Signature", signature_name)
-        if signature_doc.is_active and signature_doc.signature_image:
+        print(f"signature_doc {signature_doc}")
+        if signature_doc.get("is_active") and signature_doc.get("signature_image"):
             return {
-                "image_url": signature_doc.signature_image,
-                "title": signature_doc.title,
-                "description": signature_doc.description,
+                "image_url": signature_doc.get("signature_image"),
+                "title": signature_doc.get("title"),
+                "description": signature_doc.get("description"),
+                "company": signature_doc.get("company"),
+                "department": signature_doc.get("department"),
+                "designation": signature_doc.get("designation"),
             }
     except frappe.DoesNotExistError:
         frappe.log_error(f"Digital Signature {signature_name} not found")
@@ -35,19 +52,21 @@ def get_signature_image(signature_name):
 
 @frappe.whitelist()
 def get_company_stamp_image(stamp_name):
+    print(f"stamp_name {stamp_name}")
     """Get company stamp image URL from Company Stamp doctype"""
     if not stamp_name:
         return None
 
     try:
         stamp_doc = frappe.get_doc("Company Stamp", stamp_name)
-        if stamp_doc.is_active and stamp_doc.stamp_image:
+        print(f"stamp_doc {stamp_doc}")
+        if stamp_doc.get("is_active") and stamp_doc.get("stamp_image"):
             return {
-                "image_url": stamp_doc.stamp_image,
-                "title": stamp_doc.title,
-                "description": stamp_doc.description,
-                "stamp_type": stamp_doc.stamp_type,
-                "company": stamp_doc.company,
+                "image_url": stamp_doc.get("stamp_image"),
+                "title": stamp_doc.get("title"),
+                "description": stamp_doc.get("description"),
+                "stamp_type": stamp_doc.get("stamp_type"),
+                "company": stamp_doc.get("company"),
             }
     except frappe.DoesNotExistError:
         frappe.log_error(f"Company Stamp {stamp_name} not found")
@@ -62,6 +81,7 @@ def get_signature_and_stamp_context(digital_signature=None, company_stamp=None):
     # Add signature context
     if digital_signature:
         signature_data = get_signature_image(digital_signature)
+        print(f"signature_data {signature_data}")
         if signature_data:
             context.update(
                 {
@@ -74,6 +94,7 @@ def get_signature_and_stamp_context(digital_signature=None, company_stamp=None):
     # Add stamp context
     if company_stamp:
         stamp_data = get_company_stamp_image(company_stamp)
+        print(f"stamp_data {stamp_data}")
         if stamp_data:
             context.update(
                 {
@@ -135,31 +156,32 @@ def download_pdf_with_signature_stamp(
     # Handle watermark settings for PDF generation
     # Get watermark settings from Print Settings if not provided in settings parameter
     watermark_settings = None
+    print(f"watermark_settings {watermark_settings}")
     if settings:
         # Parse settings if it's a JSON string
         if isinstance(settings, str):
             try:
                 parsed_settings = frappe.parse_json(settings)
-                watermark_settings = parsed_settings.get('watermark_settings')
-            except:
+                watermark_settings = parsed_settings.get("watermark_settings")
+            except Exception:
                 pass
         elif isinstance(settings, dict):
-            watermark_settings = settings.get('watermark_settings')
-    
+            watermark_settings = settings.get("watermark_settings")
+
     # If no watermark settings in parameters, get from Print Settings
     if not watermark_settings:
         try:
             print_settings = frappe.get_single("Print Settings")
-            watermark_settings = print_settings.get('watermark_settings', 'None')
-        except:
-            watermark_settings = 'None'
-    
+            watermark_settings = print_settings.get("watermark_settings", "None")
+        except Exception:
+            watermark_settings = "None"
+
     # Handle watermark settings for PDF generation
-    if watermark_settings and watermark_settings != 'None':
+    if watermark_settings and watermark_settings != "None":
         # We need to override the HTML generation to include watermarks
         # First, get the HTML using frappe.get_print (without PDF)
         from frappe.utils.print_utils import get_print
-        
+
         # Get the HTML content
         html_content = get_print(
             doctype=doctype,
@@ -168,58 +190,67 @@ def download_pdf_with_signature_stamp(
             doc=doc,
             no_letterhead=no_letterhead,
             letterhead=letterhead,
-            as_pdf=False
+            as_pdf=False,
         )
-        
+
         # Get watermark configuration from Print Settings
         try:
             print_settings = frappe.get_single("Print Settings")
-            font_size = print_settings.get('watermark_font_size', 24)
-            position = print_settings.get('watermark_position', 'Top Right')
-            font_family = print_settings.get('watermark_font_family', 'Arial')
-        except:
+            font_size = print_settings.get("watermark_font_size", 24)
+            position = print_settings.get("watermark_position", "Top Right")
+            font_family = print_settings.get("watermark_font_family", "Sarabun")
+        except Exception:
             font_size = 24
-            position = 'Top Right'
-            font_family = 'Arial'
-        
+            position = "Top Right"
+            font_family = "Sarabun"
+
         # Get watermark text from multiple sources
         watermark_text = ""
-        
+
+        print(f"watermark_settings: after print_settings {watermark_settings}")
+        print(f"print_settings: after print_settings {print_settings}")
+
         # First, check the traditional watermark_settings from Print Settings
-        if watermark_settings == 'Original on First Page':
+        if watermark_settings == "Original on First Page":
             watermark_text = frappe._("Original")
-        elif watermark_settings == 'Copy on All Pages':
+        elif watermark_settings == "Copy on All Pages":
             watermark_text = frappe._("Copy")
-        elif watermark_settings == 'Original,Copy on Sequence':
+        elif watermark_settings == "Original,Copy on Sequence":
             watermark_text = frappe._("Original")  # For single page, use Original
-        
+            print(f"watermark_text {watermark_text}")
+
         # Then, check for dynamic watermark from document field (if available)
         if not watermark_text:
             try:
                 doc = frappe.get_cached_doc(doctype, name)
-                dynamic_watermark = doc.get('watermark_text')
-                if dynamic_watermark and dynamic_watermark != 'None':
-                    watermark_text = frappe._(dynamic_watermark)
-            except:
+                print(f"doc {doc}")
+                dynamic_watermark = doc.get("watermark_text")
+                if dynamic_watermark and dynamic_watermark != "None":
+                    if isinstance(dynamic_watermark, (list, tuple)):
+                        dynamic_watermark = ", ".join(
+                            str(item) for item in dynamic_watermark
+                        )
+                    watermark_text = frappe._(str(dynamic_watermark))
+            except Exception:
                 pass
-        
+
         if watermark_text:
             # Calculate position CSS based on selection (CSS 2.1 compatible only)
-            # PDF generation requires different positioning than HTML preview
+            # Use same positioning as print preview for consistency
             position_css = ""
-            if position == 'Top Right':
-                position_css = "top: 10px; right: 20px;"  # Moved higher for PDF
-            elif position == 'Top Left':
-                position_css = "top: 10px; left: 20px;"   # Moved higher for PDF
-            elif position == 'Bottom Right':
-                position_css = "bottom: 10px; right: 20px;"
-            elif position == 'Bottom Left':
-                position_css = "bottom: 10px; left: 20px;"
+            if position == "Top Right":
+                position_css = "top: 70px; right: 20px;"  # Below page numbers, same as preview
+            elif position == "Top Left":
+                position_css = "top: 70px; left: 20px;"
+            elif position == "Bottom Right":
+                position_css = "bottom: 20px; right: 20px;"
+            elif position == "Bottom Left":
+                position_css = "bottom: 20px; left: 20px;"
             else:  # Center - use margin-based centering for CSS 2.1 compatibility
                 position_css = "top: 45%; left: 45%; width: 100px; margin-left: -50px;"
-            
+
             # Add watermark CSS and HTML (CSS 2.1 compatible only)
-            watermark_html = f'''
+            watermark_html = f"""
             <style>
                 .watermark {{
                     position: absolute;
@@ -231,28 +262,51 @@ def download_pdf_with_signature_stamp(
                 }}
             </style>
             <div class="watermark">{watermark_text}</div>
-            '''
-            
-            # Insert watermark HTML just before the closing body tag
-            if '</body>' in html_content:
-                html_content = html_content.replace('</body>', f'{watermark_html}</body>')
+            """
+
+            # Insert watermark HTML inside header-html div where page numbers are located
+            if isinstance(html_content, str):
+                # Try to insert watermark inside header-html div where page numbers are located
+                if '<div id="header-html">' in html_content:
+                    # Insert watermark right after the header-html opening tag
+                    html_content = html_content.replace(
+                        '<div id="header-html">',
+                        f'<div id="header-html">{watermark_html}'
+                    )
+                elif '<div class="print-format' in html_content:
+                    # Fallback: insert before print-format div
+                    html_content = html_content.replace(
+                        '<div class="print-format',
+                        f'{watermark_html}\n<div class="print-format',
+                    )
+                elif "</body>" in html_content:
+                    # Last resort: before closing body tag
+                    html_content = html_content.replace(
+                        "</body>", f"{watermark_html}</body>"
+                    )
+                else:
+                    # Final fallback: append at the end
+                    html_content += watermark_html
             else:
-                # If no body tag, append at the end
-                html_content += watermark_html
-        
+                # If html_content is not a string, convert to string before appending watermark
+                html_content = str(html_content) + watermark_html
+
         # Now generate PDF from the modified HTML
         from frappe.utils.pdf import get_pdf
+
         pdf_file = get_pdf(html_content)
-        
+
         # Set response similar to original download_pdf
         if not doc:
             doc = frappe.get_doc(doctype, name)
-        frappe.local.response.filename = "{name}.pdf".format(name=name.replace(" ", "-").replace("/", "-"))
+        frappe.local.response.filename = "{name}.pdf".format(
+            name=name.replace(" ", "-").replace("/", "-")
+        )
         frappe.local.response.filecontent = pdf_file
         frappe.local.response.type = "pdf"
-        
+
         return pdf_file
-    
+
     # If no watermarks needed, use original function
     # Build parameters that match the current Frappe download_pdf signature
     pdf_kwargs = {
@@ -271,115 +325,6 @@ def download_pdf_with_signature_stamp(
 
     # Call the original download_pdf function with compatible parameters only
     return original_download_pdf(**pdf_kwargs)
-
-
-def startup_patches():
-    """Apply monkey patches at startup"""
-    # Patch the get_print_context function to include signature/stamp data
-    from frappe.utils import print_format
-
-    # Store original function
-    original_get_print_context = print_format.get_print_context
-
-    def enhanced_get_print_context(
-        doctype, name, print_format=None, letterhead=None, settings=None, **kwargs
-    ):
-        """Enhanced print context that includes signature and stamp data"""
-
-        # Get standard context
-        context = original_get_print_context(
-            doctype, name, print_format, letterhead, settings
-        )
-
-        # Add signature and stamp from form_dict, local, or kwargs
-        digital_signature = (
-            kwargs.get("digital_signature")
-            or frappe.form_dict.get("digital_signature")
-            or getattr(frappe.local, "digital_signature", None)
-        )
-        company_stamp = (
-            kwargs.get("company_stamp")
-            or frappe.form_dict.get("company_stamp")
-            or getattr(frappe.local, "company_stamp", None)
-        )
-
-        # Also check frappe.local.print_context if available
-        if hasattr(frappe.local, "print_context"):
-            digital_signature = digital_signature or frappe.local.print_context.get(
-                "digital_signature"
-            )
-            company_stamp = company_stamp or frappe.local.print_context.get(
-                "company_stamp"
-            )
-
-        if digital_signature or company_stamp:
-            signature_stamp_context = get_signature_and_stamp_context(
-                digital_signature, company_stamp
-            )
-            context.update(signature_stamp_context)
-
-        return context
-
-    # Apply the monkey patch
-    print_format.get_print_context = enhanced_get_print_context
-
-    # Also patch frappe.get_print to ensure signature/stamp context is available
-    import frappe
-
-    original_get_print = frappe.get_print
-
-    def enhanced_get_print(
-        doctype,
-        name,
-        print_format=None,
-        doc=None,
-        no_letterhead=0,
-        password=None,
-        letterhead=None,
-        pdf=False,
-        as_pdf=False,
-        **kwargs,
-    ):
-        """Enhanced get_print with signature/stamp support"""
-
-        # Extract signature/stamp parameters
-        digital_signature = kwargs.pop(
-            "digital_signature", None
-        ) or frappe.form_dict.get("digital_signature")
-        company_stamp = kwargs.pop("company_stamp", None) or frappe.form_dict.get(
-            "company_stamp"
-        )
-
-        # Store in frappe.local for template access
-        if digital_signature:
-            frappe.local.digital_signature = digital_signature
-        if company_stamp:
-            frappe.local.company_stamp = company_stamp
-
-        # Call original function
-        result = original_get_print(
-            doctype=doctype,
-            name=name,
-            print_format=print_format,
-            doc=doc,
-            no_letterhead=no_letterhead,
-            password=password,
-            letterhead=letterhead,
-            pdf=pdf,
-            as_pdf=as_pdf,
-            **kwargs,
-        )
-
-        # Clean up
-        if hasattr(frappe.local, "digital_signature"):
-            delattr(frappe.local, "digital_signature")
-        if hasattr(frappe.local, "company_stamp"):
-            delattr(frappe.local, "company_stamp")
-
-        return result
-
-    # Apply the patch
-    frappe.get_print = enhanced_get_print
 
 
 # Optional: Auto-signature functionality

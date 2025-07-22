@@ -83,18 +83,18 @@ def get_html_and_style_with_watermark(
             # You may add logic here if you want to use position_css in the future.
 
             # Add watermark CSS and HTML (CSS 2.1 compatible only)
+            # Position it below page numbers with consistent positioning for both preview and PDF
             watermark_html = f"""
             <style>
                 .watermark {{
-                    position: fixed;
-                    top: 20mm;
-                    right: 20mm;
+                    position: absolute;
+                    top: 70px;
+                    right: 20px;
                     font-size: {font_size}px;
-                    color: #999;
+                    color: #999999;
                     font-weight: bold;
                     font-family: {font_family}, sans-serif;
-                    opacity: 0.1;
-                    z-index: 9999;
+                    z-index: 1000;
                 }}
             </style>
             <div class="watermark">{watermark_text}</div>
@@ -102,19 +102,27 @@ def get_html_and_style_with_watermark(
 
         # Insert watermark HTML if any watermark was generated
         if watermark_html:
-            # html = result["html"]
-            # if "</body>" in html:
-            #     html = html.replace("</body>", f"{watermark_html}</body>")
-            # else:
-            #     # If no body tag, append at the end
-            #     html += watermark_html
-
-            # result["html"] = html
-            result["html"] = result["html"].replace(
-                '<div class="print-format',
-                f'{watermark_html}\n<div class="print-format',
-            )
-            frappe.logger().debug(f"result {result}")
-            print(f"result {result}")
+            html = result["html"]
+            
+            # Try to insert watermark inside header-html div where page numbers are located
+            if '<div id="header-html">' in html:
+                # Insert watermark right after the header-html opening tag
+                html = html.replace(
+                    '<div id="header-html">',
+                    f'<div id="header-html">{watermark_html}'
+                )
+            elif '<div class="print-format' in html:
+                # Fallback: insert before print-format div
+                html = html.replace(
+                    '<div class="print-format',
+                    f'{watermark_html}\n<div class="print-format',
+                )
+            else:
+                # Last resort: append at the end
+                html += watermark_html
+            
+            result["html"] = html
+            frappe.logger().debug(f"Watermark inserted into header section")
+            print(f"Watermark inserted into header section")
 
     return result

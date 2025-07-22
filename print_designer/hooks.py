@@ -102,7 +102,7 @@ boot_session = "print_designer.utils.signature_stamp.boot_session"
 # Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
 override_whitelisted_methods = {
     "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
-    "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark"
+    "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
 }
 
 # Installation
@@ -191,14 +191,12 @@ doc_events = {
     },
     # NEW: Digital Signature and Company Stamp events
     "Digital Signature": {
-        "after_insert": "print_designer.utils.signature_stamp.log_signature_usage",
-        "on_update": "print_designer.utils.signature_stamp.log_signature_usage",
-        "before_save": "print_designer.utils.signature_stamp.validate_signature_permissions",
+        "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
+        "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
     "Company Stamp": {
-        "after_insert": "print_designer.utils.signature_stamp.log_stamp_usage",
-        "on_update": "print_designer.utils.signature_stamp.log_stamp_usage",
-        "before_save": "print_designer.utils.signature_stamp.validate_stamp_permissions",
+        "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
+        "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
 }
 
@@ -224,15 +222,3 @@ def override_erpnext_install():
         import frappe
 
         frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
-
-
-# NEW: Permission handlers for signature and stamp access
-permission_query_conditions = {
-    "Digital Signature": "print_designer.utils.signature_stamp.get_signature_permission_query_conditions",
-    "Company Stamp": "print_designer.utils.signature_stamp.get_stamp_permission_query_conditions",
-}
-
-has_permission = {
-    "Digital Signature": "print_designer.utils.signature_stamp.has_signature_permission",
-    "Company Stamp": "print_designer.utils.signature_stamp.has_stamp_permission",
-}
