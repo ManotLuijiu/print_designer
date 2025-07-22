@@ -9,7 +9,7 @@ def execute():
     """
     try:
         # Import watermark fields configuration
-        from print_designer.print_designer.watermark_fields import get_watermark_custom_fields
+        from print_designer.watermark_fields import get_watermark_custom_fields
         
         # Install watermark custom fields across all configured DocTypes
         custom_fields = get_watermark_custom_fields()
