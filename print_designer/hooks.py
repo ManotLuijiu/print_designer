@@ -11,6 +11,7 @@ app_license = "AGPLv3"
 commands = [
     "print_designer.commands.signature_setup.setup_signatures",
     "print_designer.commands.signature_setup.check_signature_status",
+    "print_designer.commands.install_watermark_fields.install_watermark_fields",
 ]
 
 # Includes in <head>
