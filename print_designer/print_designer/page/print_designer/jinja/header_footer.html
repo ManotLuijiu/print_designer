@@ -25,7 +25,49 @@
 		{% for tag in styles -%}
 			{{ tag | string }}
 		{%- endfor %}
+		
+		<!-- CSS to ensure Thai font fallbacks for Chrome PDF -->
+		<style>
+			/* Force Thai font fallbacks for all text elements */
+			* {
+				font-family: inherit, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+			
+			/* Specific overrides for common font families */
+			[style*="font-family: Inter"],
+			.inter-font {
+				font-family: Inter, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+			
+			[style*="font-family: Arial"],
+			.arial-font {
+				font-family: Arial, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+			
+			[style*="font-family: Helvetica"],
+			.helvetica-font {
+				font-family: Helvetica, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+			
+			/* Table cells that commonly show Thai text */
+			td, th, .printTable td, .printTable th {
+				font-family: inherit, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+			
+			/* Dynamic text elements that might contain Thai */
+			.dynamicText, .staticText {
+				font-family: inherit, 'Sarabun', 'Noto Sans Thai', sans-serif !important;
+			}
+		</style>
 		<link rel="preconnect" href="https://fonts.gstatic.com" />
+		
+		<!-- Always load Thai-compatible fonts for Chrome PDF -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&family=Noto+Sans+Thai:wght@100;200;300;400;500;600;700;800;900&display=swap"
+			rel="stylesheet"
+			id="thaiCompatibleFonts"
+		/>
+		
 		{% if html_id=="header-html" %}
 		{% if headerFonts %}{{ headerFonts }}{%endif%}
 		{% else %}

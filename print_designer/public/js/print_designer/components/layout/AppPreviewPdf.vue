@@ -21,17 +21,17 @@ function getWatermarkParams(watermarkSettings) {
 	switch (watermarkSettings) {
 		case 'Original on First Page':
 			params.append('copy_count', '1');
-			params.append('copy_labels', 'Original');
+			params.append('copy_labels', 'ต้นฉบับ/Original');
 			params.append('copy_watermark', 'true');
 			break;
 		case 'Copy on All Pages':
 			params.append('copy_count', '1');
-			params.append('copy_labels', 'Copy');
+			params.append('copy_labels', 'สำเนา/Copy');
 			params.append('copy_watermark', 'true');
 			break;
 		case 'Original,Copy on Sequence':
 			params.append('copy_count', '2');
-			params.append('copy_labels', 'Original,Copy');
+			params.append('copy_labels', 'ต้นฉบับ/Original,สำเนา/Copy');
 			params.append('copy_watermark', 'true');
 			break;
 		default:

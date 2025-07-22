@@ -540,3 +540,14 @@
 // .printTable a {
 // 	color: black;
 // }
+
+@font-face {
+  font-family: 'Sarabun';
+  src: url('/assets/print_designer/fonts/thai/Sarabun/Sarabun-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+}

@@ -185,6 +185,9 @@ class FrappePDFGenerator:
                     "--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4",
                     "--no-sandbox",
                     "--no-startup-window",
+                    # Font support for Thai/international characters
+                    "--font-render-hinting=none",
+                    "--force-device-scale-factor=1",
                     # related to HeadlessExperimental flag enable when Implement Deterministic rendering. check page class for more info.
                     # "--enable-surface-synchronization",
                     # "--run-all-compositor-stages-before-draw",

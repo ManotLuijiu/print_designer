@@ -299,7 +299,7 @@ export const useMainStore = defineStore("MainStore", {
 							{
 								fieldname: "idx",
 								fieldtype: "Int",
-								label: "No",
+								label: "No.",
 								options: undefined,
 								table: selectedTable,
 							},
