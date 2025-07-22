@@ -499,7 +499,7 @@ def _ensure_signature_fields():
 def _ensure_watermark_fields():
 	"""Ensure watermark fields are installed across all DocTypes for dynamic watermark selection."""
 	try:
-		from print_designer.print_designer.watermark_fields import install_watermark_fields
+		from print_designer.watermark_fields import install_watermark_fields
 		
 		# Check if any watermark fields exist
 		existing_watermark_field = frappe.db.get_value("Custom Field", 
@@ -570,7 +570,7 @@ def install_watermark_field():
 def _install_watermark_fields_on_install():
 	"""Install watermark fields during fresh installation"""
 	try:
-		from print_designer.print_designer.watermark_fields import get_watermark_custom_fields
+		from print_designer.watermark_fields import get_watermark_custom_fields
 		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 		
 		custom_fields = get_watermark_custom_fields()
