@@ -32,7 +32,7 @@ export const useMainStore = defineStore("MainStore", {
 		isPreviewMode: false,
 		barcodeFormats,
 		fonts: GoogleFonts,
-		currentFonts: ["Inter"],
+		currentFonts: ["Sarabun"],
 		printHeaderFonts: null,
 		printBodyFonts: null,
 		printFooterFonts: null,
@@ -366,7 +366,10 @@ export const useMainStore = defineStore("MainStore", {
 			};
 		},
 		getGoogleFonts: (state) => {
-			return Object.keys(state.fonts);
+			return Object.keys(state.fonts).map(font => ({
+				label: font,
+				value: font
+			}));
 		},
 		getGoogleFontWeights: (state) => () => {
 			let fontName = state.getCurrentStyle("fontFamily");

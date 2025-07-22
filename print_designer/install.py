@@ -487,6 +487,30 @@ def _ensure_signature_fields():
 		frappe.log_error(f"Error ensuring signature fields: {str(e)}")
 		click.echo(f"⚠️  Warning: Could not install signature fields: {str(e)}")
 
+def install_watermark_field():
+	"""Install watermark_settings field in Print Settings for sidebar functionality."""
+	try:
+		from print_designer.custom_fields import CUSTOM_FIELDS
+		from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+		
+		click.echo("Installing watermark_settings field...")
+		create_custom_fields(CUSTOM_FIELDS, update=True)
+		frappe.db.commit()
+		
+		# Verify installation
+		cf = frappe.db.get_value('Custom Field', {'dt': 'Print Settings', 'fieldname': 'watermark_settings'}, 'name')
+		if cf:
+			click.echo("✅ Watermark field installed successfully in Print Settings")
+		else:
+			click.echo("⚠️  Warning: Watermark field not found after installation")
+		
+		# Clear cache to refresh meta
+		frappe.clear_cache(doctype='Print Settings')
+		
+	except Exception as e:
+		frappe.log_error(f"Error installing watermark field: {str(e)}")
+		click.echo(f"⚠️  Error installing watermark field: {str(e)}")
+
 
 def set_wkhtmltopdf_for_print_designer_format(doc, method):
 	"""Set pdf_generator to wkhtmltopdf for print_designer formats if not set."""

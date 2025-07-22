@@ -130,6 +130,22 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
 			"depends_on": "enable_multiple_copies",
 			"description": "Show copy controls in print preview toolbar",
 		},
+		{
+			"label": "Watermark Settings",
+			"fieldname": "watermark_settings_section",
+			"fieldtype": "Section Break",
+			"insert_after": "show_copy_controls_in_toolbar",
+			"collapsible": 1,
+		},
+		{
+			"label": "Watermark per Page",
+			"fieldname": "watermark_settings",
+			"fieldtype": "Select",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "watermark_settings_section",
+			"description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'",
+		},
 	]
 }
 

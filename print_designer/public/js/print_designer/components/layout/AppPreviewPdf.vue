@@ -14,17 +14,63 @@ const MainStore = useMainStore();
 const pdfjsLibRef = shallowRef(null);
 const pdfDocumentTask = shallowRef(null);
 
+// Helper function to convert watermark settings to URL parameters
+function getWatermarkParams(watermarkSettings) {
+	const params = new URLSearchParams();
+	
+	switch (watermarkSettings) {
+		case 'Original on First Page':
+			params.append('copy_count', '1');
+			params.append('copy_labels', 'Original');
+			params.append('copy_watermark', 'true');
+			break;
+		case 'Copy on All Pages':
+			params.append('copy_count', '1');
+			params.append('copy_labels', 'Copy');
+			params.append('copy_watermark', 'true');
+			break;
+		case 'Original,Copy on Sequence':
+			params.append('copy_count', '2');
+			params.append('copy_labels', 'Original,Copy');
+			params.append('copy_watermark', 'true');
+			break;
+		default:
+			return null;
+	}
+	
+	return params.toString();
+}
+
 const removePdfWatcher = watch(
 	() => [pdfjsLibRef.value, MainStore.doctype, MainStore.printDesignName],
 	async () => {
 		let pdfjsLib = pdfjsLibRef.value;
 		if (pdfjsLib && MainStore.doctype && MainStore.printDesignName) {
 			console.time("PdfStart");
+			
+			// Get watermark settings from Print Settings
+			let watermarkSettings = null;
+			try {
+				const printSettings = await frappe.db.get_doc('Print Settings');
+				watermarkSettings = printSettings.watermark_settings;
+			} catch (error) {
+				console.warn('Could not fetch watermark settings:', error);
+			}
+			
 			let url = `/api/method/frappe.utils.print_format.download_pdf?doctype=${encodeURIComponent(
 				MainStore.doctype
 			)}&name=${encodeURIComponent(MainStore.currentDoc)}&format=${encodeURIComponent(
 				MainStore.printDesignName
 			)}&no_letterhead=1`;
+			
+			// Add watermark parameters if watermark settings exist and are not "None"
+			if (watermarkSettings && watermarkSettings !== 'None') {
+				// Map watermark settings to appropriate parameters
+				const watermarkParams = getWatermarkParams(watermarkSettings);
+				if (watermarkParams) {
+					url += `&${watermarkParams}`;
+				}
+			}
 
 			/**
 			 * Get page info from document, resize canvas accordingly, and render page.
