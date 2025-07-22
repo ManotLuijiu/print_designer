@@ -255,24 +255,22 @@ def download_pdf_with_signature_stamp(
     
     # If no watermarks needed, use original function
     # Build parameters that match the current Frappe download_pdf signature
-    pdf_params = {
+    pdf_kwargs = {
         "doctype": doctype,
         "name": name,
         "format": format,
         "doc": doc,
         "no_letterhead": no_letterhead,
         "letterhead": letterhead,
+        "language": language,
+        "pdf_generator": pdf_generator,
     }
-    
-    # Add optional parameters if they exist in current Frappe version
-    if language is not None:
-        pdf_params["language"] = language
-    if pdf_generator is not None:
-        pdf_params["pdf_generator"] = pdf_generator
-    
-    # Filter out any other kwargs that aren't supported by download_pdf
+
+    # Filter out any None values to avoid passing them to the original function
+    pdf_kwargs = {k: v for k, v in pdf_kwargs.items() if v is not None}
+
     # Call the original download_pdf function with compatible parameters only
-    return original_download_pdf(**pdf_params)
+    return original_download_pdf(**pdf_kwargs)
 
 
 def startup_patches():
