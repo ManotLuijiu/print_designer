@@ -120,6 +120,7 @@ after_install = "print_designer.install.after_install"
 after_app_install = [
     "print_designer.install.after_app_install",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
+    "print_designer.install.handle_erpnext_override",  # Add this line
 ]
 
 # Startup hooks
@@ -154,7 +155,7 @@ pdf_body_html = "print_designer.pdf.pdf_body_html"
 pdf_footer_html = "print_designer.pdf.pdf_header_footer_html"
 
 get_print_format_template = "print_designer.pdf.get_print_format_template"
-# before_print = "print_designer.pdf.before_print"
+# before_print = "print_designer.pdf.before_print"  # Moved to doc_events for better control
 
 
 pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
@@ -170,28 +171,28 @@ doc_events = {
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
     },
-    # Thai before_print hooks - currently disabled due to compatibility issues
-    # "Sales Invoice": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Purchase Invoice": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Sales Order": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Purchase Order": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Quotation": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Delivery Note": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
-    # "Purchase Receipt": {
-    #     "before_print": "print_designer.utils.thai_amount_to_word.enhance_in_words_field",
-    # },
+    # Consolidated before_print hooks using the enhanced pdf.before_print function
+    "Sales Invoice": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Purchase Invoice": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Sales Order": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Purchase Order": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Quotation": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Delivery Note": {
+        "before_print": "print_designer.pdf.before_print",
+    },
+    "Purchase Receipt": {
+        "before_print": "print_designer.pdf.before_print",
+    },
     "Signature Basic Information": {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
@@ -214,6 +215,7 @@ def override_erpnext_install():
     """Override ERPNext's create_print_setting_custom_fields function"""
     try:
         import erpnext.setup.install
+
         from print_designer.overrides.erpnext_install import (
             create_print_setting_custom_fields,
         )

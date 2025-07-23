@@ -5,13 +5,13 @@
     {%- else -%}
         {%- set watermark_value = frappe.db.get_value(element.watermark.doctype, doc[element.watermark.parentField], element.watermark.fieldname) -%}
     {%- endif -%}
-    
+
     {%- if watermark_value and watermark_value != "None" -%}
         {%- set translated_text = frappe._(watermark_value) -%}
-        {%- set font_size = element.style.fontSize or "24px" -%}
-        {%- set font_family = element.style.fontFamily or "Arial" -%}
+        {%- set font_size = element.style.fontSize or "12px" -%}
+        {%- set font_family = element.style.fontFamily or "Sarabun" -%}
         {%- set position_style = "" -%}
-        
+
         {%- if element.style.position == "top-right" -%}
             {%- set position_style = "top: 20px; right: 20px;" -%}
         {%- elif element.style.position == "top-left" -%}
@@ -23,9 +23,9 @@
         {%- else -%}
             {%- set position_style = "top: 45%; left: 45%; width: 100px; margin-left: -50px;" -%}
         {%- endif -%}
-        
-        <div 
-            class="watermark-text" 
+
+        <div
+            class="watermark-text"
             style="
                 position: absolute;
                 {{ position_style }}
@@ -46,7 +46,7 @@
 {%- if watermark_text and watermark_text != "None" -%}
     {%- set translated_text = frappe._(watermark_text) -%}
     {%- set position_style = "" -%}
-    
+
     {%- if position == "top-right" -%}
         {%- set position_style = "top: 20px; right: 20px;" -%}
     {%- elif position == "top-left" -%}
@@ -58,9 +58,9 @@
     {%- else -%}
         {%- set position_style = "top: 45%; left: 45%; width: 100px; margin-left: -50px;" -%}
     {%- endif -%}
-    
-    <div 
-        class="watermark-text" 
+
+    <div
+        class="watermark-text"
         style="
             position: absolute;
             {{ position_style }}

@@ -97,6 +97,9 @@ def is_thai_format(print_format_name=None, doc=None):
     """
     Check if the current print format should use Thai language.
 
+    IMPORTANT: This function now uses the new language priority system.
+    Priority: URL _lang parameter > Print Format language > Local language > Legacy logic
+
     Args:
         print_format_name: Name of the print format
         doc: Document being printed
@@ -105,13 +108,38 @@ def is_thai_format(print_format_name=None, doc=None):
         bool: True if Thai language should be used
     """
 
+    # Use the new centralized language detection from pdf.py
+    try:
+        from print_designer.pdf import get_effective_language, is_thai_language
+
+        effective_lang = get_effective_language(print_format_name)
+        result = is_thai_language(effective_lang)
+
+        if result:
+            print(
+                f"Using Thai formatting based on effective language: {effective_lang}"
+            )
+        else:
+            print(
+                f"NOT using Thai formatting - effective language is: {effective_lang}"
+            )
+
+        return result
+
+    except ImportError:
+        # Fallback to old logic if pdf.py is not available
+        pass
+
+    # Legacy logic (kept for backward compatibility)
     # Check URL parameter directly (supports both th and ไทย)
     lang_param = frappe.form_dict.get("_lang")
     if lang_param and lang_param.lower() in ["th", "ไทย", "thai"]:
+        print(f"Using Thai formatting based on URL parameter: {lang_param}")
         return True
 
     # Check if the current language is Thai
     if frappe.local.lang == "th":
+        print(f"Using Thai formatting based on local language: {frappe.local.lang}")
         return True
 
     # Check if the print format is configured for Thai
@@ -126,12 +154,16 @@ def is_thai_format(print_format_name=None, doc=None):
                 hasattr(print_format, "default_language")
                 and print_format.default_language == "th"
             ):
+                print(f"Using Thai formatting based on print format language")
                 return True
 
             # Check if print format name contains Thai indicators
             thai_indicators = ["thai", "ไทย", "th_", "_th", "form_50", "tax_invoice"]
             for indicator in thai_indicators:
                 if indicator.lower() in print_format_name.lower():
+                    print(
+                        f"Using Thai formatting based on format name indicator: {indicator}"
+                    )
                     return True
         except Exception:
             pass
@@ -141,6 +173,7 @@ def is_thai_format(print_format_name=None, doc=None):
         try:
             # Check if document has Thai language field
             if hasattr(doc, "language") and doc.language == "th":
+                print(f"Using Thai formatting based on document language")
                 return True
 
             # Check if company has Thai settings
@@ -148,10 +181,12 @@ def is_thai_format(print_format_name=None, doc=None):
                 company = frappe.get_doc("Company", doc.company)
                 print(f"company {company}")
                 if hasattr(company, "country") and company.country == "Thailand":
+                    print(f"Using Thai formatting based on company country: Thailand")
                     return True
         except Exception:
             pass
 
+    print(f"NOT using Thai formatting - no Thai indicators found")
     return False
 
 
@@ -242,24 +277,25 @@ def enhance_in_words_field(doc, print_format_name=None, method=None):
 def smart_money_in_words(amount, main_currency="", print_format=None):
     """
     Smart money in words that automatically detects Thai language context.
-    
+
     This function can be used in Jinja templates as a replacement for frappe.utils.money_in_words.
     Usage: {{ smart_money_in_words(doc.grand_total, doc.currency, format) }}
-    
+
     Args:
         amount: Amount to convert
         main_currency: Currency (unused for Thai, kept for compatibility)
         print_format: Print format name (optional)
-    
+
     Returns:
         str: Amount in words (Thai or English based on context)
     """
     # If Thai context is detected, use Thai conversion
     if is_thai_format(print_format):
         return thai_money_in_words(amount or 0)
-    
+
     # Otherwise, use Frappe's default function
     from frappe.utils import money_in_words as frappe_money_in_words
+
     return frappe_money_in_words(amount, main_currency)
 
 
@@ -270,36 +306,36 @@ def get_smart_in_words(doc):
     """
     # Check if we should use Thai format
     if is_thai_format(frappe.form_dict.get("format"), doc):
-        return thai_money_in_words(getattr(doc, 'grand_total', 0) or 0)
-    
+        return thai_money_in_words(getattr(doc, "grand_total", 0) or 0)
+
     # Return original in_words field
-    return getattr(doc, 'in_words', '')
+    return getattr(doc, "in_words", "")
 
 
 @frappe.whitelist()
 def get_thai_in_words_for_print(doc, print_format_name=None):
     """
     Get Thai amount in words for use in print templates.
-    
+
     This function can be called directly from Jinja templates in print formats.
     Usage in template: {{ frappe.call('print_designer.utils.thai_amount_to_word.get_thai_in_words_for_print', doc, format) }}
-    
+
     Args:
         doc: Document object
         print_format_name: Print format name
-    
+
     Returns:
         str: Thai amount in words or original in_words if not Thai format
     """
     # Check if we should use Thai format
     if is_thai_format(print_format_name, doc):
         try:
-            return thai_money_in_words(getattr(doc, 'grand_total', 0) or 0)
+            return thai_money_in_words(getattr(doc, "grand_total", 0) or 0)
         except:
             pass
-    
+
     # Return original in_words field as fallback
-    return getattr(doc, 'in_words', '')
+    return getattr(doc, "in_words", "")
 
 
 @frappe.whitelist()

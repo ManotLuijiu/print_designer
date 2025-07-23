@@ -194,3 +194,7 @@ cypress/videos
 
 # JetBrains IDEs
 .idea/
+
+# Local Images
+images/local/
+print_designer/public/images/local/
