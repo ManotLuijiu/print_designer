@@ -1413,6 +1413,14 @@ function extendPrintView() {
     });
   }
   printit() {
+    // Check if this is a Print Designer format
+    let print_format = this.get_print_format();
+    if (print_format.print_designer && print_format.print_designer_body) {
+      // For Print Designer formats, use the proper Print Designer rendering system
+      this.printit_print_designer();
+      return;
+    }
+
     // If copy functionality is enabled, use our custom logic
     if (this.enable_copies_item && this.enable_copies_item.value) {
       // For copies, redirect to PDF download instead of direct printing
@@ -1432,6 +1440,64 @@ function extendPrintView() {
     }
     super.printit();
   }
+
+  printit_print_designer() {
+    // For Print Designer formats, open the print preview in a new window
+    // This uses the same rendering system as the PDF but optimized for browser printing
+
+    let params = new URLSearchParams({
+      doctype: this.frm.doctype,
+      name: this.frm.docname,
+      format: this.selected_format(),
+      _lang: this.getFormDefaultLanguage(),
+      trigger_print: 1  // This will trigger the print dialog automatically
+    });
+
+    // Add letterhead if selected
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
+      params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
+    }
+
+    // Add copy settings if enabled
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      const copies = parseInt(this.copies_item.value) || 1;
+      params.set('copies', copies);
+
+      // Add watermark settings for copies
+      if (this.watermark_copies_item && this.watermark_copies_item.value) {
+        const watermarkSettings = {
+          watermark_settings: this.watermark_copies_item.value
+        };
+        params.set('settings', JSON.stringify(watermarkSettings));
+      }
+    }
+
+    // Use Print Designer preview endpoint which uses the same rendering as PDF
+    const url = `/print_designer_preview?${params.toString()}`;
+
+    // Open in new window for printing
+    let w = window.open(frappe.urllib.get_full_url(url));
+    if (!w) {
+      frappe.msgprint(__('Please enable pop-ups'));
+      return;
+    }
+
+    // Show success message
+    frappe.show_alert({
+      message: __('Opening print preview in new window...'),
+      indicator: 'green'
+    }, 3);
+  }
+
   show(frm) {
     console.log('PrintView.show called with:', frm);
     super.show(frm);
@@ -1633,6 +1699,22 @@ function extendPrintView() {
           }
         };
       },
+      change: () => this.preview(),
+    }).$input;
+
+    // NEW: Watermark per Page selector
+    this.watermark_selector = this.add_sidebar_item({
+      fieldtype: "Select",
+      fieldname: "watermark_settings",
+      label: __("Watermark per Page"),
+      options: [
+        "None",
+        "Original on First Page",
+        "Copy on All Pages",
+        "Original,Copy on Sequence"
+      ].join('\n'),
+      default: "None",
+      description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
       change: () => this.preview(),
     }).$input;
 

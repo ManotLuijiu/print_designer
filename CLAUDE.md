@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Print Designer Overview
 
-Print Designer is a Frappe application for creating professional print formats using an interactive visual designer. It provides a drag-and-drop interface for designing complex layouts without coding, targeting invoices, reports, and other business documents.
+Print Designer is a Frappe application for creating professional print formats using an interactive visual designer. It provides a drag-and-drop interface for designing complex layouts without coding, with particular strength in Thai language support, digital signatures, and advanced PDF generation.
 
 ## Development Setup
 
@@ -13,6 +13,7 @@ Print Designer is a Frappe application for creating professional print formats u
 - Node.js for frontend build
 - Python 3.10+ with required dependencies
 - Chrome/Chromium browser for PDF generation
+- Required system packages for Chrome CDP functionality
 
 ### Local Development Commands
 ```bash
@@ -21,11 +22,21 @@ bench get-app print_designer
 bench new-site print-designer.localhost --install-app print_designer
 bench browse print-designer.localhost --user Administrator
 
-# Development server
+# Development workflow
 bench start                    # Start development server
 bench watch                    # Watch and build frontend assets
 bench build                    # Build all assets
 bench migrate                  # Run database migrations
+
+# Testing and debugging
+bench execute print_designer.commands.test_pdf_generators.test_all_generators
+bench execute print_designer.utils.test_pdf_generation.test_pdf_generation
+bench --site [site-name] console  # Interactive Python console for debugging
+
+# Signature and stamp setup
+bench execute print_designer.commands.signature_setup.setup_signatures
+bench execute print_designer.commands.signature_setup.check_signature_status
+bench execute print_designer.commands.install_watermark_fields.install_watermark_fields
 ```
 
 ### Docker Development
@@ -51,107 +62,153 @@ docker compose up
 - **Print Format Override**: Extends Frappe's Print Format DocType
 
 ### PDF Generation System
-The app uses a sophisticated Chrome DevTools Protocol (CDP) system for PDF generation:
+The app uses a sophisticated Chrome DevTools Protocol (CDP) system bypassing standard wkhtmltopdf:
 
-1. **FrappePDFGenerator**: Manages Chrome browser instances
-2. **Browser**: Handles page creation and PDF generation workflow
-3. **CDPSocketClient**: WebSocket communication with Chrome
-4. **Page**: Individual page management (header, footer, body)
-5. **PDFTransformer**: Merges header, footer, and body PDFs
+1. **FrappePDFGenerator** (`pdf_generator/generator.py`): Manages Chrome browser instances and coordinates PDF creation workflow
+2. **Browser** (`pdf_generator/browser.py`): Handles browser lifecycle, page creation, and CDP communication setup
+3. **CDPSocketClient** (`pdf_generator/cdp_connection.py`): WebSocket communication with Chrome DevTools Protocol
+4. **Page** (`pdf_generator/page.py`): Individual page management for header, footer, and body with separate rendering contexts
+5. **PDFTransformer** (`pdf_generator/pdf_merge.py`): Merges header, footer, and body PDFs using PyPDF operations
 
-Key workflow:
-- Initialize Chrome browser process
-- Create separate pages for header, footer, and body content
-- Generate PDFs asynchronously for static elements
-- Handle dynamic content (page numbers) with separate rendering
-- Merge all PDFs into final output
+Critical workflow stages:
+- Initialize Chrome browser process with CDP enabled
+- Create separate pages for header, footer, and body content with isolated contexts
+- Generate PDFs asynchronously for static elements to optimize performance
+- Handle dynamic content (page numbers, signatures) with separate rendering passes
+- Merge all PDFs into final output with proper page ordering and metadata
 
 ## Key Files and Directories
 
 ### Frontend Structure
-- `print_designer/public/js/print_designer/App.vue`: Main Vue application
-- `print_designer/public/js/print_designer/store/`: Pinia stores for state management
-- `print_designer/public/js/print_designer/components/`: Vue components
-- `print_designer/public/js/print_designer/composables/`: Reusable Vue composables
+- `print_designer/public/js/print_designer/App.vue`: Main Vue 3 application with Composition API
+- `print_designer/public/js/print_designer/store/MainStore.js`: Global state management (Pinia)
+- `print_designer/public/js/print_designer/store/ElementStore.js`: Element-specific state and operations
+- `print_designer/public/js/print_designer/components/base/`: Core element components (Text, Image, Table, Barcode, Rectangle)
+- `print_designer/public/js/print_designer/components/layout/`: UI layout components (Toolbar, Properties, Canvas, Modals)
+- `print_designer/public/js/print_designer/composables/`: Reusable Vue logic (Draggable, Resizable, Element management)
+- `print_designer/public/js/print_designer/defaultObjects.js`: Element creation functions and toolbar definitions
 
 ### Backend Structure
-- `print_designer/hooks.py`: Frappe app integration and hooks
-- `print_designer/pdf_generator/`: Chrome CDP PDF generation system
-- `print_designer/print_designer/page/print_designer/`: Main page controller
-- `print_designer/print_designer/overrides/`: DocType overrides
+- `print_designer/hooks.py`: Frappe app integration, Jinja methods, doc events, and custom overrides
+- `print_designer/pdf_generator/`: Chrome CDP PDF generation system (core PDF engine)
+- `print_designer/print_designer/page/print_designer/`: Main page controller and Jinja templates
+- `print_designer/print_designer/overrides/`: DocType overrides (Print Format extensions)
+- `print_designer/utils/`: Utility modules (signature integration, Thai language support, PDF logging)
+- `print_designer/api/`: API endpoints for signature management and safe installation
 
-### Configuration
-- `package.json`: Frontend dependencies (interactjs, html2canvas)
-- `build.json`: CSS build configuration
-- `pyproject.toml`: Python project configuration with PDF generation dependencies
+### Critical Templates and Macros
+- `print_designer/print_designer/page/print_designer/jinja/macros/`: Jinja2 rendering macros for each element type
+- `print_designer/print_designer/page/print_designer/jinja/print_format.html`: Main template for PDF rendering
+- `print_designer/overrides/printview_watermark.py`: Watermark integration for print preview
+
+### Configuration and Dependencies
+- `package.json`: Frontend dependencies (interactjs for drag/drop, html2canvas, qrcode.vue)
+- `pyproject.toml`: Python project configuration with PDF generation dependencies and code formatting rules
+- `print_designer/custom_fields.py`: Custom field definitions for enhanced DocType functionality
 
 ## Development Workflow
 
-### Frontend Development
-- Vue 3 components follow Composition API patterns
-- Uses Pinia for reactive state management
-- Interactive elements use interactjs for drag/drop/resize
-- Canvas-based design with absolute positioning
+### Frontend Development Patterns
+- **Vue 3 Composition API**: All components use `<script setup>` syntax with reactive state management
+- **Pinia State Management**: MainStore for global state, ElementStore for canvas element operations
+- **InteractJS Integration**: Drag, drop, resize functionality with snap-to-grid and visual feedback
+- **Canvas-based Design**: Absolute positioning system with precise pixel control and visual handles
+- **Event-driven Architecture**: Element selection, property updates, and canvas interactions use reactive patterns
 
-### Backend Development
-- Follows Frappe app conventions
-- Custom PDF generation bypasses standard wkhtmltopdf
-- Jinja template rendering for dynamic content
-- WhiteList decorators for API endpoints
+### Backend Development Patterns
+- **Frappe Integration**: Custom Print Format override extends standard functionality while maintaining compatibility
+- **Jinja2 Macro System**: Element rendering uses dedicated macros in `jinja/macros/` for consistent output
+- **API Whitelisting**: All public endpoints use `@frappe.whitelist()` decorator for security
+- **Hook-based Integration**: Uses Frappe hooks system for lifecycle events and custom overrides
+- **PDF Generation Pipeline**: Custom CDP-based system replaces wkhtmltopdf for better control and output quality
 
-### Testing
-- No dedicated test framework detected
-- Manual testing through the visual designer interface
-- PDF generation testing requires Chrome/Chromium setup
+### Code Quality Standards
+- **Python Formatting**: Black with 99-character line length, isort for import organization
+- **Type Hints**: Encouraged throughout Python codebase for better maintainability
+- **Error Handling**: Comprehensive logging and error tracking for PDF generation and signature operations
+- **Security**: Role-based permissions, input validation, and secure file handling for signatures/stamps
 
-## Dependencies
+### Testing and Debugging
+- **Manual Testing**: Primary testing through visual designer interface and PDF preview
+- **PDF Generation Testing**: Requires Chrome/Chromium setup with proper CDP configuration
+- **Debug Commands**: Use `bench --site [site-name] console` for interactive debugging
+- **Logging**: Extensive logging in `utils/pdf_logging.py` for troubleshooting PDF generation issues
 
-### Frontend
-- `@interactjs/actions`, `@interactjs/modifiers`: Drag and drop interactions
-- `html2canvas`: Canvas-based screenshot generation
-- Vue 3 ecosystem (built into Frappe)
+## Dependencies and Integrations
 
-### Backend
-- `PyQRCode`, `python-barcode`: Barcode generation
-- `websockets`: WebSocket communication for CDP
-- `distro`: System information for Chrome setup
+### Frontend Dependencies
+- **InteractJS Suite**: `@interactjs/actions`, `@interactjs/modifiers`, `@interactjs/interact`, `@interactjs/auto-start` for comprehensive drag/drop/resize functionality
+- **html2canvas**: Canvas-based screenshot generation for image capturing
+- **qrcode.vue**: Vue 3 compatible QR code generation component
+- **Vue 3 Ecosystem**: Composition API, Pinia stores (built into Frappe Framework)
 
-## Common Development Tasks
+### Backend Dependencies
+- **PDF Generation**: `websockets` for CDP communication, `distro` for system detection
+- **Barcode/QR Generation**: `PyQRCode`, `pypng`, `python-barcode` for various barcode formats
+- **Alternative PDF**: `weasyprint` as fallback PDF generator
+- **System Dependencies**: Extensive Chrome/Chromium packages listed in `pyproject.toml` for headless browser operation
 
-### Adding New Element Types
-1. Create Vue component in `components/base/`
-2. Add to `defaultObjects.js` for toolbar
-3. Update store handlers in `ElementStore.js`
-4. Add Jinja template in `jinja/macros/`
+### Thai Language Integration
+- **Font Support**: Complete Thai font families (Kanit, Mitr, Sarabun, Prompt, etc.) in `public/fonts/thai/`
+- **Text Processing**: `thai_amount_to_word.py` for Thai numerics and currency conversion
+- **Cultural Formatting**: Thai-specific business document formats and templates
 
-### Extending PDF Generation
-- Modify `pdf_generator/` classes for new PDF features
-- Update `browser.py` for new page types
-- Extend `page.py` for new CDP commands
+### Signature and Stamp System
+- **Digital Signatures**: Custom DocTypes (`Digital Signature`, `Company Stamp`, `Signature Basic Information`)
+- **Integration Points**: Hooks for signature embedding in PDF generation workflow
+- **Security**: Role-based access and audit logging for signature usage
 
-### Print Format Integration
-- Override behavior in `print_designer/overrides/print_format.py`
-- Add hooks in `hooks.py` for DocType events
-- Update Jinja templates for new rendering logic
+## Specialized Features and Capabilities
+
+### Element Type System
+- **StaticText**: Simple text with rich formatting options
+- **DynamicText**: Jinja2-templated text with document field binding
+- **Image**: Static images with positioning and scaling controls
+- **Table**: Dynamic tables with document field mapping and styling
+- **Rectangle**: Styled container elements with border and background options
+- **Barcode**: QR codes and various barcode formats with data binding
+
+### Advanced PDF Features
+- **Multi-page Support**: Header, footer, and body sections with independent styling
+- **Dynamic Content**: Page numbers, totals, and calculated fields
+- **Watermark Integration**: Per-page watermark positioning and transparency
+- **Font Management**: Google Fonts integration with Thai language support
+- **Signature Embedding**: Digital signatures and company stamps with proper positioning
+
+### Thai Language Specialization
+- **Complete Font Coverage**: 8+ Thai font families with multiple weights and styles
+- **Amount Conversion**: Thai currency and number-to-words conversion (`thai_money_in_words`)
+- **Business Templates**: Pre-built Thai tax invoice and government form templates
+- **Cultural Formatting**: Date formats, address layouts, and business conventions
+
+### Integration Architecture
+- **Frappe Hooks**: Deep integration with Frappe's event system and DocType lifecycle
+- **Custom Fields**: Automated field installation for enhanced Print Format functionality
+- **Override System**: Monkey-patching approach for extending core Frappe functionality without conflicts
+- **API Endpoints**: RESTful APIs for signature management, template operations, and PDF generation
 
 ## Troubleshooting
 
 ### PDF Generation Issues
-- Ensure Chrome/Chromium is properly installed
-- Check CDP WebSocket connections
-- Verify font availability for complex layouts
+- **Chrome/Chromium Setup**: Ensure headless Chrome is properly installed with all required system packages from `pyproject.toml`
+- **CDP Connection Issues**: Check WebSocket connections and port availability for Chrome DevTools Protocol
+- **Font Rendering Problems**: Verify font availability and proper loading for complex layouts, especially Thai fonts
+- **Memory Issues**: Monitor Chrome process memory usage during large document generation
+- **Debug Commands**: Use `bench execute print_designer.utils.test_pdf_generation.test_pdf_generation` to isolate PDF issues
 
 ### Frontend Issues
-- Check browser console for Vue errors
-- Verify interactjs event handling
-- Debug canvas positioning and sizing
+- **Vue Reactivity**: Check browser console for Vue warnings about reactive data mutations
+- **InteractJS Conflicts**: Verify drag/drop event handling doesn't conflict with canvas scrolling or zooming
+- **Canvas Positioning**: Debug absolute positioning calculations and snap-to-grid functionality
+- **State Management**: Check Pinia store updates and ensure proper element selection state
 
-### Installation Problems
-- macOS: Install Xcode Command Line Tools and Homebrew dependencies
-- Linux ARM: Install build-essential and Cairo dependencies
-- Verify wkhtmltopdf version compatibility (0.12.5+ with patched qt)
+### Signature and Stamp Issues
+- **Field Installation**: Run `bench execute print_designer.commands.signature_setup.check_signature_status` to verify setup
+- **Permission Issues**: Ensure proper role-based access to signature management functions
+- **Image Rendering**: Check signature image paths and file permissions for proper embedding
 
-## Issue
-
- The issue is in /home/frappe/frappe-bench/apps/print_designer/print_designer/public/js/print_designer/components/la
-  yout/AppImageModal.vue around lines 201-227:
+### Installation and Environment Problems
+- **System Dependencies**: Install all packages listed in `pyproject.toml` apt section for Chrome functionality
+- **Python Dependencies**: Verify all required packages are installed, especially `websockets` and `distro`
+- **Node Dependencies**: Run `yarn install` in app directory to ensure frontend dependencies are current
+- **Frappe Compatibility**: Ensure Frappe Framework V15+ for proper Vue 3 and modern JavaScript support
