@@ -1,5 +1,8 @@
+console.log('[SIGNATURE DEBUG] signature_basic_information.js script loaded');
+
 frappe.ui.form.on('Signature Basic Information', {
 	onload: function(frm) {
+		console.log('[SIGNATURE DEBUG] Signature Basic Information form onload triggered');
 		// Load signature field options
 		_load_signature_field_options(frm);
 	},
@@ -39,24 +42,34 @@ frappe.ui.form.on('Signature Basic Information', {
 });
 
 function _load_signature_field_options(frm) {
+	console.log('[SIGNATURE DEBUG] Loading signature field options...');
 	// Load target DocType options
 	frappe.call({
 		method: 'print_designer.api.enhance_signature_doctype.get_target_doctype_options',
 		callback: function(r) {
+			console.log('[SIGNATURE DEBUG] API response:', r);
 			if (r.message && r.message.success) {
+				console.log('[SIGNATURE DEBUG] Setting options:', r.message.options_string);
 				frm.set_df_property('target_doctype', 'options', r.message.options_string);
+			} else {
+				console.log('[SIGNATURE DEBUG] API call failed or returned no success flag');
 			}
+		},
+		error: function(err) {
+			console.log('[SIGNATURE DEBUG] API call error:', err);
 		}
 	});
 }
 
 function _update_signature_field_options(frm, target_doctype) {
+	console.log('[SIGNATURE DEBUG] Updating signature field options for doctype:', target_doctype);
 	frappe.call({
 		method: 'print_designer.api.enhance_signature_doctype.get_fields_for_target_doctype',
 		args: {
 			target_doctype: target_doctype
 		},
 		callback: function(r) {
+			console.log('[SIGNATURE DEBUG] Get fields API response:', r);
 			if (r.message && r.message.success) {
 				// Create options in format "DocType::fieldname"
 				let options = [''];
@@ -64,7 +77,9 @@ function _update_signature_field_options(frm, target_doctype) {
 					options.push(`${target_doctype}::${field.fieldname}`);
 				});
 				
+				console.log('[SIGNATURE DEBUG] Created options array:', options);
 				frm.set_df_property('signature_target_field', 'options', options.join('\n'));
+				console.log('[SIGNATURE DEBUG] Set signature_target_field options successfully');
 				
 				// Show field information
 				if (r.message.fields.length > 0) {
@@ -82,7 +97,12 @@ function _update_signature_field_options(frm, target_doctype) {
 						'orange'
 					);
 				}
+			} else {
+				console.log('[SIGNATURE DEBUG] Get fields API failed or no success flag');
 			}
+		},
+		error: function(err) {
+			console.log('[SIGNATURE DEBUG] Get fields API error:', err);
 		}
 	});
 }
