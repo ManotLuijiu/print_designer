@@ -15,4 +15,7 @@ def add_weasyprint_option():
 	add_weasyprint_pdf_generator_option()
 
 
-commands = [setup_chorme, add_weasyprint_option]
+# Import watermark fields command
+from print_designer.commands.install_watermark_fields import install_watermark_fields
+
+commands = [setup_chorme, add_weasyprint_option, install_watermark_fields]

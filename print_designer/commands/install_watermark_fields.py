@@ -15,6 +15,13 @@ def install_watermark_fields(context, site=None):
     with frappe.init_site(site):
         frappe.connect()
         
+        # Check if print_designer is installed
+        installed_apps = frappe.get_installed_apps()
+        if 'print_designer' not in installed_apps:
+            click.echo(f"❌ Error: print_designer app is not installed on site '{site}'")
+            click.echo(f"Install print_designer first with: bench --site {site} install-app print_designer")
+            return
+        
         try:
             # Install Print Format and Print Settings watermark fields
             _install_print_format_watermark_fields()

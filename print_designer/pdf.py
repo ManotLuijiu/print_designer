@@ -290,11 +290,7 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
             args["doc"] = doc
 
         # 1. Prepare Print Designer context if this is a Print Designer format
-        if (
-            print_format
-            and hasattr(print_format, "print_designer")
-            and print_format.print_designer
-        ):
+        if print_format and print_format.get("print_designer"):
             _prepare_print_designer_context(print_format, args)
             print(f"Prepared Print Designer context for format: {print_format.name}")
 
