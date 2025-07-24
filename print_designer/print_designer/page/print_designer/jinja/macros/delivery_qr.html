@@ -1,0 +1,168 @@
+{% macro delivery_approval_qr(delivery_note) -%}
+    {% if delivery_note.customer_approval_status == 'Pending' %}
+        <div class="approval-section">
+            <h3>Customer Approval Required</h3>
+            <div class="qr-code-container">
+                {% if delivery_note.approval_qr_code %}
+                    <img src="data:image/png;base64,{{ delivery_note.approval_qr_code }}" 
+                         alt="Scan to approve delivery" 
+                         style="width: 150px; height: 150px;">
+                {% endif %}
+                <p>Scan QR code to approve goods received</p>
+            </div>
+        </div>
+    {% elif delivery_note.customer_approval_status == 'Approved' %}
+        <div class="approval-section approved">
+            <h3>✓ Approved by Customer</h3>
+            <p>Approved by: {{ delivery_note.customer_approved_by }}</p>
+            <p>Date: {{ delivery_note.customer_approved_on }}</p>
+            {% if delivery_note.customer_signature %}
+                <div class="signature">
+                    <p>Digital Signature:</p>
+                    <img src="{{ delivery_note.customer_signature }}" 
+                         alt="Customer Signature" 
+                         style="max-width: 200px; height: auto;">
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+{%- endmacro %}
+
+{% macro delivery_qr_compact(delivery_note) -%}
+    {% if delivery_note.customer_approval_status == 'Pending' and delivery_note.approval_qr_code %}
+        <div style="text-align: center; margin: 10px 0;">
+            <img src="data:image/png;base64,{{ delivery_note.approval_qr_code }}" 
+                 alt="Scan to approve" 
+                 style="width: 100px; height: 100px;">
+            <p style="margin: 5px 0; font-size: 12px;">Scan to approve delivery</p>
+        </div>
+    {% elif delivery_note.customer_approval_status == 'Approved' %}
+        <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
+            <p style="margin: 0; color: #155724; font-weight: bold;">✓ Approved by {{ delivery_note.customer_approved_by }}</p>
+            <p style="margin: 0; font-size: 12px; color: #155724;">{{ delivery_note.customer_approved_on }}</p>
+        </div>
+    {% elif delivery_note.customer_approval_status == 'Rejected' %}
+        <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">
+            <p style="margin: 0; color: #721c24; font-weight: bold;">✗ Rejected</p>
+            {% if delivery_note.custom_rejection_reason %}
+                <p style="margin: 0; font-size: 12px; color: #721c24;">{{ delivery_note.custom_rejection_reason }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{%- endmacro %}
+
+{% macro delivery_status_badge(delivery_note) -%}
+    {% set status = delivery_note.customer_approval_status or 'Pending' %}
+    {% if status == 'Approved' %}
+        <span style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+            ✓ APPROVED
+        </span>
+    {% elif status == 'Rejected' %}
+        <span style="background-color: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+            ✗ REJECTED
+        </span>
+    {% else %}
+        <span style="background-color: #ffc107; color: black; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+            ⏳ PENDING
+        </span>
+    {% endif %}
+{%- endmacro %}
+
+{% macro delivery_approval_summary(delivery_note) -%}
+    <div class="delivery-approval-summary" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; background-color: #f9f9f9;">
+        <h4 style="margin: 0 0 10px 0; font-size: 16px;">Delivery Approval Status</h4>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div>
+                <strong>Status:</strong> {{ delivery_status_badge(delivery_note) }}
+            </div>
+            {% if delivery_note.customer_approval_status == 'Pending' %}
+                <div style="text-align: right;">
+                    {% if delivery_note.approval_qr_code %}
+                        <img src="data:image/png;base64,{{ delivery_note.approval_qr_code }}" 
+                             alt="Scan to approve" 
+                             style="width: 80px; height: 80px;">
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% if delivery_note.customer_approval_status == 'Approved' %}
+            <div style="background-color: #d4edda; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
+                <div><strong>Approved by:</strong> {{ delivery_note.customer_approved_by or 'Unknown' }}</div>
+                <div><strong>Approved on:</strong> 
+                    {% if delivery_note.customer_approved_on %}
+                        {{ delivery_note.customer_approved_on.strftime('%d/%m/%Y %H:%M') if delivery_note.customer_approved_on else '' }}
+                    {% endif %}
+                </div>
+                {% if delivery_note.customer_signature %}
+                    <div style="margin-top: 10px;">
+                        <strong>Digital Signature:</strong><br>
+                        <img src="{{ delivery_note.customer_signature }}" 
+                             alt="Customer Signature" 
+                             style="max-width: 150px; height: auto; border: 1px solid #ddd; padding: 5px; background: white;">
+                    </div>
+                {% endif %}
+            </div>
+        {% elif delivery_note.customer_approval_status == 'Rejected' %}
+            <div style="background-color: #f8d7da; padding: 10px; border-radius: 4px; border-left: 4px solid #dc3545;">
+                <div><strong>Delivery rejected</strong></div>
+                {% if delivery_note.custom_rejection_reason %}
+                    <div><strong>Reason:</strong> {{ delivery_note.custom_rejection_reason }}</div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div style="background-color: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107;">
+                <div><strong>Awaiting customer approval</strong></div>
+                <div style="font-size: 12px; color: #856404; margin-top: 5px;">
+                    Customer can scan the QR code to approve or reject this delivery
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{%- endmacro %}
+
+{% macro delivery_qr_with_instructions(delivery_note) -%}
+    {% if delivery_note.customer_approval_status == 'Pending' and delivery_note.approval_qr_code %}
+        <div style="text-align: center; padding: 20px; border: 2px dashed #007bff; margin: 15px 0; border-radius: 10px; background-color: #f8f9fa;">
+            <h3 style="color: #007bff; margin: 0 0 15px 0;">Customer Approval Required</h3>
+            
+            <div style="display: inline-block; margin: 0 20px;">
+                <img src="data:image/png;base64,{{ delivery_note.approval_qr_code }}" 
+                     alt="Scan to approve delivery" 
+                     style="width: 150px; height: 150px; border: 2px solid #007bff; border-radius: 10px;">
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <p style="margin: 5px 0; font-size: 14px; font-weight: bold; color: #495057;">
+                    📱 Scan QR code with your mobile device
+                </p>
+                <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">
+                    You will be redirected to approve or reject this delivery
+                </p>
+                <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">
+                    Digital signature collection available
+                </p>
+            </div>
+        </div>
+    {% endif %}
+{%- endmacro %}
+
+{# Legacy compatibility macro - maintains backward compatibility with existing templates #}
+{% macro legacy_delivery_qr(delivery_note) -%}
+    {% if delivery_note.custom_goods_received_status == 'Pending' and delivery_note.custom_approval_qr_code %}
+        <div style="text-align: center; margin: 10px 0;">
+            <img src="data:image/png;base64,{{ delivery_note.custom_approval_qr_code }}" 
+                 alt="Scan to approve" 
+                 style="width: 120px; height: 120px;">
+            <p style="margin: 5px 0; font-size: 12px;">Scan to approve delivery</p>
+        </div>
+    {% elif delivery_note.custom_goods_received_status == 'Approved' %}
+        <div style="text-align: center; margin: 10px 0; color: green;">
+            <p style="margin: 0; font-weight: bold;">✓ Approved</p>
+            {% if delivery_note.custom_approved_by %}
+                <p style="margin: 0; font-size: 12px;">by {{ delivery_note.custom_approved_by }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{%- endmacro %}

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Approval - {{ delivery_note_name or 'Loading...' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .signature-pad {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            width: 100%;
+            height: 200px;
+            background-color: #f8f9fa;
+            cursor: crosshair;
+        }
+        .approval-card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            border: none;
+        }
+        .status-approved {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-pending {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .status-rejected {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .delivery-info-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+        }
+        .items-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn-action {
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .card-header-custom {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 col-xl-8">
+                <!-- Loading State -->
+                <div id="loading-section" class="text-center py-5">
+                    <div class="loading-spinner mb-3"></div>
+                    <h5 class="text-muted">Loading delivery information...</h5>
+                    <p class="text-muted">Please wait while we fetch your delivery details</p>
+                </div>
+
+                <!-- Main Content -->
+                <div id="main-content" class="fade-in" style="display: none;">
+                    <div class="card approval-card">
+                        <div class="card-header card-header-custom text-white text-center py-4">
+                            <h2 class="mb-0">
+                                <i class="fas fa-truck-loading me-2"></i>
+                                Delivery Approval System
+                            </h2>
+                            <p class="mb-0 mt-2 opacity-75">Confirm receipt of your delivered goods</p>
+                        </div>
+                        
+                        <div class="card-body p-4">
+                            <!-- Alert Messages -->
+                            <div id="alert-container"></div>
+                            
+                            <!-- Delivery Information -->
+                            <div id="delivery-info-section" class="delivery-info-card p-4 mb-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                    Delivery Information
+                                </h5>
+                                <div id="delivery-details">
+                                    <!-- Delivery details will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Items Table -->
+                            <div id="items-section" class="mb-4">
+                                <h5 class="mb-3">
+                                    <i class="fas fa-boxes text-success me-2"></i>
+                                    Delivered Items
+                                </h5>
+                                <div class="items-table">
+                                    <div id="items-container">
+                                        <!-- Items table will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Approval Section -->
+                            <div id="approval-section" class="mt-4">
+                                <div class="alert alert-info">
+                                    <h5 class="alert-heading">
+                                        <i class="fas fa-clipboard-check me-2"></i>
+                                        Goods Received Confirmation
+                                    </h5>
+                                    <p class="mb-0">Please confirm that you have received all items listed in this delivery note in good condition. Your digital signature is optional but recommended for record keeping.</p>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-lg-6 mb-4">
+                                        <h6 class="mb-3">
+                                            <i class="fas fa-signature text-primary me-2"></i>
+                                            Digital Signature (Optional)
+                                        </h6>
+                                        <canvas id="signature-pad" class="signature-pad mb-2"></canvas>
+                                        <div class="text-center">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSignature()">
+                                                <i class="fas fa-eraser me-1"></i>
+                                                Clear Signature
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-lg-6">
+                                        <div class="text-center">
+                                            <h6 class="mb-3">
+                                                <i class="fas fa-clipboard-list text-warning me-2"></i>
+                                                Current Status
+                                            </h6>
+                                            <div id="current-status" class="mb-4">
+                                                <span class="badge bg-warning fs-6 px-3 py-2">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    Pending Approval
+                                                </span>
+                                            </div>
+                                            
+                                            <div class="d-grid gap-2">
+                                                <button type="button" class="btn btn-success btn-action btn-lg" id="approve-btn" onclick="approveDelivery()">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    Approve Delivery
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-action" id="reject-btn" onclick="rejectDelivery()">
+                                                    <i class="fas fa-times-circle me-2"></i>
+                                                    Report Issue
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Success/Completion Section -->
+                            <div id="completion-section" style="display: none;">
+                                <div class="alert alert-success text-center">
+                                    <h4 class="alert-heading">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Action Completed Successfully!
+                                    </h4>
+                                    <p class="mb-2">Your delivery confirmation has been recorded.</p>
+                                    <hr>
+                                    <div id="completion-details" class="text-start">
+                                        <!-- Completion details will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script>
+        let signaturePad;
+        let deliveryNoteId;
+        let deliveryData;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get delivery note ID from URL
+            const urlParts = window.location.pathname.split('/');
+            deliveryNoteId = urlParts[urlParts.length - 1];
+            
+            // Initialize signature pad
+            initSignaturePad();
+            
+            // Load delivery information
+            loadDeliveryInfo();
+        });
+
+        function initSignaturePad() {
+            const canvas = document.getElementById('signature-pad');
+            if (canvas) {
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgba(248, 249, 250, 0.8)',
+                    penColor: 'rgb(0, 0, 0)',
+                    velocityFilterWeight: 0.7,
+                    minWidth: 0.5,
+                    maxWidth: 2.5,
+                    throttle: 16,
+                    minDistance: 5
+                });
+
+                // Handle canvas resize
+                function resizeCanvas() {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    canvas.width = canvas.offsetWidth * ratio;
+                    canvas.height = canvas.offsetHeight * ratio;
+                    canvas.getContext("2d").scale(ratio, ratio);
+                    signaturePad.clear();
+                }
+
+                window.addEventListener("resize", resizeCanvas);
+                resizeCanvas();
+            }
+        }
+
+        async function loadDeliveryInfo() {
+            try {
+                // Use Frappe's REST API
+                const response = await fetch(`/api/method/print_designer.custom.delivery_note_qr.get_delivery_status?delivery_note_name=${deliveryNoteId}`);
+                const data = await response.json();
+                
+                if (data.message) {
+                    deliveryData = data.message;
+                    
+                    // Also get full delivery note details
+                    const detailResponse = await fetch(`/api/resource/Delivery Note/${deliveryNoteId}`);
+                    const detailData = await detailResponse.json();
+                    
+                    if (detailData.data) {
+                        deliveryData.fullDetails = detailData.data;
+                        displayDeliveryInfo();
+                        updateApprovalStatus();
+                    }
+                } else {
+                    showAlert('danger', 'Delivery note not found or access denied');
+                }
+            } catch (error) {
+                console.error('Error loading delivery info:', error);
+                showAlert('danger', 'Error loading delivery information. Please try again.');
+            } finally {
+                document.getElementById('loading-section').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }
+        }
+
+        function displayDeliveryInfo() {
+            const details = deliveryData.fullDetails;
+            
+            // Basic delivery information
+            const deliveryDetailsHtml = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-muted">Delivery Note:</strong>
+                            <span class="fw-bold">${details.name}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-muted">Date:</strong>
+                            <span>${new Date(details.posting_date).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-muted">Customer:</strong>
+                            <span>${details.customer_name}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-muted">Total Items:</strong>
+                            <span class="badge bg-primary">${details.items?.length || 0}</span>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-muted">Delivery Address:</strong>
+                            <span class="text-end">${details.shipping_address_name || details.customer_address || 'Not specified'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('delivery-details').innerHTML = deliveryDetailsHtml;
+
+            // Items table
+            if (details.items && details.items.length > 0) {
+                const itemsHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="fas fa-barcode me-1"></i>Item Code</th>
+                                    <th><i class="fas fa-info-circle me-1"></i>Description</th>
+                                    <th class="text-center"><i class="fas fa-sort-numeric-up me-1"></i>Qty</th>
+                                    <th class="text-center"><i class="fas fa-balance-scale me-1"></i>UOM</th>
+                                    <th class="text-end"><i class="fas fa-dollar-sign me-1"></i>Rate</th>
+                                    <th class="text-end"><i class="fas fa-calculator me-1"></i>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${details.items.map(item => `
+                                    <tr>
+                                        <td class="fw-bold">${item.item_code}</td>
+                                        <td>${item.description || item.item_name}</td>
+                                        <td class="text-center">${item.qty}</td>
+                                        <td class="text-center">${item.uom}</td>
+                                        <td class="text-end">${item.rate ? parseFloat(item.rate).toFixed(2) : '0.00'}</td>
+                                        <td class="text-end fw-bold">${item.amount ? parseFloat(item.amount).toFixed(2) : '0.00'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="5" class="text-end">Total Amount:</th>
+                                    <th class="text-end text-primary fs-5">${details.grand_total ? parseFloat(details.grand_total).toFixed(2) : '0.00'}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+                document.getElementById('items-container').innerHTML = itemsHtml;
+            }
+        }
+
+        function updateApprovalStatus() {
+            const statusElement = document.getElementById('current-status');
+            const approveBtn = document.getElementById('approve-btn');
+            const rejectBtn = document.getElementById('reject-btn');
+            const approvalSection = document.getElementById('approval-section');
+            const completionSection = document.getElementById('completion-section');
+
+            if (deliveryData.status === 'Approved') {
+                statusElement.innerHTML = `
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Approved
+                    </span>
+                `;
+                approvalSection.style.display = 'none';
+                completionSection.style.display = 'block';
+                
+                const completionHtml = `
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Approved Date:</strong><br>
+                            <span class="text-muted">${deliveryData.approval_date ? new Date(deliveryData.approval_date).toLocaleString() : 'Not recorded'}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Approved By:</strong><br>
+                            <span class="text-muted">${deliveryData.approved_by || 'System'}</span>
+                        </div>
+                        ${deliveryData.has_signature ? '<div class="col-12"><small class="text-success"><i class="fas fa-signature me-1"></i>Digital signature captured</small></div>' : ''}
+                    </div>
+                `;
+                document.getElementById('completion-details').innerHTML = completionHtml;
+                
+            } else if (deliveryData.status === 'Rejected') {
+                statusElement.innerHTML = `
+                    <span class="badge bg-danger fs-6 px-3 py-2">
+                        <i class="fas fa-times-circle me-1"></i>
+                        Rejected
+                    </span>
+                `;
+                approvalSection.style.display = 'none';
+                completionSection.style.display = 'block';
+                
+                const completionHtml = `
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <strong>Rejected Date:</strong><br>
+                            <span class="text-muted">${deliveryData.approval_date ? new Date(deliveryData.approval_date).toLocaleString() : 'Not recorded'}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Rejected By:</strong><br>
+                            <span class="text-muted">${deliveryData.approved_by || 'System'}</span>
+                        </div>
+                        ${deliveryData.rejection_reason ? `<div class="col-12"><strong>Reason:</strong><br><span class="text-muted">${deliveryData.rejection_reason}</span></div>` : ''}
+                    </div>
+                `;
+                document.getElementById('completion-details').innerHTML = completionHtml;
+            }
+        }
+
+        function clearSignature() {
+            if (signaturePad) {
+                signaturePad.clear();
+            }
+        }
+
+        async function approveDelivery() {
+            const signature = signaturePad && !signaturePad.isEmpty() ? signaturePad.toDataURL() : null;
+            
+            // Disable buttons during processing
+            document.getElementById('approve-btn').disabled = true;
+            document.getElementById('reject-btn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.approve_delivery_goods', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Frappe-CSRF-Token': window.csrf_token || ''
+                    },
+                    body: JSON.stringify({
+                        delivery_note_name: deliveryNoteId,
+                        customer_signature: signature
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.message && data.message.success) {
+                    showAlert('success', 'Delivery approved successfully! Thank you for confirming receipt of goods.');
+                    setTimeout(() => {
+                        loadDeliveryInfo();
+                    }, 2000);
+                } else {
+                    showAlert('danger', 'Error approving delivery. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error approving delivery:', error);
+                showAlert('danger', 'Network error. Please check your connection and try again.');
+            } finally {
+                // Re-enable buttons
+                document.getElementById('approve-btn').disabled = false;
+                document.getElementById('reject-btn').disabled = false;
+            }
+        }
+
+        async function rejectDelivery() {
+            const reason = prompt('Please provide a reason for rejection (required):');
+            if (!reason || !reason.trim()) {
+                showAlert('warning', 'Rejection reason is required.');
+                return;
+            }
+            
+            // Disable buttons during processing
+            document.getElementById('approve-btn').disabled = true;
+            document.getElementById('reject-btn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.reject_delivery_goods', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Frappe-CSRF-Token': window.csrf_token || ''
+                    },
+                    body: JSON.stringify({
+                        delivery_note_name: deliveryNoteId,
+                        rejection_reason: reason.trim()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.message && data.message.success) {
+                    showAlert('info', 'Delivery rejection recorded. The vendor will be notified of the issue.');
+                    setTimeout(() => {
+                        loadDeliveryInfo();
+                    }, 2000);
+                } else {
+                    showAlert('danger', 'Error recording rejection. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error rejecting delivery:', error);
+                showAlert('danger', 'Network error. Please check your connection and try again.');
+            } finally {
+                // Re-enable buttons
+                document.getElementById('approve-btn').disabled = false;
+                document.getElementById('reject-btn').disabled = false;
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            alertContainer.innerHTML = alertHtml;
+            
+            // Auto-dismiss success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    const alert = alertContainer.querySelector('.alert');
+                    if (alert) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

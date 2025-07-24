@@ -12,6 +12,11 @@ commands = [
     "print_designer.commands.signature_setup.setup_signatures",
     "print_designer.commands.signature_setup.check_signature_status",
     "print_designer.commands.install_watermark_fields.install_watermark_fields",
+    "print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi",
+    "print_designer.commands.install_delivery_qr.install_delivery_qr",
+    "print_designer.commands.install_complete_system.install_complete_system",
+    "print_designer.commands.install_complete_system.check_system_status",
+    "print_designer.commands.install_delivery_fields.install_delivery_note_fields",
 ]
 
 # Includes in <head>
@@ -24,6 +29,7 @@ app_include_css = [
     "thai_fonts.bundle.css",
     "signature_stamp.bundle.css",
     "signature_preview.bundle.css",
+    "delivery_approval.bundle.css",
 ]
 # app_include_css = "thai_business_suite.app.bundle.css"
 
@@ -52,6 +58,8 @@ page_js = {
 doctype_js = {
     "Print Format": "print_designer/client_scripts/print_format.js",
     "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js",
+    "Delivery Note": "print_designer/public/js/delivery_approval.js",
+    "Payment Entry": "print_designer/public/js/delivery_approval.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -100,6 +108,22 @@ jinja = {
         "print_designer.utils.thai_amount_to_word.is_thai_format",
         "print_designer.utils.thai_amount_to_word.smart_money_in_words",
         "print_designer.utils.thai_amount_to_word.get_smart_in_words",
+        # Delivery Note QR code methods
+        "print_designer.custom.delivery_note_qr.generate_delivery_approval_qr",
+        "print_designer.custom.delivery_note_qr.get_qr_code_image",
+        "print_designer.custom.delivery_note_qr.get_delivery_status",
+        # Delivery QR Jinja macros
+        "print_designer.utils.delivery_qr_macros.render_delivery_approval_qr",
+        "print_designer.utils.delivery_qr_macros.render_delivery_qr_compact",
+        "print_designer.utils.delivery_qr_macros.render_delivery_status_badge",
+        "print_designer.utils.delivery_qr_macros.render_delivery_approval_summary",
+        "print_designer.utils.delivery_qr_macros.render_delivery_qr_with_instructions",
+        "print_designer.utils.delivery_qr_macros.render_legacy_delivery_qr",
+        # Thai Withholding Tax methods
+        "print_designer.custom.withholding_tax.get_wht_certificate_data",
+        "print_designer.custom.withholding_tax.determine_income_type",
+        "print_designer.custom.withholding_tax.convert_to_thai_date",
+        "print_designer.custom.withholding_tax.get_suggested_wht_rate",
     ]
 }
 
@@ -177,6 +201,8 @@ doc_events = {
     },
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
+        "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
+        "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
@@ -189,6 +215,8 @@ doc_events = {
     },
     "Delivery Note": {
         "before_print": "print_designer.pdf.before_print",
+        "on_submit": "print_designer.custom.delivery_note_qr.add_qr_to_delivery_note",
+        "before_save": "print_designer.utils.field_sync.sync_delivery_note_fields",
     },
     "Purchase Receipt": {
         "before_print": "print_designer.pdf.before_print",
@@ -206,6 +234,11 @@ doc_events = {
     "Company Stamp": {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
+    },
+    # Thai Withholding Tax events
+    "Payment Entry": {
+        "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
+        "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
     },
 }
 

@@ -22,19 +22,22 @@ def install_thai_form_50_twi(context):
         # Create formats for different document types
         formats_to_create = [
             {
-                "name": "Payment Entry Form 50 ทวิ",
+                "name": "Payment Entry Form 50 ทวิ - Thai Withholding Tax Certificate",
                 "doc_type": "Payment Entry",
-                "description": "หนังสือรับรองการหักภาษี ณ ที่จ่าย สำหรับ Payment Entry",
+                "description": "หนังสือรับรองการหักภาษี ณ ที่จ่าย สำหรับ Payment Entry (Thai Withholding Tax Certificate for Payment Entry)",
+                "template_file": "payment_entry_form_50_twi.json",
             },
             {
                 "name": "Purchase Invoice Form 50 ทวิ",
-                "doc_type": "Purchase Invoice",
+                "doc_type": "Purchase Invoice", 
                 "description": "หนังสือรับรองการหักภาษี ณ ที่จ่าย สำหรับ Purchase Invoice",
+                "template_file": "thai_form_50_twi.html",
             },
             {
                 "name": "Journal Entry Form 50 ทวิ",
                 "doc_type": "Journal Entry",
                 "description": "หนังสือรับรองการหักภาษี ณ ที่จ่าย สำหรับ Journal Entry",
+                "template_file": "thai_form_50_twi.html",
             },
         ]
 
@@ -54,35 +57,67 @@ def install_thai_form_50_twi(context):
                 print_format.name = format_config["name"]
                 created_count += 1
 
-            # Read the template HTML
-            template_html = ""
-            template_path = "/home/frappe/frappe-bench/apps/print_designer/print_designer/print_designer/page/print_designer/jinja/thai_form_50_twi.html"
-            try:
-                with open(template_path, "r", encoding="utf-8") as f:
-                    template_html = f.read()
-            except Exception as e:
-                click.echo(f"❌ Error reading template: {str(e)}")
-                continue
-
-            # Set format properties
-            print_format.update(
-                {
-                    "doc_type": format_config["doc_type"],
-                    "module": "Print Designer",
-                    "print_designer": 1,
-                    "disabled": 0,
-                    "standard": "No",
-                    "print_format_type": "Jinja",
-                    "font": "Sarabun",
-                    "font_size": 12,
-                    "margin_top": 15,
-                    "margin_bottom": 15,
-                    "margin_left": 15,
-                    "margin_right": 15,
-                    "page_size": "A4",
-                    "default_print_language": "th",
-                    "html": template_html,
-                    "css": """
+            # Handle different template types
+            if format_config["template_file"].endswith(".json"):
+                # Load Print Designer JSON format
+                template_path = f"/home/frappe/frappe-bench/apps/print_designer/print_designer/default_templates/erpnext/{format_config['template_file']}"
+                try:
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        template_data = json.loads(f.read())
+                    
+                    # Update the print format with JSON data
+                    print_format.update({
+                        "doc_type": format_config["doc_type"],
+                        "module": "Print Designer",
+                        "print_designer": 1,
+                        "disabled": 0,
+                        "standard": "No",
+                        "font": template_data.get("font", "Sarabun"),
+                        "font_size": template_data.get("font_size", 12),
+                        "margin_top": template_data.get("margin_top", 15),
+                        "margin_bottom": template_data.get("margin_bottom", 15),
+                        "margin_left": template_data.get("margin_left", 15),
+                        "margin_right": template_data.get("margin_right", 15),
+                        "page_size": template_data.get("page_size", "A4"),
+                        "default_print_language": template_data.get("default_print_language", "th"),
+                        "print_designer_settings": json.dumps(template_data.get("print_designer_settings", {})),
+                        "print_designer_header": json.dumps(template_data.get("print_designer_header", [])),
+                        "print_designer_body": json.dumps(template_data.get("print_designer_body", [])),
+                        "print_designer_footer": json.dumps(template_data.get("print_designer_footer", [])),
+                        "css": template_data.get("css", ""),
+                        "description": format_config["description"],
+                    })
+                    click.echo(f"   📋 Loaded Print Designer JSON template")
+                    
+                except Exception as e:
+                    click.echo(f"❌ Error reading JSON template: {str(e)}")
+                    continue
+                    
+            else:
+                # Load HTML Jinja template (legacy)
+                template_path = f"/home/frappe/frappe-bench/apps/print_designer/print_designer/print_designer/page/print_designer/jinja/{format_config['template_file']}"
+                try:
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        template_html = f.read()
+                    
+                    # Set format properties for HTML template
+                    print_format.update({
+                        "doc_type": format_config["doc_type"],
+                        "module": "Print Designer",
+                        "print_designer": 1,
+                        "disabled": 0,
+                        "standard": "No",
+                        "print_format_type": "Jinja",
+                        "font": "Sarabun",
+                        "font_size": 12,
+                        "margin_top": 15,
+                        "margin_bottom": 15,
+                        "margin_left": 15,
+                        "margin_right": 15,
+                        "page_size": "A4",
+                        "default_print_language": "th",
+                        "html": template_html,
+                        "css": """
 /* Thai Form 50 ทวิ Styles */
 .form-50-twi {
     font-family: 'Sarabun', Arial, sans-serif;
@@ -108,9 +143,13 @@ def install_thai_form_50_twi(context):
     }
 }
 """,
-                    "description": format_config["description"],
-                }
-            )
+                        "description": format_config["description"],
+                    })
+                    click.echo(f"   📋 Loaded HTML Jinja template")
+                    
+                except Exception as e:
+                    click.echo(f"❌ Error reading HTML template: {str(e)}")
+                    continue
 
             # Save the format
             if existing_format:

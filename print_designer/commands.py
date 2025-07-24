@@ -109,3 +109,10 @@ commands = [
     install_watermark_fields,
     check_print_settings_fields
 ]
+
+# Import Thai Form 50 ทวิ commands
+try:
+    from print_designer.commands.install_thai_form_50_twi import install_thai_form_50_twi
+    commands.append(install_thai_form_50_twi)
+except ImportError:
+    pass

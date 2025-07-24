@@ -7,6 +7,21 @@ frappe.ui.form.on('Signature Basic Information', {
 		_load_signature_field_options(frm);
 	},
 	
+	refresh: function(frm) {
+		// Restore signature_target_field options on refresh if target_doctype is set
+		if (frm.doc.target_doctype) {
+			_update_signature_field_options(frm, frm.doc.target_doctype);
+		}
+		
+		// Add custom buttons
+		if (!frm.is_new()) {
+			_add_custom_buttons(frm);
+		}
+		
+		// Show helpful information
+		_show_helpful_info(frm);
+	},
+	
 	target_doctype: function(frm) {
 		// When target DocType changes, update available fields
 		if (frm.doc.target_doctype) {
@@ -23,15 +38,6 @@ frappe.ui.form.on('Signature Basic Information', {
 		}
 	},
 	
-	refresh: function(frm) {
-		// Add custom buttons
-		if (!frm.is_new()) {
-			_add_custom_buttons(frm);
-		}
-		
-		// Show helpful information
-		_show_helpful_info(frm);
-	},
 	
 	before_save: function(frm) {
 		// Validate target field mapping
@@ -63,6 +69,10 @@ function _load_signature_field_options(frm) {
 
 function _update_signature_field_options(frm, target_doctype) {
 	console.log('[SIGNATURE DEBUG] Updating signature field options for doctype:', target_doctype);
+	
+	// Store current value to restore it after updating options
+	let current_value = frm.doc.signature_target_field;
+	
 	frappe.call({
 		method: 'print_designer.api.enhance_signature_doctype.get_fields_for_target_doctype',
 		args: {
@@ -80,6 +90,12 @@ function _update_signature_field_options(frm, target_doctype) {
 				console.log('[SIGNATURE DEBUG] Created options array:', options);
 				frm.set_df_property('signature_target_field', 'options', options.join('\n'));
 				console.log('[SIGNATURE DEBUG] Set signature_target_field options successfully');
+				
+				// Restore the previous value if it's still valid
+				if (current_value && options.includes(current_value)) {
+					frm.set_value('signature_target_field', current_value);
+					console.log('[SIGNATURE DEBUG] Restored field value:', current_value);
+				}
 				
 				// Show field information
 				if (r.message.fields.length > 0) {
