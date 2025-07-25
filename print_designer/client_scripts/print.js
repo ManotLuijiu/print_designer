@@ -1706,31 +1706,6 @@ function extendPrintView() {
       change: () => this.preview(),
     }).$input;
 
-    // NEW: Watermark per Page selector
-    console.log('[WATERMARK DEBUG] Adding watermark selector to sidebar...');
-    console.log('[WATERMARK DEBUG] Current print format:', this.get_print_format());
-    console.log('[WATERMARK DEBUG] Print settings:', this.print_settings);
-    
-    this.watermark_selector = this.add_sidebar_item({
-      fieldtype: "Select",
-      fieldname: "watermark_settings",
-      label: __("Watermark per Page"),
-      options: [
-        "None",
-        "Original on First Page",
-        "Copy on All Pages",
-        "Original,Copy on Sequence"
-      ].join('\n'),
-      default: "None",
-      description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
-      change: () => {
-        console.log('[WATERMARK DEBUG] Watermark selector changed, value:', this.watermark_selector.val());
-        this.preview();
-      },
-    }).$input;
-    console.log('[WATERMARK DEBUG] Watermark selector created:', this.watermark_selector);
-    console.log('[WATERMARK DEBUG] Watermark selector parent:', this.watermark_selector.parent());
-    console.log('[WATERMARK DEBUG] Sidebar element:', this.sidebar);
 
     this.sidebar_dynamic_section = $(
       `<div class="dynamic-settings"></div>`,
@@ -1793,6 +1768,28 @@ function extendPrintView() {
           console.log('[WATERMARK DEBUG] Print settings loaded:', r.message);
           this.print_settings = r.message;
           console.log('[WATERMARK DEBUG] Watermark settings in print_settings:', this.print_settings.watermark_settings);
+
+          // NEW: Watermark per Page selector
+          console.log('[WATERMARK DEBUG] Adding watermark selector to sidebar...');
+          this.watermark_selector = this.add_sidebar_item({
+            fieldtype: "Select",
+            fieldname: "watermark_settings",
+            label: __("Watermark per Page"),
+            options: [
+              "None",
+              "Original on First Page",
+              "Copy on All Pages",
+              "Original,Copy on Sequence"
+            ].join('\n'),
+            default: "None",
+            description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
+            change: () => {
+              console.log('[WATERMARK DEBUG] Watermark selector changed, value:', this.watermark_selector.val());
+              this.preview();
+            },
+          }).$input;
+          console.log('[WATERMARK DEBUG] Watermark selector created:', this.watermark_selector);
+          
           // Setup copy options after settings are loaded
           this.setup_copy_options();
         }

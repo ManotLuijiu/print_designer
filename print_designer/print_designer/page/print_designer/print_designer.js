@@ -188,8 +188,10 @@ const set_current_doc = async (format_name) => {
 
 const load_print_designer = async (wrapper) => {
 	let route = frappe.get_route();
+	console.log("route", route);
 	let $parent = $(wrapper);
 	let is_print_format;
+	console.log("is_print_format", is_print_format);
 	let message = `Print Format <b>${route[1]}</b> not found. <hr/> Would you like to Create or Edit other Print Format?`;
 
 	if (route.length > 1 && route[1].length) {

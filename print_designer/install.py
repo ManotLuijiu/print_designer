@@ -7,10 +7,11 @@ from typing import Literal
 
 import click
 import frappe
-from frappe import _
 import requests
+from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
+from frappe.utils import get_bench_path
 
 from print_designer.custom_fields import CUSTOM_FIELDS
 from print_designer.default_formats import (
@@ -108,23 +109,23 @@ def ensure_all_fields_after_migration():
     """
     try:
         frappe.logger().info("Ensuring all print_designer fields after migration...")
-        
+
         # 1. Basic print_designer custom fields
         create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
         frappe.logger().info("✅ Basic custom fields ensured")
-        
-        # 2. Signature and watermark fields  
+
+        # 2. Signature and watermark fields
         _ensure_signature_fields()
         _ensure_watermark_fields()
         _ensure_watermark_defaults()
         frappe.logger().info("✅ Signature and watermark fields ensured")
-        
+
         # 3. Enhanced Print Settings fields (includes all watermark configuration)
         setup_enhanced_print_settings()
         frappe.logger().info("✅ Enhanced Print Settings ensured")
-        
+
         frappe.logger().info("🎉 All fields ensured after migration")
-        
+
     except Exception as e:
         frappe.logger().error(f"❌ Error ensuring fields after migration: {str(e)}")
         pass
@@ -374,8 +375,6 @@ def fix_print_settings_field_ordering():
         frappe.logger().error(f"Error fixing field ordering: {str(e)}")
 
 
-
-
 def after_app_install(app):
     if app != "print_designer":
         install_default_formats(app)
@@ -410,7 +409,7 @@ def make_chromium_executable(executable):
 
 def find_or_download_chromium_executable():
     """Finds the Chromium executable or downloads if not found."""
-    bench_path = frappe.utils.get_bench_path()
+    bench_path = get_bench_path()
     """Determine the path to the Chromium executable."""
     chromium_dir = os.path.join(bench_path, "chromium")
 
@@ -420,6 +419,10 @@ def find_or_download_chromium_executable():
         click.echo(f"Unsupported platform: {platform_name}")
 
     executable_name = FrappePDFGenerator.EXECUTABLE_PATHS.get(platform_name)
+
+    if not executable_name:
+        click.echo(f"Chromium executable path not found for platform: {platform_name}")
+        raise RuntimeError(f"Unsupported platform for Chromium: {platform_name}")
 
     # Construct the full path to the executable
     exec_path = Path(chromium_dir).joinpath(*executable_name)
@@ -434,7 +437,7 @@ def find_or_download_chromium_executable():
 
 
 def download_chromium():
-    bench_path = frappe.utils.get_bench_path()
+    bench_path = get_bench_path()
     """Download and extract Chromium for the specific version at the bench level."""
     chromium_dir = os.path.join(bench_path, "chromium")
 
@@ -725,9 +728,11 @@ def set_wkhtmltopdf_for_print_designer_format(doc, method):
 
 
 def set_pdf_generator_option(action: Literal["add", "remove"]):
-    options = (
-        frappe.get_meta("Print Format").get_field("pdf_generator").options
-    ).split("\n")
+    pdf_generator_field = frappe.get_meta("Print Format").get_field("pdf_generator")
+    if not pdf_generator_field or not pdf_generator_field.options:
+        return
+
+    options = (pdf_generator_field.options or "").split("\n")
 
     if action == "add":
         # Add WeasyPrint if not already present
@@ -756,19 +761,19 @@ def setup_print_designer_settings():
 
         # Set default values if not already set
         if not print_settings.get("enable_multiple_copies"):
-            print_settings.enable_multiple_copies = 1  # Enable by default
+            print_settings.set("enable_multiple_copies", 1)  # Enable by default
 
         if not print_settings.get("default_copy_count"):
-            print_settings.default_copy_count = 2
+            print_settings.set("default_copy_count", 2)
 
         if not print_settings.get("default_original_label"):
-            print_settings.default_original_label = frappe._("Original")
+            print_settings.set("default_original_label", frappe._("Original"))
 
         if not print_settings.get("default_copy_label"):
-            print_settings.default_copy_label = frappe._("Copy")
+            print_settings.set("default_copy_label", frappe._("Copy"))
 
         if not print_settings.get("show_copy_controls_in_toolbar"):
-            print_settings.show_copy_controls_in_toolbar = 1
+            print_settings.set("show_copy_controls_in_toolbar", 1)
 
         # Save the settings
         print_settings.flags.ignore_permissions = True
@@ -858,46 +863,60 @@ def _ensure_signature_fields():
 
 
 def _ensure_watermark_fields():
-    """Ensure watermark fields are installed across all DocTypes for dynamic watermark selection."""
+    """Ensure watermark fields are installed/updated across all DocTypes for dynamic watermark selection."""
     try:
-        from print_designer.watermark_fields import install_watermark_fields
-
-        # Check if any watermark fields exist
-        existing_watermark_field = frappe.db.get_value(
-            "Custom Field", {"fieldname": "watermark_text"}, "name"
+        from print_designer.watermark_fields import (
+            WATERMARK_FIELDS,
+            install_watermark_fields,
         )
 
-        if not existing_watermark_field:
-            click.echo("Installing watermark fields across DocTypes...")
-            success = install_watermark_fields()
+        click.echo("Ensuring watermark fields across DocTypes...")
 
-            if success:
-                frappe.db.commit()
-                click.echo("✅ Watermark fields installed successfully")
-            else:
-                click.echo("⚠️  Warning: Could not install all watermark fields")
+        # Count existing vs required fields
+        total_required = sum(len(fields) for fields in WATERMARK_FIELDS.values())
+        existing_count = 0
+
+        for doctype, fields in WATERMARK_FIELDS.items():
+            for field_def in fields:
+                if frappe.db.exists(
+                    "Custom Field", {"dt": doctype, "fieldname": field_def["fieldname"]}
+                ):
+                    existing_count += 1
+
+        click.echo(f"Found {existing_count}/{total_required} watermark fields")
+
+        # Always run install_watermark_fields to ensure updates and missing fields
+        # The function handles existing fields gracefully via create_custom_fields
+        success = install_watermark_fields()
+
+        if success:
+            frappe.db.commit()
+            click.echo("✅ Watermark fields ensured/updated successfully")
         else:
-            click.echo("Watermark fields already exist, skipping installation")
+            click.echo(
+                "⚠️  Warning: Some watermark fields may not have been installed properly"
+            )
 
     except Exception as e:
         frappe.log_error(f"Error ensuring watermark fields: {str(e)}")
-        click.echo(f"⚠️  Warning: Could not install watermark fields: {str(e)}")
+        click.echo(f"⚠️  Warning: Could not ensure watermark fields: {str(e)}")
 
 
 def _ensure_watermark_defaults():
     """Set defaults for watermark configuration fields"""
     try:
         print_settings = frappe.get_single("Print Settings")
+        print(f"print_settings: {print_settings}")
 
         # Set defaults if fields are empty
         if not print_settings.get("watermark_font_size"):
-            print_settings.watermark_font_size = 12
+            print_settings.set("watermark_font_size", 12)
 
         if not print_settings.get("watermark_position"):
-            print_settings.watermark_position = "Top Right"
+            print_settings.set("watermark_position", "Top Right")
 
         if not print_settings.get("watermark_font_family"):
-            print_settings.watermark_font_family = "Sarabun"
+            print_settings.set("watermark_font_family", "Sarabun")
 
         print_settings.save()
         click.echo("✅ Watermark field defaults set successfully")
@@ -953,12 +972,6 @@ def _install_watermark_fields_on_install():
             f"⚠️  Warning: Could not install watermark fields during installation: {str(e)}"
         )
         frappe.log_error(f"Error installing watermark fields on install: {str(e)}")
-
-
-def set_wkhtmltopdf_for_print_designer_format(doc, method):
-    """Set pdf_generator to wkhtmltopdf for print_designer formats if not set."""
-    if doc.print_designer and not doc.pdf_generator:
-        doc.pdf_generator = "wkhtmltopdf"
 
 
 def handle_erpnext_override(app_name):
