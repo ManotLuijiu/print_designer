@@ -173,7 +173,9 @@ def is_thai_format(print_format_name=None, doc=None):
         try:
             # Check if document has Thai language field
             if hasattr(doc, "language") and doc.language == "th":
-                print(f"Using Thai formatting based on document language")
+                print(
+                    f"Using Thai formatting based on document language {doc.language}"
+                )
                 return True
 
             # Check if company has Thai settings
@@ -181,12 +183,14 @@ def is_thai_format(print_format_name=None, doc=None):
                 company = frappe.get_doc("Company", doc.company)
                 print(f"company {company}")
                 if hasattr(company, "country") and company.country == "Thailand":
-                    print(f"Using Thai formatting based on company country: Thailand")
+                    print(
+                        f"Using Thai formatting based on company country: Thailand {company.country}"
+                    )
                     return True
         except Exception:
             pass
 
-    print(f"NOT using Thai formatting - no Thai indicators found")
+    print(f"NOT using Thai formatting - no Thai indicators found {company.country}")
     return False
 
 

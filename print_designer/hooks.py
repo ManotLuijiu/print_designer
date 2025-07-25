@@ -7,6 +7,9 @@ app_description = "Frappe App to Design Print Formats using interactive UI."
 app_email = "hello@frappe.io"
 app_license = "AGPLv3"
 
+# Ensure print_designer installs after ERPNext
+required_apps = ["erpnext"]
+
 # Custom bench commands
 commands = [
     "print_designer.commands.signature_setup.setup_signatures",
@@ -144,7 +147,7 @@ after_install = "print_designer.install.after_install"
 after_app_install = [
     "print_designer.install.after_app_install",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
-    "print_designer.install.handle_erpnext_override",  # Add this line
+    "print_designer.install.handle_erpnext_override",  # Simplified ERPNext integration
 ]
 
 # Startup hooks
@@ -161,7 +164,7 @@ after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.api.safe_install.safe_install_signature_enhancements",
-    "print_designer.install.ensure_custom_fields",
+    "print_designer.install.after_migrate",  # Enhanced migration with field ordering
 ]
 
 # Uninstallation
