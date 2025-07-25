@@ -687,6 +687,7 @@ def set_wkhtmltopdf_as_default_for_print_designer():
         )
 
         for format_doc in print_designer_formats:
+            print(f"format_doc: {format_doc}")
             try:
                 frappe.db.set_value(
                     "Print Format", format_doc.name, "pdf_generator", "wkhtmltopdf"
