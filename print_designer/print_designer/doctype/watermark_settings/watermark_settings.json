@@ -1,0 +1,127 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "autoname": "format:WMRK-SETTINGS-{#####}",
+    "creation": "2025-01-26 12:00:00.000000",
+    "doctype": "DocType",
+    "document_type": "Setup",
+    "engine": "InnoDB",
+    "field_order": [
+     "enabled",
+     "default_mode",
+     "global_settings_section",
+     "default_font_size",
+     "default_position",
+     "default_font_family",
+     "default_color",
+     "default_opacity",
+     "templates_section",
+     "watermark_templates",
+     "print_format_configs_section",
+     "print_format_configs"
+    ],
+    "fields": [
+     {
+      "default": "1",
+      "description": "Global toggle for watermark functionality",
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "label": "Enable Watermark System"
+     },
+     {
+      "default": "None",
+      "fieldname": "default_mode",
+      "fieldtype": "Select",
+      "label": "Default Watermark Mode",
+      "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence"
+     },
+     {
+      "fieldname": "global_settings_section",
+      "fieldtype": "Section Break",
+      "label": "Global Settings"
+     },
+     {
+      "default": "12",
+      "fieldname": "default_font_size",
+      "fieldtype": "Int",
+      "label": "Default Font Size (px)"
+     },
+     {
+      "default": "Top Right",
+      "fieldname": "default_position",
+      "fieldtype": "Select",
+      "label": "Default Position",
+      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right"
+     },
+     {
+      "default": "Sarabun",
+      "fieldname": "default_font_family",
+      "fieldtype": "Select",
+      "label": "Default Font Family",
+      "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun"
+     },
+     {
+      "default": "#999999",
+      "fieldname": "default_color",
+      "fieldtype": "Color",
+      "label": "Default Text Color"
+     },
+     {
+      "default": "0.6",
+      "fieldname": "default_opacity",
+      "fieldtype": "Float",
+      "label": "Default Opacity",
+      "precision": 2
+     },
+     {
+      "fieldname": "templates_section",
+      "fieldtype": "Section Break",
+      "label": "Watermark Templates"
+     },
+     {
+      "fieldname": "watermark_templates",
+      "fieldtype": "Table",
+      "label": "Watermark Templates",
+      "options": "Watermark Template"
+     },
+     {
+      "fieldname": "print_format_configs_section",
+      "fieldtype": "Section Break",
+      "label": "Print Format Configurations"
+     },
+     {
+      "fieldname": "print_format_configs",
+      "fieldtype": "Table",
+      "label": "Print Format Configurations",
+      "options": "Print Format Watermark Config"
+     }
+    ],
+    "is_single": 1,
+    "links": [],
+    "modified": "2025-01-26 12:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Print Designer",
+    "name": "Watermark Settings",
+    "owner": "Administrator",
+    "permissions": [
+     {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+     },
+     {
+      "read": 1,
+      "role": "Print Manager",
+      "write": 1
+     }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+}
