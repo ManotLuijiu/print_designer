@@ -283,6 +283,69 @@ def get_print_designer_style(print_format_doc):
         return ""
 
 
+def get_watermark_position_css(position, position_config=None):
+    """
+    Get CSS positioning styles based on Watermark Settings position configuration
+    
+    Args:
+        position: Position string from Watermark Settings
+        position_config: Dictionary containing custom position values 
+                        (position_top, position_right, position_bottom, position_left)
+        
+    Returns:
+        str: CSS positioning properties
+    """
+    # Check if custom positioning is requested
+    if position == "Custom" and position_config:
+        custom_css = []
+        
+        # Handle top/bottom positioning (top takes precedence)
+        if position_config.get("position_top") is not None:
+            custom_css.append(f"top: {position_config['position_top']}px;")
+        elif position_config.get("position_bottom") is not None:
+            custom_css.append(f"bottom: {position_config['position_bottom']}px;")
+        else:
+            # Default to top if neither specified
+            custom_css.append("top: 10px;")
+        
+        # Handle left/right positioning (right takes precedence)
+        if position_config.get("position_right") is not None:
+            custom_css.append(f"right: {position_config['position_right']}px;")
+        elif position_config.get("position_left") is not None:
+            custom_css.append(f"left: {position_config['position_left']}px;")
+        else:
+            # Default to right if neither specified
+            custom_css.append("right: 10px;")
+        
+        # Add transform if needed for centering
+        if (position_config.get("position_left") is not None and 
+            position_config.get("position_right") is not None):
+            # Both left and right specified - this is unusual but we'll use right
+            pass
+        elif (position_config.get("position_top") is not None and 
+              position_config.get("position_bottom") is not None):
+            # Both top and bottom specified - this is unusual but we'll use top
+            pass
+        
+        return " ".join(custom_css)
+    
+    # Use predefined positions
+    position_map = {
+        "Top Left": "top: 10px; left: 10px;",
+        "Top Center": "top: 10px; left: 50%; transform: translateX(-50%);",
+        "Top Right": "top: 10px; right: 10px;",
+        "Middle Left": "top: 50%; left: 10px; transform: translateY(-50%);",
+        "Middle Center": "top: 50%; left: 50%; transform: translate(-50%, -50%);",
+        "Middle Right": "top: 50%; right: 10px; transform: translateY(-50%);",
+        "Bottom Left": "bottom: 10px; left: 10px;",
+        "Bottom Center": "bottom: 10px; left: 50%; transform: translateX(-50%);",
+        "Bottom Right": "bottom: 10px; right: 10px;",
+    }
+    
+    # Default to top right if position not found
+    return position_map.get(position, position_map["Top Right"])
+
+
 def log_to_print_designer(message, level="INFO"):
     """Log messages to Print Designer specific log file"""
     try:
@@ -406,27 +469,117 @@ def get_html_and_style_with_watermark(
     # Parse settings to check for watermark configuration
     settings_dict = frappe.parse_json(settings) if settings else {}
     watermark_settings = settings_dict.get("watermark_settings", "None")
+    watermark_template = settings_dict.get("watermark_template")
 
     log_to_print_designer(
-        f"Print preview watermark request - settings: {watermark_settings}"
+        f"Print preview watermark request - settings: {watermark_settings}, template: {watermark_template}"
     )
 
-    # Add watermark HTML if configured
-    if watermark_settings and watermark_settings != "None" and result.get("html"):
-        # Get watermark configuration from Print Settings
+    # Add watermark HTML if configured (either via settings or template)
+    if (watermark_settings and watermark_settings != "None" and result.get("html")) or (watermark_template and result.get("html")):
+        # Get watermark configuration from Watermark Settings DocType
         try:
-            print_settings = frappe.get_single("Print Settings")
-            font_size = print_settings.get("watermark_font_size", 12)
-            font_family = print_settings.get("watermark_font_family", "Sarabun")
-        except Exception:
-            font_size = 12
-            font_family = "Sarabun"
+            # Priority 1: If template is specified, use template configuration
+            if watermark_template:
+                log_to_print_designer(f"Using watermark template: {watermark_template}")
+                from print_designer.api.watermark import get_watermark_template_config
+                
+                template_config = get_watermark_template_config(watermark_template)
+                font_size = template_config.get("font_size", 12)
+                font_family = template_config.get("font_family", "Sarabun")
+                watermark_color = template_config.get("color", "#999999")
+                watermark_opacity = template_config.get("opacity", 0.6)
+                watermark_position = template_config.get("position", "Top Right")
+                custom_watermark_text = template_config.get("custom_text")
+                configured_mode = template_config.get("watermark_mode", "None")
+                
+                # Collect custom positioning data
+                position_config = {
+                    "position_top": template_config.get("position_top"),
+                    "position_right": template_config.get("position_right"),
+                    "position_bottom": template_config.get("position_bottom"),
+                    "position_left": template_config.get("position_left"),
+                    "position_custom": template_config.get("position_custom")
+                }
+                
+                log_to_print_designer(f"Template configuration loaded: mode={configured_mode}, text={custom_watermark_text}, position={watermark_position}, custom_pos={position_config}")
+            
+            # Priority 2: Try to get configuration from new Watermark Settings system
+            elif print_format:
+                from print_designer.api.watermark import get_watermark_config_for_print_format
+                
+                watermark_config = get_watermark_config_for_print_format(print_format)
+                
+                if watermark_config.get("enabled"):
+                    font_size = watermark_config.get("font_size", 12)
+                    font_family = watermark_config.get("font_family", "Sarabun")
+                    watermark_color = watermark_config.get("color", "#999999")
+                    watermark_opacity = watermark_config.get("opacity", 0.6)
+                    watermark_position = watermark_config.get("position", "Top Right")
+                    custom_watermark_text = watermark_config.get("custom_text")
+                    configured_mode = watermark_config.get("watermark_mode", "None")
+                    
+                    # Collect custom positioning data
+                    position_config = {
+                        "position_top": watermark_config.get("position_top"),
+                        "position_right": watermark_config.get("position_right"),
+                        "position_bottom": watermark_config.get("position_bottom"),
+                        "position_left": watermark_config.get("position_left"),
+                        "position_custom": watermark_config.get("position_custom")
+                    }
+                else:
+                    # Watermark system disabled, skip watermark generation
+                    return result
+            else:
+                # No template and no print format, use defaults
+                raise Exception("No watermark configuration available")
+                
+        except Exception as e:
+            # Fallback to Print Settings for backward compatibility
+            log_to_print_designer(f"Failed to get Watermark Settings, using fallback: {str(e)}")
+            try:
+                print_settings = frappe.get_single("Print Settings")
+                font_size = print_settings.get("watermark_font_size", 12)
+                font_family = print_settings.get("watermark_font_family", "Sarabun")
+                watermark_color = "#999999"
+                watermark_opacity = 0.6
+                watermark_position = "Top Right"
+                custom_watermark_text = None
+                configured_mode = None
+                position_config = {}  # No custom positioning for fallback
+            except Exception:
+                font_size = 12
+                font_family = "Sarabun"
+                watermark_color = "#999999"
+                watermark_opacity = 0.6
+                watermark_position = "Top Right"
+                custom_watermark_text = None
+                configured_mode = None
+                position_config = {}  # No custom positioning for fallback
 
         # Get watermark text from multiple sources
         watermark_text = ""
 
-        # First, check the traditional watermark_settings from Print Settings
-        if watermark_settings == "Original on First Page":
+        # Priority 1: Use custom text from Watermark Settings if configured
+        if custom_watermark_text:
+            watermark_text = frappe._(custom_watermark_text)
+            log_to_print_designer(f"Using custom watermark text from configuration: {watermark_text}")
+        
+        # Priority 2: Check configured mode from Watermark Settings
+        elif configured_mode and configured_mode != "None":
+            if configured_mode == "Original on First Page":
+                watermark_text = frappe._("Original")
+            elif configured_mode == "Copy on All Pages":
+                watermark_text = frappe._("Copy")
+            elif configured_mode == "Original,Copy on Sequence":
+                # For print preview, show "Original" only since preview shows single page
+                # The actual sequence watermarking (Original on page 1, Copy on page 2)
+                # is handled by the Chrome PDF generator for multi-page PDFs
+                watermark_text = frappe._("Original")
+                log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
+        
+        # Priority 3: Fallback to traditional watermark_settings from URL parameter
+        elif watermark_settings == "Original on First Page":
             watermark_text = frappe._("Original")
         elif watermark_settings == "Copy on All Pages":
             watermark_text = frappe._("Copy")
@@ -435,9 +588,11 @@ def get_html_and_style_with_watermark(
             # The actual sequence watermarking (Original on page 1, Copy on page 2)
             # is handled by the Chrome PDF generator for multi-page PDFs
             watermark_text = frappe._("Original")
+            log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
 
         # Then, check for dynamic watermark from document fields (if available)
-        if not watermark_text and settings_dict:
+        # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
+        if not watermark_text and settings_dict and watermark_settings == "None":
             doc_data = settings_dict.get("doc", {})
             log_to_print_designer(f"Document data for dynamic watermark: {doc_data}")
             doctype = settings_dict.get("doctype", "")
@@ -470,6 +625,9 @@ def get_html_and_style_with_watermark(
             log_to_print_designer(
                 f"Creating watermark HTML with text: {watermark_text}, font: {font_family}"
             )
+            # Calculate position CSS based on Watermark Settings configuration
+            position_css = get_watermark_position_css(watermark_position, position_config)
+            
             watermark_html = f"""
             <style>
             	@font-face {{
@@ -483,13 +641,14 @@ def get_html_and_style_with_watermark(
 
                 .watermark {{
                     position: absolute;
-                    top: 70px;
-                    right: 70px;
-                    font-size: 12px;
-                    color: #000000;
+                    {position_css}
+                    font-size: {font_size}px;
+                    color: {watermark_color};
+                    opacity: {watermark_opacity};
                     font-weight: normal;
-                    font-family: Sarabun, sans-serif;
+                    font-family: {font_family}, sans-serif;
                     z-index: 1000;
+                    text-transform: uppercase;
                 }}
             </style>
             <div class="watermark">{watermark_text}</div>

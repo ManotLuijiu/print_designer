@@ -12,6 +12,11 @@
      "global_settings_section",
      "default_font_size",
      "default_position",
+     "default_position_custom",
+     "default_position_top",
+     "default_position_right", 
+     "default_position_bottom",
+     "default_position_left",
      "default_font_family",
      "default_color",
      "default_opacity",
@@ -51,7 +56,43 @@
       "fieldname": "default_position",
       "fieldtype": "Select",
       "label": "Default Position",
-      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right"
+      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right\nCustom"
+     },
+     {
+      "default": "0",
+      "depends_on": "eval:doc.default_position=='Custom'",
+      "description": "Enable custom positioning with pixel values",
+      "fieldname": "default_position_custom",
+      "fieldtype": "Check",
+      "label": "Use Custom Position"
+     },
+     {
+      "depends_on": "eval:doc.default_position=='Custom' && doc.default_position_custom",
+      "description": "Distance from top in pixels (leave blank to use bottom)",
+      "fieldname": "default_position_top",
+      "fieldtype": "Int",
+      "label": "Top (px)"
+     },
+     {
+      "depends_on": "eval:doc.default_position=='Custom' && doc.default_position_custom",
+      "description": "Distance from right in pixels (leave blank to use left)",
+      "fieldname": "default_position_right",
+      "fieldtype": "Int",
+      "label": "Right (px)"
+     },
+     {
+      "depends_on": "eval:doc.default_position=='Custom' && doc.default_position_custom",
+      "description": "Distance from bottom in pixels (leave blank to use top)",
+      "fieldname": "default_position_bottom",
+      "fieldtype": "Int",
+      "label": "Bottom (px)"
+     },
+     {
+      "depends_on": "eval:doc.default_position=='Custom' && doc.default_position_custom",
+      "description": "Distance from left in pixels (leave blank to use right)",
+      "fieldname": "default_position_left",
+      "fieldtype": "Int",
+      "label": "Left (px)"
      },
      {
       "default": "Sarabun",

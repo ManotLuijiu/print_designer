@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import frappe
 from frappe import _
@@ -156,6 +157,13 @@ def download_pdf_with_signature_stamp(
     **kwargs,
 ):
     """Enhanced PDF download with signature, stamp, and watermark support"""
+    
+    try:
+        log_to_print_designer(f"PDF download requested for {doctype}/{name} with kwargs: {kwargs}")
+        log_to_print_designer(f"Form dict: {dict(frappe.form_dict)}")
+    except Exception as e:
+        print(f"Error in logging: {e}")
+        frappe.log_error(f"PDF download debug error: {e}")
 
     # Get signature and stamp from form_dict if not provided
     digital_signature = digital_signature or frappe.form_dict.get("digital_signature")
@@ -173,10 +181,12 @@ def download_pdf_with_signature_stamp(
         frappe.local.print_context.update(signature_stamp_context)
 
     # Handle watermark settings for PDF generation
-    # Get watermark settings from Print Settings if not provided in settings parameter
-    watermark_settings = None
-    print(f"watermark_settings {watermark_settings}")
-    if settings:
+    # First check URL parameters for watermark_settings
+    watermark_settings = frappe.form_dict.get("watermark_settings") or kwargs.get("watermark_settings")
+    print(f"watermark_settings from URL: {watermark_settings}")
+    
+    # If not in URL, check settings parameter
+    if not watermark_settings and settings:
         # Parse settings if it's a JSON string
         if isinstance(settings, str):
             try:
@@ -237,15 +247,13 @@ def download_pdf_with_signature_stamp(
             watermark_text = _("Copy")
             # watermark_text = "Copy"
         elif watermark_settings == "Original,Copy on Sequence":
-            # For sequence watermarks, we need to delegate to the Chrome PDF generator
-            # which handles multiple copies with different watermarks properly.
-            # This HTML-based approach can't handle per-page watermarks correctly.
-            # Return None here so the Chrome PDF generator takes over.
-            watermark_text = None
-            log_to_print_designer("Sequence watermarks detected - delegating to Chrome PDF generator")
+            # For sequence watermarks, we'll use CSS to handle different text per page
+            watermark_text = "sequence"  # Special marker for sequence handling
+            log_to_print_designer("Sequence watermarks detected - implementing page-specific watermarks")
 
         # Then, check for dynamic watermark from document field (if available)
-        if not watermark_text:
+        # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
+        if not watermark_text and watermark_settings == "None":
             try:
                 doc = frappe.get_cached_doc(doctype, name)
                 log_to_print_designer(f"Checking document {doctype}/{name} for dynamic watermark")
@@ -278,43 +286,152 @@ def download_pdf_with_signature_stamp(
                 position_css = "top: 45%; left: 45%; width: 100px; margin-left: -50px;"
 
             # Add watermark CSS and HTML (CSS 2.1 compatible only)
-            watermark_html = f"""
-            <style>
-                .watermark {{
-                    position: absolute;
-                    {position_css}
-                    font-size: {font_size}px;
-                    color: #000000;
-                    font-weight: normal;
-                    font-family: {font_family}, sans-serif;
-                }}
-            </style>
-            <div class="watermark">{watermark_text}</div>
-            """
+            if watermark_text == "sequence":
+                # Special handling for sequence watermarks
+                # We'll inject multiple watermarks strategically placed in the HTML
+                watermark_html = f"""
+                <style>
+                    .watermark-sequence {{
+                        position: absolute;
+                        {position_css}
+                        font-size: {font_size}px;
+                        color: #000000;
+                        font-weight: normal;
+                        font-family: {font_family}, sans-serif;
+                        z-index: 1000;
+                    }}
+                </style>
+                """
+                # We'll handle the actual insertion differently for sequence watermarks
+            else:
+                # Regular watermark handling
+                watermark_html = f"""
+                <style>
+                    .watermark {{
+                        position: absolute;
+                        {position_css}
+                        font-size: {font_size}px;
+                        color: #000000;
+                        font-weight: normal;
+                        font-family: {font_family}, sans-serif;
+                    }}
+                </style>
+                <div class="watermark">{watermark_text}</div>
+                """
 
             # Insert watermark HTML inside header-html div where page numbers are located
             if isinstance(html_content, str):
-                # Try to insert watermark inside header-html div where page numbers are located
-                if '<div id="header-html">' in html_content:
-                    # Insert watermark right after the header-html opening tag
-                    html_content = html_content.replace(
-                        '<div id="header-html">',
-                        f'<div id="header-html">{watermark_html}',
-                    )
-                elif '<div class="print-format' in html_content:
-                    # Fallback: insert before print-format div
-                    html_content = html_content.replace(
-                        '<div class="print-format',
-                        f'{watermark_html}\n<div class="print-format',
-                    )
-                elif "</body>" in html_content:
-                    # Last resort: before closing body tag
-                    html_content = html_content.replace(
-                        "</body>", f"{watermark_html}</body>"
-                    )
+                if watermark_text == "sequence":
+                    # Special handling for sequence watermarks
+                    # Insert CSS first
+                    if '<div id="header-html">' in html_content:
+                        html_content = html_content.replace(
+                            '<div id="header-html">',
+                            f'<div id="header-html">{watermark_html}',
+                        )
+                    elif "<head>" in html_content:
+                        html_content = html_content.replace(
+                            "</head>", f"{watermark_html}</head>"
+                        )
+                    elif "<body>" in html_content:
+                        html_content = html_content.replace(
+                            "<body>", f"<body>{watermark_html}"
+                        )
+                    else:
+                        html_content = watermark_html + html_content
+                    
+                    # Now insert sequence watermarks strategically
+                    # Look for page breaks and table breaks to determine where to place watermarks
+                    page_breaks = [
+                        'page-break-after: always;',
+                        'page-break-before: always;',
+                        'break-after: page;',
+                        'break-before: page;',
+                        '<div style="page-break-after:always">',
+                        '<div style="page-break-before:always">',
+                        'class="page-break"',
+                        'style="break-after: page"',
+                        'style="break-before: page"'
+                    ]
+                    
+                    # Add the first watermark (Original) at the beginning
+                    first_watermark = f'<div class="watermark-sequence">{_("Original")}</div>'
+                    
+                    # Insert first watermark at beginning of content
+                    if '<div class="print-format' in html_content:
+                        html_content = html_content.replace(
+                            '<div class="print-format',
+                            f'{first_watermark}\n<div class="print-format',
+                            1  # Only replace first occurrence
+                        )
+                    elif '<body>' in html_content:
+                        html_content = html_content.replace(
+                            '<body>',
+                            f'<body>{first_watermark}',
+                            1
+                        )
+                    
+                    # Look for page breaks and add Copy watermarks after them
+                    copy_watermark = f'<div class="watermark-sequence">{_("Copy")}</div>'
+                    
+                    # Insert Copy watermarks after page breaks
+                    for page_break in page_breaks:
+                        if page_break in html_content:
+                            # Count occurrences to add multiple Copy watermarks
+                            matches = re.findall(re.escape(page_break), html_content)
+                            for i, match in enumerate(matches):
+                                # Insert Copy watermark after each page break
+                                if 'page-break-after' in page_break or 'break-after' in page_break:
+                                    # Insert after the element with page-break-after
+                                    pattern = rf'({re.escape(page_break)}[^>]*>)'
+                                    replacement = rf'\1{copy_watermark}'
+                                    html_content = re.sub(pattern, replacement, html_content, count=1)
+                                elif 'page-break-before' in page_break or 'break-before' in page_break:
+                                    # Insert before the element with page-break-before
+                                    pattern = rf'({re.escape(page_break)})'
+                                    replacement = rf'{copy_watermark}\1'
+                                    html_content = re.sub(pattern, replacement, html_content, count=1)
+                            break  # Stop after finding the first page break type
+                    
+                    # If no explicit page breaks found, try to detect implicit page breaks
+                    # by looking for large content blocks (tables, divs) and add Copy watermarks
+                    if not any(pb in html_content for pb in page_breaks):
+                        # Look for large table rows or content sections
+                        if '</table>' in html_content:
+                            # Add Copy watermark after large tables (potential page breaks)
+                            table_count = html_content.count('</table>')
+                            if table_count > 0:
+                                # Add Copy watermark after the first major table
+                                html_content = html_content.replace('</table>', f'</table>{copy_watermark}', 1)
+                        elif '<div class="print-format' in html_content and html_content.count('<div') > 10:
+                            # For complex layouts, add Copy watermark in the middle
+                            div_positions = [m.start() for m in re.finditer('<div', html_content)]
+                            if len(div_positions) > 5:
+                                middle_pos = div_positions[len(div_positions)//2]
+                                html_content = html_content[:middle_pos] + copy_watermark + html_content[middle_pos:]
+                
                 else:
-                    # Final fallback: append at the end
-                    html_content += watermark_html
+                    # Regular watermark handling
+                    if '<div id="header-html">' in html_content:
+                        # Insert watermark right after the header-html opening tag
+                        html_content = html_content.replace(
+                            '<div id="header-html">',
+                            f'<div id="header-html">{watermark_html}',
+                        )
+                    elif '<div class="print-format' in html_content:
+                        # Fallback: insert before print-format div
+                        html_content = html_content.replace(
+                            '<div class="print-format',
+                            f'{watermark_html}\n<div class="print-format',
+                        )
+                    elif "</body>" in html_content:
+                        # Last resort: before closing body tag
+                        html_content = html_content.replace(
+                            "</body>", f"{watermark_html}</body>"
+                        )
+                    else:
+                        # Final fallback: append at the end
+                        html_content += watermark_html
             else:
                 # If html_content is not a string, convert to string before appending watermark
                 html_content = str(html_content) + watermark_html
@@ -354,7 +471,14 @@ def download_pdf_with_signature_stamp(
     pdf_kwargs = {k: v for k, v in pdf_kwargs.items() if v is not None}
 
     # Call the original download_pdf function with compatible parameters only
-    return original_download_pdf(**pdf_kwargs)
+    try:
+        result = original_download_pdf(**pdf_kwargs)
+        log_to_print_designer(f"Original PDF function completed successfully")
+        return result
+    except Exception as e:
+        log_to_print_designer(f"Error in original PDF function: {e}")
+        frappe.log_error(f"PDF generation error: {e}", "PDF Generation")
+        frappe.throw(f"PDF generation failed: {str(e)}")
 
 
 # Optional: Auto-signature functionality

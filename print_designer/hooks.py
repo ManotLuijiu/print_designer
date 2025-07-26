@@ -65,6 +65,7 @@ doctype_js = {
     "Delivery Note": "print_designer/public/js/delivery_approval.js",
     "Payment Entry": "print_designer/public/js/delivery_approval.js",
     "Client Script": "print_designer/client_scripts/client_script.js",
+    "Sales Invoice": "print_designer/client_scripts/sales_invoice.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -178,8 +179,6 @@ after_app_install = [
 # -------------
 on_startup = [
     "print_designer.startup.initialize_print_designer",
-    # NEW: Initialize signature and stamp patches
-    "print_designer.utils.signature_stamp.startup_patches",
     "print_designer.hooks.override_erpnext_install",
 ]
 

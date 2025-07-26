@@ -275,20 +275,42 @@ print_designer.watermark = {
         const watermark_text = this.get_watermark_text();
         const position_style = this.get_position_style();
 
-        this.watermark_element = $(`
-            <div class="watermark-overlay" style="
-                position: absolute;
-                pointer-events: none;
-                z-index: 1000;
-                font-family: ${this.current_config.font_family || 'Sarabun'};
-                font-size: ${this.current_config.font_size || 24}px;
-                color: ${this.current_config.color || '#999999'};
-                opacity: ${this.current_config.opacity || 0.6};
-                font-weight: bold;
-                text-transform: uppercase;
-                ${position_style}
-            ">${watermark_text}</div>
-        `);
+        if (watermark_text === 'sequence') {
+            // Special handling for sequence watermarks in preview
+            // Show both Original and Copy to indicate sequence mode
+            this.watermark_element = $(`
+                <div class="watermark-sequence-preview" style="
+                    position: absolute;
+                    pointer-events: none;
+                    z-index: 1000;
+                    font-family: ${this.current_config.font_family || 'Sarabun'};
+                    font-size: ${this.current_config.font_size || 24}px;
+                    color: ${this.current_config.color || '#999999'};
+                    opacity: ${this.current_config.opacity || 0.6};
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    ${position_style}
+                ">
+                    <div class="sequence-original">${__('ORIGINAL')}</div>
+                    <div class="sequence-copy" style="margin-top: 10px; font-size: 0.8em; font-style: italic;">(${__('COPY')} on pages 2+)</div>
+                </div>
+            `);
+        } else {
+            this.watermark_element = $(`
+                <div class="watermark-overlay" style="
+                    position: absolute;
+                    pointer-events: none;
+                    z-index: 1000;
+                    font-family: ${this.current_config.font_family || 'Sarabun'};
+                    font-size: ${this.current_config.font_size || 24}px;
+                    color: ${this.current_config.color || '#999999'};
+                    opacity: ${this.current_config.opacity || 0.6};
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    ${position_style}
+                ">${watermark_text}</div>
+            `);
+        }
 
         print_area.css('position', 'relative').append(this.watermark_element);
 
@@ -310,8 +332,8 @@ print_designer.watermark = {
         } else if (mode === 'Copy on All Pages') {
             return __('COPY');
         } else if (mode === 'Original,Copy on Sequence') {
-            // This would need more logic to determine which page we're on
-            return __('ORIGINAL');
+            // For preview, show both Original and Copy to indicate sequence mode
+            return 'sequence'; // Special marker for sequence handling
         }
 
         return __('WATERMARK');
@@ -363,7 +385,7 @@ print_designer.watermark = {
      * Remove watermark from print preview
      */
     remove_watermark: function() {
-        $('.watermark-overlay').remove();
+        $('.watermark-overlay, .watermark-sequence-preview').remove();
         this.watermark_element = null;
     },
 

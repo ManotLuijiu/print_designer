@@ -12,6 +12,11 @@
      "watermark_mode",
      "font_size",
      "position",
+     "position_custom",
+     "position_top",
+     "position_right",
+     "position_bottom",
+     "position_left",
      "font_family",
      "color",
      "opacity",
@@ -63,7 +68,43 @@
       "fieldname": "position",
       "fieldtype": "Select",
       "label": "Position",
-      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right"
+      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right\nCustom"
+     },
+     {
+      "default": "0",
+      "depends_on": "eval:doc.override_settings && doc.position=='Custom'",
+      "description": "Enable custom positioning with pixel values",
+      "fieldname": "position_custom",
+      "fieldtype": "Check",
+      "label": "Use Custom Position"
+     },
+     {
+      "depends_on": "eval:doc.override_settings && doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from top in pixels (leave blank to use bottom)",
+      "fieldname": "position_top",
+      "fieldtype": "Int",
+      "label": "Top (px)"
+     },
+     {
+      "depends_on": "eval:doc.override_settings && doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from right in pixels (leave blank to use left)",
+      "fieldname": "position_right",
+      "fieldtype": "Int",
+      "label": "Right (px)"
+     },
+     {
+      "depends_on": "eval:doc.override_settings && doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from bottom in pixels (leave blank to use top)",
+      "fieldname": "position_bottom",
+      "fieldtype": "Int",
+      "label": "Bottom (px)"
+     },
+     {
+      "depends_on": "eval:doc.override_settings && doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from left in pixels (leave blank to use right)",
+      "fieldname": "position_left",
+      "fieldtype": "Int",
+      "label": "Left (px)"
      },
      {
       "depends_on": "override_settings",

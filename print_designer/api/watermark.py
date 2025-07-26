@@ -180,6 +180,11 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
                     or settings.default_mode,
                     "font_size": format_config.font_size or settings.default_font_size,
                     "position": format_config.position or settings.default_position,
+                    "position_custom": format_config.position_custom,
+                    "position_top": format_config.position_top,
+                    "position_right": format_config.position_right,
+                    "position_bottom": format_config.position_bottom,
+                    "position_left": format_config.position_left,
                     "font_family": format_config.font_family
                     or settings.default_font_family,
                     "color": format_config.color or settings.default_color,
@@ -194,6 +199,11 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
             "watermark_mode": settings.default_mode,
             "font_size": settings.default_font_size,
             "position": settings.default_position,
+            "position_custom": settings.default_position_custom,
+            "position_top": settings.default_position_top,
+            "position_right": settings.default_position_right,
+            "position_bottom": settings.default_position_bottom,
+            "position_left": settings.default_position_left,
             "font_family": settings.default_font_family,
             "color": settings.default_color,
             "opacity": settings.default_opacity,
@@ -223,6 +233,11 @@ def get_watermark_template_config(template_name: str) -> Dict:
             "watermark_mode": template.watermark_mode,
             "font_size": template.font_size,
             "position": template.position,
+            "position_custom": template.position_custom,
+            "position_top": template.position_top,
+            "position_right": template.position_right,
+            "position_bottom": template.position_bottom,
+            "position_left": template.position_left,
             "font_family": template.font_family,
             "color": template.color,
             "opacity": template.opacity,
@@ -301,6 +316,11 @@ def save_print_format_watermark_config(print_format: str, config: Dict) -> Dict:
                     "watermark_mode": config.get("watermark_mode"),
                     "font_size": config.get("font_size"),
                     "position": config.get("position"),
+                    "position_custom": config.get("position_custom"),
+                    "position_top": config.get("position_top"),
+                    "position_right": config.get("position_right"),
+                    "position_bottom": config.get("position_bottom"),
+                    "position_left": config.get("position_left"),
                     "font_family": config.get("font_family"),
                     "color": config.get("color"),
                     "opacity": config.get("opacity"),
@@ -425,3 +445,65 @@ def migrate_legacy_watermark_settings():
     except Exception as e:
         frappe.log_error(f"Error during migration: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+def cleanup_watermark_cache():
+    """
+    Daily cleanup task for watermark cache
+    Called by scheduler to clean up old watermark cache entries
+    """
+    try:
+        cache = frappe.cache()
+        
+        # List of cache keys to clean up
+        cache_keys_to_clean = [
+            "watermark_settings",
+            "watermark_templates"
+        ]
+        
+        # Clean up main cache keys
+        for key in cache_keys_to_clean:
+            cache.delete_key(key)
+        
+        # Clean up format-specific cache keys
+        # Get all print formats and clean their watermark cache
+        print_formats = frappe.get_all("Print Format", pluck="name")
+        
+        cleaned_count = 0
+        for print_format in print_formats:
+            cache_key = f"watermark_config_{print_format}"
+            if cache.get_value(cache_key):
+                cache.delete_key(cache_key)
+                cleaned_count += 1
+        
+        frappe.logger().info(f"Watermark cache cleanup completed. Cleaned {cleaned_count} format-specific cache entries.")
+        
+        return {
+            "success": True,
+            "cleaned_count": cleaned_count,
+            "message": f"Cleaned up {cleaned_count} watermark cache entries"
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Error during watermark cache cleanup: {str(e)}", "Watermark Cache Cleanup")
+        frappe.logger().error(f"Watermark cache cleanup failed: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@frappe.whitelist()
+def get_permission_query_conditions(user=None):
+    """
+    Permission query conditions for Watermark Template
+    """
+    if not user:
+        user = frappe.session.user
+        
+    # Allow system managers and administrators full access
+    if "System Manager" in frappe.get_roles(user) or user == "Administrator":
+        return ""
+    
+    # For other users, they can only see templates they created or public ones
+    return f"""(
+        `tabWatermark Template`.owner = '{user}' 
+        OR `tabWatermark Template`.is_public = 1
+    )"""
