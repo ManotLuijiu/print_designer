@@ -25,13 +25,14 @@ commands = [
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_js = ""
+app_include_js = ["print_watermark.bundle.js", "delivery_approval.bundle.js"]
 
 app_include_css = [
     "thai_fonts.bundle.css",
     "signature_stamp.bundle.css",
     "signature_preview.bundle.css",
     "delivery_approval.bundle.css",
+    "watermark.bundle.css",
 ]
 # app_include_css = "thai_business_suite.app.bundle.css"
 
@@ -79,6 +80,24 @@ doctype_js = {
 # role_home_page = {
 # 	"Role": "home_page"
 # }
+
+# Fixtures for deployment
+fixtures = [
+    {
+        "doctype": "DocType",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Watermark Settings",
+                    "Watermark Template",
+                    "Print Format Watermark Config",
+                ],
+            ]
+        ],
+    }
+]
 
 # Generators
 # ----------
@@ -132,13 +151,17 @@ jinja = {
 }
 
 # Boot session enhancements
-boot_session = "print_designer.utils.signature_stamp.boot_session"
+boot_session = [
+    "print_designer.utils.signature_stamp.boot_session",
+    "print_designer.boot.get_bootinfo",
+]
 
 # Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
 override_whitelisted_methods = {
     "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
     # Temporarily disabled due to 500 error - causing print preview to fail this make frappe insert error
     # "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
+    "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
 }
 
 # Installation
@@ -198,8 +221,17 @@ override_doctype_class = {
 pd_standard_format_folder = "default_templates"
 
 doc_events = {
+    # Watermark
+    "Watermark Settings": {
+        "validate": "print_designer.api.watermark.validate_watermark_settings",
+        "on_update": "print_designer.api.watermark.clear_watermark_cache",
+    },
+    # "Print Format": {
+    #     "on_update": "print_designer.api.watermark.clear_format_watermark_cache"
+    # },
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
+        "on_update": "print_designer.api.watermark.clear_format_watermark_cache",
     },
     # Consolidated before_print hooks using the enhanced pdf.before_print function
     # Temporarily disabled Sales Invoice before_print due to Chrome issues
@@ -272,3 +304,31 @@ def override_erpnext_install():
         import frappe
 
         frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+
+
+# scheduler_events = {
+#     "hourly": [
+#         # will run hourly
+#         "app.scheduled_tasks.update_database_usage"
+#     ],
+# }
+
+# Scheduled tasks for watermark cache management
+scheduler_events = {"daily": ["print_designer.api.watermark.cleanup_watermark_cache"]}
+
+
+# Permission query conditions
+permission_query_conditions = {
+    "Watermark Template": "print_designer.api.watermark.get_permission_query_conditions"
+}
+
+
+# Standard portal menu items
+standard_portal_menu_items = [
+    {
+        "title": "Print Formats",
+        "route": "/print-formats",
+        "reference_doctype": "Print Format",
+        "role": "Print Manager",
+    }
+]
