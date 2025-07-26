@@ -24,6 +24,32 @@ SIGNATURE_FIELDS = {
 		}
 	],
 	
+	"Designation": [
+		{
+			"fieldname": "designation_signature",
+			"fieldtype": "Attach Image",
+			"label": "Designation Signature",
+			"insert_after": "description",
+			"description": "Default signature for this designation/role"
+		},
+		{
+			"fieldname": "signature_authority_level",
+			"fieldtype": "Select",
+			"label": "Signature Authority Level",
+			"options": "None\nLow\nMedium\nHigh\nExecutive",
+			"default": "None",
+			"insert_after": "designation_signature",
+			"description": "Level of signature authority for approval workflows"
+		},
+		{
+			"fieldname": "max_approval_amount",
+			"fieldtype": "Currency",
+			"label": "Maximum Approval Amount",
+			"insert_after": "signature_authority_level",
+			"description": "Maximum amount this designation can approve with signature"
+		}
+	],
+	
 	# CRM Module
 	"Customer": [
 		{

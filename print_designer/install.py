@@ -49,6 +49,8 @@ def after_install():
     setup_enhanced_print_settings()  # Use new consolidated function
     # Install watermark fields for fresh installations
     _install_watermark_fields_on_install()
+    # Install signature fields for all DocTypes on fresh installation
+    _install_signature_fields_on_install()
     # TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
     setup_chromium()
 
@@ -1114,3 +1116,63 @@ def handle_erpnext_override(app_name):
 
 # Note: remove_existing_print_settings_fields() function removed
 # Migration now uses safe, non-destructive approach via migrate_existing_print_settings()
+
+
+def _install_signature_fields_on_install():
+    """
+    Install signature fields for all DocTypes during fresh installation.
+    This ensures signature fields are available immediately after app installation.
+    """
+    try:
+        from print_designer.api.signature_field_installer import install_all_signature_fields
+        
+        click.echo("📝 Installing signature fields for all DocTypes...")
+        
+        # Install signature fields for all DocTypes defined in signature_fields.py
+        result = install_all_signature_fields()
+        
+        if result.get("success"):
+            click.echo(f"✅ Signature fields installed successfully!")
+            click.echo(f"   📊 DocTypes processed: {result.get('doctypes_processed', 0)}")
+            click.echo(f"   🖋️  Fields installed: {result.get('fields_installed', 0)}")
+            
+            # Commit the changes
+            frappe.db.commit()
+            
+            # Clear caches to ensure fields are available immediately
+            frappe.clear_cache()
+            
+        else:
+            click.echo(f"⚠️  Warning: Signature field installation had issues")
+            click.echo(f"   Error: {result.get('error', 'Unknown error')}")
+            
+    except ImportError as e:
+        click.echo("⚠️  Signature field installer not available - skipping signature field installation")
+        frappe.log_error(f"Signature field installer import error: {str(e)}")
+        
+    except Exception as e:
+        click.echo(f"⚠️  Error installing signature fields: {str(e)}")
+        frappe.log_error(f"Error installing signature fields on install: {str(e)}")
+
+
+def ensure_signature_fields():
+    """
+    Ensure signature fields are installed after migration.
+    This runs after every migration to ensure existing installations get signature fields.
+    """
+    try:
+        from print_designer.api.signature_field_installer import install_missing_signature_fields
+        
+        # Only install missing fields (safe for existing installations)
+        result = install_missing_signature_fields()
+        
+        if result.get("success") and result.get("fields_installed", 0) > 0:
+            frappe.logger().info(f"Signature fields migration: {result.get('fields_installed')} fields installed")
+            frappe.db.commit()
+            
+    except ImportError:
+        # Signature field installer not available - this is okay for development
+        pass
+    except Exception as e:
+        frappe.log_error(f"Error ensuring signature fields after migration: {str(e)}")
+        frappe.logger().error(f"Signature fields migration error: {str(e)}")

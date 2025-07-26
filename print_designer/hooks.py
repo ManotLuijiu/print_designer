@@ -189,6 +189,7 @@ after_migrate = [
     "print_designer.api.safe_install.safe_install_signature_enhancements",
     "print_designer.install.ensure_custom_fields",  # This now uses setup_enhanced_print_settings internally
     "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
+    "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
 ]
 
 # Uninstallation
