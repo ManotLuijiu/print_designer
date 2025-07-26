@@ -1570,7 +1570,7 @@ function extendPrintView() {
   }
   setup_toolbar() {
     this.print_btn = this.page.set_primary_action(
-      __('Print'),
+      __('Print1'),
       () => this.printit(),
       'printer',
     );
@@ -1706,31 +1706,7 @@ function extendPrintView() {
       change: () => this.preview(),
     }).$input;
 
-    // NEW: Watermark per Page selector
-    console.log('[WATERMARK DEBUG] Adding watermark selector to sidebar...');
-    console.log('[WATERMARK DEBUG] Current print format:', this.get_print_format());
-    console.log('[WATERMARK DEBUG] Print settings:', this.print_settings);
-    
-    this.watermark_selector = this.add_sidebar_item({
-      fieldtype: "Select",
-      fieldname: "watermark_settings",
-      label: __("Watermark per Page"),
-      options: [
-        "None",
-        "Original on First Page",
-        "Copy on All Pages",
-        "Original,Copy on Sequence"
-      ].join('\n'),
-      default: "None",
-      description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
-      change: () => {
-        console.log('[WATERMARK DEBUG] Watermark selector changed, value:', this.watermark_selector.val());
-        this.preview();
-      },
-    }).$input;
-    console.log('[WATERMARK DEBUG] Watermark selector created:', this.watermark_selector);
-    console.log('[WATERMARK DEBUG] Watermark selector parent:', this.watermark_selector.parent());
-    console.log('[WATERMARK DEBUG] Sidebar element:', this.sidebar);
+    // NOTE: Watermark selector moved to setup_copy_options() to be conditional
 
     this.sidebar_dynamic_section = $(
       `<div class="dynamic-settings"></div>`,
@@ -1792,10 +1768,33 @@ function extendPrintView() {
         if (r.message) {
           console.log('[WATERMARK DEBUG] Print settings loaded:', r.message);
           this.print_settings = r.message;
-          console.log('[WATERMARK DEBUG] Watermark settings in print_settings:', this.print_settings.watermark_settings);
+          console.log('[WATERMARK DEBUG] show_copy_controls_in_toolbar:', this.print_settings.show_copy_controls_in_toolbar);
+          console.log('[WATERMARK DEBUG] enable_multiple_copies:', this.print_settings.enable_multiple_copies);
+          console.log('[WATERMARK DEBUG] watermark_settings:', this.print_settings.watermark_settings);
           // Setup copy options after settings are loaded
           this.setup_copy_options();
+        } else {
+          console.log('[WATERMARK DEBUG] No print settings returned from API');
+          // Create default settings if none exist
+          this.print_settings = {
+            enable_multiple_copies: 1,
+            show_copy_controls_in_toolbar: 1,
+            watermark_settings: 'None'
+          };
+          console.log('[WATERMARK DEBUG] Using default print settings:', this.print_settings);
+          this.setup_copy_options();
         }
+      },
+      error: (err) => {
+        console.log('[WATERMARK DEBUG] Error loading print settings:', err);
+        // Create default settings on error
+        this.print_settings = {
+          enable_multiple_copies: 1,
+          show_copy_controls_in_toolbar: 1,
+          watermark_settings: 'None'
+        };
+        console.log('[WATERMARK DEBUG] Using default print settings due to error:', this.print_settings);
+        this.setup_copy_options();
       }
     });
   }
@@ -1807,6 +1806,34 @@ function extendPrintView() {
     }
 
     this.copy_options_initialized = true;
+
+    // Show watermark selector if copy controls are enabled in toolbar
+    if (this.print_settings.show_copy_controls_in_toolbar) {
+      console.log('[WATERMARK DEBUG] Adding watermark selector - copy controls enabled in toolbar');
+      console.log('[WATERMARK DEBUG] Print settings:', this.print_settings);
+      
+      this.watermark_selector = this.add_sidebar_item({
+        fieldtype: "Select",
+        fieldname: "watermark_settings",
+        label: __("Watermark per Page"),
+        options: [
+          "None",
+          "Original on First Page",
+          "Copy on All Pages",
+          "Original,Copy on Sequence"
+        ].join('\n'),
+        default: this.print_settings.watermark_settings || "None",
+        description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
+        change: () => {
+          console.log('[WATERMARK DEBUG] Watermark selector changed, value:', this.watermark_selector.val());
+          this.preview();
+        },
+      });
+      
+      console.log('[WATERMARK DEBUG] Watermark selector created:', this.watermark_selector);
+    } else {
+      console.log('[WATERMARK DEBUG] Copy controls not enabled in toolbar - watermark selector hidden');
+    }
 
     // Only show copy options if enabled in print settings
     if (this.print_settings.enable_multiple_copies) {

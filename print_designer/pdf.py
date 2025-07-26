@@ -301,6 +301,11 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
         # Update the kwargs with prepared args
         kwargs["args"] = args
 
+    except (BrokenPipeError, OSError, ConnectionError) as pipe_error:
+        # Handle Chrome-related pipe errors gracefully
+        print(f"Chrome communication error in before_print hook: {str(pipe_error)}")
+        # Don't log to database for pipe errors to avoid recursion
+        # Just continue with standard processing
     except Exception as e:
         frappe.log_error(
             title="Before Print Hook Error",

@@ -7,6 +7,8 @@ app_description = "Frappe App to Design Print Formats using interactive UI."
 app_email = "hello@frappe.io"
 app_license = "AGPLv3"
 
+required_apps = ["erpnext"]
+
 # Custom bench commands
 commands = [
     "print_designer.commands.signature_setup.setup_signatures",
@@ -57,9 +59,11 @@ page_js = {
 # include js in doctype views
 doctype_js = {
     "Print Format": "print_designer/client_scripts/print_format.js",
+    "Print Settings": "print_designer/client_scripts/print_settings.js",
     "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js",
     "Delivery Note": "print_designer/public/js/delivery_approval.js",
     "Payment Entry": "print_designer/public/js/delivery_approval.js",
+    "Client Script": "print_designer/client_scripts/client_script.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -151,9 +155,9 @@ after_app_install = [
 # -------------
 on_startup = [
     "print_designer.startup.initialize_print_designer",
-    "print_designer.hooks.override_erpnext_install",
     # NEW: Initialize signature and stamp patches
     "print_designer.utils.signature_stamp.startup_patches",
+    "print_designer.hooks.override_erpnext_install",
 ]
 
 # Initialize protection against third-party app conflicts
@@ -161,7 +165,8 @@ after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.api.safe_install.safe_install_signature_enhancements",
-    "print_designer.install.ensure_custom_fields",
+    "print_designer.install.ensure_custom_fields",  # This now uses setup_enhanced_print_settings internally
+    "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
 ]
 
 # Uninstallation
@@ -196,6 +201,7 @@ doc_events = {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
     },
     # Consolidated before_print hooks using the enhanced pdf.before_print function
+    # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
     },

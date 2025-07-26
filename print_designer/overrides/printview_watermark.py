@@ -30,16 +30,36 @@ def get_print_designer_html_for_browser(
         else:
             doc_obj = doc
 
-        # Use the standard Frappe rendering which will call Print Designer hooks
-        html = get_rendered_template(
-            doc=doc_obj,
-            print_format=print_format_doc,
-            meta=doc_obj.meta,
-            trigger_print=is_print_mode,
-            no_letterhead=no_letterhead,
-            letterhead=letterhead,
-            settings=frappe.parse_json(settings) if settings else {},
-        )
+        # Try to use the standard Frappe rendering, but catch Chrome-related errors
+        try:
+            html = get_rendered_template(
+                doc=doc_obj,
+                print_format=print_format_doc,
+                meta=doc_obj.meta,
+                trigger_print=is_print_mode,
+                no_letterhead=no_letterhead,
+                letterhead=letterhead,
+                settings=frappe.parse_json(settings) if settings else {},
+            )
+        except (BrokenPipeError, OSError, ConnectionError) as chrome_error:
+            # If Chrome-related error occurs, fall back to simpler rendering
+            log_to_print_designer(f"Chrome rendering failed, using fallback: {str(chrome_error)}")
+            
+            # Use the print format's HTML directly without Chrome processing
+            if hasattr(print_format_doc, 'html'):
+                from frappe.www.printview import get_context
+                context = get_context(
+                    doc=doc_obj,
+                    print_format=print_format_doc,
+                    meta=doc_obj.meta,
+                    no_letterhead=no_letterhead,
+                    letterhead=letterhead,
+                    settings=frappe.parse_json(settings) if settings else {},
+                )
+                html = frappe.render_template(print_format_doc.html, context)
+            else:
+                # Final fallback - raise the error to be caught by outer exception handler
+                raise chrome_error
 
         # Add browser-specific enhancements for page numbering and footer fixing
         enhanced_html = enhance_html_for_browser_printing(html, is_print_mode)
@@ -50,6 +70,7 @@ def get_print_designer_html_for_browser(
         return {"html": enhanced_html, "style": style}
 
     except Exception as e:
+        log_to_print_designer(f"Error in get_print_designer_html_for_browser: {str(e)}")
         frappe.log_error(f"Error in get_print_designer_html_for_browser: {str(e)}")
         # Fallback to standard method
         doc_str = doc if isinstance(doc, str) else frappe.as_json(doc)
@@ -277,11 +298,25 @@ def log_to_print_designer(message, level="INFO"):
 
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] [WATERMARK] [{level}] {message}\n")
+            f.flush()  # Ensure data is written immediately
+    except (OSError, IOError, BrokenPipeError) as e:
+        # Silently fall back to frappe logger for file system errors
+        try:
+            frappe.logger("print_designer").info(
+                f"[WATERMARK] [{level}] {message}"
+            )
+        except Exception:
+            # If all logging fails, just ignore it to prevent blocking the main process
+            pass
     except Exception as e:
-        # Fallback to frappe logger if file logging fails
-        frappe.logger("print_designer").info(
-            f"Log write failed: {e}, Original message: {message}"
-        )
+        # For any other error, try frappe logger
+        try:
+            frappe.logger("print_designer").info(
+                f"Log write failed: {e}, Original message: [{level}] {message}"
+            )
+        except Exception:
+            # If all logging fails, just ignore it to prevent blocking the main process
+            pass
 
 
 @frappe.whitelist()
@@ -343,6 +378,7 @@ def get_html_and_style_with_watermark(
             )
         except Exception as e:
             log_to_print_designer(f"Print Designer rendering failed: {str(e)}")
+            frappe.log_error(f"Print Designer rendering failed for {print_format}: {str(e)}")
             # Fallback to standard method
             result = original_get_html_and_style(
                 doc=doc,
