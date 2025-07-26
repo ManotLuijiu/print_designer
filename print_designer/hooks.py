@@ -153,7 +153,6 @@ jinja = {
 # Boot session enhancements
 boot_session = [
     "print_designer.utils.signature_stamp.boot_session",
-    "print_designer.boot.get_bootinfo",
 ]
 
 # Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
