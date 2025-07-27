@@ -403,6 +403,8 @@ def get_html_and_style_with_watermark(
     settings=None,
 ):
     """Override of get_html_and_style that adds watermark support and Print Designer compatibility"""
+    
+    log_to_print_designer(f"Print preview override called: print_format={print_format}, settings={settings}, trigger_print={trigger_print}")
 
     # Check if this is a Print Designer format
     print_format_doc = None
@@ -479,9 +481,14 @@ def get_html_and_style_with_watermark(
     settings_dict = frappe.parse_json(settings) if settings else {}
     watermark_settings = settings_dict.get("watermark_settings", "None")
     watermark_template = settings_dict.get("watermark_template")
+    
+    # Also check for new watermark fields from our Print Settings override
+    watermark_font_size = settings_dict.get("watermark_font_size")
+    watermark_position = settings_dict.get("watermark_position")
+    watermark_font_family = settings_dict.get("watermark_font_family")
 
     log_to_print_designer(
-        f"Print preview watermark request - settings: {watermark_settings}, template: {watermark_template}"
+        f"Print preview watermark request - settings: {watermark_settings}, template: {watermark_template}, font_size: {watermark_font_size}, position: {watermark_position}, font_family: {watermark_font_family}"
     )
 
     # Add watermark HTML if configured (either via settings or template)
@@ -547,12 +554,26 @@ def get_html_and_style_with_watermark(
             # Fallback to Print Settings for backward compatibility
             log_to_print_designer(f"Failed to get Watermark Settings, using fallback: {str(e)}")
             try:
-                print_settings = frappe.get_single("Print Settings")
-                font_size = print_settings.get("watermark_font_size", 12)
-                font_family = print_settings.get("watermark_font_family", "Sarabun")
+                # Try to use sidebar settings first
+                if watermark_font_size or watermark_position or watermark_font_family:
+                    log_to_print_designer("Using watermark settings from sidebar")
+                    font_size = watermark_font_size or "12px"
+                    # Remove px suffix if present for numeric processing
+                    if isinstance(font_size, str) and font_size.endswith('px'):
+                        font_size = font_size[:-2]
+                    font_family = watermark_font_family or "Sarabun"
+                    watermark_position = watermark_position or "Top Right"
+                else:
+                    # Fall back to Print Settings DocType
+                    print_settings = frappe.get_single("Print Settings")
+                    font_size = print_settings.get("watermark_font_size", "12px")
+                    if isinstance(font_size, str) and font_size.endswith('px'):
+                        font_size = font_size[:-2]
+                    font_family = print_settings.get("watermark_font_family", "Sarabun")
+                    watermark_position = print_settings.get("watermark_position", "Top Right")
+                
                 watermark_color = "#999999"
                 watermark_opacity = 0.6
-                watermark_position = "Top Right"
                 custom_watermark_text = None
                 configured_mode = None
                 position_config = {}  # No custom positioning for fallback

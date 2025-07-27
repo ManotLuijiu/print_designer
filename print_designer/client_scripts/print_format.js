@@ -7,10 +7,52 @@ const set_template_app_options = (frm) => {
 	});
 };
 
+const setup_print_designer_ui = (frm) => {
+	// Add helpful information about Print Designer functionality
+	if (frm.doc.print_designer) {
+		frm.dashboard.add_comment(
+			__("This format uses Print Designer. Click 'Edit Format' to open the visual designer."),
+			"blue",
+			true
+		);
+	}
+	
+	// Add quick toggle button for Print Designer
+	if (!frm.is_new() && frappe.user.has_role(["System Manager", "Print Manager"])) {
+		const current_status = frm.doc.print_designer ? "enabled" : "disabled";
+		const toggle_text = frm.doc.print_designer ? "Disable Print Designer" : "Enable Print Designer";
+		const button_class = frm.doc.print_designer ? "btn-warning" : "btn-primary";
+		
+		frm.add_custom_button(__(toggle_text), function() {
+			const new_value = frm.doc.print_designer ? 0 : 1;
+			const action = new_value ? "enable" : "disable";
+			
+			frappe.confirm(
+				__(`Are you sure you want to ${action} Print Designer for this format?`),
+				function() {
+					frm.set_value("print_designer", new_value);
+					frm.save().then(() => {
+						const message = new_value ? 
+							"Print Designer enabled. The 'Edit Format' button will now open Print Designer." :
+							"Print Designer disabled. The 'Edit Format' button will now open Print Format Builder.";
+						frappe.show_alert({
+							message: __(message),
+							indicator: new_value ? "green" : "orange"
+						});
+						// Refresh to update UI
+						frm.refresh();
+					});
+				}
+			);
+		}, __("Actions")).addClass(button_class);
+	}
+};
+
 frappe.ui.form.on("Print Format", {
 	refresh: function (frm) {
 		frm.trigger("render_buttons");
 		set_template_app_options(frm);
+		setup_print_designer_ui(frm);
 	},
 	render_buttons: function (frm) {
 		frm.page.clear_inner_toolbar();

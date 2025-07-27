@@ -51,6 +51,8 @@ def after_install():
     _install_watermark_fields_on_install()
     # Install signature fields for all DocTypes on fresh installation
     _install_signature_fields_on_install()
+    # Setup Print Designer UI visibility for new installations
+    _setup_print_designer_ui_on_install()
     # TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
     setup_chromium()
 
@@ -1176,3 +1178,31 @@ def ensure_signature_fields():
     except Exception as e:
         frappe.log_error(f"Error ensuring signature fields after migration: {str(e)}")
         frappe.logger().error(f"Signature fields migration error: {str(e)}")
+
+
+def _setup_print_designer_ui_on_install():
+    """
+    Setup Print Designer UI visibility during fresh installation.
+    This ensures new users can immediately see and use the Print Designer option.
+    """
+    try:
+        from print_designer.api.enable_print_designer_ui import ensure_print_designer_ui_setup
+        
+        click.echo("🎨 Setting up Print Designer UI for new installation...")
+        
+        success = ensure_print_designer_ui_setup()
+        
+        if success:
+            click.echo("✅ Print Designer UI configured successfully")
+            click.echo("   📝 Users can now see the Print Designer checkbox in Print Format forms")
+            click.echo("   🔧 Existing Print Designer formats have been automatically enabled")
+        else:
+            click.echo("⚠️  Warning: Print Designer UI setup had issues but installation will continue")
+            
+    except ImportError as e:
+        click.echo("⚠️  Print Designer UI setup module not available - skipping UI configuration")
+        frappe.log_error(f"Print Designer UI setup import error: {str(e)}")
+        
+    except Exception as e:
+        click.echo(f"⚠️  Error setting up Print Designer UI: {str(e)}")
+        frappe.log_error(f"Error setting up Print Designer UI on install: {str(e)}")

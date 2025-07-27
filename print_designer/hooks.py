@@ -159,8 +159,8 @@ boot_session = [
 # Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
 override_whitelisted_methods = {
     "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
-    # Temporarily disabled due to 500 error - causing print preview to fail this make frappe insert error
-    # "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
+    # Override print view to add watermark support from sidebar settings
+    "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
     "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
     # Override Print Settings API to include watermark fields in print sidebar
     "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
@@ -175,6 +175,7 @@ after_app_install = [
     "print_designer.install.after_app_install",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.install.handle_erpnext_override",  # Add this line
+    "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
 ]
 
 # Startup hooks
@@ -192,6 +193,7 @@ after_migrate = [
     "print_designer.install.ensure_custom_fields",  # This now uses setup_enhanced_print_settings internally
     "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
     "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
+    "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
 ]
 
 # Uninstallation
