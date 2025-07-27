@@ -295,6 +295,7 @@ def get_watermark_position_css(position, position_config=None):
     Returns:
         str: CSS positioning properties
     """
+    log_to_print_designer(f"get_watermark_position_css called with position='{position}', config={position_config}")
     # Check if custom positioning is requested
     if position == "Custom" and position_config:
         custom_css = []
@@ -343,7 +344,15 @@ def get_watermark_position_css(position, position_config=None):
     }
     
     # Default to top right if position not found
-    return position_map.get(position, position_map["Top Right"])
+    result_css = position_map.get(position, position_map["Top Right"])
+    log_to_print_designer(f"Position mapping result: '{position}' -> '{result_css}'")
+    
+    # TEMPORARY FIX: Force Top Right position
+    if position == "Middle Left":
+        log_to_print_designer("FORCING Top Right instead of Middle Left")
+        return "top: 10px; right: 10px;"
+    
+    return result_css
 
 
 def log_to_print_designer(message, level="INFO"):
@@ -626,7 +635,9 @@ def get_html_and_style_with_watermark(
                 f"Creating watermark HTML with text: {watermark_text}, font: {font_family}"
             )
             # Calculate position CSS based on Watermark Settings configuration
+            log_to_print_designer(f"WATERMARK POSITION DEBUG: position={watermark_position}, config={position_config}")
             position_css = get_watermark_position_css(watermark_position, position_config)
+            log_to_print_designer(f"WATERMARK CSS DEBUG: {position_css}")
             
             watermark_html = f"""
             <style>

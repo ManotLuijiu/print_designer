@@ -32,7 +32,7 @@ app_include_css = [
     "signature_stamp.bundle.css",
     "signature_preview.bundle.css",
     "delivery_approval.bundle.css",
-    "watermark.bundle.css",
+    # "watermark.bundle.css",
 ]
 # app_include_css = "thai_business_suite.app.bundle.css"
 
@@ -162,6 +162,8 @@ override_whitelisted_methods = {
     # Temporarily disabled due to 500 error - causing print preview to fail this make frappe insert error
     # "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
     "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
+    # Override Print Settings API to include watermark fields in print sidebar
+    "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
 }
 
 # Installation
