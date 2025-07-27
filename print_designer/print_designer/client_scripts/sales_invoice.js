@@ -7,6 +7,33 @@ function calculate_retention(frm) {
   }
 }
 
+async function check_construction_service_enabled(frm) {
+  if (!frm.doc.company) {
+    return false;
+  }
+  
+  try {
+    const company_doc = await frappe.db.get_doc('Company', frm.doc.company);
+    return company_doc && company_doc.construction_service;
+  } catch (error) {
+    console.warn('Error checking construction service setting:', error);
+    return false;
+  }
+}
+
+async function toggle_retention_fields(frm) {
+  const is_enabled = await check_construction_service_enabled(frm);
+  
+  // Show/hide retention fields based on company setting
+  frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+  
+  // Clear retention values if construction service is disabled
+  if (!is_enabled) {
+    frm.set_value('custom_retention', 0);
+    frm.set_value('custom_retention_amount', 0);
+  }
+}
+
 const debounced_calculation = frappe.utils.debounce((frm) => {
   calculate_retention(frm);
 }, 500);
@@ -20,7 +47,13 @@ frappe.ui.form.on('Sales Invoice', {
     calculate_retention(frm);
   },
   refresh: function(frm) {
-    calculate_retention(frm);
+    toggle_retention_fields(frm).then(() => {
+      calculate_retention(frm);
+    });
+  },
+  company: function(frm) {
+    // Check retention field visibility when company changes
+    toggle_retention_fields(frm);
   }
 });
 

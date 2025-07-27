@@ -55,10 +55,12 @@ frappe.ui.form.on("Print Format", {
 		setup_print_designer_ui(frm);
 	},
 	render_buttons: function (frm) {
+		console.log("render_buttons", frm.doc);
 		frm.page.clear_inner_toolbar();
 		if (!frm.is_new()) {
 			if (!frm.doc.custom_format) {
 				frm.add_custom_button(__("Edit Format"), function () {
+					console.log("Edit Format clicked", frm.doc);
 					if (!frm.doc.doc_type) {
 						frappe.msgprint(__("Please select DocType first"));
 						return;

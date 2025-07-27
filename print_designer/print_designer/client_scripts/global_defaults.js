@@ -20,6 +20,9 @@ frappe.ui.form.on("Global Defaults", {
         if (frm.doc.primary_font_family && frm.doc.primary_font_family !== "System Default") {
             frm._generated_font_stack = fontMappings[frm.doc.primary_font_family] || fontMappings["Sarabun (Thai)"];
             frm._apply_font_preview();
+            
+            // Apply immediate CSS for instant visual feedback
+            frm._inject_immediate_css(frm, frm._generated_font_stack);
         }
     },
 
@@ -28,6 +31,9 @@ frappe.ui.form.on("Global Defaults", {
         if (frm.doc.primary_font_family === "System Default" && frm.doc.custom_font_stack) {
             frm._generated_font_stack = frm.doc.custom_font_stack;
             frm._apply_font_preview();
+            
+            // Apply immediate CSS for instant visual feedback
+            frm._inject_immediate_css(frm, frm._generated_font_stack);
         }
     },
 
@@ -171,7 +177,10 @@ ${frm.doc.enable_thai_font_support ? `
 ` : ''}
 `;
 
-            // Apply CSS via Print Designer API
+            // Apply CSS immediately to current page for instant feedback
+            frm._inject_immediate_css(frm, frm._generated_font_stack);
+            
+            // Apply CSS via Print Designer API for permanent storage
             frappe.call({
                 method: "print_designer.api.global_typography.apply_typography_settings",
                 args: {
@@ -209,5 +218,50 @@ ${frm.doc.enable_thai_font_support ? `
                 }
             });
         });
+    },
+
+    // Inject CSS immediately into current page for instant feedback
+    _inject_immediate_css: function(frm, font_stack) {
+        if (!font_stack) return;
+        
+        // Remove any existing immediate typography CSS
+        $('#immediate-typography-override').remove();
+        
+        // Create CSS for immediate application
+        const immediate_css = `
+/* Immediate Typography Override - Live Preview */
+html:root, :root {
+    --font-stack: ${font_stack} !important;
+}
+
+/* Apply font stack immediately to all elements */
+html, body, 
+input, button, select, optgroup, textarea,
+.form-control, .form-select, .btn, .navbar, .sidebar, .page-container,
+.page-content, .page-title, .navbar-brand, .menu-item, .list-item,
+.doctype-list, .form-section, .section-head, .form-group, .field-label,
+.form-message, .modal-header, .modal-body, .modal-footer,
+.frappe-control, .control-input, .control-label, .like-disabled-input,
+.comment-box, .timeline-item, .list-row, .list-row-col,
+.desk-sidebar, .navbar-collapse, .dropdown-menu, .dropdown-item,
+p, span, div, h1, h2, h3, h4, h5, h6, td, th, label {
+    font-family: var(--font-stack) !important;
+}
+
+/* Ensure immediate visibility */
+.form-section[data-fieldname="typography_section"] * {
+    font-family: var(--font-stack) !important;
+}
+`;
+        
+        // Inject CSS into page head
+        $('<style id="immediate-typography-override">')
+            .html(immediate_css)
+            .appendTo('head');
+        
+        // Also directly update the CSS custom property for maximum compatibility
+        document.documentElement.style.setProperty('--font-stack', font_stack, 'important');
+        
+        console.log('Immediate typography applied:', font_stack);
     }
 });

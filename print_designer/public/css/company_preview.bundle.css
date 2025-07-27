@@ -1,0 +1,268 @@
+/* Company Stamps and Signatures Preview Styles */
+
+:root {
+    /* Light theme colors */
+    --stamps-primary-color: #1976d2;
+    --stamps-secondary-color: #1565c0;
+    --stamps-background: #fafbfc;
+    --stamps-card-background: #ffffff;
+    --stamps-text-primary: #333333;
+    --stamps-text-secondary: #666666;
+    --stamps-text-muted: #888888;
+    --stamps-border-color: #e0e0e0;
+    --stamps-shadow: rgba(0,0,0,0.1);
+}
+
+/* Dark theme support */
+[data-theme="dark"] {
+    --stamps-primary-color: #42a5f5;
+    --stamps-secondary-color: #1976d2;
+    --stamps-background: #2b2b2b;
+    --stamps-card-background: #3a3a3a;
+    --stamps-text-primary: #e0e0e0;
+    --stamps-text-secondary: #b0b0b0;
+    --stamps-text-muted: #808080;
+    --stamps-border-color: #555555;
+    --stamps-shadow: rgba(0,0,0,0.3);
+}
+
+/* Auto-detect dark theme */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --stamps-primary-color: #42a5f5;
+        --stamps-secondary-color: #1976d2;
+        --stamps-background: #2b2b2b;
+        --stamps-card-background: #3a3a3a;
+        --stamps-text-primary: #e0e0e0;
+        --stamps-text-secondary: #b0b0b0;
+        --stamps-text-muted: #808080;
+        --stamps-border-color: #555555;
+        --stamps-shadow: rgba(0,0,0,0.3);
+    }
+}
+
+.company-stamps-signatures-section {
+    margin: 20px 0;
+    color: var(--stamps-text-primary);
+}
+
+/* Dedicated Tab Section Styling */
+.stamps-signatures-tab {
+    margin-top: 25px;
+    border-top: 3px solid var(--stamps-primary-color);
+    background: var(--stamps-background);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 4px var(--stamps-shadow);
+}
+
+.stamps-signatures-tab .section-head {
+    background: linear-gradient(135deg, var(--stamps-primary-color) 0%, var(--stamps-secondary-color) 100%);
+    color: white;
+    padding: 15px 20px;
+    margin: 0;
+    border-radius: 0;
+}
+
+.stamps-signatures-tab .section-head .section-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+}
+
+.stamps-signatures-tab .section-body {
+    padding: 0;
+    background: var(--stamps-card-background);
+}
+
+.stamps-signatures-tab .stamps-signatures-content {
+    padding: 0;
+}
+
+.company-stamps-signatures-section .card {
+    border: 1px solid var(--stamps-border-color);
+    border-radius: 0.35rem;
+    box-shadow: 0 0.15rem 1.75rem 0 var(--stamps-shadow);
+    background: var(--stamps-card-background);
+}
+
+.company-stamps-signatures-section .card-header {
+    background-color: var(--stamps-background);
+    border-bottom: 1px solid var(--stamps-border-color);
+    padding: 0.75rem 1.25rem;
+}
+
+.company-stamps-signatures-section .card-title {
+    color: var(--stamps-text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.company-stamps-signatures-section .card-body {
+    padding: 1.5rem;
+    background: var(--stamps-card-background);
+}
+
+/* Summary Cards */
+.summary-card {
+    transition: transform 0.2s;
+    border-radius: 8px;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Stamp Cards */
+.stamp-card {
+    transition: all 0.3s ease;
+    border: 1px solid var(--stamps-border-color);
+    border-radius: 8px;
+    padding: 15px;
+    background: var(--stamps-card-background);
+    box-shadow: 0 1px 3px var(--stamps-shadow);
+    height: 100%;
+    color: var(--stamps-text-primary);
+}
+
+.stamp-card:hover {
+    box-shadow: 0 4px 12px var(--stamps-shadow);
+    transform: translateY(-3px);
+}
+
+.stamp-card img {
+    transition: transform 0.2s;
+}
+
+.stamp-card img:hover {
+    transform: scale(1.05);
+}
+
+/* Signature Cards */
+.signature-card {
+    transition: all 0.3s ease;
+    border: 1px solid var(--stamps-border-color);
+    border-radius: 8px;
+    padding: 15px;
+    background: var(--stamps-card-background);
+    box-shadow: 0 1px 3px var(--stamps-shadow);
+    height: 100%;
+    color: var(--stamps-text-primary);
+}
+
+.signature-card:hover {
+    box-shadow: 0 4px 12px var(--stamps-shadow);
+    transform: translateY(-3px);
+}
+
+.signature-card img {
+    transition: transform 0.2s;
+}
+
+.signature-card img:hover {
+    transform: scale(1.05);
+}
+
+/* Section Headers */
+.stamps-section h6,
+.signatures-section h6 {
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid;
+    color: var(--stamps-text-primary);
+}
+
+.stamps-section h6 {
+    color: var(--stamps-primary-color);
+    border-bottom-color: var(--stamps-primary-color);
+    opacity: 0.3;
+}
+
+.signatures-section h6 {
+    color: #7b1fa2;
+    border-bottom-color: #7b1fa2;
+    opacity: 0.3;
+}
+
+/* Loading State */
+.loading-message {
+    text-align: center;
+    padding: 40px;
+    color: var(--stamps-text-secondary);
+}
+
+.loading-message .fa-spinner {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: var(--stamps-text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .company-stamps-signatures-section .col-md-4 {
+        margin-bottom: 20px;
+    }
+    
+    .stamp-card,
+    .signature-card {
+        padding: 12px;
+    }
+    
+    .summary-card {
+        margin-bottom: 15px;
+    }
+}
+
+/* Alert Styling */
+.alert {
+    border-radius: 0.35rem;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* Refresh Button */
+.refresh-preview-btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.refresh-preview-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Image Preview Placeholders */
+.stamp-card .fa-image,
+.signature-card .fa-signature {
+    font-size: 24px;
+    color: #dee2e6;
+}
+
+/* Preview Image Styling */
+.stamp-card img,
+.signature-card img {
+    cursor: pointer;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    padding: 2px;
+}
+
+/* Tooltip for images */
+.stamp-card img:hover,
+.signature-card img:hover {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

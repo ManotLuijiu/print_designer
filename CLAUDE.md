@@ -49,6 +49,9 @@ bench execute print_designer.commands.install_thai_form_50_twi.install_thai_form
 bench execute print_designer.commands.install_delivery_qr.install_delivery_qr
 bench execute print_designer.commands.install_delivery_fields.install_delivery_note_fields
 
+# Typography system setup
+bench execute print_designer.commands.install_typography_system.install_typography_system
+
 # Asset building and dependencies
 yarn install                   # Install frontend dependencies
 bench build --app print_designer  # Build only print_designer assets
@@ -109,7 +112,9 @@ Critical workflow stages:
 - `print_designer/print_designer/page/print_designer/`: Main page controller and Jinja templates
 - `print_designer/print_designer/overrides/`: DocType overrides (Print Format extensions)
 - `print_designer/utils/`: Utility modules (signature integration, Thai language support, PDF logging)
-- `print_designer/api/`: API endpoints for signature management and safe installation
+- `print_designer/api/`: API endpoints for signature management, typography, and safe installation
+- `print_designer/api/global_typography.py`: Typography management API with dynamic CSS generation
+- `print_designer/client_scripts/global_defaults.js`: Client-side typography controls and font preview
 
 ### Critical Templates and Macros
 - `print_designer/print_designer/page/print_designer/jinja/macros/`: Jinja2 rendering macros for each element type
@@ -142,6 +147,15 @@ Critical workflow stages:
 - **Type Hints**: Encouraged throughout Python codebase for better maintainability
 - **Error Handling**: Comprehensive logging and error tracking for PDF generation and signature operations
 - **Security**: Role-based permissions, input validation, and secure file handling for signatures/stamps
+- **Bundle Naming**: All CSS and JavaScript files in `hooks.py` must use `.bundle.css` and `.bundle.js` suffixes
+- **Hook Integration**: Use `doc_events` for automatic triggering of changes, `after_install` for app setup
+
+### Client Script Registration Pattern
+- **DocType JavaScript Registration**: Client scripts must be registered in `hooks.py` using `doctype_js`
+- **Path Patterns**: 
+  - Files in `client_scripts/` → `"print_designer/client_scripts/filename.js"`
+  - Files in `public/js/` → `"public/js/filename.js"` (no app prefix)
+- **Override Mechanism**: Uses Frappe's doctype_js hook to extend/override standard form scripts
 
 ### Testing and Debugging
 - **Manual Testing**: Primary testing through visual designer interface and PDF preview
@@ -174,6 +188,13 @@ Critical workflow stages:
 - **Digital Signatures**: Custom DocTypes (`Digital Signature`, `Company Stamp`, `Signature Basic Information`)
 - **Integration Points**: Hooks for signature embedding in PDF generation workflow
 - **Security**: Role-based access and audit logging for signature usage
+
+### Typography System
+- **Dynamic Font Management**: Global typography settings via Global Defaults DocType
+- **Real-time CSS Injection**: JavaScript-based dynamic font application without page refresh
+- **Thai Font Support**: Complete Thai font stack integration with fallback fonts
+- **Font Stack Mappings**: Predefined font combinations for different language support
+- **Global CSS Variables**: CSS custom properties for system-wide font application
 
 ## Specialized Features and Capabilities
 
@@ -243,3 +264,10 @@ Critical workflow stages:
 - **Per-page Watermarks**: Use watermark system for page-specific positioning and transparency
 - **Cache Issues**: Watermark cache is managed automatically with daily cleanup scheduled tasks
 - **Permission Problems**: Check role-based access for Watermark Template DocType
+
+### Typography System Issues
+- **Font Loading**: Ensure all Thai fonts are properly loaded from `public/fonts/thai/` directory
+- **Dynamic CSS Injection**: Check browser console for CSS injection errors and Frappe API availability
+- **Global Defaults Integration**: Verify typography fields are properly installed via `install_typography_system` command
+- **Bundle Loading**: Ensure `typography_injection.bundle.js` is properly included in app hooks
+- **Cache Problems**: Typography CSS is generated dynamically; check for stale cache in Global Defaults
