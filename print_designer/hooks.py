@@ -19,6 +19,7 @@ commands = [
     "print_designer.commands.install_complete_system.install_complete_system",
     "print_designer.commands.install_complete_system.check_system_status",
     "print_designer.commands.install_delivery_fields.install_delivery_note_fields",
+    "print_designer.commands.install_typography_system.install_typography_system",
 ]
 
 # Includes in <head>
@@ -32,8 +33,10 @@ app_include_css = [
     "signature_stamp.bundle.css",
     "signature_preview.bundle.css",
     "delivery_approval.bundle.css",
+    "global_typography_override.bundle.css",
     # "watermark.bundle.css",
 ]
+
 # app_include_css = "thai_business_suite.app.bundle.css"
 
 
@@ -66,6 +69,7 @@ doctype_js = {
     "Payment Entry": "print_designer/public/js/delivery_approval.js",
     "Client Script": "print_designer/client_scripts/client_script.js",
     "Sales Invoice": "print_designer/client_scripts/sales_invoice.js",
+    "Global Defaults": "print_designer/client_scripts/global_defaults.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -176,6 +180,8 @@ after_app_install = [
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.install.handle_erpnext_override",  # Add this line
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
+    "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
+    "print_designer.api.global_typography.after_install",  # Setup default typography settings
 ]
 
 # Startup hooks
@@ -194,6 +200,8 @@ after_migrate = [
     "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
     "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
+    "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
+    "print_designer.api.global_typography.setup_default_typography",  # Ensure typography settings for existing users
 ]
 
 # Uninstallation

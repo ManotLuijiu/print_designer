@@ -1,7 +1,21 @@
+/* Google Fonts Import for Thai fonts */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@100;200;300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@100;200;300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Mitr:wght@200;300;400;500;600;700&family=Noto+Sans+Thai&family=Pattaya&family=Pridi:wght@200;300;400;500;600;700&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
 
+// @import "./global_typography_override.css";
+
+/* Default font stack - overridden by Global Defaults if configured */
+html:root, :root {
+    --font-stack: "Sarabun", "Noto Sans Thai", "IBM Plex Sans Thai", "InterVariable", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+}
+
+/* Fallback direct font assignment for maximum compatibility */
+html, body {
+    font-family: var(--font-stack);
+}
+
+/* Enhanced form elements font family */
 input, button, select, optgroup, textarea {
-  font-family: 'Noto Sans Thai';
+  font-family: var(--font-stack);
 }
 /* Kanit Font Family */
 // @font-face {
@@ -551,6 +565,25 @@ input, button, select, optgroup, textarea {
   font-style: normal;
 }
 
+/* Apply Thai font stack to body and key elements */
 body {
-  font-family: 'Sarabun', sans-serif;
+  font-family: var(--font-stack);
+}
+
+/* Override common UI elements to use Thai fonts with high specificity */
+.form-control, .form-select, .btn, .navbar, .sidebar, .page-container, 
+.page-content, .page-title, .navbar-brand, .menu-item, .list-item,
+.doctype-list, .form-section, .section-head, .form-group, .field-label,
+.form-message, .modal-header, .modal-body, .modal-footer,
+/* Print Designer specific elements */
+.print-format-builder, .print-designer-canvas, .print-designer-toolbar,
+.print-format-preview, .print-preview, .print-view,
+/* Document forms and lists */
+.frappe-control, .control-input, .control-label, .like-disabled-input,
+.comment-box, .timeline-item, .list-row, .list-row-col,
+/* Navigation and menus */
+.desk-sidebar, .navbar-collapse, .dropdown-menu, .dropdown-item,
+/* General text elements */
+p, span, div, h1, h2, h3, h4, h5, h6, td, th, label {
+  font-family: var(--font-stack) !important;
 }
