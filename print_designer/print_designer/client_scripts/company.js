@@ -23,80 +23,17 @@ function add_stamps_and_signatures_content(frm) {
     // Find the custom field tab and add content
     setTimeout(() => {
         console.log('🔍 Starting tab search...');
-        console.log('📋 Form object:', frm);
-        console.log('📋 Page wrapper exists:', !!frm.page.wrapper);
         
-        // Debug: Show all tab-related elements
-        console.log('🔎 All .tab-pane elements:');
-        frm.page.wrapper.find('.tab-pane').each(function(index) {
-            console.log(`  Tab ${index}:`, {
-                id: this.id,
-                classes: this.className,
-                dataFieldname: $(this).data('fieldname'),
-                hasContent: $(this).children().length > 0
-            });
-        });
-        
-        console.log('🔎 All nav-tab links:');
-        frm.page.wrapper.find('.nav-tabs a, .nav-link').each(function(index) {
-            console.log(`  Nav Link ${index}:`, {
-                href: this.href,
-                text: $(this).text().trim(),
-                target: $(this).attr('href'),
-                classes: this.className
-            });
-        });
-        
-        // Try multiple selectors to find the stamps tab
-        console.log('🎯 Attempting tab selection methods...');
-        
-        // Method 1: Direct ID selector
+        // Find the stamps tab (simplified)
         let stampsTab = frm.page.wrapper.find('#company-stamps_signatures_tab');
-        console.log('Method 1 - Direct ID (#company-stamps_signatures_tab):', stampsTab.length);
         
         if (stampsTab.length === 0) {
-            // Method 2: data-fieldname selector
-            stampsTab = frm.page.wrapper.find('[data-fieldname="stamps_signatures_tab"]');
-            console.log('Method 2 - data-fieldname direct:', stampsTab.length);
-            if (stampsTab.length > 0) {
-                console.log('Found element with data-fieldname:', stampsTab[0]);
-                stampsTab = stampsTab.closest('.tab-pane');
-                console.log('Closest .tab-pane:', stampsTab.length);
-            }
+            stampsTab = frm.page.wrapper.find('[data-fieldname="stamps_signatures_tab"]').closest('.tab-pane');
         }
         
         if (stampsTab.length === 0) {
-            // Method 3: partial match
             stampsTab = frm.page.wrapper.find('.tab-pane').filter(function() {
-                const hasStampsInId = this.id && this.id.includes('stamps_signatures_tab');
-                if (hasStampsInId) {
-                    console.log('Found tab with stamps in ID:', this.id);
-                }
-                return hasStampsInId;
-            });
-            console.log('Method 3 - partial ID match:', stampsTab.length);
-        }
-        
-        if (stampsTab.length === 0) {
-            // Method 4: Search in current tab structure more broadly
-            console.log('🔍 Searching for any stamps-related elements...');
-            frm.page.wrapper.find('*').each(function() {
-                if (this.id && this.id.includes('stamps')) {
-                    console.log('Found stamps element:', this.tagName, this.id, this.className);
-                }
-                if ($(this).data('fieldname') && $(this).data('fieldname').includes('stamps')) {
-                    console.log('Found element with stamps fieldname:', this.tagName, $(this).data('fieldname'));
-                }
-            });
-        }
-        
-        console.log('✅ Final stamps tab selection:', stampsTab.length);
-        if (stampsTab.length > 0) {
-            console.log('Selected tab details:', {
-                id: stampsTab[0].id,
-                classes: stampsTab[0].className,
-                tagName: stampsTab[0].tagName,
-                hasChildren: stampsTab.children().length
+                return this.id && this.id.includes('stamps_signatures_tab');
             });
         }
         
@@ -106,20 +43,13 @@ function add_stamps_and_signatures_content(frm) {
             return;
         }
         
-        // Move the stamps tab to be the last tab (after dashboard tab)
-        console.log('🔄 Attempting to move tab to last position...');
+        // Move the stamps tab to be the last tab (simplified)
         let tabNavItem = frm.page.wrapper.find('a[href="#company-stamps_signatures_tab"]').closest('li');
         let dashboardTabNavItem = frm.page.wrapper.find('a[href="#company-dashboard_tab"]').closest('li');
         
-        console.log('Stamps tab nav item found:', tabNavItem.length);
-        console.log('Dashboard tab nav item found:', dashboardTabNavItem.length);
-        
         if (tabNavItem.length > 0 && dashboardTabNavItem.length > 0) {
-            console.log('Moving stamps tab after dashboard tab...');
             tabNavItem.insertAfter(dashboardTabNavItem);
             console.log('✅ Moved stamps tab to last position');
-        } else {
-            console.log('⚠️ Could not move tab - nav items not found');
         }
         
         // Add our content directly to the tab pane - Fixed double div structure
@@ -153,63 +83,16 @@ function add_stamps_and_signatures_content(frm) {
             </div>
         `);
         
-        // Ensure the stamps tab is completely separate and clear any existing content
-        console.log('🧹 Ensuring tab separation...');
-        
-        // Clear the stamps tab completely first
+        // Clear and add content to the stamps tab
         stampsTab.empty();
-        console.log('Stamps tab cleared');
-        
-        // Ensure stock tab is properly isolated
-        const stockTab = frm.page.wrapper.find('#company-stock_tab');
-        if (stockTab.length > 0) {
-            stockTab.removeClass('show').addClass('hide');
-            console.log('Stock tab hidden to prevent conflicts');
-        }
-        
-        // Ensure stamps tab has proper classes
-        stampsTab.removeClass('hide').addClass('show');
-        console.log('Stamps tab visibility ensured');
-        
-        // Add content to the tab
-        console.log('📝 Adding content to tab...');
-        console.log('Content wrapper created:', !!content_wrapper);
-        console.log('Stamps tab element:', stampsTab[0]);
-        
         stampsTab.append(content_wrapper);
-        console.log('✅ Content appended to tab');
+        console.log('✅ Content added to stamps tab');
         
-        // Verify content was added
-        const addedContent = stampsTab.find('.stamps-signatures-content');
-        console.log('Content verification - found in tab:', addedContent.length);
-        
-        // Load initial content
-        console.log('🔄 Loading initial content...');
+        // Load initial content and setup refresh button
         load_stamps_and_signatures(frm, content_wrapper);
         
-        // Refresh button handler
         content_wrapper.find('.refresh-preview-btn').on('click', function() {
-            console.log('🔄 Refresh button clicked');
             load_stamps_and_signatures(frm, content_wrapper);
-        });
-        
-        // Add tab click handler to ensure proper isolation
-        const stampsTabLink = frm.page.wrapper.find('a[href="#company-stamps_signatures_tab"]');
-        stampsTabLink.on('shown.bs.tab', function() {
-            console.log('🎯 Stamps tab activated - ensuring content isolation');
-            
-            // Hide all other tabs
-            frm.page.wrapper.find('.tab-pane').not('#company-stamps_signatures_tab').removeClass('show').addClass('hide');
-            
-            // Show only stamps tab
-            stampsTab.removeClass('hide').addClass('show active');
-            
-            // Ensure our content is visible
-            const stampsContent = stampsTab.find('.stamps-signatures-content');
-            if (stampsContent.length > 0) {
-                stampsContent.show();
-                console.log('Stamps content visibility confirmed');
-            }
         });
         
         console.log('✅ Setup complete!');
@@ -220,15 +103,9 @@ function add_stamps_and_signatures_content(frm) {
 // The app now relies solely on the Tab Break custom field for tab creation
 
 function load_stamps_and_signatures(frm, container) {
-    console.log('📊 load_stamps_and_signatures called');
-    console.log('Container:', container);
-    console.log('Form doc:', frm.doc);
-    
     const company_name = frm.doc.name;
-    console.log('Company name:', company_name);
     
     if (!company_name) {
-        console.log('❌ No company name found');
         container.find('.loading-message').html('<p class="text-muted">Company name is required</p>');
         return;
     }
