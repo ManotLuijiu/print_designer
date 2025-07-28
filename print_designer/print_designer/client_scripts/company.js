@@ -3,6 +3,41 @@
  * Adds Company Stamps and Signatures preview in a dedicated tab
  */
 
+/**
+ * Professional approach: Wait for ERPNext tabs to be fully rendered
+ * Uses polling with exponential backoff instead of guessing timeout values
+ */
+function waitForTabsToRender(frm, maxAttempts = 15) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        
+        const checkTabs = () => {
+            attempts++;
+            const expectedTabs = ['#company-accounts_tab', '#company-stock_tab', '#company-dashboard_tab'];
+            const missingTabs = expectedTabs.filter(tab => frm.page.wrapper.find(tab).length === 0);
+            
+            if (missingTabs.length === 0) {
+                console.log(`✅ All tabs ready after ${attempts} attempts`);
+                resolve();
+                return;
+            }
+            
+            if (attempts >= maxAttempts) {
+                reject(new Error(`Tabs not ready after ${attempts} attempts. Missing: ${missingTabs.join(', ')}`));
+                return;
+            }
+            
+            // Exponential backoff: 50ms, 100ms, 200ms, 400ms, 800ms, max 1000ms
+            const delay = Math.min(50 * Math.pow(2, attempts - 1), 1000);
+            console.log(`⏳ Attempt ${attempts}: Waiting ${delay}ms for tabs:`, missingTabs);
+            setTimeout(checkTabs, delay);
+        };
+        
+        // Start checking immediately
+        checkTabs();
+    });
+}
+
 frappe.ui.form.on("Company", {
     refresh: function(frm) {
         if (!frm.is_new()) {
@@ -20,12 +55,13 @@ function add_stamps_and_signatures_content(frm) {
         return;
     }
     
-    // Find the custom field tab and add content
-    setTimeout(() => {
-        console.log('🔍 Starting tab search...');
+    // Professional approach: Wait for tabs to be rendered using polling with timeout
+    waitForTabsToRender(frm).then(() => {
+        console.log('🔍 All tabs ready, proceeding with stamps tab setup...');
         
         // Find the stamps tab (simplified)
         let stampsTab = frm.page.wrapper.find('#company-stamps_signatures_tab');
+        console.log('🔍 Stamps tab:', stampsTab);
         
         if (stampsTab.length === 0) {
             stampsTab = frm.page.wrapper.find('[data-fieldname="stamps_signatures_tab"]').closest('.tab-pane');
@@ -57,21 +93,21 @@ function add_stamps_and_signatures_content(frm) {
             <div class="stamps-signatures-content">
                 <div class="row">
                     <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center" 
-                                 style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 12px 20px;">
-                                <h5 class="card-title mb-0" style="color: #495057;">
+                        <div id="company-stamps_signatures_tab_card" class="card">
+                            <div id="company-stamps_signatures_tab_card_header" class="card-header d-flex justify-content-between align-items-center" 
+                                 style="padding: 12px 20px;">
+                                <h5 class="card-title mb-0">
                                     <i class="fa fa-certificate" style="margin-right: 8px;"></i>
                                     Company Stamps & Signatures Preview
                                 </h5>
-                                <button class="btn btn-sm btn-primary refresh-preview-btn">
+                                <button class="btn btn-sm refresh-preview-btn">
                                     <i class="fa fa-refresh"></i> Refresh
                                 </button>
                             </div>
-                            <div class="card-body" style="padding: 20px;">
+                            <div id="company-stamps_signatures_tab_card_body" class="card-body" style="padding: 20px;">
                                 <div class="loading-message text-center" style="padding: 40px;">
-                                    <i class="fa fa-spinner fa-spin" style="font-size: 24px; color: #6c757d;"></i>
-                                    <p style="margin-top: 10px; color: #6c757d;">Loading stamps and signatures...</p>
+                                    <i class="fa fa-spinner fa-spin" style="font-size: 24px;"></i>
+                                    <p style="margin-top: 10px;">Loading stamps and signatures...</p>
                                 </div>
                                 <div class="preview-content" style="display: none;">
                                     <!-- Content will be loaded here -->
@@ -96,7 +132,10 @@ function add_stamps_and_signatures_content(frm) {
         });
         
         console.log('✅ Setup complete!');
-    }, 2000); // Increased delay to allow tab structure to be ready
+    }).catch(error => {
+        console.error('❌ Failed to initialize stamps tab:', error);
+        frappe.msgprint('Failed to load stamps and signatures tab. Please refresh the page.');
+    });
 }
 
 // Manual tab creation functions removed to prevent duplicate div containers
@@ -138,18 +177,18 @@ function render_preview_content(container, data) {
     const { stamps, signatures, summary } = data;
     
     let html = `
-        <div class="summary-section" style="margin-bottom: 25px;">
+        <div id="company-stamps_signatures_tab_card_body_summary_section" class="summary-section" style="margin-bottom: 25px;">
             <div class="row">
                 <div class="col-md-6">
-                    <div class="summary-card text-center" style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
-                        <h4 style="color: #1976d2; margin-bottom: 5px;">${summary.total_stamps}</h4>
-                        <p style="margin: 0; color: #424242;">Company Stamps</p>
+                    <div id="company-stamps_signatures_tab_card_body_summary_section_card" class="summary-card text-center" style="padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 5px;">${summary.total_stamps}</h4>
+                        <p style="margin: 0;">Company Stamps</p>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="summary-card text-center" style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
-                        <h4 style="color: #7b1fa2; margin-bottom: 5px;">${summary.total_signatures}</h4>
-                        <p style="margin: 0; color: #424242;">Signatures</p>
+                    <div class="summary-card text-center" style="padding: 15px; border-radius: 8px;">
+                        <h4 style="margin-bottom: 5px;">${summary.total_signatures}</h4>
+                        <p style="margin: 0;">Signatures</p>
                     </div>
                 </div>
             </div>
@@ -159,8 +198,8 @@ function render_preview_content(container, data) {
     // Company Stamps Section
     if (stamps.length > 0) {
         html += `
-            <div class="stamps-section" style="margin-bottom: 30px;">
-                <h6 style="color: #1976d2; margin-bottom: 15px; border-bottom: 2px solid #e3f2fd; padding-bottom: 5px;">
+            <div id="company-stamps_signatures_tab_card_body_stamps_section" class="stamps-section" style="margin-bottom: 30px;">
+                <h6 style="margin-bottom: 15px; padding-bottom: 5px;">
                     <i class="fa fa-certificate" style="margin-right: 8px;"></i>
                     Company Stamps (${stamps.length})
                 </h6>
@@ -169,24 +208,24 @@ function render_preview_content(container, data) {
         
         stamps.forEach(stamp => {
             html += `
-                <div class="col-md-4 col-sm-6" style="margin-bottom: 20px;">
-                    <div class="stamp-card" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; height: 100%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div id="company-stamps_signatures_tab_stamps_preview_card" class="col-md-4 col-sm-6" style="margin-bottom: 20px;">
+                    <div class="stamp-card" style=" border-radius: 8px; padding: 15px; height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div class="stamp-preview-container" data-stamp="${stamp.name}">
                             <div class="text-center">
                                 ${stamp.stamp_image ? 
-                                    `<img src="${stamp.stamp_image}" alt="${stamp.title}" style="max-width: 100px; max-height: 100px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" onclick="preview_image('${stamp.stamp_image}', '${stamp.title}')">` :
-                                    '<div style="width: 100px; height: 100px; background: #f5f5f5; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; margin: 0 auto;"><i class="fa fa-image text-muted"></i></div>'
+                                    `<img src="${stamp.stamp_image}" alt="${stamp.title}" style="max-width: 100px; max-height: 100px; border-radius: 4px; cursor: pointer;" onclick="preview_image('${stamp.stamp_image}', '${stamp.title}')">` :
+                                    '<div style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; margin: 0 auto;"><i class="fa fa-image text-muted"></i></div>'
                                 }
                             </div>
                             <div style="margin-top: 10px;">
-                                <h6 style="margin-bottom: 5px; color: #333; text-align: center;">${stamp.title}</h6>
-                                <p style="margin: 2px 0; font-size: 11px; color: #666; text-align: center;">
+                                <h6 style="margin-bottom: 5px; text-align: center;">${stamp.title}</h6>
+                                <p style="margin: 2px 0; font-size: 11px; text-align: center;">
                                     <strong>Type:</strong> ${stamp.stamp_type || 'N/A'}
                                 </p>
-                                <p style="margin: 2px 0; font-size: 11px; color: #666; text-align: center;">
+                                <p style="margin: 2px 0; font-size: 11px; text-align: center;">
                                     <strong>Usage:</strong> ${stamp.usage_purpose || 'General'}
                                 </p>
-                                ${stamp.description ? `<p style="margin-top: 8px; font-size: 10px; color: #888; text-align: center; font-style: italic;">${stamp.description}</p>` : ''}
+                                ${stamp.description ? `<p style="margin-top: 8px; font-size: 10px; text-align: center; font-style: italic;">${stamp.description}</p>` : ''}
                             </div>
                         </div>
                     </div>
@@ -201,7 +240,7 @@ function render_preview_content(container, data) {
     } else {
         html += `
             <div class="stamps-section" style="margin-bottom: 30px;">
-                <h6 style="color: #1976d2; margin-bottom: 15px;">
+                <h6 style="margin-bottom: 15px;">
                     <i class="fa fa-certificate" style="margin-right: 8px;"></i>
                     Company Stamps
                 </h6>
@@ -217,7 +256,7 @@ function render_preview_content(container, data) {
     if (signatures.length > 0) {
         html += `
             <div class="signatures-section">
-                <h6 style="color: #7b1fa2; margin-bottom: 15px; border-bottom: 2px solid #f3e5f5; padding-bottom: 5px;">
+                <h6 style="margin-bottom: 15px; padding-bottom: 5px;">
                     <i class="fa fa-pencil-square-o" style="margin-right: 8px;"></i>
                     Signatures (${signatures.length})
                 </h6>
@@ -226,19 +265,19 @@ function render_preview_content(container, data) {
         
         signatures.forEach(signature => {
             html += `
-                <div class="col-md-4 col-sm-6" style="margin-bottom: 20px;">
-                    <div class="signature-card" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; height: 100%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div id="company-stamps_signatures_tab_signatures_preview_card" class="col-md-4 col-sm-6" style="margin-bottom: 20px;">
+                    <div class="signature-card" style="border-radius: 8px; padding: 15px; height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div class="signature-preview-container" data-signature="${signature.name}" data-source="${signature.source_type}">
                             <div class="text-center">
                                 ${signature.signature_image ? 
-                                    `<img src="${signature.signature_image}" alt="${signature.title}" style="max-width: 120px; max-height: 60px; border: 1px solid #ddd; border-radius: 4px; background: white; padding: 3px; cursor: pointer;" onclick="preview_image('${signature.signature_image}', '${signature.title}')">` :
-                                    '<div style="width: 120px; height: 60px; background: #f5f5f5; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; margin: 0 auto;"><i class="fa fa-signature text-muted"></i></div>'
+                                    `<img src="${signature.signature_image}" alt="${signature.title}" style="max-width: 120px; max-height: 60px; border-radius: 4px; padding: 3px; cursor: pointer;" onclick="preview_image('${signature.signature_image}', '${signature.title}')">` :
+                                    '<div style="width: 120px; height: 60px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; margin: 0 auto;"><i class="fa fa-signature text-muted"></i></div>'
                                 }
                             </div>
                             <div style="margin-top: 10px;">
-                                <h6 style="margin-bottom: 5px; color: #333; text-align: center;">${signature.title}</h6>
-                                ${signature.subtitle ? `<p style="margin: 2px 0; font-size: 11px; color: #666; text-align: center;">${signature.subtitle}</p>` : ''}
-                                <p style="margin: 2px 0; font-size: 10px; color: #888; text-align: center;">
+                                <h6 style="margin-bottom: 5px; text-align: center;">${signature.title}</h6>
+                                ${signature.subtitle ? `<p style="margin: 2px 0; font-size: 11px; text-align: center;">${signature.subtitle}</p>` : ''}
+                                <p style="margin: 2px 0; font-size: 10px; text-align: center;">
                                     <strong>Source:</strong> ${signature.source_type}
                                 </p>
                             </div>
@@ -255,7 +294,7 @@ function render_preview_content(container, data) {
     } else {
         html += `
             <div class="signatures-section">
-                <h6 style="color: #7b1fa2; margin-bottom: 15px;">
+                <h6 style="margin-bottom: 15px;">
                     <i class="fa fa-pencil-square-o" style="margin-right: 8px;"></i>
                     Signatures
                 </h6>
@@ -282,7 +321,7 @@ window.preview_image = function(image_url, title) {
                 fieldname: 'image_preview',
                 options: `
                     <div style="text-align: center; padding: 20px;">
-                        <img src="${image_url}" alt="${title}" style="max-width: 100%; max-height: 70vh; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <img src="${image_url}" alt="${title}" style="max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                     </div>
                 `
             }

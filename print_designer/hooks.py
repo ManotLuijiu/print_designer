@@ -33,20 +33,17 @@ commands = [
 app_include_js = [
     "print_watermark.bundle.js",
     "delivery_approval.bundle.js",
-    "typography_injection.bundle.js",
+    # "typography_injection.bundle.js",
 ]
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    "signature_stamp.bundle.css",
-    "signature_preview.bundle.css",
-    "delivery_approval.bundle.css",
-    "global_typography_override.bundle.css",
-    "company_preview.bundle.css",
-    # "watermark.bundle.css",
+    # "signature_stamp.bundle.css",
+    # "signature_preview.bundle.css",
+    # "delivery_approval.bundle.css",
+    # "global_typography_override.bundle.css",
+    # "company_preview.bundle.css",
 ]
-
-# app_include_css = "thai_business_suite.app.bundle.css"
 
 
 # include js, css files in header of web template
@@ -78,7 +75,7 @@ doctype_js = {
     "Payment Entry": "public/js/delivery_approval.js",
     "Client Script": "print_designer/client_scripts/client_script.js",
     "Sales Invoice": "print_designer/client_scripts/sales_invoice.js",
-    "Global Defaults": "print_designer/client_scripts/global_defaults.js",
+    # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
     "Company": "print_designer/client_scripts/company.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -153,7 +150,7 @@ jinja = {
         # Delivery QR Jinja macros
         "print_designer.utils.delivery_qr_macros.render_delivery_approval_qr",
         # Typography CSS injection
-        "print_designer.api.global_typography.get_typography_css",
+        # "print_designer.api.global_typography.get_typography_css",
         "print_designer.utils.delivery_qr_macros.render_delivery_qr_compact",
         "print_designer.utils.delivery_qr_macros.render_delivery_status_badge",
         "print_designer.utils.delivery_qr_macros.render_delivery_approval_summary",
@@ -191,7 +188,7 @@ after_install = [
     "print_designer.install.handle_erpnext_override",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
-    "print_designer.api.global_typography.after_install",  # Setup default typography settings
+    # "print_designer.api.global_typography.after_install",
     "print_designer.custom.company_tab.create_company_stamps_signatures_tab",  # Create Company Stamps & Signatures tab
 ]
 
@@ -211,8 +208,8 @@ after_migrate = [
     "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
-    "print_designer.api.global_typography.setup_default_typography",  # Ensure typography settings for existing users
-    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",  # Ensure Company Stamps & Signatures tab exists for existing users
+    # "print_designer.api.global_typography.setup_default_typography",
+    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
 # Uninstallation
@@ -247,9 +244,9 @@ pd_standard_format_folder = "default_templates"
 
 doc_events = {
     # Global Defaults - Auto-apply typography changes
-    "Global Defaults": {
-        "on_update": "print_designer.api.global_typography.on_global_defaults_update",
-    },
+    # "Global Defaults": {
+    #     "on_update": "print_designer.api.global_typography.on_global_defaults_update",
+    # },
     # Watermark
     "Watermark Settings": {
         "validate": "print_designer.api.watermark.validate_watermark_settings",

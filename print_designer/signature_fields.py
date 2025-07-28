@@ -85,10 +85,22 @@ SIGNATURE_FIELDS = {
 	# Accounting Module
 	"Company": [
 		{
+			"fieldname": "stamps_signatures_tab",
+			"fieldtype": "Tab Break",
+			"label": "Stamps & Signatures",
+			"insert_after": "default_in_transit_warehouse",
+		},
+		{
+			"fieldname": "company_signatures_section",
+			"label": "Company Signatures",
+			"fieldtype": "Section Break",
+			"insert_after": "stamps_signatures_tab",
+		},
+		{
 			"fieldname": "authorized_signature_1",
 			"fieldtype": "Attach Image",
 			"label": "Authorized Signature 1",
-			"insert_after": "company_logo",
+			"insert_after": "company_signatures_section",
 			"description": "Primary authorized signatory for company documents"
 		},
 		{
@@ -104,6 +116,33 @@ SIGNATURE_FIELDS = {
 			"label": "CEO Signature",
 			"insert_after": "authorized_signature_2",
 			"description": "CEO signature for executive documents"
+		},
+		{
+			"fieldname": "company_stamps_section",
+			"label": "Company Stamps",
+			"fieldtype": "Section Break",
+			"insert_after": "ceo_signature",
+		},
+		{
+			"fieldname": "company_stamp_1",
+			"fieldtype": "Attach Image",
+			"label": "Company Stamp 1",
+			"insert_after": "company_stamps_section",
+			"description": "Primary company stamp for official documents"
+		},
+		{
+			"fieldname": "company_stamp_2",
+			"fieldtype": "Attach Image",
+			"label": "Company Stamp 2",
+			"insert_after": "company_stamp_1",
+			"description": "Secondary company stamp for official documents"
+		},
+		{
+			"fieldname": "official_seal",
+			"fieldtype": "Attach Image",
+			"label": "Official Seal",
+			"insert_after": "company_stamp_2",
+			"description": "Official company seal for legal documents"
 		}
 	],
 	
