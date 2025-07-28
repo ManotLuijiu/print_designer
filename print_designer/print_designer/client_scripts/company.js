@@ -12,55 +12,117 @@ frappe.ui.form.on("Company", {
 });
 
 function add_stamps_and_signatures_content(frm) {
-    // Wait for form to be fully loaded and try multiple times
-    let attempts = 0;
-    const maxAttempts = 10;
-    const attemptInterval = 500;
+    console.log('🚀 add_stamps_and_signatures_content called');
     
-    function tryAddContent() {
-        attempts++;
+    // Check if content already exists
+    if (frm.page.wrapper.find('.stamps-signatures-content').length > 0) {
+        console.log('⚠️ Content already exists, skipping');
+        return;
+    }
+    
+    // Find the custom field tab and add content
+    setTimeout(() => {
+        console.log('🔍 Starting tab search...');
+        console.log('📋 Form object:', frm);
+        console.log('📋 Page wrapper exists:', !!frm.page.wrapper);
         
-        // Check if content already exists
-        if (frm.page.wrapper.find('.stamps-signatures-content').length > 0) {
+        // Debug: Show all tab-related elements
+        console.log('🔎 All .tab-pane elements:');
+        frm.page.wrapper.find('.tab-pane').each(function(index) {
+            console.log(`  Tab ${index}:`, {
+                id: this.id,
+                classes: this.className,
+                dataFieldname: $(this).data('fieldname'),
+                hasContent: $(this).children().length > 0
+            });
+        });
+        
+        console.log('🔎 All nav-tab links:');
+        frm.page.wrapper.find('.nav-tabs a, .nav-link').each(function(index) {
+            console.log(`  Nav Link ${index}:`, {
+                href: this.href,
+                text: $(this).text().trim(),
+                target: $(this).attr('href'),
+                classes: this.className
+            });
+        });
+        
+        // Try multiple selectors to find the stamps tab
+        console.log('🎯 Attempting tab selection methods...');
+        
+        // Method 1: Direct ID selector
+        let stampsTab = frm.page.wrapper.find('#company-stamps_signatures_tab');
+        console.log('Method 1 - Direct ID (#company-stamps_signatures_tab):', stampsTab.length);
+        
+        if (stampsTab.length === 0) {
+            // Method 2: data-fieldname selector
+            stampsTab = frm.page.wrapper.find('[data-fieldname="stamps_signatures_tab"]');
+            console.log('Method 2 - data-fieldname direct:', stampsTab.length);
+            if (stampsTab.length > 0) {
+                console.log('Found element with data-fieldname:', stampsTab[0]);
+                stampsTab = stampsTab.closest('.tab-pane');
+                console.log('Closest .tab-pane:', stampsTab.length);
+            }
+        }
+        
+        if (stampsTab.length === 0) {
+            // Method 3: partial match
+            stampsTab = frm.page.wrapper.find('.tab-pane').filter(function() {
+                const hasStampsInId = this.id && this.id.includes('stamps_signatures_tab');
+                if (hasStampsInId) {
+                    console.log('Found tab with stamps in ID:', this.id);
+                }
+                return hasStampsInId;
+            });
+            console.log('Method 3 - partial ID match:', stampsTab.length);
+        }
+        
+        if (stampsTab.length === 0) {
+            // Method 4: Search in current tab structure more broadly
+            console.log('🔍 Searching for any stamps-related elements...');
+            frm.page.wrapper.find('*').each(function() {
+                if (this.id && this.id.includes('stamps')) {
+                    console.log('Found stamps element:', this.tagName, this.id, this.className);
+                }
+                if ($(this).data('fieldname') && $(this).data('fieldname').includes('stamps')) {
+                    console.log('Found element with stamps fieldname:', this.tagName, $(this).data('fieldname'));
+                }
+            });
+        }
+        
+        console.log('✅ Final stamps tab selection:', stampsTab.length);
+        if (stampsTab.length > 0) {
+            console.log('Selected tab details:', {
+                id: stampsTab[0].id,
+                classes: stampsTab[0].className,
+                tagName: stampsTab[0].tagName,
+                hasChildren: stampsTab.children().length
+            });
+        }
+        
+        if (stampsTab.length === 0) {
+            console.error('❌ Stamps & Signatures tab not found!');
+            console.log('Available tabs:', frm.page.wrapper.find('.tab-pane').map(function() { return this.id; }).get());
             return;
         }
         
-        // Try to find the custom field tab first
-        let stampsTab = frm.page.wrapper.find('[data-fieldname="stamps_signatures_tab"]');
-        let tabContent = null;
+        // Move the stamps tab to be the last tab (after dashboard tab)
+        console.log('🔄 Attempting to move tab to last position...');
+        let tabNavItem = frm.page.wrapper.find('a[href="#company-stamps_signatures_tab"]').closest('li');
+        let dashboardTabNavItem = frm.page.wrapper.find('a[href="#company-dashboard_tab"]').closest('li');
         
-        if (stampsTab.length > 0) {
-            // Found custom field tab - find its content area
-            tabContent = stampsTab.closest('.form-tab').find('.form-section').first();
-            
-            if (tabContent.length === 0) {
-                // Try alternative selectors for tab content
-                tabContent = stampsTab.closest('.tab-pane').find('.form-section').first();
-            }
-            
-            if (tabContent.length === 0) {
-                // Create a section inside the tab
-                const tabPane = stampsTab.closest('.tab-pane');
-                if (tabPane.length > 0) {
-                    tabContent = $('<div class="form-section"></div>');
-                    tabPane.append(tabContent);
-                }
-            }
+        console.log('Stamps tab nav item found:', tabNavItem.length);
+        console.log('Dashboard tab nav item found:', dashboardTabNavItem.length);
+        
+        if (tabNavItem.length > 0 && dashboardTabNavItem.length > 0) {
+            console.log('Moving stamps tab after dashboard tab...');
+            tabNavItem.insertAfter(dashboardTabNavItem);
+            console.log('✅ Moved stamps tab to last position');
+        } else {
+            console.log('⚠️ Could not move tab - nav items not found');
         }
         
-        // If still no tab content found, try to create tab manually
-        if (!tabContent || tabContent.length === 0) {
-            if (attempts <= 3) {
-                // Try to find existing tabs structure
-                create_stamps_signatures_tab_manually(frm);
-                return;
-            } else {
-                console.warn('Could not find or create tab content area for Stamps & Signatures');
-                return;
-            }
-        }
-        
-        // Add our content to the tab
+        // Add our content directly to the tab pane - Fixed double div structure
         const content_wrapper = $(`
             <div class="stamps-signatures-content">
                 <div class="row">
@@ -91,230 +153,82 @@ function add_stamps_and_signatures_content(frm) {
             </div>
         `);
         
+        // Ensure the stamps tab is completely separate and clear any existing content
+        console.log('🧹 Ensuring tab separation...');
+        
+        // Clear the stamps tab completely first
+        stampsTab.empty();
+        console.log('Stamps tab cleared');
+        
+        // Ensure stock tab is properly isolated
+        const stockTab = frm.page.wrapper.find('#company-stock_tab');
+        if (stockTab.length > 0) {
+            stockTab.removeClass('show').addClass('hide');
+            console.log('Stock tab hidden to prevent conflicts');
+        }
+        
+        // Ensure stamps tab has proper classes
+        stampsTab.removeClass('hide').addClass('show');
+        console.log('Stamps tab visibility ensured');
+        
         // Add content to the tab
-        tabContent.append(content_wrapper);
+        console.log('📝 Adding content to tab...');
+        console.log('Content wrapper created:', !!content_wrapper);
+        console.log('Stamps tab element:', stampsTab[0]);
+        
+        stampsTab.append(content_wrapper);
+        console.log('✅ Content appended to tab');
+        
+        // Verify content was added
+        const addedContent = stampsTab.find('.stamps-signatures-content');
+        console.log('Content verification - found in tab:', addedContent.length);
         
         // Load initial content
+        console.log('🔄 Loading initial content...');
         load_stamps_and_signatures(frm, content_wrapper);
         
         // Refresh button handler
         content_wrapper.find('.refresh-preview-btn').on('click', function() {
+            console.log('🔄 Refresh button clicked');
             load_stamps_and_signatures(frm, content_wrapper);
         });
-    }
-    
-    function retryAddContent() {
-        if (attempts < maxAttempts) {
-            setTimeout(tryAddContent, attemptInterval);
-        }
-    }
-    
-    // Start trying immediately, then retry if needed
-    tryAddContent();
-    retryAddContent();
-}
-
-function create_stamps_signatures_tab_manually(frm) {
-    // Fallback: Create tab manually if Custom Field doesn't exist
-    console.log('Creating Stamps & Signatures tab manually...');
-    
-    // Check if tab already exists
-    if (frm.page.wrapper.find('#stamps-signatures-tab').length > 0) {
-        console.log('Manual tab already exists');
-        return;
-    }
-    
-    // Debug: Log the form structure to understand the layout
-    console.log('Debugging form structure:');
-    console.log('Form wrapper classes:', frm.page.wrapper.attr('class'));
-    console.log('Available tabs:', frm.page.wrapper.find('.nav-link').map((i, el) => $(el).text().trim()).get());
-    
-    // Try different selectors for tabs - be more comprehensive
-    let tabsList = frm.page.wrapper.find('.form-tabs ul.nav');
-    let tabContent = frm.page.wrapper.find('.form-tab-content');
-    
-    // Alternative selectors
-    if (tabsList.length === 0) {
-        tabsList = frm.page.wrapper.find('.nav-tabs');
-    }
-    if (tabsList.length === 0) {
-        tabsList = frm.page.wrapper.find('ul.nav');
-    }
-    if (tabsList.length === 0) {
-        // Look for any nav structure
-        tabsList = frm.page.wrapper.find('.form-tabs').find('ul');
-    }
-    
-    if (tabContent.length === 0) {
-        tabContent = frm.page.wrapper.find('.tab-content');
-    }
-    if (tabContent.length === 0) {
-        tabContent = frm.page.wrapper.find('.form-body');
-    }
-    
-    console.log('Found tabs list:', tabsList.length, 'Found tab content:', tabContent.length);
-    
-    if (tabsList.length === 0 || tabContent.length === 0) {
-        console.warn('Could not find tabs structure for manual creation. Available elements:');
-        console.log('- .form-tabs ul.nav:', frm.page.wrapper.find('.form-tabs ul.nav').length);
-        console.log('- .nav-tabs:', frm.page.wrapper.find('.nav-tabs').length);
-        console.log('- .form-tab-content:', frm.page.wrapper.find('.form-tab-content').length);
-        console.log('- .tab-content:', frm.page.wrapper.find('.tab-content').length);
         
-        // Try a simpler approach - just add to the form body
-        addContentToFormBody(frm);
-        return;
-    }
-    
-    // Create new tab button
-    const newTabId = 'stamps-signatures-tab';
-    const newTabButton = $(`
-        <li class="nav-item">
-            <a class="nav-link" data-toggle="tab" href="#${newTabId}" role="tab" aria-controls="${newTabId}">
-                <span><i class="fa fa-stamp" style="margin-right: 5px;"></i>Stamps & Signatures</span>
-            </a>
-        </li>
-    `);
-    
-    // Create new tab content
-    const newTabContent = $(`
-        <div class="form-tab tab-pane fade" id="${newTabId}" role="tabpanel">
-            <div class="form-section">
-                <div class="stamps-signatures-content">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center" 
-                                     style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 12px 20px;">
-                                    <h5 class="card-title mb-0" style="color: #495057;">
-                                        <i class="fa fa-certificate" style="margin-right: 8px;"></i>
-                                        Company Stamps & Signatures Preview
-                                    </h5>
-                                    <button class="btn btn-sm btn-primary refresh-preview-btn">
-                                        <i class="fa fa-refresh"></i> Refresh
-                                    </button>
-                                </div>
-                                <div class="card-body" style="padding: 20px;">
-                                    <div class="loading-message text-center" style="padding: 40px;">
-                                        <i class="fa fa-spinner fa-spin" style="font-size: 24px; color: #6c757d;"></i>
-                                        <p style="margin-top: 10px; color: #6c757d;">Loading stamps and signatures...</p>
-                                    </div>
-                                    <div class="preview-content" style="display: none;">
-                                        <!-- Content will be loaded here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-    
-    // Add tab button and content
-    tabsList.append(newTabButton);
-    tabContent.append(newTabContent);
-    
-    // Initialize Bootstrap tab functionality
-    newTabButton.find('a').on('click', function(e) {
-        e.preventDefault();
-        $(this).tab('show');
-    });
-    
-    // Load initial content
-    load_stamps_and_signatures(frm, newTabContent.find('.stamps-signatures-content'));
-    
-    // Refresh button handler
-    newTabContent.find('.refresh-preview-btn').on('click', function() {
-        load_stamps_and_signatures(frm, newTabContent.find('.stamps-signatures-content'));
-    });
-    
-    console.log('✅ Manual tab created successfully');
+        // Add tab click handler to ensure proper isolation
+        const stampsTabLink = frm.page.wrapper.find('a[href="#company-stamps_signatures_tab"]');
+        stampsTabLink.on('shown.bs.tab', function() {
+            console.log('🎯 Stamps tab activated - ensuring content isolation');
+            
+            // Hide all other tabs
+            frm.page.wrapper.find('.tab-pane').not('#company-stamps_signatures_tab').removeClass('show').addClass('hide');
+            
+            // Show only stamps tab
+            stampsTab.removeClass('hide').addClass('show active');
+            
+            // Ensure our content is visible
+            const stampsContent = stampsTab.find('.stamps-signatures-content');
+            if (stampsContent.length > 0) {
+                stampsContent.show();
+                console.log('Stamps content visibility confirmed');
+            }
+        });
+        
+        console.log('✅ Setup complete!');
+    }, 2000); // Increased delay to allow tab structure to be ready
 }
 
-function addContentToFormBody(frm) {
-    // Fallback: Add content directly to form body as a section
-    console.log('Adding Stamps & Signatures as a section to form body...');
-    
-    // Check if content already exists
-    if (frm.page.wrapper.find('.stamps-signatures-content').length > 0) {
-        console.log('Content already exists in form body');
-        return;
-    }
-    
-    // Find the form body or any container
-    let formContainer = frm.page.wrapper.find('.form-body').first();
-    if (formContainer.length === 0) {
-        formContainer = frm.page.wrapper.find('.frappe-control').last().parent();
-    }
-    if (formContainer.length === 0) {
-        formContainer = frm.page.wrapper.find('.form-section').last().parent();
-    }
-    
-    if (formContainer.length === 0) {
-        console.warn('Could not find any form container');
-        return;
-    }
-    
-    // Create a section-style layout instead of tab
-    const sectionWrapper = $(`
-        <div class="form-section stamps-signatures-section" style="margin-top: 30px; border-top: 3px solid #1976d2; background: #fafbfc; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div class="section-head" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 15px 20px; margin: 0; border-radius: 0;">
-                <h3 class="section-title" style="margin: 0; font-size: 1.2rem; font-weight: 600; color: white;">
-                    <i class="fa fa-stamp" style="margin-right: 8px;"></i>
-                    Stamps & Signatures
-                </h3>
-            </div>
-            <div class="section-body" style="padding: 0; background: white;">
-                <div class="stamps-signatures-content">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card" style="border: none; border-radius: 0;">
-                                <div class="card-header d-flex justify-content-between align-items-center" 
-                                     style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 12px 20px;">
-                                    <h5 class="card-title mb-0" style="color: #495057;">
-                                        <i class="fa fa-certificate" style="margin-right: 8px;"></i>
-                                        Company Stamps & Signatures Preview
-                                    </h5>
-                                    <button class="btn btn-sm btn-primary refresh-preview-btn">
-                                        <i class="fa fa-refresh"></i> Refresh
-                                    </button>
-                                </div>
-                                <div class="card-body" style="padding: 20px;">
-                                    <div class="loading-message text-center" style="padding: 40px;">
-                                        <i class="fa fa-spinner fa-spin" style="font-size: 24px; color: #6c757d;"></i>
-                                        <p style="margin-top: 10px; color: #6c757d;">Loading stamps and signatures...</p>
-                                    </div>
-                                    <div class="preview-content" style="display: none;">
-                                        <!-- Content will be loaded here -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `);
-    
-    // Add to the form
-    formContainer.append(sectionWrapper);
-    
-    // Load initial content
-    load_stamps_and_signatures(frm, sectionWrapper.find('.stamps-signatures-content'));
-    
-    // Refresh button handler
-    sectionWrapper.find('.refresh-preview-btn').on('click', function() {
-        load_stamps_and_signatures(frm, sectionWrapper.find('.stamps-signatures-content'));
-    });
-    
-    console.log('✅ Added Stamps & Signatures section to form body');
-}
+// Manual tab creation functions removed to prevent duplicate div containers
+// The app now relies solely on the Tab Break custom field for tab creation
 
 function load_stamps_and_signatures(frm, container) {
+    console.log('📊 load_stamps_and_signatures called');
+    console.log('Container:', container);
+    console.log('Form doc:', frm.doc);
+    
     const company_name = frm.doc.name;
+    console.log('Company name:', company_name);
     
     if (!company_name) {
+        console.log('❌ No company name found');
         container.find('.loading-message').html('<p class="text-muted">Company name is required</p>');
         return;
     }

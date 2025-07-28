@@ -13,51 +13,76 @@
     --stamps-shadow: rgba(0,0,0,0.1);
 }
 
-/* Dark theme support */
-[data-theme="dark"] {
+/* Dark theme support - Enhanced for better detection */
+html[data-theme="dark"],
+body[data-theme="dark"],
+.theme-dark,
+[data-bs-theme="dark"] {
     --stamps-primary-color: #42a5f5;
     --stamps-secondary-color: #1976d2;
-    --stamps-background: #2b2b2b;
-    --stamps-card-background: #3a3a3a;
+    --stamps-background: #1a1a1a;
+    --stamps-card-background: #2d2d2d;
     --stamps-text-primary: #e0e0e0;
     --stamps-text-secondary: #b0b0b0;
     --stamps-text-muted: #808080;
-    --stamps-border-color: #555555;
-    --stamps-shadow: rgba(0,0,0,0.3);
+    --stamps-border-color: #404040;
+    --stamps-shadow: rgba(0,0,0,0.4);
 }
 
-/* Auto-detect dark theme */
+/* Auto-detect dark theme - Enhanced */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --stamps-primary-color: #42a5f5;
         --stamps-secondary-color: #1976d2;
-        --stamps-background: #2b2b2b;
-        --stamps-card-background: #3a3a3a;
+        --stamps-background: #1a1a1a;
+        --stamps-card-background: #2d2d2d;
         --stamps-text-primary: #e0e0e0;
         --stamps-text-secondary: #b0b0b0;
         --stamps-text-muted: #808080;
-        --stamps-border-color: #555555;
-        --stamps-shadow: rgba(0,0,0,0.3);
+        --stamps-border-color: #404040;
+        --stamps-shadow: rgba(0,0,0,0.4);
     }
 }
 
-.company-stamps-signatures-section {
+/* Frappe Framework Dark Mode Support */
+.dark,
+.dark-mode,
+body.dark {
+    --stamps-primary-color: #42a5f5;
+    --stamps-secondary-color: #1976d2;
+    --stamps-background: #1a1a1a;
+    --stamps-card-background: #2d2d2d;
+    --stamps-text-primary: #e0e0e0;
+    --stamps-text-secondary: #b0b0b0;
+    --stamps-text-muted: #808080;
+    --stamps-border-color: #404040;
+    --stamps-shadow: rgba(0,0,0,0.4);
+}
+
+/* Main container styling - targeting the actual HTML structure */
+.company-stamps-signatures-section,
+#stamps-signatures-tab,
+.form-tab#stamps-signatures-tab,
+.tab-pane#stamps-signatures-tab {
     margin: 20px 0;
-    color: var(--stamps-text-primary);
+    color: var(--stamps-text-primary) !important;
+    background: var(--stamps-background) !important;
 }
 
 /* Dedicated Tab Section Styling */
-.stamps-signatures-tab {
-    margin-top: 25px;
+.stamps-signatures-tab,
+#stamps-signatures-tab .form-section,
+.tab-pane#stamps-signatures-tab .form-section {
+    margin-top: 0;
     border-top: 3px solid var(--stamps-primary-color);
-    background: var(--stamps-background);
+    background: var(--stamps-background) !important;
     border-radius: 0 0 8px 8px;
     box-shadow: 0 2px 4px var(--stamps-shadow);
 }
 
 .stamps-signatures-tab .section-head {
-    background: linear-gradient(135deg, var(--stamps-primary-color) 0%, var(--stamps-secondary-color) 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--stamps-primary-color) 0%, var(--stamps-secondary-color) 100%) !important;
+    color: white !important;
     padding: 15px 20px;
     margin: 0;
     border-radius: 0;
@@ -67,41 +92,51 @@
     margin: 0;
     font-size: 1.2rem;
     font-weight: 600;
-    color: white;
+    color: white !important;
 }
 
-.stamps-signatures-tab .section-body {
+.stamps-signatures-tab .section-body,
+#stamps-signatures-tab .stamps-signatures-content {
     padding: 0;
-    background: var(--stamps-card-background);
+    background: var(--stamps-card-background) !important;
 }
 
 .stamps-signatures-tab .stamps-signatures-content {
     padding: 0;
 }
 
-.company-stamps-signatures-section .card {
-    border: 1px solid var(--stamps-border-color);
+/* Card styling - targeting actual structure */
+.company-stamps-signatures-section .card,
+#stamps-signatures-tab .card,
+.stamps-signatures-content .card {
+    border: 1px solid var(--stamps-border-color) !important;
     border-radius: 0.35rem;
-    box-shadow: 0 0.15rem 1.75rem 0 var(--stamps-shadow);
-    background: var(--stamps-card-background);
+    box-shadow: 0 0.15rem 1.75rem 0 var(--stamps-shadow) !important;
+    background: var(--stamps-card-background) !important;
 }
 
-.company-stamps-signatures-section .card-header {
-    background-color: var(--stamps-background);
-    border-bottom: 1px solid var(--stamps-border-color);
+.company-stamps-signatures-section .card-header,
+#stamps-signatures-tab .card-header,
+.stamps-signatures-content .card-header {
+    background-color: var(--stamps-background) !important;
+    border-bottom: 1px solid var(--stamps-border-color) !important;
     padding: 0.75rem 1.25rem;
 }
 
-.company-stamps-signatures-section .card-title {
-    color: var(--stamps-text-primary);
+.company-stamps-signatures-section .card-title,
+#stamps-signatures-tab .card-title,
+.stamps-signatures-content .card-title {
+    color: var(--stamps-text-primary) !important;
     font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: 0;
 }
 
-.company-stamps-signatures-section .card-body {
+.company-stamps-signatures-section .card-body,
+#stamps-signatures-tab .card-body,
+.stamps-signatures-content .card-body {
     padding: 1.5rem;
-    background: var(--stamps-card-background);
+    background: var(--stamps-card-background) !important;
 }
 
 /* Summary Cards */
@@ -117,13 +152,13 @@
 /* Stamp Cards */
 .stamp-card {
     transition: all 0.3s ease;
-    border: 1px solid var(--stamps-border-color);
+    border: 1px solid var(--stamps-border-color) !important;
     border-radius: 8px;
     padding: 15px;
-    background: var(--stamps-card-background);
-    box-shadow: 0 1px 3px var(--stamps-shadow);
+    background: var(--stamps-card-background) !important;
+    box-shadow: 0 1px 3px var(--stamps-shadow) !important;
     height: 100%;
-    color: var(--stamps-text-primary);
+    color: var(--stamps-text-primary) !important;
 }
 
 .stamp-card:hover {
@@ -142,13 +177,13 @@
 /* Signature Cards */
 .signature-card {
     transition: all 0.3s ease;
-    border: 1px solid var(--stamps-border-color);
+    border: 1px solid var(--stamps-border-color) !important;
     border-radius: 8px;
     padding: 15px;
-    background: var(--stamps-card-background);
-    box-shadow: 0 1px 3px var(--stamps-shadow);
+    background: var(--stamps-card-background) !important;
+    box-shadow: 0 1px 3px var(--stamps-shadow) !important;
     height: 100%;
-    color: var(--stamps-text-primary);
+    color: var(--stamps-text-primary) !important;
 }
 
 .signature-card:hover {
@@ -177,13 +212,11 @@
 .stamps-section h6 {
     color: var(--stamps-primary-color);
     border-bottom-color: var(--stamps-primary-color);
-    opacity: 0.3;
 }
 
 .signatures-section h6 {
     color: #7b1fa2;
     border-bottom-color: #7b1fa2;
-    opacity: 0.3;
 }
 
 /* Loading State */
@@ -265,4 +298,157 @@
 .signature-card img:hover {
     border-color: #007bff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Override inline styles for theme support */
+.company-stamps-signatures-section .card-header {
+    background-color: var(--stamps-background) !important;
+    border-bottom: 1px solid var(--stamps-border-color) !important;
+    color: var(--stamps-text-primary) !important;
+}
+
+.company-stamps-signatures-section .card-body {
+    background: var(--stamps-card-background) !important;
+    color: var(--stamps-text-primary) !important;
+}
+
+.company-stamps-signatures-section h4,
+.company-stamps-signatures-section h5,
+.company-stamps-signatures-section h6 {
+    color: var(--stamps-text-primary) !important;
+}
+
+.company-stamps-signatures-section p {
+    color: var(--stamps-text-secondary) !important;
+}
+
+.company-stamps-signatures-section .text-muted {
+    color: var(--stamps-text-muted) !important;
+}
+
+/* Summary cards theme support */
+.summary-card {
+    background: var(--stamps-background) !important;
+    border: 1px solid var(--stamps-border-color) !important;
+}
+
+.summary-card h4 {
+    color: var(--stamps-primary-color) !important;
+}
+
+.summary-card p {
+    color: var(--stamps-text-secondary) !important;
+}
+
+/* Override specific inline styles */
+.stamps-signatures-content [style*="color: #333"] {
+    color: var(--stamps-text-primary) !important;
+}
+
+.stamps-signatures-content [style*="color: #666"] {
+    color: var(--stamps-text-secondary) !important;
+}
+
+.stamps-signatures-content [style*="color: #888"] {
+    color: var(--stamps-text-muted) !important;
+}
+
+.stamps-signatures-content [style*="background: white"] {
+    background: var(--stamps-card-background) !important;
+}
+
+.stamps-signatures-content [style*="border: 1px solid #e0e0e0"] {
+    border: 1px solid var(--stamps-border-color) !important;
+}
+
+.stamps-signatures-content [style*="border: 1px solid #ddd"] {
+    border: 1px solid var(--stamps-border-color) !important;
+}
+
+/* Section headers with theme support */
+.stamps-signatures-content h6[style*="color: #1976d2"] {
+    color: var(--stamps-primary-color) !important;
+    border-bottom-color: var(--stamps-border-color) !important;
+}
+
+.stamps-signatures-content h6[style*="color: #7b1fa2"] {
+    color: #7b1fa2 !important;
+    border-bottom-color: var(--stamps-border-color) !important;
+}
+
+/* Stamps tab styling - unified approach */
+.tab-pane {
+    background: var(--stamps-background) !important;
+    color: var(--stamps-text-primary) !important;
+}
+
+/* Ensure stamps tab content is properly styled */
+#stamps-signatures-tab,
+.tab-pane#stamps-signatures-tab,
+.form-tab#stamps-signatures-tab {
+    background: var(--stamps-background) !important;
+    color: var(--stamps-text-primary) !important;
+    padding: 0 !important;
+}
+
+/* Force dark mode styles with higher specificity */
+html[data-theme="dark"] .stamps-signatures-content,
+body[data-theme="dark"] .stamps-signatures-content,
+.theme-dark .stamps-signatures-content,
+[data-bs-theme="dark"] .stamps-signatures-content,
+.dark .stamps-signatures-content,
+.dark-mode .stamps-signatures-content,
+body.dark .stamps-signatures-content {
+    background: var(--stamps-background) !important;
+    color: var(--stamps-text-primary) !important;
+}
+
+/* Force card backgrounds in dark mode */
+html[data-theme="dark"] .stamp-card,
+html[data-theme="dark"] .signature-card,
+body[data-theme="dark"] .stamp-card,
+body[data-theme="dark"] .signature-card,
+.theme-dark .stamp-card,
+.theme-dark .signature-card,
+[data-bs-theme="dark"] .stamp-card,
+[data-bs-theme="dark"] .signature-card,
+.dark .stamp-card,
+.dark .signature-card,
+.dark-mode .stamp-card,
+.dark-mode .signature-card,
+body.dark .stamp-card,
+body.dark .signature-card {
+    background: var(--stamps-card-background) !important;
+    border-color: var(--stamps-border-color) !important;
+    color: var(--stamps-text-primary) !important;
+}
+
+/* Force text colors in dark mode */
+html[data-theme="dark"] .stamps-signatures-content h6,
+html[data-theme="dark"] .stamps-signatures-content p,
+body[data-theme="dark"] .stamps-signatures-content h6,
+body[data-theme="dark"] .stamps-signatures-content p,
+.theme-dark .stamps-signatures-content h6,
+.theme-dark .stamps-signatures-content p,
+[data-bs-theme="dark"] .stamps-signatures-content h6,
+[data-bs-theme="dark"] .stamps-signatures-content p,
+.dark .stamps-signatures-content h6,
+.dark .stamps-signatures-content p,
+.dark-mode .stamps-signatures-content h6,
+.dark-mode .stamps-signatures-content p,
+body.dark .stamps-signatures-content h6,
+body.dark .stamps-signatures-content p {
+    color: var(--stamps-text-primary) !important;
+}
+
+/* Override any remaining inline styles */
+.stamps-signatures-content * {
+    color: inherit !important;
+}
+
+.stamps-signatures-content .card,
+.stamps-signatures-content .stamp-card,
+.stamps-signatures-content .signature-card {
+    background: var(--stamps-card-background) !important;
+    border-color: var(--stamps-border-color) !important;
 }

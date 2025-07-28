@@ -23,7 +23,7 @@ def create_company_stamps_signatures_tab():
         custom_field.label = "Stamps & Signatures"
         custom_field.fieldname = "stamps_signatures_tab"
         custom_field.fieldtype = "Tab Break"
-        custom_field.insert_after = "dashboard_tab"  # Insert after Dashboard tab
+        custom_field.insert_after = "stock_tab"  # Insert after Stock tab
         custom_field.idx = 100  # Set a high index to ensure it appears last
         
         custom_field.insert()
