@@ -289,5 +289,58 @@ DELIVERY_NOTE_CUSTOM_FIELDS = {
     ]
 }
 
-# Combine Print Designer fields with Signature fields and Delivery Note fields
-CUSTOM_FIELDS = {**PRINT_DESIGNER_CUSTOM_FIELDS, **get_signature_fields(), **DELIVERY_NOTE_CUSTOM_FIELDS}
+# Global Defaults custom fields for font selection
+GLOBAL_DEFAULTS_CUSTOM_FIELDS = {
+    "Global Defaults": [
+        {
+            "fieldname": "typography_section",
+            "fieldtype": "Section Break",
+            "label": "Typography Settings",
+            "insert_after": "disable_in_words",
+            "collapsible": 1,
+            "description": "Configure system-wide font preferences"
+        },
+        {
+            "fieldname": "primary_font_family",
+            "fieldtype": "Select",
+            "label": "Primary Font Family",
+            "options": "System Default\nSarabun (Thai)\nNoto Sans Thai\nIBM Plex Sans Thai\nKanit (Thai)\nPrompt (Thai)\nMitr (Thai)\nPridi (Thai)\nInter\nRoboto\nOpen Sans\nLato\nNunito Sans",
+            "default": "Sarabun (Thai)",
+            "insert_after": "typography_section",
+            "description": "Primary font family for the system interface and documents. Thai fonts provide optimal Unicode support for Thai text."
+        },
+        {
+            "fieldname": "font_preferences_column",
+            "fieldtype": "Column Break",
+            "insert_after": "primary_font_family"
+        },
+        {
+            "fieldname": "enable_thai_font_support",
+            "fieldtype": "Check",
+            "label": "Enable Thai Font Support",
+            "default": "1",
+            "insert_after": "font_preferences_column",
+            "description": "Enable system-wide Thai font support and optimizations"
+        },
+        {
+            "fieldname": "custom_font_stack",
+            "fieldtype": "Small Text",
+            "label": "Custom Font Stack",
+            "insert_after": "enable_thai_font_support",
+            "depends_on": "eval:doc.primary_font_family == 'System Default'",
+            "description": "Comma-separated list of font families for custom font stack. Example: 'Sarabun', 'Noto Sans Thai', 'Arial', sans-serif"
+        },
+        {
+            "fieldname": "custom_typography_css",
+            "fieldtype": "Long Text",
+            "label": "Custom Typography CSS",
+            "insert_after": "custom_font_stack",
+            "hidden": 1,
+            "read_only": 1,
+            "description": "Generated CSS for typography override - managed automatically"
+        }
+    ]
+}
+
+# Combine Print Designer fields with Signature fields, Delivery Note fields, and Global Defaults fields
+CUSTOM_FIELDS = {**PRINT_DESIGNER_CUSTOM_FIELDS, **get_signature_fields(), **DELIVERY_NOTE_CUSTOM_FIELDS, **GLOBAL_DEFAULTS_CUSTOM_FIELDS}

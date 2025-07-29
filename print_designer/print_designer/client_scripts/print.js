@@ -851,6 +851,22 @@ function extendPrintView() {
       params.set('company_stamp', this.company_stamp_selector.val());
     }
 
+    // Add watermark parameter for Print Designer PDF preview
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark to Print Designer PDF preview:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode:', watermarkValue);
+      }
+    }
+
     console.log('params', params);
 
     // Initialize safe PDF client and get URL
@@ -1469,22 +1485,47 @@ function extendPrintView() {
       params.set('company_stamp', this.company_stamp_selector.val());
     }
 
-    // Add copy settings if enabled
-    if (this.enable_copies_item && this.enable_copies_item.value) {
-      const copies = parseInt(this.copies_item.value) || 1;
-      params.set('copies', copies);
+    // Add copy settings if enabled (check both sidebar and toolbar controls)
+    const copyCount = this.copy_count_input ? parseInt(this.copy_count_input.val()) || 1 : 
+                     (this.copy_count_item ? parseInt(this.copy_count_item.value) || 1 : 1);
+    
+    if (copyCount > 1 || (this.enable_copies_item && this.enable_copies_item.value)) {
+      params.set('copy_count', copyCount);
 
-      // Add watermark settings for copies
-      if (this.watermark_copies_item && this.watermark_copies_item.value) {
-        const watermarkSettings = {
-          watermark_settings: this.watermark_copies_item.value
-        };
-        params.set('settings', JSON.stringify(watermarkSettings));
+      // Get labels from top-right controls or sidebar
+      let originalLabel, copyLabel;
+      if (this.original_label_input && this.copy_label_input) {
+        originalLabel = this.original_label_input.val() || __('Original');
+        copyLabel = this.copy_label_input.val() || __('Copy');
+      } else if (this.copy_labels_item && this.copy_labels_item.value) {
+        const labels = this.copy_labels_item.value.split(',');
+        originalLabel = labels[0] ? labels[0].trim() : __('Original');
+        copyLabel = labels[1] ? labels[1].trim() : __('Copy');
+      } else {
+        originalLabel = __('Original');
+        copyLabel = __('Copy');
+      }
+      params.set('copy_labels', `${originalLabel}, ${copyLabel}`);
+    }
+
+    // Add watermark settings
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark to print:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template for print:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode for print:', watermarkValue);
       }
     }
 
-    // Use Print Designer preview endpoint which uses the same rendering as PDF
-    const url = `/print_designer_preview?${params.toString()}`;
+    // Use standard print endpoint which supports Print Designer formats
+    const url = `/printview?${params.toString()}`;
 
     // Open in new window for printing
     let w = window.open(frappe.urllib.get_full_url(url));
@@ -1514,8 +1555,19 @@ function extendPrintView() {
 			`);
   }
   preview() {
+    console.log('[WATERMARK DEBUG] ===========================================');
+    console.log('[WATERMARK DEBUG] preview() method called');
+    
     let print_format = this.get_print_format();
+    console.log('[WATERMARK DEBUG] Current print format:', print_format);
+    console.log('[WATERMARK DEBUG] Print format name:', print_format?.name);
+    console.log('[WATERMARK DEBUG] Has print_designer:', !!print_format?.print_designer);
+    console.log('[WATERMARK DEBUG] Has print_designer_body:', !!print_format?.print_designer_body);
+    console.log('[WATERMARK DEBUG] sidebar_dynamic_section exists:', !!this.sidebar_dynamic_section);
+    console.log('[WATERMARK DEBUG] watermark_selector exists:', !!this.watermark_selector);
+    
     if (print_format.print_designer && print_format.print_designer_body) {
+      console.log('[WATERMARK DEBUG] PRINT DESIGNER FORMAT DETECTED');
       this.inner_msg.hide();
       this.print_wrapper.find('.print-preview-wrapper').hide();
       this.print_wrapper.find('.preview-beta-wrapper').hide();
@@ -1529,13 +1581,34 @@ function extendPrintView() {
       this.page.add_menu_item('View PDF Logs', () => this.showPDFLogs());
       this.page.add_menu_item('Export PDF Logs', () => this.exportPDFLogs());
       this.page.add_menu_item('Clear PDF Logs', () => this.clearPDFLogs());
-      this.print_btn.hide();
+      this.print_btn.show();
       this.letterhead_selector.hide();
       this.signature_selector.hide();
       this.company_stamp_selector.hide();
-      this.sidebar_dynamic_section.hide();
+      
+      console.log('[WATERMARK DEBUG] About to show sidebar_dynamic_section...');
+      if (this.sidebar_dynamic_section) {
+        this.sidebar_dynamic_section.show();
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section.show() called');
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section is visible:', this.sidebar_dynamic_section.is(':visible'));
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section display style:', this.sidebar_dynamic_section.css('display'));
+      } else {
+        console.log('[WATERMARK DEBUG] ERROR: sidebar_dynamic_section is null/undefined!');
+      }
+      
       // Keep sidebar visible for print designer formats but hide redundant sections
       this.sidebar.show();
+      console.log('[WATERMARK DEBUG] Main sidebar shown');
+      
+      // Check watermark selector specifically
+      if (this.watermark_selector) {
+        console.log('[WATERMARK DEBUG] watermark_selector exists, parent visible:', this.watermark_selector.parent().is(':visible'));
+        console.log('[WATERMARK DEBUG] watermark_selector display:', this.watermark_selector.css('display'));
+        console.log('[WATERMARK DEBUG] watermark_selector parent classes:', this.watermark_selector.parent().attr('class'));
+      } else {
+        console.log('[WATERMARK DEBUG] ERROR: watermark_selector is null/undefined!');
+      }
+      
       // Hide specific form elements that are now in the toolbar
       if (this.print_format_item) {
         this.print_format_item.$wrapper.hide();
@@ -1545,8 +1618,11 @@ function extendPrintView() {
       }
       this.toolbar_print_format_selector.$wrapper.show();
       this.toolbar_language_selector.$wrapper.show();
+      console.log('[WATERMARK DEBUG] PRINT DESIGNER FORMAT SETUP COMPLETE');
       return;
     }
+    
+    console.log('[WATERMARK DEBUG] TRADITIONAL FORMAT DETECTED');
     this.print_wrapper.find('.print-designer-wrapper').hide();
     this.inner_msg.show();
     this.full_page_btn.show();
@@ -1555,8 +1631,18 @@ function extendPrintView() {
     this.letterhead_selector.show();
     this.signature_selector.show();
     this.company_stamp_selector.show();
-    this.sidebar_dynamic_section.show();
+    
+    console.log('[WATERMARK DEBUG] About to show sidebar_dynamic_section for traditional format...');
+    if (this.sidebar_dynamic_section) {
+      this.sidebar_dynamic_section.show();
+      console.log('[WATERMARK DEBUG] sidebar_dynamic_section.show() called for traditional');
+      console.log('[WATERMARK DEBUG] sidebar_dynamic_section is visible:', this.sidebar_dynamic_section.is(':visible'));
+    } else {
+      console.log('[WATERMARK DEBUG] ERROR: sidebar_dynamic_section is null/undefined for traditional!');
+    }
+    
     this.sidebar.show();
+    
     // Restore sidebar form elements for non-print designer formats
     if (this.print_format_item) {
       this.print_format_item.$wrapper.show();
@@ -1566,8 +1652,11 @@ function extendPrintView() {
     }
     this.toolbar_print_format_selector.$wrapper.hide();
     this.toolbar_language_selector.$wrapper.hide();
+    console.log('[WATERMARK DEBUG] TRADITIONAL FORMAT SETUP COMPLETE');
+    console.log('[WATERMARK DEBUG] ===========================================');
     super.preview();
   }
+  
   setup_toolbar() {
     this.print_btn = this.page.set_primary_action(
       __('Print'),
@@ -1605,7 +1694,7 @@ function extendPrintView() {
     );
   }
   setup_sidebar() {
-    console.log('[WATERMARK DEBUG] Setting up sidebar...');
+    console.log('[WATERMARK DEBUG] *** setup_sidebar() called ***');
     this.sidebar = this.page.sidebar.addClass('print-preview-sidebar');
     console.log('[WATERMARK DEBUG] Sidebar initialized:', this.sidebar);
 
@@ -1706,31 +1795,7 @@ function extendPrintView() {
       change: () => this.preview(),
     }).$input;
 
-    // NEW: Watermark per Page selector
-    console.log('[WATERMARK DEBUG] Adding watermark selector to sidebar...');
-    console.log('[WATERMARK DEBUG] Current print format:', this.get_print_format());
-    console.log('[WATERMARK DEBUG] Print settings:', this.print_settings);
-    
-    this.watermark_selector = this.add_sidebar_item({
-      fieldtype: "Select",
-      fieldname: "watermark_settings",
-      label: __("Watermark per Page"),
-      options: [
-        "None",
-        "Original on First Page",
-        "Copy on All Pages",
-        "Original,Copy on Sequence"
-      ].join('\n'),
-      default: "None",
-      description: __("Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"),
-      change: () => {
-        console.log('[WATERMARK DEBUG] Watermark selector changed, value:', this.watermark_selector.val());
-        this.preview();
-      },
-    }).$input;
-    console.log('[WATERMARK DEBUG] Watermark selector created:', this.watermark_selector);
-    console.log('[WATERMARK DEBUG] Watermark selector parent:', this.watermark_selector.parent());
-    console.log('[WATERMARK DEBUG] Sidebar element:', this.sidebar);
+    // NOTE: Watermark selector moved to setup_copy_options() to be conditional
 
     this.sidebar_dynamic_section = $(
       `<div class="dynamic-settings"></div>`,
@@ -1781,32 +1846,154 @@ function extendPrintView() {
   }
 
   load_print_settings() {
-    console.log('[WATERMARK DEBUG] Loading print settings...');
-    // Load print settings to get copy configuration
-    frappe.call({
-      method: 'frappe.client.get_single',
-      args: {
-        doctype: 'Print Settings'
-      },
-      callback: (r) => {
-        if (r.message) {
-          console.log('[WATERMARK DEBUG] Print settings loaded:', r.message);
-          this.print_settings = r.message;
-          console.log('[WATERMARK DEBUG] Watermark settings in print_settings:', this.print_settings.watermark_settings);
-          // Setup copy options after settings are loaded
-          this.setup_copy_options();
-        }
-      }
+    console.log('[WATERMARK DEBUG] *** load_print_settings() called ***');
+    
+    // Load both Print Settings and Watermark Settings in parallel
+    Promise.all([
+      // Load traditional Print Settings for copy configuration
+      new Promise((resolve) => {
+        frappe.call({
+          method: 'frappe.client.get_single',
+          args: {
+            doctype: 'Print Settings'
+          },
+          callback: (r) => {
+            if (r.message) {
+              console.log('[WATERMARK DEBUG] Print settings loaded:', r.message);
+              resolve(r.message);
+            } else {
+              console.log('[WATERMARK DEBUG] No print settings returned from API');
+              // Create default settings if none exist
+              resolve({
+                enable_multiple_copies: 1,
+                show_copy_controls_in_toolbar: 1,
+                watermark_settings: 'None'
+              });
+            }
+          },
+          error: (err) => {
+            console.log('[WATERMARK DEBUG] Error loading print settings:', err);
+            // Create default settings on error
+            resolve({
+              enable_multiple_copies: 1,
+              show_copy_controls_in_toolbar: 1,
+              watermark_settings: 'None'
+            });
+          }
+        });
+      }),
+      
+      // Load new Watermark Settings configuration
+      new Promise((resolve) => {
+        frappe.call({
+          method: 'print_designer.api.watermark.get_available_watermark_templates',
+          callback: (r) => {
+            if (r.message) {
+              console.log('[WATERMARK DEBUG] Watermark templates loaded:', r.message);
+              resolve({ templates: r.message });
+            } else {
+              console.log('[WATERMARK DEBUG] No watermark templates available');
+              resolve({ templates: [] });
+            }
+          },
+          error: (err) => {
+            console.log('[WATERMARK DEBUG] Error loading watermark templates:', err);
+            resolve({ templates: [] });
+          }
+        });
+      })
+    ]).then((results) => {
+      const [printSettings, watermarkData] = results;
+      
+      this.print_settings = printSettings;
+      this.watermark_templates = watermarkData.templates || [];
+      
+      console.log('[WATERMARK DEBUG] Combined settings loaded:', {
+        print_settings: this.print_settings,
+        watermark_templates: this.watermark_templates
+      });
+      
+      // Setup copy options and watermark with enhanced configuration
+      this.setup_copy_options();
     });
   }
 
   setup_copy_options() {
+    console.log('[WATERMARK DEBUG] *** setup_copy_options() called ***');
+    console.log('[WATERMARK DEBUG] copy_options_initialized:', this.copy_options_initialized);
+    console.log('[WATERMARK DEBUG] print_settings exists:', !!this.print_settings);
+    console.log('[WATERMARK DEBUG] print_settings:', this.print_settings);
+    
     // Don't setup if already initialized or settings not loaded
     if (this.copy_options_initialized || !this.print_settings) {
+      console.log('[WATERMARK DEBUG] Early return from setup_copy_options - already initialized or no settings');
       return;
     }
 
     this.copy_options_initialized = true;
+    console.log('[WATERMARK DEBUG] Setting copy_options_initialized = true');
+
+    // Create enhanced watermark selector with templates integration
+    console.log('[WATERMARK DEBUG] Creating enhanced watermark selector...');
+    console.log('[WATERMARK DEBUG] Available watermark templates:', this.watermark_templates);
+    
+    try {
+      // Build options list combining basic modes and templates
+      let watermarkOptions = [
+        "None",
+        "Original on First Page", 
+        "Copy on All Pages",
+        "Original,Copy on Sequence"
+      ];
+      
+      // Add available templates from Watermark Settings
+      if (this.watermark_templates && this.watermark_templates.length > 0) {
+        watermarkOptions.push('---'); // Separator
+        this.watermark_templates.forEach(template => {
+          watermarkOptions.push(`Template: ${template.name}`);
+        });
+      }
+      
+      this.watermark_selector = this.add_sidebar_item({
+        fieldtype: "Select",
+        fieldname: "watermark_settings",
+        label: __("Watermark Configuration"),
+        options: watermarkOptions.join('\n'),
+        default: this.print_settings.watermark_settings || "None",
+        description: __("Watermark options: Basic modes (None, Original, Copy, Sequence) or custom templates from Watermark Settings"),
+        change: () => {
+          const selectedValue = this.watermark_selector.val();
+          console.log('[WATERMARK DEBUG] Watermark selector changed, value:', selectedValue);
+          
+          // If a template is selected, show template details
+          if (selectedValue && selectedValue.startsWith('Template: ')) {
+            const templateName = selectedValue.replace('Template: ', '');
+            this.show_watermark_template_info(templateName);
+          }
+          
+          this.preview();
+        },
+      });
+      
+      console.log('[WATERMARK DEBUG] Enhanced watermark selector created:', this.watermark_selector);
+      
+      // Force append to sidebar_dynamic_section if it exists
+      if (this.sidebar_dynamic_section && this.watermark_selector) {
+        console.log('[WATERMARK DEBUG] Moving watermark selector to sidebar_dynamic_section...');
+        this.watermark_selector.parent().appendTo(this.sidebar_dynamic_section);
+        console.log('[WATERMARK DEBUG] Watermark selector moved to dynamic section');
+      }
+      
+    } catch (error) {
+      console.log('[WATERMARK DEBUG] ERROR creating enhanced watermark selector:', error);
+    }
+    
+    // Show watermark selector if copy controls are enabled in toolbar (original logic)
+    if (this.print_settings.show_copy_controls_in_toolbar) {
+      console.log('[WATERMARK DEBUG] Copy controls enabled in toolbar - watermark should be visible');
+    } else {
+      console.log('[WATERMARK DEBUG] Copy controls NOT enabled in toolbar - but showing anyway for debug');
+    }
 
     // Only show copy options if enabled in print settings
     if (this.print_settings.enable_multiple_copies) {
@@ -1877,6 +2064,24 @@ function extendPrintView() {
       // Initially hide copy options
       this.copy_count_item.$wrapper.hide();
       this.copy_labels_item.$wrapper.hide();
+    }
+  }
+
+  show_watermark_template_info(templateName) {
+    // Show template details when a watermark template is selected
+    const template = this.watermark_templates.find(t => t.name === templateName);
+    if (template) {
+      console.log('[WATERMARK DEBUG] Showing template info for:', template);
+      
+      // Show template details in a toast notification
+      frappe.show_alert({
+        message: __('Watermark Template: {0}<br>Mode: {1}<br>{2}', [
+          template.name,
+          template.watermark_mode || 'None',
+          template.description || 'No description available'
+        ]),
+        indicator: 'blue'
+      }, 5);
     }
   }
 
@@ -2066,6 +2271,22 @@ function extendPrintView() {
     }
     if (this.company_stamp_selector && this.company_stamp_selector.val()) {
       params.set('company_stamp', this.company_stamp_selector.val());
+    }
+    
+    // Add watermark parameter
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark parameter to PDF URL:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template for PDF download:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode for PDF download:', watermarkValue);
+      }
     }
 
     // Construct the full URL

@@ -33,10 +33,28 @@ bench execute print_designer.commands.test_pdf_generators.test_all_generators
 bench execute print_designer.utils.test_pdf_generation.test_pdf_generation
 bench --site [site-name] console  # Interactive Python console for debugging
 
+# Complete system setup and checks
+bench execute print_designer.commands.install_complete_system.install_complete_system
+bench execute print_designer.commands.install_complete_system.check_system_status
+
 # Signature and stamp setup
 bench execute print_designer.commands.signature_setup.setup_signatures
 bench execute print_designer.commands.signature_setup.check_signature_status
+
+# Watermark system setup
 bench execute print_designer.commands.install_watermark_fields.install_watermark_fields
+
+# Thai-specific features
+bench execute print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi
+bench execute print_designer.commands.install_delivery_qr.install_delivery_qr
+bench execute print_designer.commands.install_delivery_fields.install_delivery_note_fields
+
+# Typography system setup
+bench execute print_designer.commands.install_typography_system.install_typography_system
+
+# Asset building and dependencies
+yarn install                   # Install frontend dependencies
+bench build --app print_designer  # Build only print_designer assets
 ```
 
 ### Docker Development
@@ -94,7 +112,9 @@ Critical workflow stages:
 - `print_designer/print_designer/page/print_designer/`: Main page controller and Jinja templates
 - `print_designer/print_designer/overrides/`: DocType overrides (Print Format extensions)
 - `print_designer/utils/`: Utility modules (signature integration, Thai language support, PDF logging)
-- `print_designer/api/`: API endpoints for signature management and safe installation
+- `print_designer/api/`: API endpoints for signature management, typography, and safe installation
+- `print_designer/api/global_typography.py`: Typography management API with dynamic CSS generation
+- `print_designer/client_scripts/global_defaults.js`: Client-side typography controls and font preview
 
 ### Critical Templates and Macros
 - `print_designer/print_designer/page/print_designer/jinja/macros/`: Jinja2 rendering macros for each element type
@@ -127,12 +147,23 @@ Critical workflow stages:
 - **Type Hints**: Encouraged throughout Python codebase for better maintainability
 - **Error Handling**: Comprehensive logging and error tracking for PDF generation and signature operations
 - **Security**: Role-based permissions, input validation, and secure file handling for signatures/stamps
+- **Bundle Naming**: All CSS and JavaScript files in `hooks.py` must use `.bundle.css` and `.bundle.js` suffixes
+- **Hook Integration**: Use `doc_events` for automatic triggering of changes, `after_install` for app setup
+
+### Client Script Registration Pattern
+- **DocType JavaScript Registration**: Client scripts must be registered in `hooks.py` using `doctype_js`
+- **Path Patterns**: 
+  - Files in `client_scripts/` → `"print_designer/client_scripts/filename.js"`
+  - Files in `public/js/` → `"public/js/filename.js"` (no app prefix)
+- **Override Mechanism**: Uses Frappe's doctype_js hook to extend/override standard form scripts
 
 ### Testing and Debugging
 - **Manual Testing**: Primary testing through visual designer interface and PDF preview
 - **PDF Generation Testing**: Requires Chrome/Chromium setup with proper CDP configuration
 - **Debug Commands**: Use `bench --site [site-name] console` for interactive debugging
 - **Logging**: Extensive logging in `utils/pdf_logging.py` for troubleshooting PDF generation issues
+- **Test Files**: Multiple test files in root directory for specific features (e.g., `test_signature_fix.py`, `test_wht.py`)
+- **System Verification**: Use `check_system_status` command to verify all components are properly installed
 
 ## Dependencies and Integrations
 
@@ -157,6 +188,13 @@ Critical workflow stages:
 - **Digital Signatures**: Custom DocTypes (`Digital Signature`, `Company Stamp`, `Signature Basic Information`)
 - **Integration Points**: Hooks for signature embedding in PDF generation workflow
 - **Security**: Role-based access and audit logging for signature usage
+
+### Typography System
+- **Dynamic Font Management**: Global typography settings via Global Defaults DocType
+- **Real-time CSS Injection**: JavaScript-based dynamic font application without page refresh
+- **Thai Font Support**: Complete Thai font stack integration with fallback fonts
+- **Font Stack Mappings**: Predefined font combinations for different language support
+- **Global CSS Variables**: CSS custom properties for system-wide font application
 
 ## Specialized Features and Capabilities
 
@@ -186,6 +224,9 @@ Critical workflow stages:
 - **Custom Fields**: Automated field installation for enhanced Print Format functionality
 - **Override System**: Monkey-patching approach for extending core Frappe functionality without conflicts
 - **API Endpoints**: RESTful APIs for signature management, template operations, and PDF generation
+- **Watermark System**: Integrated watermark support with per-page positioning and transparency
+- **ERPNext Override**: Monkey patches ERPNext's print settings installation for enhanced functionality
+- **DocType Events**: Comprehensive event handling for all major ERPNext document types
 
 ## Troubleshooting
 
@@ -212,3 +253,21 @@ Critical workflow stages:
 - **Python Dependencies**: Verify all required packages are installed, especially `websockets` and `distro`
 - **Node Dependencies**: Run `yarn install` in app directory to ensure frontend dependencies are current
 - **Frappe Compatibility**: Ensure Frappe Framework V15+ for proper Vue 3 and modern JavaScript support
+
+### Common Build and Asset Issues
+- **Frontend Build Failures**: Check `yarn.lock` and ensure Node.js version compatibility
+- **Asset Bundle Errors**: Use `bench build --app print_designer` to rebuild specific app assets
+- **Thai Font Loading**: Verify fonts are properly loaded from `public/fonts/thai/` directory
+- **InteractJS Conflicts**: Check for version conflicts with other apps using InteractJS
+
+### Watermark System Issues
+- **Per-page Watermarks**: Use watermark system for page-specific positioning and transparency
+- **Cache Issues**: Watermark cache is managed automatically with daily cleanup scheduled tasks
+- **Permission Problems**: Check role-based access for Watermark Template DocType
+
+### Typography System Issues
+- **Font Loading**: Ensure all Thai fonts are properly loaded from `public/fonts/thai/` directory
+- **Dynamic CSS Injection**: Check browser console for CSS injection errors and Frappe API availability
+- **Global Defaults Integration**: Verify typography fields are properly installed via `install_typography_system` command
+- **Bundle Loading**: Ensure `typography_injection.bundle.js` is properly included in app hooks
+- **Cache Problems**: Typography CSS is generated dynamically; check for stale cache in Global Defaults

@@ -7,7 +7,10 @@ app_description = "Frappe App to Design Print Formats using interactive UI."
 app_email = "hello@frappe.io"
 app_license = "AGPLv3"
 
+<<<<<<< HEAD
 # Ensure print_designer installs after ERPNext
+=======
+>>>>>>> develop
 required_apps = ["erpnext"]
 
 # Custom bench commands
@@ -20,21 +23,31 @@ commands = [
     "print_designer.commands.install_complete_system.install_complete_system",
     "print_designer.commands.install_complete_system.check_system_status",
     "print_designer.commands.install_delivery_fields.install_delivery_note_fields",
+    "print_designer.commands.install_typography_system.install_typography_system",
+    "print_designer.commands.install_retention_fields.install_retention_fields",
+    "print_designer.commands.install_retention_fields.check_retention_fields",
+    "print_designer.commands.install_company_tab.install_company_tab",
+    "print_designer.commands.install_company_tab.remove_company_tab",
 ]
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_js = ""
+app_include_js = [
+    "print_watermark.bundle.js",
+    "delivery_approval.bundle.js",
+    # "typography_injection.bundle.js",
+]
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    "signature_stamp.bundle.css",
-    "signature_preview.bundle.css",
-    "delivery_approval.bundle.css",
+    # "signature_stamp.bundle.css",
+    # "signature_preview.bundle.css",
+    # "delivery_approval.bundle.css",
+    # "global_typography_override.bundle.css",
+    # "company_preview.bundle.css",
 ]
-# app_include_css = "thai_business_suite.app.bundle.css"
 
 
 # include js, css files in header of web template
@@ -60,9 +73,14 @@ page_js = {
 # include js in doctype views
 doctype_js = {
     "Print Format": "print_designer/client_scripts/print_format.js",
+    "Print Settings": "print_designer/client_scripts/print_settings.js",
     "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js",
-    "Delivery Note": "print_designer/public/js/delivery_approval.js",
-    "Payment Entry": "print_designer/public/js/delivery_approval.js",
+    "Delivery Note": "public/js/delivery_approval.js",
+    "Payment Entry": "public/js/delivery_approval.js",
+    "Client Script": "print_designer/client_scripts/client_script.js",
+    "Sales Invoice": "print_designer/client_scripts/sales_invoice.js",
+    # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
+    "Company": "print_designer/client_scripts/company.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -78,6 +96,24 @@ doctype_js = {
 # role_home_page = {
 # 	"Role": "home_page"
 # }
+
+# Fixtures for deployment
+fixtures = [
+    {
+        "doctype": "DocType",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Watermark Settings",
+                    "Watermark Template",
+                    "Print Format Watermark Config",
+                ],
+            ]
+        ],
+    }
+]
 
 # Generators
 # ----------
@@ -117,6 +153,8 @@ jinja = {
         "print_designer.custom.delivery_note_qr.get_delivery_status",
         # Delivery QR Jinja macros
         "print_designer.utils.delivery_qr_macros.render_delivery_approval_qr",
+        # Typography CSS injection
+        # "print_designer.api.global_typography.get_typography_css",
         "print_designer.utils.delivery_qr_macros.render_delivery_qr_compact",
         "print_designer.utils.delivery_qr_macros.render_delivery_status_badge",
         "print_designer.utils.delivery_qr_macros.render_delivery_approval_summary",
@@ -130,47 +168,61 @@ jinja = {
     ]
 }
 
-# Boot session enhancements
-boot_session = "print_designer.utils.signature_stamp.boot_session"
+# Boot session enhancements - consolidated
+# (Moved to consolidated boot_session hook below)
 
 # Override whitelisted methods to support signature and stamp in PDF generation and watermarks in print preview
 override_whitelisted_methods = {
     "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
+    # Override print view to add watermark support from sidebar settings
     "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
+    "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
+    # Override Print Settings API to include watermark fields in print sidebar
+    "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
 }
 
 # Installation
 # ------------
 
 before_install = "print_designer.install.before_install"
-after_install = "print_designer.install.after_install"
-after_app_install = [
-    "print_designer.install.after_app_install",
+after_install = [
+    "print_designer.install.after_install",
+    "print_designer.install.after_app_install",  # Legacy function - kept for compatibility
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
-    "print_designer.install.handle_erpnext_override",  # Simplified ERPNext integration
+    "print_designer.install.handle_erpnext_override",
+    "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
+    "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
+    # "print_designer.api.global_typography.after_install",
+    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",  # Create Company Stamps & Signatures tab
 ]
 
-# Startup hooks
-# -------------
-on_startup = [
-    "print_designer.startup.initialize_print_designer",
-    "print_designer.hooks.override_erpnext_install",
-    # NEW: Initialize signature and stamp patches
-    "print_designer.utils.signature_stamp.startup_patches",
-]
+# Extend bootinfo hook (Frappe v15+ replacement for boot_session)
+# --------------------------------------------------
+extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
+    "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
+    "print_designer.hooks.override_erpnext_install",  # Apply ERPNext overrides
     "print_designer.api.safe_install.safe_install_signature_enhancements",
-    "print_designer.install.after_migrate",  # Enhanced migration with field ordering
+    "print_designer.install.ensure_custom_fields",  # This now uses setup_enhanced_print_settings internally
+    "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
+    "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
+    "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
+    "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
+    # "print_designer.api.global_typography.setup_default_typography",
+    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
 # Uninstallation
 # ------------
 
-before_uninstall = "print_designer.uninstall.before_uninstall"
+before_uninstall = [
+    "print_designer.uninstall.before_uninstall",
+    "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
+]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
 # ------------
@@ -195,10 +247,24 @@ override_doctype_class = {
 pd_standard_format_folder = "default_templates"
 
 doc_events = {
+    # Global Defaults - Auto-apply typography changes
+    # "Global Defaults": {
+    #     "on_update": "print_designer.api.global_typography.on_global_defaults_update",
+    # },
+    # Watermark
+    "Watermark Settings": {
+        "validate": "print_designer.api.watermark.validate_watermark_settings",
+        "on_update": "print_designer.api.watermark.clear_watermark_cache",
+    },
+    # "Print Format": {
+    #     "on_update": "print_designer.api.watermark.clear_format_watermark_cache"
+    # },
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
+        "on_update": "print_designer.api.watermark.clear_format_watermark_cache",
     },
     # Consolidated before_print hooks using the enhanced pdf.before_print function
+    # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
     },
@@ -268,3 +334,31 @@ def override_erpnext_install():
         import frappe
 
         frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+
+
+# scheduler_events = {
+#     "hourly": [
+#         # will run hourly
+#         "app.scheduled_tasks.update_database_usage"
+#     ],
+# }
+
+# Scheduled tasks for watermark cache management
+scheduler_events = {"daily": ["print_designer.api.watermark.cleanup_watermark_cache"]}
+
+
+# Permission query conditions
+permission_query_conditions = {
+    "Watermark Template": "print_designer.api.watermark.get_permission_query_conditions"
+}
+
+
+# Standard portal menu items
+standard_portal_menu_items = [
+    {
+        "title": "Print Formats",
+        "route": "/print-formats",
+        "reference_doctype": "Print Format",
+        "role": "Print Manager",
+    }
+]

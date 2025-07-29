@@ -1,0 +1,144 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2025-01-26 12:00:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+     "template_name",
+     "watermark_mode",
+     "styling_section",
+     "font_size",
+     "position",
+     "position_custom",
+     "position_top",
+     "position_right",
+     "position_bottom",
+     "position_left",
+     "font_family",
+     "color",
+     "opacity",
+     "custom_text_section",
+     "custom_text",
+     "description"
+    ],
+    "fields": [
+     {
+      "fieldname": "template_name",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Template Name",
+      "reqd": 1
+     },
+     {
+      "fieldname": "watermark_mode",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Watermark Mode",
+      "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+      "reqd": 1
+     },
+     {
+      "fieldname": "styling_section",
+      "fieldtype": "Section Break",
+      "label": "Styling Options"
+     },
+     {
+      "default": "24",
+      "fieldname": "font_size",
+      "fieldtype": "Int",
+      "label": "Font Size (px)"
+     },
+     {
+      "default": "Top Right",
+      "fieldname": "position",
+      "fieldtype": "Select",
+      "label": "Position",
+      "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right\nCustom"
+     },
+     {
+      "default": "0",
+      "depends_on": "eval:doc.position=='Custom'",
+      "description": "Enable custom positioning with pixel values",
+      "fieldname": "position_custom",
+      "fieldtype": "Check",
+      "label": "Use Custom Position"
+     },
+     {
+      "depends_on": "eval:doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from top in pixels (leave blank to use bottom)",
+      "fieldname": "position_top",
+      "fieldtype": "Int",
+      "label": "Top (px)"
+     },
+     {
+      "depends_on": "eval:doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from right in pixels (leave blank to use left)",
+      "fieldname": "position_right",
+      "fieldtype": "Int",
+      "label": "Right (px)"
+     },
+     {
+      "depends_on": "eval:doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from bottom in pixels (leave blank to use top)",
+      "fieldname": "position_bottom",
+      "fieldtype": "Int",
+      "label": "Bottom (px)"
+     },
+     {
+      "depends_on": "eval:doc.position=='Custom' && doc.position_custom",
+      "description": "Distance from left in pixels (leave blank to use right)",
+      "fieldname": "position_left",
+      "fieldtype": "Int",
+      "label": "Left (px)"
+     },
+     {
+      "default": "Sarabun",
+      "fieldname": "font_family",
+      "fieldtype": "Select",
+      "label": "Font Family",
+      "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun"
+     },
+     {
+      "default": "#999999",
+      "fieldname": "color",
+      "fieldtype": "Color",
+      "label": "Text Color"
+     },
+     {
+      "default": "0.6",
+      "fieldname": "opacity",
+      "fieldtype": "Float",
+      "label": "Opacity",
+      "precision": 2
+     },
+     {
+      "fieldname": "custom_text_section",
+      "fieldtype": "Section Break",
+      "label": "Custom Text Options"
+     },
+     {
+      "description": "Override default text (Original/Copy) with custom text",
+      "fieldname": "custom_text",
+      "fieldtype": "Data",
+      "label": "Custom Text"
+     },
+     {
+      "fieldname": "description",
+      "fieldtype": "Text",
+      "label": "Description"
+     }
+    ],
+    "istable": 1,
+    "links": [],
+    "modified": "2025-01-26 12:00:00.000000",
+    "modified_by": "Administrator",
+    "module": "Print Designer",
+    "name": "Watermark Template",
+    "owner": "Administrator",
+    "permissions": [],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+}

@@ -171,3 +171,100 @@ def get_company_signature_field_value(company_name, field_name="ceo_signature"):
 	except Exception as e:
 		frappe.log_error(f"Error getting company signature field value: {str(e)}")
 		return {"error": str(e)}
+
+
+def install_all_signature_fields():
+	"""
+	Install signature fields for all DocTypes (used during installation).
+	This is a non-whitelisted version for internal use during app installation.
+	
+	Returns:
+		dict: Installation results with detailed statistics
+	"""
+	try:
+		from print_designer.signature_fields import get_signature_fields
+		
+		signature_fields = get_signature_fields()
+		
+		# Convert to format expected by create_custom_fields
+		custom_fields = {}
+		total_fields = 0
+		
+		for doctype, fields in signature_fields.items():
+			custom_fields[doctype] = fields
+			total_fields += len(fields)
+		
+		# Install the custom fields
+		create_custom_fields(custom_fields, ignore_validate=True)
+		
+		return {
+			"success": True,
+			"message": f"Installed signature fields for {len(custom_fields)} DocTypes",
+			"doctypes_processed": len(custom_fields),
+			"fields_installed": total_fields,
+			"doctypes": list(custom_fields.keys())
+		}
+		
+	except Exception as e:
+		frappe.log_error(f"Error installing all signature fields: {str(e)}")
+		return {
+			"success": False,
+			"error": str(e),
+			"doctypes_processed": 0,
+			"fields_installed": 0
+		}
+
+
+def install_missing_signature_fields():
+	"""
+	Install only missing signature fields (safe for existing installations).
+	This checks existing fields and only installs what's missing.
+	
+	Returns:
+		dict: Installation results with details of what was added
+	"""
+	try:
+		from print_designer.signature_fields import get_signature_fields
+		
+		signature_fields = get_signature_fields()
+		fields_to_install = {}
+		fields_installed = 0
+		
+		for doctype, fields in signature_fields.items():
+			# Check if DocType exists
+			if not frappe.db.exists("DocType", doctype):
+				continue
+				
+			missing_fields = []
+			for field in fields:
+				# Check if custom field already exists
+				if not frappe.db.exists("Custom Field", {
+					"dt": doctype,
+					"fieldname": field["fieldname"]
+				}):
+					missing_fields.append(field)
+					fields_installed += 1
+			
+			if missing_fields:
+				fields_to_install[doctype] = missing_fields
+		
+		# Install only missing fields
+		if fields_to_install:
+			create_custom_fields(fields_to_install, ignore_validate=True)
+		
+		return {
+			"success": True,
+			"message": f"Installed {fields_installed} missing signature fields for {len(fields_to_install)} DocTypes",
+			"doctypes_processed": len(fields_to_install),
+			"fields_installed": fields_installed,
+			"doctypes_with_new_fields": list(fields_to_install.keys())
+		}
+		
+	except Exception as e:
+		frappe.log_error(f"Error installing missing signature fields: {str(e)}")
+		return {
+			"success": False,
+			"error": str(e),
+			"doctypes_processed": 0,
+			"fields_installed": 0
+		}
