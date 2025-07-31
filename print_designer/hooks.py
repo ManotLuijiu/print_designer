@@ -342,6 +342,8 @@ after_install = [
     "print_designer.custom.company_tab.create_company_stamps_signatures_tab",  # Create Company Stamps & Signatures tab
 ]
 
+# Boot session enhancements
+boot_session = "print_designer.utils.signature_stamp.boot_session"
 # Extend bootinfo hook (Frappe v15+ replacement for boot_session)
 # --------------------------------------------------
 extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
