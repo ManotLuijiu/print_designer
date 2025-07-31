@@ -94,6 +94,7 @@ doctype_js = {
 # }
 
 # Fixtures for deployment
+# Fixtures for deployment
 fixtures = [
     {
         "doctype": "DocType",
@@ -105,48 +106,158 @@ fixtures = [
                     "Watermark Settings",
                     "Watermark Template",
                     "Print Format Watermark Config",
+                    "Digital Signature",
+                    "Signature Basic Information",
+                    "Signature Usage",
                 ],
             ]
         ],
     },
     {
         "doctype": "Custom Field",
-        "filters": {
-            "fieldname": [
+        "filters": [
+            [
+                "name",
                 "in",
                 [
-                    "signature_image",
-                    "designation_signature",
-                    "signature_authority_level",
-                    "max_approval_amount",
-                    "authorized_signature_1",
-                    "authorized_signature_2",
-                    "ceo_signature",
-                    "company_stamp_1",
-                    "company_stamp_2",
-                    "official_seal",
-                    "stamps_signatures_tab",
-                    "company_signatures_section",
-                    "company_stamps_section",
-                    "project_manager_signature",
-                    "quality_inspector_signature",
-                    "prepared_by_signature",
-                    "approved_by_signature",
-                    "delivered_by_signature",
-                    "received_by_signature",
-                    "custodian_signature",
-                    "hr_signature",
-                    "candidate_signature",
-                    "appraiser_signature",
-                    "employee_signature",
-                    "inspector_signature",
-                    "supervisor_signature",
-                    "technician_signature",
-                    "party_signature",
-                    "witness_signature",
+                    # Company DocType - Stamps & Signatures Tab and Fields
+                    "Company-stamps_signatures_tab",
+                    "Company-company_signatures_section",
+                    "Company-authorized_signature_1",
+                    "Company-authorized_signature_2",
+                    "Company-ceo_signature",
+                    "Company-company_stamps_section",
+                    "Company-company_stamp_1",
+                    "Company-company_stamp_2",
+                    "Company-official_seal",
+                    # Print Format - Print Designer Fields
+                    "Print Format-print_designer",
+                    "Print Format-print_designer_print_format",
+                    "Print Format-print_designer_header",
+                    "Print Format-print_designer_body",
+                    "Print Format-print_designer_after_table",
+                    "Print Format-print_designer_footer",
+                    "Print Format-print_designer_settings",
+                    "Print Format-print_designer_preview_img",
+                    "Print Format-print_designer_template_app",
+                    "Print Format-watermark_settings",
+                    # Print Settings - Copy and Watermark Settings
+                    "Print Settings-copy_settings_section",
+                    "Print Settings-enable_multiple_copies",
+                    "Print Settings-default_copy_count",
+                    "Print Settings-copy_labels_column",
+                    "Print Settings-default_original_label",
+                    "Print Settings-default_copy_label",
+                    "Print Settings-show_copy_controls_in_toolbar",
+                    "Print Settings-watermark_settings_section",
+                    "Print Settings-watermark_settings",
+                    "Print Settings-watermark_font_size",
+                    "Print Settings-watermark_position",
+                    "Print Settings-watermark_font_family",
+                    # Global Defaults - Typography Settings
+                    "Global Defaults-typography_section",
+                    "Global Defaults-primary_font_family",
+                    "Global Defaults-font_preferences_column",
+                    "Global Defaults-enable_thai_font_support",
+                    "Global Defaults-custom_font_stack",
+                    "Global Defaults-custom_typography_css",
+                    # HR Module - Employee & User Signatures
+                    "Employee-signature_image",
+                    "User-signature_image",
+                    "Designation-designation_signature",
+                    "Designation-signature_authority_level",
+                    "Designation-max_approval_amount",
+                    # CRM Module
+                    "Customer-signature_image",
+                    "Lead-signature_image",
+                    "Supplier-signature_image",
+                    # Projects Module
+                    "Project-project_manager_signature",
+                    "Item-quality_inspector_signature",
+                    # Sales Module - Transaction Documents
+                    "Sales Invoice-prepared_by_signature",
+                    "Sales Invoice-approved_by_signature",
+                    "Sales Order-prepared_by_signature",
+                    "Sales Order-approved_by_signature",
+                    "Quotation-prepared_by_signature",
+                    # Purchase Module - Transaction Documents
+                    "Purchase Invoice-prepared_by_signature",
+                    "Purchase Invoice-approved_by_signature",
+                    "Purchase Order-prepared_by_signature",
+                    "Purchase Order-approved_by_signature",
+                    "Request for Quotation-prepared_by_signature",
+                    # Stock Module - Delivery & Receipt
+                    "Delivery Note-prepared_by_signature",
+                    "Delivery Note-delivered_by_signature",
+                    "Delivery Note-received_by_signature",
+                    "Delivery Note-custom_delivery_approval_section",
+                    "Delivery Note-customer_approval_status",
+                    "Delivery Note-customer_signature",
+                    "Delivery Note-customer_approved_by",
+                    "Delivery Note-customer_approved_on",
+                    "Delivery Note-approval_qr_code",
+                    "Delivery Note-custom_goods_received_status",
+                    "Delivery Note-custom_approval_qr_code",
+                    "Delivery Note-custom_approval_url",
+                    "Delivery Note-custom_customer_approval_date",
+                    "Delivery Note-custom_approved_by",
+                    "Delivery Note-custom_customer_signature",
+                    "Delivery Note-custom_rejection_reason",
+                    "Purchase Receipt-prepared_by_signature",
+                    "Purchase Receipt-received_by_signature",
+                    # Asset Module
+                    "Asset-custodian_signature",
+                    # HR Module - Additional
+                    "Job Offer-hr_signature",
+                    "Job Offer-candidate_signature",
+                    "Appraisal-appraiser_signature",
+                    "Appraisal-employee_signature",
+                    # Quality Module
+                    "Quality Inspection-inspector_signature",
+                    "Quality Inspection-supervisor_signature",
+                    # Maintenance Module
+                    "Maintenance Schedule-technician_signature",
+                    # Custom DocTypes
+                    "Contract-party_signature",
+                    "Contract-witness_signature",
                 ],
             ]
-        },
+        ],
+    },
+    {
+        "doctype": "Property Setter",
+        "filters": [
+            [
+                "doc_type",
+                "in",
+                [
+                    "Company",
+                    "Print Format",
+                    "Print Settings",
+                    "Global Defaults",
+                    "Delivery Note",
+                    "Digital Signature",
+                    "Signature Basic Information",
+                ],
+            ]
+        ],
+    },
+    {
+        "doctype": "Client Script",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Company-Form",
+                    "Print Format-Form",
+                    "Print Settings-Form",
+                    "Delivery Note-Form",
+                    "Digital Signature-Form",
+                    "Signature Basic Information-Form",
+                ],
+            ]
+        ],
     },
 ]
 
