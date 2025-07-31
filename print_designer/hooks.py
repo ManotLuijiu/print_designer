@@ -24,6 +24,12 @@ commands = [
     "print_designer.commands.install_retention_fields.check_retention_fields",
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
+    "print_designer.commands.fix_signature_fields.check_status",
+    "print_designer.commands.fix_signature_fields.fix_current_site",
+    "print_designer.commands.fix_signature_fields.test_signature_field",
+    "print_designer.commands.diagnose_company_fields.diagnose_company_fields",
+    "print_designer.commands.fix_company_visibility.fix_company_field_visibility",
+    "print_designer.commands.fix_company_visibility.check_company_field_issues",
 ]
 
 # Includes in <head>
@@ -38,11 +44,12 @@ app_include_js = [
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    # "signature_stamp.bundle.css",
-    # "signature_preview.bundle.css",
+    # "continuation_table.bundle.css",
+    "signature_stamp.bundle.css",
+    "signature_preview.bundle.css",
     # "delivery_approval.bundle.css",
     # "global_typography_override.bundle.css",
-    # "company_preview.bundle.css",
+    "company_preview.bundle.css",
 ]
 
 
@@ -161,6 +168,13 @@ jinja = {
         "print_designer.custom.withholding_tax.determine_income_type",
         "print_designer.custom.withholding_tax.convert_to_thai_date",
         "print_designer.custom.withholding_tax.get_suggested_wht_rate",
+        # Continuation table methods
+        "print_designer.custom.continuation_table_utils.calculate_table_running_totals",
+        "print_designer.custom.continuation_table_utils.get_table_page_total",
+        "print_designer.custom.continuation_table_utils.get_continuation_table_config",
+        "print_designer.custom.continuation_table_utils.format_continuation_value",
+        "print_designer.custom.continuation_table_utils.generate_empty_rows",
+        "print_designer.custom.continuation_table_utils.calculate_table_height",
     ]
 }
 

@@ -429,6 +429,13 @@ const handleBlur = ({
 			: updateInputField.value.toFixed(2);
 	}
 };
+
+// Border check on load handler (dummy function to prevent Vue errors)
+const borderCheckOnLoad = (field) => {
+	// This function is referenced in the template but wasn't implemented
+	// It appears to be used for checking border conditions on field load
+	// For now, we'll provide a no-op implementation to prevent errors
+};
 </script>
 
 <style lang="scss" deep>
@@ -456,6 +463,18 @@ const handleBlur = ({
 			align-items: center;
 			margin: 0px !important;
 			padding: 5px !important;
+		}
+	}
+	.vue-component-container {
+		padding: 8px 7px;
+		border-top: 1px solid var(--border-color);
+		
+		.main-label {
+			display: block;
+			margin-bottom: 8px;
+			font-weight: 500;
+			color: var(--text-color);
+			font-size: var(--text-sm);
 		}
 	}
 }

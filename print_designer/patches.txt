@@ -28,3 +28,4 @@ print_designer.patches.fix_signature_script_visibility
 print_designer.patches.v1_0.enhance_signature_basic_information
 print_designer.patches.v1_0.install_watermark_fields
 print_designer.patches.v1_1.install_complete_watermark_fields
+print_designer.patches.v1_2.install_signature_fields_with_db_sync

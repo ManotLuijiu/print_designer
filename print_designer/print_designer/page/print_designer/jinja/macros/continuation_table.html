@@ -1,0 +1,184 @@
+{% macro continuation_table(element, send_to_jinja, heightType) -%}
+    {%- set heightType = element.get("heightType") -%}
+    {%- if settings.get("schema_version") == "1.1.0" -%}
+        {%- set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%}
+    {%- endif -%}
+    
+    {%- set continuation_config = element.get("continuationConfig", {}) -%}
+    {%- set enable_continuation = continuation_config.get("enabled", False) -%}
+    {%- set rows_per_page = continuation_config.get("rowsPerPage", 10) -%}
+    {%- set show_running_totals = continuation_config.get("showRunningTotals", True) -%}
+    {%- set continuation_header = continuation_config.get("continuationHeader", "Continued from previous page") -%}
+    {%- set continuation_footer = continuation_config.get("continuationFooter", "Continued on next page") -%}
+    {%- set total_columns = continuation_config.get("totalColumns", []) -%}
+    
+    {%- set table_data = doc.get(element.table.fieldname) or [] -%}
+    {%- set total_rows = table_data|length -%}
+    
+    {%- if not enable_continuation or total_rows <= rows_per_page -%}
+        {# Render normal table if continuation is disabled or data fits in one page #}
+        {{ render_normal_table(element, send_to_jinja, heightType, table_data) }}
+    {%- else -%}
+        {# Render continuation tables #}
+        {{ render_continuation_tables(element, send_to_jinja, heightType, table_data, continuation_config) }}
+    {%- endif -%}
+{%- endmacro %}
+
+{% macro render_normal_table(element, send_to_jinja, heightType, table_data) -%}
+    <table style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'fixed' and heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;" class="table-container printTable {{ element.classes | join(' ') }}">
+        {{ render_table_header(element) }}
+        <tbody>
+            {% if element.columns %}
+                {% for row in table_data %}
+                    {{ render_table_row(element, row, loop.last) }}
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+{%- endmacro %}
+
+{% macro render_continuation_tables(element, send_to_jinja, heightType, table_data, continuation_config) -%}
+    {%- set rows_per_page = continuation_config.get("rowsPerPage", 10) -%}
+    {%- set show_running_totals = continuation_config.get("showRunningTotals", True) -%}
+    {%- set continuation_header = continuation_config.get("continuationHeader", "Continued from previous page") -%}
+    {%- set continuation_footer = continuation_config.get("continuationFooter", "Continued on next page") -%}
+    {%- set total_columns = continuation_config.get("totalColumns", []) -%}
+    {%- set show_balance_forward = continuation_config.get("showBalanceForward", True) -%}
+    
+    {%- set total_pages = ((table_data|length - 1) / rows_per_page)|int + 1 -%}
+    {%- set running_totals = {} -%}
+    
+    {% for page_num in range(total_pages) %}
+        {%- set start_idx = page_num * rows_per_page -%}
+        {%- set end_idx = start_idx + rows_per_page -%}
+        {%- set page_data = table_data[start_idx:end_idx] -%}
+        {%- set is_first_page = page_num == 0 -%}
+        {%- set is_last_page = page_num == total_pages - 1 -%}
+        
+        {# Calculate running totals for current page #}
+        {%- if show_running_totals -%}
+            {%- set running_totals = calculate_running_totals(table_data[:end_idx], total_columns) -%}
+        {%- endif -%}
+        
+        {# Page break before each table except the first one #}
+        {%- if not is_first_page -%}
+            <div style="page-break-before: always;"></div>
+        {%- endif -%}
+        
+        <div class="continuation-table-page">
+            {# Continuation header for pages after the first #}
+            {%- if not is_first_page and continuation_header -%}
+                <div class="continuation-header" style="text-align: center; font-weight: bold; margin-bottom: 10px; padding: 5px; border-bottom: 1px solid #ccc;">
+                    {{ continuation_header }}
+                </div>
+            {%- endif -%}
+            
+            <table style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'fixed' and heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;" class="table-container printTable continuation-table {{ element.classes | join(' ') }}">
+                
+                {# Always show header #}
+                {{ render_table_header(element) }}
+                
+                {# Show balance forward row if not first page and enabled #}
+                {%- if not is_first_page and show_balance_forward and show_running_totals -%}
+                    {{ render_balance_forward_row(element, running_totals, total_columns, start_idx) }}
+                {%- endif -%}
+                
+                <tbody>
+                    {% if element.columns %}
+                        {% for row in page_data %}
+                            {%- set is_last_row_in_page = loop.last -%}
+                            {%- set is_last_row_overall = (start_idx + loop.index0) == (table_data|length - 1) -%}
+                            {{ render_table_row(element, row, is_last_row_overall) }}
+                        {% endfor %}
+                    {% endif %}
+                </tbody>
+                
+                {# Show running totals row if enabled and not last page #}
+                {%- if show_running_totals and not is_last_page -%}
+                    {{ render_running_totals_row(element, running_totals, total_columns, "Subtotal (Page {{ page_num + 1 }})") }}
+                {%- endif -%}
+                
+                {# Show final totals row if last page #}
+                {%- if is_last_page and show_running_totals -%}
+                    {{ render_running_totals_row(element, running_totals, total_columns, "Grand Total") }}
+                {%- endif -%}
+            </table>
+            
+            {# Continuation footer for pages before the last #}
+            {%- if not is_last_page and continuation_footer -%}
+                <div class="continuation-footer" style="text-align: center; font-weight: bold; margin-top: 10px; padding: 5px; border-top: 1px solid #ccc;">
+                    {{ continuation_footer }}
+                </div>
+            {%- endif -%}
+        </div>
+    {% endfor %}
+{%- endmacro %}
+
+{% macro render_table_header(element) -%}
+    <thead>
+        {% if element.columns %}
+            <tr>
+                {% for column in element.columns %}
+                    <th style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} {{convert_css(element.headerStyle)}}border-top-style: solid !important;border-bottom-style: solid !important;{%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}">
+                        {{ _(column.label) }}
+                    </th>
+                {% endfor %}
+            </tr>
+        {% endif %}
+    </thead>
+{%- endmacro %}
+
+{% macro render_table_row(element, row, is_last_row) -%}
+    <tr>
+        {% set isLastRow = is_last_row %}
+        {% for column in element.columns %}
+            <td style="{{convert_css(element.style)}}{%if row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%if isLastRow%}border-bottom-style: solid !important;{%endif%}{%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}">
+                {% if column is mapping %}
+                    {% for field in column.dynamicContent %}
+                        {{ span_tag(field, element, row, send_to_jinja) }}
+                    {% endfor %}
+                {% endif %}
+            </td>
+        {% endfor %}
+    </tr>
+{%- endmacro %}
+
+{% macro render_balance_forward_row(element, running_totals, total_columns, current_start_idx) -%}
+    <tbody class="balance-forward">
+        <tr style="background-color: #f8f9fa; font-weight: bold;">
+            {% for column in element.columns %}
+                <td style="{{convert_css(element.style)}} border-bottom-style: solid !important; {%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%} background-color: #f8f9fa; font-weight: bold;">
+                    {% if loop.first %}
+                        Balance Forward
+                    {% elif column.fieldname in total_columns %}
+                        {{ "{:,.2f}".format(running_totals.get(column.fieldname, 0) - get_page_total(table_data[current_start_idx:], column.fieldname)) }}
+                    {% else %}
+                        &nbsp;
+                    {% endif %}
+                </td>
+            {% endfor %}
+        </tr>
+    </tbody>
+{%- endmacro %}
+
+{% macro render_running_totals_row(element, running_totals, total_columns, label) -%}
+    <tfoot class="running-totals">
+        <tr style="background-color: #f0f0f0; font-weight: bold; border-top: 2px solid #333;">
+            {% for column in element.columns %}
+                <td style="{{convert_css(element.style)}} border-bottom-style: solid !important; {%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%} background-color: #f0f0f0; font-weight: bold; border-top: 2px solid #333;">
+                    {% if loop.first %}
+                        {{ label }}
+                    {% elif column.fieldname in total_columns %}
+                        {{ "{:,.2f}".format(running_totals.get(column.fieldname, 0)) }}
+                    {% else %}
+                        &nbsp;
+                    {% endif %}
+                </td>
+            {% endfor %}
+        </tr>
+    </tfoot>
+{%- endmacro %}
+
+{# Helper function to calculate running totals #}
+{% set calculate_running_totals = calculate_table_running_totals %}
+{% set get_page_total = get_table_page_total %}
