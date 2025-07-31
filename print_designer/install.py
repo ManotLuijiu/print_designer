@@ -7,6 +7,7 @@ from typing import Literal
 
 import click
 import frappe
+from frappe import _
 import requests
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
@@ -41,7 +42,10 @@ def before_install():
 
 
 def after_install():
-    create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+    # Install all custom fields in unified way
+    install_all_custom_fields()
+
+    # Print designer specific setup
     on_print_designer_install()
     remove_chrome_pdf_generator_option()
     add_weasyprint_pdf_generator_option()
@@ -55,6 +59,325 @@ def after_install():
     _setup_print_designer_ui_on_install()
     # TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
     setup_chromium()
+
+
+def install_all_custom_fields():
+    """
+    Unified custom field installation for fresh installations
+    Handles both basic custom fields and Print Settings enhancements
+    """
+    try:
+        frappe.logger().info("Installing all print_designer custom fields...")
+
+        # 1. Install basic print_designer custom fields first
+        create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+        frappe.logger().info("✅ Basic custom fields installed")
+
+        # 2. Install signature and watermark fields
+        _ensure_signature_fields()
+        _ensure_watermark_fields()
+        _ensure_watermark_defaults()
+        frappe.logger().info("✅ Signature and watermark fields installed")
+
+        # 3. Install enhanced Print Settings (includes watermark configuration)
+        setup_enhanced_print_settings()
+        frappe.logger().info("✅ Enhanced Print Settings installed")
+
+        frappe.logger().info("🎉 All custom fields installation completed successfully")
+
+    except Exception as e:
+        frappe.logger().error(f"❌ Error during custom fields installation: {str(e)}")
+        # Don't fail the entire installation
+        pass
+
+
+def after_migrate():
+    """
+    Hook that runs after each migration/update
+    This is CRUCIAL for maintaining customizations after ERPNext updates
+    """
+    frappe.logger().info("Running post-migration setup for print_designer")
+
+    # Ensure all custom fields exist (unified approach)
+    ensure_all_fields_after_migration()
+
+    # Fix any field ordering issues
+    fix_print_settings_field_ordering()
+
+    frappe.logger().info("Post-migration setup completed")
+
+
+def ensure_all_fields_after_migration():
+    """
+    Unified function to ensure all print_designer fields exist after migration
+    Consolidates all field creation to avoid duplication
+    """
+    try:
+        frappe.logger().info("Ensuring all print_designer fields after migration...")
+
+        # 1. Basic print_designer custom fields
+        create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+        frappe.logger().info("✅ Basic custom fields ensured")
+
+        # 2. Signature and watermark fields
+        _ensure_signature_fields()
+        _ensure_watermark_fields()
+        _ensure_watermark_defaults()
+        frappe.logger().info("✅ Signature and watermark fields ensured")
+
+        # 3. Enhanced Print Settings fields (includes all watermark configuration)
+        setup_enhanced_print_settings()
+        frappe.logger().info("✅ Enhanced Print Settings ensured")
+
+        frappe.logger().info("🎉 All fields ensured after migration")
+
+    except Exception as e:
+        frappe.logger().error(f"❌ Error ensuring fields after migration: {str(e)}")
+        pass
+
+
+def setup_enhanced_print_settings():
+    """
+    Create enhanced Print Settings fields directly (merged approach)
+    Since we install after ERPNext, we can create ALL fields in one place
+    """
+    try:
+        frappe.logger().info("Creating enhanced Print Settings fields...")
+
+        # Create all Print Settings custom fields in one go
+        create_custom_fields(
+            {
+                "Print Settings": [
+                    # Original ERPNext fields (ensure they exist)
+                    {
+                        "label": _("Compact Item Print"),
+                        "fieldname": "compact_item_print",
+                        "fieldtype": "Check",
+                        "default": "1",
+                        "insert_after": "with_letterhead",
+                    },
+                    {
+                        "label": _("Print UOM after Quantity"),
+                        "fieldname": "print_uom_after_quantity",
+                        "fieldtype": "Check",
+                        "default": "0",
+                        "insert_after": "compact_item_print",
+                    },
+                    {
+                        "label": _("Print taxes with zero amount"),
+                        "fieldname": "print_taxes_with_zero_amount",
+                        "fieldtype": "Check",
+                        "default": "0",
+                        "insert_after": "allow_print_for_cancelled",
+                    },
+                    # Print Designer copy-related fields
+                    {
+                        "label": _("Copy Settings"),
+                        "fieldname": "copy_settings_section",
+                        "fieldtype": "Section Break",
+                        "insert_after": "print_taxes_with_zero_amount",
+                        "collapsible": 1,
+                    },
+                    {
+                        "label": _("Enable Multiple Copies"),
+                        "fieldname": "enable_multiple_copies",
+                        "fieldtype": "Check",
+                        "default": "0",
+                        "insert_after": "copy_settings_section",
+                        "description": _(
+                            "Enable multiple copy generation for print formats"
+                        ),
+                    },
+                    {
+                        "label": _("Default Copy Count"),
+                        "fieldname": "default_copy_count",
+                        "fieldtype": "Int",
+                        "default": "2",
+                        "insert_after": "enable_multiple_copies",
+                        "depends_on": "enable_multiple_copies",
+                        "description": _("Default number of copies to generate"),
+                    },
+                    {
+                        "label": _("Copy Labels"),
+                        "fieldname": "copy_labels_column",
+                        "fieldtype": "Column Break",
+                        "insert_after": "default_copy_count",
+                    },
+                    {
+                        "label": _("Default Original Label"),
+                        "fieldname": "default_original_label",
+                        "fieldtype": "Data",
+                        "default": _("Original"),
+                        "insert_after": "copy_labels_column",
+                        "depends_on": "enable_multiple_copies",
+                        "description": _("Default label for original copy"),
+                    },
+                    {
+                        "label": _("Default Copy Label"),
+                        "fieldname": "default_copy_label",
+                        "fieldtype": "Data",
+                        "default": _("Copy"),
+                        "insert_after": "default_original_label",
+                        "depends_on": "enable_multiple_copies",
+                        "description": _("Default label for additional copies"),
+                    },
+                    {
+                        "label": _("Show Copy Controls in Toolbar"),
+                        "fieldname": "show_copy_controls_in_toolbar",
+                        "fieldtype": "Check",
+                        "default": "1",
+                        "insert_after": "default_copy_label",
+                        "depends_on": "enable_multiple_copies",
+                        "description": _("Show copy controls in print preview toolbar"),
+                    },
+                    # Watermark fields section
+                    {
+                        "label": _("Watermark Settings"),
+                        "fieldname": "watermark_settings_section",
+                        "fieldtype": "Section Break",
+                        "insert_after": "show_copy_controls_in_toolbar",
+                        "collapsible": 1,
+                    },
+                    {
+                        "label": _("Watermark per Page"),
+                        "fieldname": "watermark_settings",
+                        "fieldtype": "Select",
+                        "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+                        "default": "None",
+                        "insert_after": "watermark_settings_section",
+                        "description": _(
+                            "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=alternates between 'Original' and 'Copy'"
+                        ),
+                    },
+                    {
+                        "label": _("Watermark Font Size"),
+                        "fieldname": "watermark_font_size",
+                        "fieldtype": "Data",
+                        "default": "24px",
+                        "insert_after": "watermark_settings",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _(
+                            "Font size for watermark text (e.g., 24px, 2em)"
+                        ),
+                    },
+                    {
+                        "label": _("Watermark Position"),
+                        "fieldname": "watermark_position",
+                        "fieldtype": "Select",
+                        "options": "Top Right\nTop Left\nTop Center\nMiddle Right\nMiddle Left\nMiddle Center\nBottom Right\nBottom Left\nBottom Center",
+                        "default": "Top Right",
+                        "insert_after": "watermark_font_size",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _(
+                            "Position where watermark appears on the page"
+                        ),
+                    },
+                    {
+                        "label": _("Watermark Font Family"),
+                        "fieldname": "watermark_font_family",
+                        "fieldtype": "Select",
+                        "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
+                        "default": "Arial",
+                        "insert_after": "watermark_position",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _("Font family for watermark text"),
+                    },
+                ]
+            },
+            ignore_validate=True,
+        )
+
+        # Setup default values
+        setup_print_settings_defaults()
+
+        frappe.logger().info("✅ Enhanced Print Settings configured successfully")
+
+    except Exception as e:
+        frappe.logger().error(f"❌ Error setting up enhanced print settings: {str(e)}")
+
+
+def setup_print_settings_defaults():
+    """Setup default values for Print Settings after field creation"""
+    try:
+        print_settings = frappe.get_single("Print Settings")
+
+        # Set default values for copy functionality
+        if print_settings.get("enable_multiple_copies") is None:
+            print_settings.set("enable_multiple_copies", 1)
+        if not print_settings.get("default_copy_count"):
+            print_settings.set("default_copy_count", 2)
+        if not print_settings.get("default_original_label"):
+            print_settings.set("default_original_label", _("Original"))
+        if not print_settings.get("default_copy_label"):
+            print_settings.set("default_copy_label", _("Copy"))
+        if print_settings.get("show_copy_controls_in_toolbar") is None:
+            print_settings.set("show_copy_controls_in_toolbar", 1)
+
+        # Set default values for watermark functionality
+        if not print_settings.get("watermark_settings"):
+            print_settings.set("watermark_settings", "None")
+        if not print_settings.get("watermark_font_size"):
+            print_settings.set("watermark_font_size", "12px")
+        if not print_settings.get("watermark_position"):
+            print_settings.set("watermark_position", "Top Right")
+        if not print_settings.get("watermark_font_family"):
+            print_settings.set("watermark_font_family", "Sarabun")
+
+        # Save settings
+        print_settings.flags.ignore_permissions = True
+        print_settings.flags.ignore_mandatory = True
+        print_settings.save()
+
+        frappe.logger().info("✅ Print Settings defaults configured")
+
+    except Exception as e:
+        frappe.logger().error(f"❌ Error setting Print Settings defaults: {str(e)}")
+        pass
+
+
+def fix_print_settings_field_ordering():
+    """
+    Fix field ordering issues that might occur after ERPNext migration
+    Ensures proper field sequence in Print Settings
+    """
+    try:
+        # Define the expected field order after print_taxes_with_zero_amount
+        field_order = [
+            # Copy settings section
+            "copy_settings_section",
+            "enable_multiple_copies",
+            "default_copy_count",
+            "copy_labels_column",
+            "default_original_label",
+            "default_copy_label",
+            "show_copy_controls_in_toolbar",
+            # Watermark settings section
+            "watermark_settings_section",
+            "watermark_settings",
+            "watermark_font_size",
+            "watermark_position",
+            "watermark_font_family",
+        ]
+
+        # Update field positions to maintain correct order
+        previous_field = "print_taxes_with_zero_amount"
+
+        for fieldname in field_order:
+            if frappe.db.exists(
+                "Custom Field", {"dt": "Print Settings", "fieldname": fieldname}
+            ):
+                frappe.db.set_value(
+                    "Custom Field",
+                    {"dt": "Print Settings", "fieldname": fieldname},
+                    "insert_after",
+                    previous_field,
+                )
+                previous_field = fieldname
+
+        frappe.logger().info("Print Settings field ordering fixed")
+
+    except Exception as e:
+        frappe.logger().error(f"Error fixing field ordering: {str(e)}")
 
 
 def after_app_install(app):
@@ -445,19 +768,21 @@ def setup_enhanced_print_settings():
     if not frappe.db.exists("DocType", "Print Settings"):
         click.echo("Print Settings DocType not found, skipping setup")
         return
-        
+
     try:
         click.echo("Setting up enhanced Print Settings...")
-        
+
         # Check if this is a migration scenario (existing fields present)
         is_migration = frappe.db.get_value(
-            "Custom Field", 
-            {"dt": "Print Settings", "fieldname": "enable_multiple_copies"}, 
-            "name"
+            "Custom Field",
+            {"dt": "Print Settings", "fieldname": "enable_multiple_copies"},
+            "name",
         )
-        
+
         if is_migration:
-            click.echo("🔄 Detected existing installation - performing safe migration...")
+            click.echo(
+                "🔄 Detected existing installation - performing safe migration..."
+            )
             # For existing users, be more careful about field updates
             migrate_existing_print_settings()
         else:
@@ -465,17 +790,17 @@ def setup_enhanced_print_settings():
             # For fresh installs, just create the fields directly
             # No need for aggressive cleanup since it's a clean slate
             create_enhanced_print_settings_fields()
-        
+
         # Step 3: Set default values (safe for both scenarios)
         setup_default_print_settings_values()
-        
+
         # Step 4: Override ERPNext function if needed
         if is_erpnext_installed():
             monkey_patch_erpnext()
-            
+
         frappe.db.commit()
         click.echo("✅ Enhanced Print Settings configured successfully")
-        
+
     except Exception as e:
         click.echo(f"❌ Error setting up enhanced Print Settings: {str(e)}")
         frappe.log_error(f"Enhanced Print Settings setup failed: {e}")
@@ -489,38 +814,47 @@ def migrate_existing_print_settings():
     """
     try:
         click.echo("🔧 Updating existing Print Settings fields for compatibility...")
-        
+
         # Fix the problematic watermark field dependencies that cause JavaScript errors
-        watermark_fields = ['watermark_font_family', 'watermark_position', 'watermark_font_size']
-        
+        watermark_fields = [
+            "watermark_font_family",
+            "watermark_position",
+            "watermark_font_size",
+        ]
+
         for fieldname in watermark_fields:
             try:
-                custom_field = frappe.get_doc('Custom Field', {
-                    'dt': 'Print Settings', 
-                    'fieldname': fieldname
-                })
-                
+                custom_field = frappe.get_doc(
+                    "Custom Field", {"dt": "Print Settings", "fieldname": fieldname}
+                )
+
                 # Fix the depends_on condition that was causing JavaScript syntax errors
                 old_depends_on = custom_field.depends_on
-                if old_depends_on and ('eval:' in old_depends_on or '!=' in old_depends_on):
-                    custom_field.depends_on = 'watermark_settings'  # Simplified dependency
+                if old_depends_on and (
+                    "eval:" in old_depends_on or "!=" in old_depends_on
+                ):
+                    custom_field.depends_on = (
+                        "watermark_settings"  # Simplified dependency
+                    )
                     custom_field.save()
-                    click.echo(f"  ✅ Fixed dependency for {fieldname}: {old_depends_on} → watermark_settings")
-                    
+                    click.echo(
+                        f"  ✅ Fixed dependency for {fieldname}: {old_depends_on} → watermark_settings"
+                    )
+
             except frappe.DoesNotExistError:
                 # Field doesn't exist, create it
                 pass
             except Exception as e:
                 click.echo(f"  ⚠️ Could not update {fieldname}: {str(e)}")
-                
+
         # Ensure any missing fields are created
         missing_fields = check_missing_print_settings_fields()
         if missing_fields:
             click.echo(f"🔧 Creating {len(missing_fields)} missing fields...")
             create_missing_print_settings_fields(missing_fields)
-            
+
         click.echo("✅ Existing Print Settings migration completed")
-        
+
     except Exception as e:
         click.echo(f"⚠️ Error during Print Settings migration: {str(e)}")
         frappe.log_error(f"Print Settings migration error: {e}")
@@ -529,23 +863,31 @@ def migrate_existing_print_settings():
 def check_missing_print_settings_fields():
     """Check which Print Settings fields are missing"""
     required_fields = [
-        'compact_item_print', 'print_uom_after_quantity', 'print_taxes_with_zero_amount',
-        'copy_settings_section', 'enable_multiple_copies', 'default_copy_count',
-        'copy_labels_column', 'default_original_label', 'default_copy_label',
-        'show_copy_controls_in_toolbar', 'watermark_settings_section', 'watermark_settings',
-        'watermark_font_size', 'watermark_position', 'watermark_font_family'
+        "compact_item_print",
+        "print_uom_after_quantity",
+        "print_taxes_with_zero_amount",
+        "copy_settings_section",
+        "enable_multiple_copies",
+        "default_copy_count",
+        "copy_labels_column",
+        "default_original_label",
+        "default_copy_label",
+        "show_copy_controls_in_toolbar",
+        "watermark_settings_section",
+        "watermark_settings",
+        "watermark_font_size",
+        "watermark_position",
+        "watermark_font_family",
     ]
-    
+
     missing_fields = []
     for fieldname in required_fields:
         exists = frappe.db.get_value(
-            "Custom Field", 
-            {"dt": "Print Settings", "fieldname": fieldname}, 
-            "name"
+            "Custom Field", {"dt": "Print Settings", "fieldname": fieldname}, "name"
         )
         if not exists:
             missing_fields.append(fieldname)
-            
+
     return missing_fields
 
 
@@ -554,18 +896,23 @@ def create_missing_print_settings_fields(missing_fields):
     try:
         # Get the full field definitions
         all_field_defs = get_print_settings_field_definitions()
-        
+
         # Filter to only missing fields
         fields_to_create = []
         for field_def in all_field_defs:
-            if field_def['fieldname'] in missing_fields:
+            if field_def["fieldname"] in missing_fields:
                 fields_to_create.append(field_def)
-        
+
         if fields_to_create:
-            from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+            from frappe.custom.doctype.custom_field.custom_field import (
+                create_custom_fields,
+            )
+
             create_custom_fields({"Print Settings": fields_to_create})
-            click.echo(f"✅ Created {len(fields_to_create)} missing Print Settings fields")
-            
+            click.echo(
+                f"✅ Created {len(fields_to_create)} missing Print Settings fields"
+            )
+
     except Exception as e:
         click.echo(f"⚠️ Error creating missing fields: {str(e)}")
         frappe.log_error(f"Error creating missing Print Settings fields: {e}")
@@ -574,7 +921,7 @@ def create_missing_print_settings_fields(missing_fields):
 def get_print_settings_field_definitions():
     """Get the complete field definitions for Print Settings"""
     from frappe import _
-    
+
     return [
         # Original ERPNext fields
         {
@@ -677,7 +1024,7 @@ def get_print_settings_field_definitions():
         },
         {
             "label": _("Watermark Font Size"),
-            "fieldname": "watermark_font_size", 
+            "fieldname": "watermark_font_size",
             "fieldtype": "Data",
             "default": "24px",
             "insert_after": "watermark_settings",
@@ -687,7 +1034,7 @@ def get_print_settings_field_definitions():
         {
             "label": _("Watermark Position"),
             "fieldname": "watermark_position",
-            "fieldtype": "Select", 
+            "fieldtype": "Select",
             "options": "Top Right\nTop Left\nTop Center\nMiddle Right\nMiddle Left\nMiddle Center\nBottom Right\nBottom Left\nBottom Center",
             "default": "Top Right",
             "insert_after": "watermark_font_size",
@@ -700,7 +1047,7 @@ def get_print_settings_field_definitions():
             "fieldtype": "Select",
             "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
             "default": "Arial",
-            "insert_after": "watermark_position", 
+            "insert_after": "watermark_position",
             "depends_on": "watermark_settings",  # Simplified dependency
             "description": _("Font family for watermark text"),
         },
@@ -711,7 +1058,7 @@ def create_enhanced_print_settings_fields():
     """Create enhanced Print Settings fields (merged from erpnext_install.py)"""
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
     from frappe import _
-    
+
     create_custom_fields(
         {
             "Print Settings": [
@@ -751,7 +1098,9 @@ def create_enhanced_print_settings_fields():
                     "fieldtype": "Check",
                     "default": "0",
                     "insert_after": "copy_settings_section",
-                    "description": _("Enable multiple copy generation for print formats"),
+                    "description": _(
+                        "Enable multiple copy generation for print formats"
+                    ),
                 },
                 {
                     "label": _("Default Copy Count"),
@@ -816,7 +1165,7 @@ def create_enhanced_print_settings_fields():
                 },
                 {
                     "label": _("Watermark Font Size"),
-                    "fieldname": "watermark_font_size", 
+                    "fieldname": "watermark_font_size",
                     "fieldtype": "Data",
                     "default": "24px",
                     "insert_after": "watermark_settings",
@@ -826,7 +1175,7 @@ def create_enhanced_print_settings_fields():
                 {
                     "label": _("Watermark Position"),
                     "fieldname": "watermark_position",
-                    "fieldtype": "Select", 
+                    "fieldtype": "Select",
                     "options": "Top Right\nTop Left\nTop Center\nMiddle Right\nMiddle Left\nMiddle Center\nBottom Right\nBottom Left\nBottom Center",
                     "default": "Top Right",
                     "insert_after": "watermark_font_size",
@@ -839,7 +1188,7 @@ def create_enhanced_print_settings_fields():
                     "fieldtype": "Select",
                     "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
                     "default": "Arial",
-                    "insert_after": "watermark_position", 
+                    "insert_after": "watermark_position",
                     "depends_on": "watermark_settings",  # Simplified dependency
                     "description": _("Font family for watermark text"),
                 },
@@ -899,6 +1248,7 @@ def is_erpnext_installed():
     """Check if ERPNext is installed"""
     try:
         import erpnext
+
         return True
     except ImportError:
         return False
@@ -908,12 +1258,14 @@ def monkey_patch_erpnext():
     """Apply monkey patch to ERPNext if installed"""
     try:
         import erpnext.setup.install
-        
+
         # Replace ERPNext's function with our enhanced version
-        erpnext.setup.install.create_print_setting_custom_fields = create_enhanced_print_settings_fields
-        
+        erpnext.setup.install.create_print_setting_custom_fields = (
+            create_enhanced_print_settings_fields
+        )
+
         click.echo("✅ ERPNext monkey patch applied successfully")
-        
+
     except Exception as e:
         frappe.logger().error(f"Error applying ERPNext monkey patch: {str(e)}")
         click.echo(f"⚠️ Warning: Could not apply ERPNext monkey patch: {str(e)}")
@@ -921,7 +1273,9 @@ def monkey_patch_erpnext():
 
 def setup_print_designer_settings():
     """Legacy function - now redirects to consolidated function"""
-    click.echo("⚠️ setup_print_designer_settings is deprecated, using setup_enhanced_print_settings")
+    click.echo(
+        "⚠️ setup_print_designer_settings is deprecated, using setup_enhanced_print_settings"
+    )
     setup_enhanced_print_settings()
 
 
@@ -1126,32 +1480,38 @@ def _install_signature_fields_on_install():
     This ensures signature fields are available immediately after app installation.
     """
     try:
-        from print_designer.api.signature_field_installer import install_all_signature_fields
-        
+        from print_designer.api.signature_field_installer import (
+            install_all_signature_fields,
+        )
+
         click.echo("📝 Installing signature fields for all DocTypes...")
-        
+
         # Install signature fields for all DocTypes defined in signature_fields.py
         result = install_all_signature_fields()
-        
+
         if result.get("success"):
             click.echo(f"✅ Signature fields installed successfully!")
-            click.echo(f"   📊 DocTypes processed: {result.get('doctypes_processed', 0)}")
+            click.echo(
+                f"   📊 DocTypes processed: {result.get('doctypes_processed', 0)}"
+            )
             click.echo(f"   🖋️  Fields installed: {result.get('fields_installed', 0)}")
-            
+
             # Commit the changes
             frappe.db.commit()
-            
+
             # Clear caches to ensure fields are available immediately
             frappe.clear_cache()
-            
+
         else:
             click.echo(f"⚠️  Warning: Signature field installation had issues")
             click.echo(f"   Error: {result.get('error', 'Unknown error')}")
-            
+
     except ImportError as e:
-        click.echo("⚠️  Signature field installer not available - skipping signature field installation")
+        click.echo(
+            "⚠️  Signature field installer not available - skipping signature field installation"
+        )
         frappe.log_error(f"Signature field installer import error: {str(e)}")
-        
+
     except Exception as e:
         click.echo(f"⚠️  Error installing signature fields: {str(e)}")
         frappe.log_error(f"Error installing signature fields on install: {str(e)}")
@@ -1163,15 +1523,19 @@ def ensure_signature_fields():
     This runs after every migration to ensure existing installations get signature fields.
     """
     try:
-        from print_designer.api.signature_field_installer import install_missing_signature_fields
-        
+        from print_designer.api.signature_field_installer import (
+            install_missing_signature_fields,
+        )
+
         # Only install missing fields (safe for existing installations)
         result = install_missing_signature_fields()
-        
+
         if result.get("success") and result.get("fields_installed", 0) > 0:
-            frappe.logger().info(f"Signature fields migration: {result.get('fields_installed')} fields installed")
+            frappe.logger().info(
+                f"Signature fields migration: {result.get('fields_installed')} fields installed"
+            )
             frappe.db.commit()
-            
+
     except ImportError:
         # Signature field installer not available - this is okay for development
         pass
@@ -1186,23 +1550,33 @@ def _setup_print_designer_ui_on_install():
     This ensures new users can immediately see and use the Print Designer option.
     """
     try:
-        from print_designer.api.enable_print_designer_ui import ensure_print_designer_ui_setup
-        
+        from print_designer.api.enable_print_designer_ui import (
+            ensure_print_designer_ui_setup,
+        )
+
         click.echo("🎨 Setting up Print Designer UI for new installation...")
-        
+
         success = ensure_print_designer_ui_setup()
-        
+
         if success:
             click.echo("✅ Print Designer UI configured successfully")
-            click.echo("   📝 Users can now see the Print Designer checkbox in Print Format forms")
-            click.echo("   🔧 Existing Print Designer formats have been automatically enabled")
+            click.echo(
+                "   📝 Users can now see the Print Designer checkbox in Print Format forms"
+            )
+            click.echo(
+                "   🔧 Existing Print Designer formats have been automatically enabled"
+            )
         else:
-            click.echo("⚠️  Warning: Print Designer UI setup had issues but installation will continue")
-            
+            click.echo(
+                "⚠️  Warning: Print Designer UI setup had issues but installation will continue"
+            )
+
     except ImportError as e:
-        click.echo("⚠️  Print Designer UI setup module not available - skipping UI configuration")
+        click.echo(
+            "⚠️  Print Designer UI setup module not available - skipping UI configuration"
+        )
         frappe.log_error(f"Print Designer UI setup import error: {str(e)}")
-        
+
     except Exception as e:
         click.echo(f"⚠️  Error setting up Print Designer UI: {str(e)}")
         frappe.log_error(f"Error setting up Print Designer UI on install: {str(e)}")

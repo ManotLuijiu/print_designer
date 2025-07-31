@@ -39,10 +39,47 @@ def log_to_print_designer(message, level="INFO"):
 
 def boot_session(bootinfo):
     """Add print designer settings to boot info"""
+    
+    # Get Print Settings to include watermark configuration
+    try:
+        print_settings = frappe.get_single("Print Settings")
+        
+        # Extract watermark settings
+        watermark_config = {
+            "watermark_settings": print_settings.get("watermark_settings", "None"),
+            "watermark_font_size": print_settings.get("watermark_font_size", 12),
+            "watermark_position": print_settings.get("watermark_position", "Top Right"),
+            "watermark_font_family": print_settings.get("watermark_font_family", "Arial"),
+            "enable_multiple_copies": print_settings.get("enable_multiple_copies", 0),
+            "default_copy_count": print_settings.get("default_copy_count", 2),
+            "default_original_label": print_settings.get("default_original_label", "Original"),
+            "default_copy_label": print_settings.get("default_copy_label", "Copy"),
+            "show_copy_controls_in_toolbar": print_settings.get("show_copy_controls_in_toolbar", 1),
+        }
+        
+        log_to_print_designer(f"Boot session watermark config: {watermark_config}")
+        
+    except Exception as e:
+        # Fallback to default values if Print Settings cannot be accessed
+        watermark_config = {
+            "watermark_settings": "None",
+            "watermark_font_size": 12,
+            "watermark_position": "Top Right", 
+            "watermark_font_family": "Arial",
+            "enable_multiple_copies": 0,
+            "default_copy_count": 2,
+            "default_original_label": "Original",
+            "default_copy_label": "Copy",
+            "show_copy_controls_in_toolbar": 1,
+        }
+        log_to_print_designer(f"Boot session watermark fallback due to error: {e}")
+    
     bootinfo.print_designer_settings = {
         "enable_digital_signatures": True,
         "enable_company_stamps": True,
         "default_signature_company_filter": True,
+        # Add watermark settings for frontend availability
+        **watermark_config
     }
 
 
