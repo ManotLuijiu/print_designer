@@ -5,12 +5,12 @@ export const createRectangle = (coordinates, parent = null) => {
 
 	let id = frappe.utils.get_random(10);
 
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 			position: 'absolute' // Default to absolute
 		};
 	}
@@ -59,10 +59,10 @@ export const createRectangle = (coordinates, parent = null) => {
 		isDraggable: false,
 		isResizable: false,
 		isDropZone: false,
-		startX: cordinates.startX,
-		startY: cordinates.startY,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		styleEditMode: "main",
 		style: {},
 		classes: [],
@@ -72,16 +72,16 @@ export const createRectangle = (coordinates, parent = null) => {
 	MainStore.lastCreatedElement = newRectangle;
 	return newRectangle;
 };
-export const createImage = (cordinates, parent = null) => {
+export const createImage = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 		};
 	}
 	const newImage = {
@@ -94,10 +94,10 @@ export const createImage = (cordinates, parent = null) => {
 		isDropZone: false,
 		isDynamic: false,
 		image: null,
-		startX: cordinates.startX,
-		startY: cordinates.startY,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -109,16 +109,16 @@ export const createImage = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newImage;
 	return newImage;
 };
-export const createBarcode = (cordinates, parent = null) => {
+export const createBarcode = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 		};
 	}
 	const newBarcode = {
@@ -135,10 +135,10 @@ export const createBarcode = (cordinates, parent = null) => {
 		isDynamic: false,
 		value: "",
 		dynamicContent: [],
-		startX: cordinates.startX,
-		startY: cordinates.startY,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -150,16 +150,16 @@ export const createBarcode = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newBarcode;
 	return newBarcode;
 };
-export const createTable = (cordinates, parent = null) => {
+export const createTable = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 		};
 	}
 	const newTable = {
@@ -175,10 +175,10 @@ export const createTable = (cordinates, parent = null) => {
 		PreviewRowNo: 1,
 		selectedColumn: null,
 		selectedDynamicText: null,
-		startX: cordinates.startX,
-		startY: cordinates.startY,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -196,16 +196,16 @@ export const createTable = (cordinates, parent = null) => {
 	return newTable;
 };
 
-export const createText = (cordinates, parent = null) => {
+export const createText = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 		};
 	}
 	const newStaticText = {
@@ -221,10 +221,10 @@ export const createText = (cordinates, parent = null) => {
 		isResizable: false,
 		isDropZone: false,
 		parseJinja: false,
-		startX: cordinates.startX - 5,
-		startY: cordinates.startY - 16,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX - 5,
+		startY: coordinates.startY - 16,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -236,16 +236,16 @@ export const createText = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newStaticText;
 	return newStaticText;
 };
-export const createDynamicText = (cordinates, parent = null) => {
+export const createDynamicText = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
-	if (cordinates instanceof MouseEvent) {
-		cordinates = {
-			startX: cordinates.offsetX,
-			startY: cordinates.offsetY,
-			pageX: cordinates.x,
-			pageY: cordinates.y,
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
 		};
 	}
 	const newDynamicText = {
@@ -262,10 +262,10 @@ export const createDynamicText = (cordinates, parent = null) => {
 		isDraggable: false,
 		isResizable: false,
 		isDropZone: false,
-		startX: cordinates.startX - 5,
-		startY: cordinates.startY - 16,
-		pageX: cordinates.pageX,
-		pageY: cordinates.pageY,
+		startX: coordinates.startX - 5,
+		startY: coordinates.startY - 16,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
