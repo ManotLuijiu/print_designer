@@ -1,23 +1,61 @@
 import { useMainStore } from "./store/MainStore";
 
-export const createRectangle = (cordinates, parent = null) => {
+export const createRectangle = (coordinates, parent = null) => {
 	const MainStore = useMainStore();
 
 	let id = frappe.utils.get_random(10);
+
 	if (cordinates instanceof MouseEvent) {
 		cordinates = {
 			startX: cordinates.offsetX,
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+			position: 'absolute' // Default to absolute
 		};
 	}
+
+	// Determine positioning strategy
+	const positioning = coordinates.position || 'absolute';
+	const isFlowLayout = positioning === 'relative' || parent?.layoutType === 'flex-row' || parent?.layoutType === 'flex-col';
+
+	console.log('positioning',positioning)
+	console.log('isFlowLayout',isFlowLayout)
+
 	const newRectangle = {
 		id: id,
 		type: "rectangle",
 		DOMRef: null,
 		childrens: [],
 		parent: parent,
+
+		// Layout properties
+		layoutType: coordinates.layoutType || 'absolute',
+		positioning: positioning,
+		flowDirection: coordinates.flowDirection || 'column',
+
+		// Position properties (conditional based on layout)
+		...(isFlowLayout ? {
+			// Relative positioning properties
+			marginTop: coordinates.marginTop || 0,
+			marginBottom: coordinates.marginBottom || 0,
+			marginLeft: coordinates.marginLeft || 0,
+			marginRight: coordinates.marginRight || 0,
+			order: coordinates.order || 0
+		} : {
+			// Absolute positioning properties (current)
+			startX: coordinates.startX,
+			startY: coordinates.startY,
+			pageX: coordinates.pageX,
+			pageY: coordinates.pageY
+		}),
+		width: 0,
+		// height: 0,
+		height: coordinates.height || 'auto', // Allow auto height
+    	minHeight: coordinates.minHeight || 0,
+    	maxHeight: coordinates.maxHeight || 'none',
+
+		// Rest of properties remain the same
 		isDraggable: false,
 		isResizable: false,
 		isDropZone: false,
@@ -25,8 +63,6 @@ export const createRectangle = (cordinates, parent = null) => {
 		startY: cordinates.startY,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
-		width: 0,
-		height: 0,
 		styleEditMode: "main",
 		style: {},
 		classes: [],
