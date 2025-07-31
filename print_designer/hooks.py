@@ -38,11 +38,11 @@ app_include_js = [
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    # "signature_stamp.bundle.css",
-    # "signature_preview.bundle.css",
+    "signature_stamp.bundle.css",
+    "signature_preview.bundle.css",
     # "delivery_approval.bundle.css",
     # "global_typography_override.bundle.css",
-    # "company_preview.bundle.css",
+    "company_preview.bundle.css",
 ]
 
 
@@ -108,7 +108,46 @@ fixtures = [
                 ],
             ]
         ],
-    }
+    },
+    {
+        "doctype": "Custom Field",
+        "filters": {
+            "fieldname": [
+                "in",
+                [
+                    "signature_image",
+                    "designation_signature",
+                    "signature_authority_level",
+                    "max_approval_amount",
+                    "authorized_signature_1",
+                    "authorized_signature_2",
+                    "ceo_signature",
+                    "company_stamp_1",
+                    "company_stamp_2",
+                    "official_seal",
+                    "stamps_signatures_tab",
+                    "company_signatures_section",
+                    "company_stamps_section",
+                    "project_manager_signature",
+                    "quality_inspector_signature",
+                    "prepared_by_signature",
+                    "approved_by_signature",
+                    "delivered_by_signature",
+                    "received_by_signature",
+                    "custodian_signature",
+                    "hr_signature",
+                    "candidate_signature",
+                    "appraiser_signature",
+                    "employee_signature",
+                    "inspector_signature",
+                    "supervisor_signature",
+                    "technician_signature",
+                    "party_signature",
+                    "witness_signature",
+                ],
+            ]
+        },
+    },
 ]
 
 # Generators
