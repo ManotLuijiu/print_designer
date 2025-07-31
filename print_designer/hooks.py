@@ -96,23 +96,23 @@ doctype_js = {
 # Fixtures for deployment
 # Fixtures for deployment
 fixtures = [
-    {
-        "doctype": "DocType",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    "Watermark Settings",
-                    "Watermark Template",
-                    "Print Format Watermark Config",
-                    "Digital Signature",
-                    "Signature Basic Information",
-                    "Signature Usage",
-                ],
-            ]
-        ],
-    },
+    # {
+    #     "doctype": "DocType",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 "Watermark Settings",
+    #                 "Watermark Template",
+    #                 "Print Format Watermark Config",
+    #                 "Digital Signature",
+    #                 "Signature Basic Information",
+    #                 "Signature Usage",
+    #             ],
+    #         ]
+    #     ],
+    # },
     {
         "doctype": "Custom Field",
         "filters": [
