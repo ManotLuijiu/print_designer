@@ -169,12 +169,12 @@ jinja = {
         "print_designer.custom.withholding_tax.convert_to_thai_date",
         "print_designer.custom.withholding_tax.get_suggested_wht_rate",
         # Continuation table methods
-        "print_designer.custom.continuation_table_utils.calculate_table_running_totals",
-        "print_designer.custom.continuation_table_utils.get_table_page_total",
-        "print_designer.custom.continuation_table_utils.get_continuation_table_config",
-        "print_designer.custom.continuation_table_utils.format_continuation_value",
-        "print_designer.custom.continuation_table_utils.generate_empty_rows",
-        "print_designer.custom.continuation_table_utils.calculate_table_height",
+        # "print_designer.custom.continuation_table_utils.calculate_table_running_totals",
+        # "print_designer.custom.continuation_table_utils.get_table_page_total",
+        # "print_designer.custom.continuation_table_utils.get_continuation_table_config",
+        # "print_designer.custom.continuation_table_utils.format_continuation_value",
+        # "print_designer.custom.continuation_table_utils.generate_empty_rows",
+        # "print_designer.custom.continuation_table_utils.calculate_table_height",
     ]
 }
 
