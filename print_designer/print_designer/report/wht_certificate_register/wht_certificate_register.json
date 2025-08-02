@@ -1,0 +1,134 @@
+{
+    "doctype": "Report",
+    "name": "WHT Certificate Register",
+    "module": "Print Designer",
+    "report_name": "WHT Certificate Register",
+    "report_type": "Script Report",
+    "ref_doctype": "Payment Entry",
+    "is_standard": "No",
+    "disabled": 0,
+    "add_total_row": 1,
+    "description": "Register of Thai Withholding Tax Certificates issued with detailed breakdowns by income type, party, and submission status.",
+    "columns": [
+      {
+        "fieldname": "posting_date",
+        "label": "Date",
+        "fieldtype": "Date",
+        "width": 100
+      },
+      {
+        "fieldname": "name",
+        "label": "Payment Entry",
+        "fieldtype": "Link",
+        "options": "Payment Entry",
+        "width": 120
+      },
+      {
+        "fieldname": "party",
+        "label": "Party",
+        "fieldtype": "Data",
+        "width": 150
+      },
+      {
+        "fieldname": "custom_party_tax_id",
+        "label": "Party Tax ID",
+        "fieldtype": "Data",
+        "width": 130
+      },
+      {
+        "fieldname": "income_type_selection",
+        "label": "Income Type",
+        "fieldtype": "Data",
+        "width": 150
+      },
+      {
+        "fieldname": "custom_total_amount_paid",
+        "label": "Amount Paid",
+        "fieldtype": "Currency",
+        "width": 120
+      },
+      {
+        "fieldname": "custom_total_tax_withheld",
+        "label": "Tax Withheld",
+        "fieldtype": "Currency",
+        "width": 120
+      },
+      {
+        "fieldname": "submission_form_number",
+        "label": "Form Number",
+        "fieldtype": "Data",
+        "width": 120
+      },
+      {
+        "fieldname": "submission_form_date",
+        "label": "Submission Date",
+        "fieldtype": "Date",
+        "width": 110
+      },
+      {
+        "fieldname": "certificate_status",
+        "label": "Status",
+        "fieldtype": "Data",
+        "width": 100
+      }
+    ],
+    "filters": [
+      {
+        "fieldname": "from_date",
+        "label": "From Date",
+        "fieldtype": "Date",
+        "reqd": 1,
+        "default": "2024-01-01"
+      },
+      {
+        "fieldname": "to_date", 
+        "label": "To Date",
+        "fieldtype": "Date",
+        "reqd": 1,
+        "default": "Today"
+      },
+      {
+        "fieldname": "party",
+        "label": "Party",
+        "fieldtype": "Link",
+        "options": "Supplier"
+      },
+      {
+        "fieldname": "income_type",
+        "label": "Income Type",
+        "fieldtype": "Select",
+        "options": "\n1 - เงินเดือน ค่าจ้าง\n2 - ค่าธรรมเนียม ค่านายหน้า\n3 - ค่าลิขสิทธิ์ ค่าบริการทางเทคนิค\n4.1 - ดอกเบี้ย\n4.2 - เงินปันผล กำไรสุทธิ\n5 - ค่าเช่าทรัพย์สิน\n6 - อื่น ๆ"
+      },
+      {
+        "fieldname": "company",
+        "label": "Company",
+        "fieldtype": "Link",
+        "options": "Company",
+        "default": "frappe.defaults.get_user_default('Company')"
+      },
+      {
+        "fieldname": "submission_status",
+        "label": "Submission Status",
+        "fieldtype": "Select",
+        "options": "\nSubmitted\nPending\nDraft"
+      }
+    ],
+    "permissions": [
+      {
+        "role": "System Manager",
+        "read": 1
+      },
+      {
+        "role": "Accounts Manager",
+        "read": 1
+      },
+      {
+        "role": "Accounts User",
+        "read": 1
+      },
+      {
+        "role": "Auditor",
+        "read": 1
+      }
+    ]
+  }

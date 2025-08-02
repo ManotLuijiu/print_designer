@@ -1,0 +1,118 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-02 19:24:03.020102",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+    "general_section",
+    "auto_calculate_wht",
+    "require_tax_id",
+    "validate_tax_id_checksum",
+    "rates_section",
+    "rate_section_40_1",
+    "rate_section_40_2",
+    "rate_section_40_3",
+    "rate_section_40_4a",
+    "rate_section_40_4bc",
+    "rate_section_40_5",
+    "rate_others"
+ ],
+ "fields": [
+    {
+        "fieldname": "general_section",
+        "label": "General Settings",
+        "fieldtype": "Section Break"
+    },
+    {
+        "fieldname": "auto_calculate_wht",
+        "label": "Auto Calculate WHT",
+        "fieldtype": "Check",
+        "default": 1
+    },
+    {
+        "fieldname": "require_tax_id",
+        "label": "Require Tax ID for WHT",
+        "fieldtype": "Check", 
+        "default": 1
+    },
+    {
+        "fieldname": "validate_tax_id_checksum",
+        "label": "Validate Tax ID Checksum",
+        "fieldtype": "Check",
+        "default": 1
+    },
+    {
+        "fieldname": "rates_section", 
+        "label": "Default Tax Rates",
+        "fieldtype": "Section Break"
+    },
+    {
+        "fieldname": "rate_section_40_1",
+        "label": "Section 40(1) - Salary (%)",
+        "fieldtype": "Percent",
+        "default": 0
+    },
+    {
+        "fieldname": "rate_section_40_2",
+        "label": "Section 40(2) - Fees (%)", 
+        "fieldtype": "Percent",
+        "default": 3
+    },
+    {
+        "fieldname": "rate_section_40_3",
+        "label": "Section 40(3) - Royalties (%)",
+        "fieldtype": "Percent", 
+        "default": 3
+    },
+    {
+        "fieldname": "rate_section_40_4a",
+        "label": "Section 40(4a) - Interest (%)",
+        "fieldtype": "Percent",
+        "default": 1
+    },
+    {
+        "fieldname": "rate_section_40_4bc",
+        "label": "Section 40(4b,c) - Dividends (%)",
+        "fieldtype": "Percent",
+        "default": 5
+    },
+    {
+        "fieldname": "rate_section_40_5",
+        "label": "Section 40(5) - Rent (%)",
+        "fieldtype": "Percent", 
+        "default": 5
+    },
+    {
+        "fieldname": "rate_others",
+        "label": "Others - Default (%)",
+        "fieldtype": "Percent",
+        "default": 3
+    }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-08-02 19:24:03.020102",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai WHT Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

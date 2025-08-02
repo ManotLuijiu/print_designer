@@ -1,52 +1,250 @@
+{# File: print_designer/print_designer/page/print_designer/jinja/thai_withholding_tax_macros.html #}
+
+{# Format Thai Tax ID with dashes: 1-2345-67890-12-3 #}
 {%- macro format_thai_tax_id(tax_id) -%}
-  {%- if tax_id -%}
-    {%- set digits = tax_id | string | list -%}
-    {%- if digits | length == 13 -%}
-      {{ digits[0] }}-{{ digits[1:5] | join('') }}-{{ digits[5:10] | join('') }}-{{ digits[10:12] | join('') }}-{{ digits[12] }}
-    {%- else -%}
-      {{ tax_id }}
+    {%- if tax_id -%}
+        {%- set clean_id = tax_id|string|replace("-", "")|replace(" ", "") -%}
+        {%- if clean_id|length == 13 -%}
+            {{ clean_id[0] }}-{{ clean_id[1:5] }}-{{ clean_id[5:10] }}-{{ clean_id[10:12] }}-{{ clean_id[12] }}
+        {%- else -%}
+            {{ tax_id }}
+        {%- endif -%}
     {%- endif -%}
-  {%- endif -%}
 {%- endmacro -%}
 
-{%- macro thai_buddhist_year(date) -%}
-  {%- if date -%}
-    {{ date.year + 543 }}
-  {%- endif -%}
+{# Convert Gregorian year to Thai Buddhist year #}
+{%- macro thai_buddhist_year(date_obj) -%}
+    {%- if date_obj -%}
+        {{ date_obj.year + 543 }}
+    {%- endif -%}
 {%- endmacro -%}
 
+{# Format Thai amount with commas and 2 decimal places #}
 {%- macro format_thai_amount(amount) -%}
-  {%- if amount -%}
-    {{ '{:,.2f}'.format(amount) }}
-  {%- else -%}
-    0.00
-  {%- endif -%}
+    {%- if amount -%}
+        {%- if amount == 0 -%}
+            0.00
+        {%- else -%}
+            {{ "{:,.2f}".format(amount|float) }}
+        {%- endif -%}
+    {%- else -%}
+        0.00
+    {%- endif -%}
 {%- endmacro -%}
 
+{# Get Thai month name #}
 {%- macro thai_month_name(month_num) -%}
-  {%- set thai_months = [
-    'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-    'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-  ] -%}
-  {%- if month_num and month_num >= 1 and month_num <= 12 -%}
-    {{ thai_months[month_num - 1] }}
-  {%- endif -%}
+    {%- set thai_months = [
+        "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+        "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ] -%}
+    {%- if month_num and month_num > 0 and month_num <= 12 -%}
+        {{ thai_months[month_num - 1] }}
+    {%- endif -%}
 {%- endmacro -%}
 
-{%- macro format_withholding_type(payment_type) -%}
-  {%- if payment_type == "Employee" -%}
-    เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส
-  {%- elif payment_type == "Supplier" -%}
-    การจ้างทำของ ค่าเช่า ค่าขนส่ง ค่าบริการ
-  {%- elif payment_type == "Contractor" -%}
-    ค่าจ้างทำของ ค่าก่อสร้าง
-  {%- else -%}
-    อื่นๆ
-  {%- endif -%}
+{# Format Thai date with Buddhist year #}
+{%- macro format_thai_date(date_obj) -%}
+    {%- if date_obj -%}
+        {{ date_obj.day }} {{ thai_month_name(date_obj.month) }} {{ thai_buddhist_year(date_obj) }}
+    {%- endif -%}
 {%- endmacro -%}
 
-{%- macro checkbox(condition) -%}
-  <span style="border: 1px solid #000; padding: 2px 4px; margin: 0 2px;">
-    {%- if condition -%}✓{%- else -%}&nbsp;&nbsp;{%- endif -%}
-  </span>
+{# Create checkbox for official forms - uses proper Unicode symbols #}
+{%- macro checkbox(checked=False, label="") -%}
+    <span class="checkbox">
+        {%- if checked -%}
+            ☑
+        {%- else -%}
+            ☐
+        {%- endif -%}
+    </span>
+    {%- if label -%}
+        <span style="margin-left: 3px;">{{ label }}</span>
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Format income type description in Thai #}
+{%- macro format_income_type_thai(income_type_code) -%}
+    {%- set type_map = {
+        "1": "เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส",
+        "2": "ค่าธรรมเนียม ค่านายหน้า",
+        "3": "ค่าแห่งลิขสิทธิ์ ค่าบริการทางเทคนิค",
+        "4.1": "ดอกเบี้ย",
+        "4.2": "เงินปันผล กำไรสุทธิ",
+        "5": "ค่าเช่าทรัพย์สิน",
+        "6": "อื่น ๆ"
+    } -%}
+    {{ type_map.get(income_type_code, "อื่น ๆ") }}
+{%- endmacro -%}
+
+{# Thai number to text conversion (basic implementation) #}
+{%- macro thai_number_to_text(number) -%}
+    {%- if number -%}
+        {%- set num = number|int -%}
+        {%- if num == 0 -%}
+            ศูนย์
+        {%- elif num == 1 -%}
+            หนึ่ง
+        {%- elif num == 2 -%}
+            สอง
+        {%- elif num == 3 -%}
+            สาม
+        {%- elif num == 4 -%}
+            สี่
+        {%- elif num == 5 -%}
+            ห้า
+        {%- elif num == 6 -%}
+            หก
+        {%- elif num == 7 -%}
+            เจ็ด
+        {%- elif num == 8 -%}
+            แปด
+        {%- elif num == 9 -%}
+            เก้า
+        {%- else -%}
+            {{ number }}
+        {%- endif -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Create dotted line for signature fields #}
+{%- macro dotted_line(width="200px") -%}
+    <span style="display: inline-block; width: {{ width }}; border-bottom: 1px dotted #000; margin: 0 3px;">&nbsp;</span>
+{%- endmacro -%}
+
+{# Format Thai address with proper line breaks #}
+{%- macro format_thai_address(address) -%}
+    {%- if address -%}
+        {{ address|replace(",", " ") }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Thai withholding tax rate by section #}
+{%- macro get_wht_rate_by_section(section_code) -%}
+    {%- set rates = {
+        "1": "0%",
+        "2": "3%", 
+        "3": "3%",
+        "4.1": "1%",
+        "4.2": "5%",
+        "5": "5%",
+        "6": "ตามที่กำหนด"
+    } -%}
+    {{ rates.get(section_code, "3%") }}
+{%- endmacro -%}
+
+{# Official Thai Revenue Department seal/stamp placeholder #}
+{%- macro revenue_department_seal() -%}
+    <div style="width: 80px; height: 80px; border: 2px solid #000; border-radius: 50%; margin: 10px auto; display: flex; align-items: center; justify-content: center; font-size: 8px; text-align: center;">
+        <div>
+            ตรา<br>
+            กรมสรรพากร
+        </div>
+    </div>
+{%- endmacro -%}
+
+{# Format currency in Thai Baht with proper thousand separators #}
+{%- macro format_thai_currency(amount, show_currency=True) -%}
+    {%- if amount -%}
+        {{ format_thai_amount(amount) }}{% if show_currency %} บาท{% endif %}
+    {%- else -%}
+        0.00{% if show_currency %} บาท{% endif %}
+    {%- endif -%}
+{%- endmacro -%} format_thai_tax_id(tax_id) -%}
+    {%- if tax_id -%}
+        {%- set clean_id = tax_id.replace("-", "") -%}
+        {%- if clean_id|length == 13 -%}
+            {{ clean_id[0] }}-{{ clean_id[1:5] }}-{{ clean_id[5:10] }}-{{ clean_id[10:12] }}-{{ clean_id[12] }}
+        {%- else -%}
+            {{ tax_id }}
+        {%- endif -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Convert Gregorian year to Thai Buddhist year #}
+{%- macro thai_buddhist_year(date_obj) -%}
+    {%- if date_obj -%}
+        {{ date_obj.year + 543 }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Format Thai amount with commas #}
+{%- macro format_thai_amount(amount) -%}
+    {%- if amount -%}
+        {{ "{:,.2f}".format(amount|float) }}
+    {%- else -%}
+        0.00
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Get Thai month name #}
+{%- macro thai_month_name(month_num) -%}
+    {%- set thai_months = [
+        "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+        "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ] -%}
+    {%- if month_num and month_num > 0 and month_num <= 12 -%}
+        {{ thai_months[month_num - 1] }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Format Thai date with Buddhist year #}
+{%- macro format_thai_date(date_obj) -%}
+    {%- if date_obj -%}
+        {{ date_obj.day }} {{ thai_month_name(date_obj.month) }} {{ thai_buddhist_year(date_obj) }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Format withholding income type in Thai #}
+{%- macro format_withholding_type(income_type) -%}
+    {%- set type_map = {
+        "Professional Services": "ค่าบริการวิชาชีพ",
+        "Consulting Fees": "ค่าที่ปรึกษา", 
+        "Rental Income": "ค่าเช่า",
+        "Commissions": "ค่าคอมมิชชั่น",
+        "Other Services": "ค่าบริการอื่นๆ"
+    } -%}
+    {{ type_map.get(income_type, income_type) }}
+{%- endmacro -%}
+
+{# Create checkbox with Thai text #}
+{%- macro checkbox(checked=False, label="") -%}
+    <span style="font-family: Arial, sans-serif;">
+        {{ "☑" if checked else "☐" }}
+    </span>
+    {%- if label -%}
+        <span style="margin-left: 5px;">{{ label }}</span>
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Convert number to Thai text (basic implementation) #}
+{%- macro thai_amount_in_words(amount) -%}
+    {%- if amount -%}
+        {# This would need a more complex implementation for full Thai number conversion #}
+        {{ amount|int }} บาท
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Format Thai address with proper line breaks #}
+{%- macro format_thai_address(address) -%}
+    {%- if address -%}
+        {{ address.replace(",", "<br>") | safe }}
+    {%- endif -%}
+{%- endmacro -%}
+
+{# Create signature box with Thai labels #}
+{%- macro signature_box(title_thai, title_english) -%}
+    <div style="text-align: center; margin-top: 40px;">
+        <div style="border-bottom: 1px solid #000; width: 200px; margin: 0 auto 5px;"></div>
+        <div style="font-size: 11px;">
+            {{ title_thai }}<br>
+            {{ title_english }}
+        </div>
+    </div>
+{%- endmacro -%}
+
+{# Thai tax calculation helper #}
+{%- macro calculate_thai_wht(base_amount, rate) -%}
+    {{ format_thai_amount((base_amount|float * rate|float) / 100) }}
 {%- endmacro -%}

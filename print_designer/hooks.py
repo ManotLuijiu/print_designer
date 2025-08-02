@@ -94,7 +94,8 @@ doctype_js = {
 # }
 
 # Fixtures for deployment
-# Fixtures for deployment
+# Note: Custom fields are installed programmatically via install.py to handle existing fields gracefully
+# Fixtures are used for Client Scripts and Property Setters only
 fixtures = [
     # {
     #     "doctype": "DocType",
@@ -113,117 +114,118 @@ fixtures = [
     #         ]
     #     ],
     # },
-    {
-        "doctype": "Custom Field",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    # Company DocType - Stamps & Signatures Tab and Fields
-                    "Company-stamps_signatures_tab",
-                    "Company-company_signatures_section",
-                    "Company-authorized_signature_1",
-                    "Company-authorized_signature_2",
-                    "Company-ceo_signature",
-                    "Company-company_stamps_section",
-                    "Company-company_stamp_1",
-                    "Company-company_stamp_2",
-                    "Company-official_seal",
-                    # Print Format - Print Designer Fields
-                    "Print Format-print_designer",
-                    "Print Format-print_designer_print_format",
-                    "Print Format-print_designer_header",
-                    "Print Format-print_designer_body",
-                    "Print Format-print_designer_after_table",
-                    "Print Format-print_designer_footer",
-                    "Print Format-print_designer_settings",
-                    "Print Format-print_designer_preview_img",
-                    "Print Format-print_designer_template_app",
-                    "Print Format-watermark_settings",
-                    # Print Settings - Copy and Watermark Settings
-                    "Print Settings-copy_settings_section",
-                    "Print Settings-enable_multiple_copies",
-                    "Print Settings-default_copy_count",
-                    "Print Settings-copy_labels_column",
-                    "Print Settings-default_original_label",
-                    "Print Settings-default_copy_label",
-                    "Print Settings-show_copy_controls_in_toolbar",
-                    "Print Settings-watermark_settings_section",
-                    "Print Settings-watermark_settings",
-                    "Print Settings-watermark_font_size",
-                    "Print Settings-watermark_position",
-                    "Print Settings-watermark_font_family",
-                    # Global Defaults - Typography Settings
-                    "Global Defaults-typography_section",
-                    "Global Defaults-primary_font_family",
-                    "Global Defaults-font_preferences_column",
-                    "Global Defaults-enable_thai_font_support",
-                    "Global Defaults-custom_font_stack",
-                    "Global Defaults-custom_typography_css",
-                    # HR Module - Employee & User Signatures
-                    "Employee-signature_image",
-                    "User-signature_image",
-                    "Designation-designation_signature",
-                    "Designation-signature_authority_level",
-                    "Designation-max_approval_amount",
-                    # CRM Module
-                    "Customer-signature_image",
-                    "Lead-signature_image",
-                    "Supplier-signature_image",
-                    # Projects Module
-                    "Project-project_manager_signature",
-                    "Item-quality_inspector_signature",
-                    # Sales Module - Transaction Documents
-                    "Sales Invoice-prepared_by_signature",
-                    "Sales Invoice-approved_by_signature",
-                    "Sales Order-prepared_by_signature",
-                    "Sales Order-approved_by_signature",
-                    "Quotation-prepared_by_signature",
-                    # Purchase Module - Transaction Documents
-                    "Purchase Invoice-prepared_by_signature",
-                    "Purchase Invoice-approved_by_signature",
-                    "Purchase Order-prepared_by_signature",
-                    "Purchase Order-approved_by_signature",
-                    "Request for Quotation-prepared_by_signature",
-                    # Stock Module - Delivery & Receipt
-                    "Delivery Note-prepared_by_signature",
-                    "Delivery Note-delivered_by_signature",
-                    "Delivery Note-received_by_signature",
-                    "Delivery Note-custom_delivery_approval_section",
-                    "Delivery Note-customer_approval_status",
-                    "Delivery Note-customer_signature",
-                    "Delivery Note-customer_approved_by",
-                    "Delivery Note-customer_approved_on",
-                    "Delivery Note-approval_qr_code",
-                    "Delivery Note-custom_goods_received_status",
-                    "Delivery Note-custom_approval_qr_code",
-                    "Delivery Note-custom_approval_url",
-                    "Delivery Note-custom_customer_approval_date",
-                    "Delivery Note-custom_approved_by",
-                    "Delivery Note-custom_customer_signature",
-                    "Delivery Note-custom_rejection_reason",
-                    "Purchase Receipt-prepared_by_signature",
-                    "Purchase Receipt-received_by_signature",
-                    # Asset Module
-                    "Asset-custodian_signature",
-                    # HR Module - Additional
-                    "Job Offer-hr_signature",
-                    "Job Offer-candidate_signature",
-                    "Appraisal-appraiser_signature",
-                    "Appraisal-employee_signature",
-                    # Quality Module
-                    "Quality Inspection-inspector_signature",
-                    "Quality Inspection-supervisor_signature",
-                    # Maintenance Module
-                    "Maintenance Schedule-technician_signature",
-                    # Custom DocTypes
-                    "Contract-party_signature",
-                    "Contract-witness_signature",
-                ],
-            ]
-        ],
-    },
+    # Custom Fields are installed programmatically via install.py to avoid conflicts with existing fields
+    # {
+    #     "doctype": "Custom Field",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 # Company DocType - Stamps & Signatures Tab and Fields
+    #                 "Company-stamps_signatures_tab",
+    #                 "Company-company_signatures_section",
+    #                 "Company-authorized_signature_1",
+    #                 "Company-authorized_signature_2",
+    #                 "Company-ceo_signature",
+    #                 "Company-company_stamps_section",
+    #                 "Company-company_stamp_1",
+    #                 "Company-company_stamp_2",
+    #                 "Company-official_seal",
+                    # Print Format - Print Designer Fields (commented to prevent conflicts)
+                    # "Print Format-print_designer",
+                    # "Print Format-print_designer_print_format",
+                    # "Print Format-print_designer_header",
+                    # "Print Format-print_designer_body",
+                    # "Print Format-print_designer_after_table",
+                    # "Print Format-print_designer_footer",
+                    # "Print Format-print_designer_settings",
+                    # "Print Format-print_designer_preview_img",
+                    # "Print Format-print_designer_template_app",
+                    # "Print Format-watermark_settings",
+                    # Print Settings - Copy and Watermark Settings (commented to prevent conflicts)
+                    # "Print Settings-copy_settings_section",
+                    # "Print Settings-enable_multiple_copies",
+                    # "Print Settings-default_copy_count",
+                    # "Print Settings-copy_labels_column",
+                    # "Print Settings-default_original_label",
+                    # "Print Settings-default_copy_label",
+                    # "Print Settings-show_copy_controls_in_toolbar",
+                    # "Print Settings-watermark_settings_section",
+                    # "Print Settings-watermark_settings",
+                    # "Print Settings-watermark_font_size",
+                    # "Print Settings-watermark_position",
+                    # "Print Settings-watermark_font_family",
+                    # Global Defaults - Typography Settings (commented to prevent conflicts)
+                    # "Global Defaults-typography_section",
+                    # "Global Defaults-primary_font_family",
+                    # "Global Defaults-font_preferences_column",
+                    # "Global Defaults-enable_thai_font_support",
+                    # "Global Defaults-custom_font_stack",
+                    # "Global Defaults-custom_typography_css",
+                    # HR Module - Employee & User Signatures (commented to prevent conflicts)
+                    # "Employee-signature_image",
+                    # "User-signature_image",
+                    # "Designation-designation_signature",
+                    # "Designation-signature_authority_level",
+                    # "Designation-max_approval_amount",
+                    # CRM Module (commented to prevent conflicts)
+                    # "Customer-signature_image",
+                    # "Lead-signature_image",
+                    # "Supplier-signature_image",
+                    # Projects Module (commented to prevent conflicts)
+                    # "Project-project_manager_signature",
+                    # "Item-quality_inspector_signature",
+                    # Sales Module - Transaction Documents (commented to prevent conflicts)
+                    # "Sales Invoice-prepared_by_signature",
+                    # "Sales Invoice-approved_by_signature",
+                    # "Sales Order-prepared_by_signature",
+                    # "Sales Order-approved_by_signature",
+                    # "Quotation-prepared_by_signature",
+                    # Purchase Module - Transaction Documents (commented to prevent conflicts)
+                    # "Purchase Invoice-prepared_by_signature",
+                    # "Purchase Invoice-approved_by_signature",
+                    # "Purchase Order-prepared_by_signature",
+                    # "Purchase Order-approved_by_signature",
+                    # "Request for Quotation-prepared_by_signature",
+                    # Stock Module - Delivery & Receipt (commented to prevent conflicts)
+                    # "Delivery Note-prepared_by_signature",
+                    # "Delivery Note-delivered_by_signature",
+                    # "Delivery Note-received_by_signature",
+                    # "Delivery Note-custom_delivery_approval_section",
+                    # "Delivery Note-customer_approval_status",
+                    # "Delivery Note-customer_signature",
+                    # "Delivery Note-customer_approved_by",
+                    # "Delivery Note-customer_approved_on",
+                    # "Delivery Note-approval_qr_code",
+                    # "Delivery Note-custom_goods_received_status",
+                    # "Delivery Note-custom_approval_qr_code",
+                    # "Delivery Note-custom_approval_url",
+                    # "Delivery Note-custom_customer_approval_date",
+                    # "Delivery Note-custom_approved_by",
+                    # "Delivery Note-custom_customer_signature",
+                    # "Delivery Note-custom_rejection_reason",
+                    # "Purchase Receipt-prepared_by_signature",
+                    # "Purchase Receipt-received_by_signature",
+                    # Asset Module (commented to prevent conflicts)
+                    # "Asset-custodian_signature",
+                    # HR Module - Additional (commented to prevent conflicts)
+                    # "Job Offer-hr_signature",
+                    # "Job Offer-candidate_signature",
+                    # "Appraisal-appraiser_signature",
+                    # "Appraisal-employee_signature",
+                    # Quality Module (commented to prevent conflicts)
+                    # "Quality Inspection-inspector_signature",
+                    # "Quality Inspection-supervisor_signature",
+                    # Maintenance Module (commented to prevent conflicts)
+                    # "Maintenance Schedule-technician_signature",
+                    # Custom DocTypes (commented to prevent conflicts)
+                    # "Contract-party_signature",
+                    # "Contract-witness_signature",
+                # ],
+            # ]
+        # ],
+    # },
     {
         "doctype": "Property Setter",
         "filters": [
@@ -339,7 +341,7 @@ after_install = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
     # "print_designer.api.global_typography.after_install",
-    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",  # Create Company Stamps & Signatures tab
+    # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
 # Boot session enhancements
@@ -355,13 +357,13 @@ after_migrate = [
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
     "print_designer.hooks.override_erpnext_install",  # Apply ERPNext overrides
     "print_designer.api.safe_install.safe_install_signature_enhancements",
-    "print_designer.install.ensure_custom_fields",  # This now uses setup_enhanced_print_settings internally
+    # "print_designer.install.ensure_custom_fields",
     "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
-    "print_designer.install.ensure_signature_fields",  # Ensure signature fields after migration
+    # "print_designer.install.ensure_signature_fields",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
     # "print_designer.api.global_typography.setup_default_typography",
-    "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
+    # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
 # Uninstallation

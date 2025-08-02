@@ -1,0 +1,64 @@
+<!-- wht_dashboard.html -->
+<div class="wht-dashboard">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>This Month</h5>
+                    <h3 class="text-primary" id="month-total">฿0</h3>
+                    <small>Total WHT</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>This Year</h5>
+                    <h3 class="text-success" id="year-total">฿0</h3>
+                    <small>Total WHT</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Certificates</h5>
+                    <h3 class="text-info" id="cert-count">0</h3>
+                    <small>Issued</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Pending</h5>
+                    <h3 class="text-warning" id="pending-count">0</h3>
+                    <small>To Submit</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6>WHT by Income Type</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="income-type-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6>Monthly Trend</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthly-trend-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
