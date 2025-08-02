@@ -271,3 +271,8 @@ Critical workflow stages:
 - **Global Defaults Integration**: Verify typography fields are properly installed via `install_typography_system` command
 - **Bundle Loading**: Ensure `typography_injection.bundle.js` is properly included in app hooks
 - **Cache Problems**: Typography CSS is generated dynamically; check for stale cache in Global Defaults
+
+## Deployment Sites
+
+### Registered Sites
+- `erpnext-dev-server.bunchee.online:8000`
