@@ -73,6 +73,15 @@ THAILAND_WHT_FIELDS = {
             "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
         },
+        {
+            "fieldname": "net_total_after_wht_in_words",
+            "label": "Net Total (After WHT) in Words",
+            "fieldtype": "Small Text",
+            "insert_after": "net_total_after_wht",
+            "description": "Net total amount in Thai words",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
+        },
     ],
     
     "Item": [
@@ -124,6 +133,15 @@ THAILAND_WHT_FIELDS = {
             "read_only": 1,
             "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
+        },
+        {
+            "fieldname": "net_total_after_wht_in_words",
+            "label": "Net Total (After WHT) in Words",
+            "fieldtype": "Small Text",
+            "insert_after": "net_total_after_wht",
+            "description": "Net total amount in Thai words",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
         },
     ],
     

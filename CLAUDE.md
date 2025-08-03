@@ -284,3 +284,139 @@ Critical workflow stages:
     - Checks Company.thailand_service_business field
     - Checks Company.default_wht_account field
   ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_item_service_field.check_item_service_field`
+
+## Override Form Scripts 
+You can override/extend Standard Form Scripts by using the doctype_js hook.
+
+app/hooks.py
+
+doctype_js = {
+    "ToDo": "public/js/todo.js",
+}
+
+
+app/public/js/todo.js
+
+frappe.ui.form.on("Todo", {
+    refresh: function(frm) {
+        frm.trigger("my_custom_code");
+    },
+    my_custom_code: function(frm){
+        console.log(frm.doc.name)
+    }
+});
+
+
+The events/functions defined in app/public/todo.js will extend > those in the standard form script of ToDo doctype.
+
+## Now I have a complete understanding. Let me explain in detail what these hooks do:
+
+  🎯 Deep Explanation of Hooks
+
+  📄 page_js Hook
+
+  page_js = {
+      "print": [
+          "print_designer/client_scripts/safe_pdf_client.js",
+          "print_designer/client_scripts/print.js",
+      ],
+      "point-of-sale": "print_designer/client_scripts/point_of_sale.js",
+  }
+
+  What it does:
+
+  This hook injects JavaScript into standard Frappe pages (not DocType forms). These
+  are system pages in the Frappe Desk.
+
+  Specific Implementations:
+
+  1. "print" page:
+  - Target: The /app/print/ page (Standard Frappe print preview page)
+  - Files injected:
+    - safe_pdf_client.js - PDF generation safety/logging utilities
+    - print.js - PDF Generation Logger with performance monitoring
+  - Purpose:
+    - Enhances the standard print preview page with Print Designer's advanced PDF
+  generation
+    - Adds client-side logging for PDF generation debugging
+    - Monitors performance metrics and retry attempts
+    - Provides custom print generation workflow
+
+  2. "point-of-sale" page:
+  - Target: The Point of Sale page (/app/point-of-sale)
+  - File injected: point_of_sale.js
+  - Purpose: Overrides the standard print utility function
+  - Specific functionality:
+  // Intercepts frappe.utils.print() calls in POS
+  const original_util = frappe.utils.print;
+  frappe.utils.print = (doctype, docname, print_format, letterhead, lang_code) => {
+      if (frappe.model.get_value("Print Format", print_format, "print_designer")) {
+          // Use Print Designer's print route
+          window.open("/app/print/..." + "&trigger_print=1");
+      } else {
+          // Use original Frappe print function
+          original_util(doctype, docname, print_format, letterhead, lang_code);
+      }
+  };
+
+  📋 doctype_js Hook
+
+  doctype_js = {
+      "Print Format": "print_designer/client_scripts/print_format.js",
+  }
+
+  What it does:
+
+  This hook extends/overrides the form scripts for specific DocTypes.
+
+  Specific Implementation:
+
+  "Print Format" DocType:
+  - Target: Print Format form (/app/print-format/)
+  - File injected: print_format.js
+  - Purpose: Enhances the Print Format form with Print Designer features
+  - Specific functionality:
+  // Adds Print Designer UI enhancements to Print Format form
+  frappe.ui.form.on("Print Format", {
+      refresh: function(frm) {
+          setup_print_designer_ui(frm);  // Adds toggle buttons and info
+          set_template_app_options(frm); // Sets app options for templates
+      }
+  });
+  - Features added:
+    - Toggle button to enable/disable Print Designer
+    - Dashboard comment showing Print Designer status
+    - App selection options for templates
+    - Role-based UI enhancements for Print Managers
+
+  🔄 Key Differences
+
+  | Hook       | Target         | Purpose                     | Example
+              |
+  |------------|----------------|-----------------------------|-----------------------
+  ------------|
+  | page_js    | Standard Pages | Inject JS into system pages | Print preview page,
+  POS page      |
+  | doctype_js | Form Scripts   | Extend DocType forms        | Quotation form, Print
+  Format form |
+
+  🎯 Real-World Impact
+
+  Print Designer Integration:
+
+  1. POS Integration: When printing from POS, if Print Designer format is used →
+  routes to Print Designer
+  2. Print Page Enhancement: Standard print preview gets PDF generation logging and
+  monitoring
+  3. Print Format Form: Gets visual toggle buttons and Print Designer-specific UI
+
+  Workflow Example:
+
+  1. User goes to Point of Sale → point_of_sale.js loads
+  2. User prints receipt with Print Designer format → Custom print function intercepts
+  3. Opens Print Preview page → print.js loads with logging
+  4. PDF generates with Print Designer's advanced engine
+  5. Admin goes to Print Format form → print_format.js adds toggle buttons
+
+  This creates a seamless integration where Print Designer enhances the entire print
+  workflow across different Frappe pages and forms! 🚀

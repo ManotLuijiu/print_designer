@@ -82,7 +82,7 @@ function calculate_estimated_wht_amount(frm) {
 	}
 
 	// Check if we have an amount to calculate on
-	const base_amount = frm.doc.grand_total || frm.doc.total || 0;
+	const base_amount = frm.doc.total || 0;
 	if (!base_amount || base_amount <= 0) {
 		console.log("No base amount found, setting WHT amount to 0");
 		frm.set_value("estimated_wht_amount", 0);
@@ -142,13 +142,50 @@ function calculate_net_total_after_wht(frm, base_amount) {
 			if (r.message) {
 				console.log("Setting net_total_after_wht to:", r.message);
 				frm.set_value("net_total_after_wht", r.message);
+
+				// Calculate Thai words for net total
+				calculate_net_total_thai_words(frm, r.message);
 			} else {
 				frm.set_value("net_total_after_wht", 0);
+				frm.set_value("net_total_after_wht_in_words", "");
 			}
 		},
 		error: function (r) {
 			console.error("Net total calculation error:", r);
 			frm.set_value("net_total_after_wht", 0);
+			frm.set_value("net_total_after_wht_in_words", "");
+		},
+	});
+}
+
+function calculate_net_total_thai_words(frm, net_total_amount) {
+	console.log("Calculating Thai words for net total:", net_total_amount);
+
+	if (!net_total_amount || net_total_amount <= 0) {
+		frm.set_value("net_total_after_wht_in_words", "");
+		return;
+	}
+
+	frappe.call({
+		method: "print_designer.utils.thai_amount_to_word.get_amount_in_words",
+		args: {
+			amount: net_total_amount,
+			currency: "THB",
+			doctype: frm.doc.doctype,
+			docname: frm.doc.name,
+		},
+		callback: function (r) {
+			console.log("Thai words response:", r);
+			if (r.message) {
+				console.log("Setting net_total_after_wht_in_words to:", r.message);
+				frm.set_value("net_total_after_wht_in_words", r.message);
+			} else {
+				frm.set_value("net_total_after_wht_in_words", "");
+			}
+		},
+		error: function (r) {
+			console.error("Thai words calculation error:", r);
+			frm.set_value("net_total_after_wht_in_words", "");
 		},
 	});
 }
@@ -169,6 +206,7 @@ function toggle_wht_fields_visibility(frm) {
 					"subject_to_wht",
 					"estimated_wht_amount",
 					"net_total_after_wht",
+					"net_total_after_wht_in_words",
 				],
 				is_enabled,
 			);
@@ -178,6 +216,7 @@ function toggle_wht_fields_visibility(frm) {
 				frm.set_value("subject_to_wht", 0);
 				frm.set_value("estimated_wht_amount", 0);
 				frm.set_value("net_total_after_wht", 0);
+				frm.set_value("net_total_after_wht_in_words", "");
 			}
 		});
 }
