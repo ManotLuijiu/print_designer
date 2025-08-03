@@ -276,3 +276,6 @@ Critical workflow stages:
 
 ### Registered Sites
 - `erpnext-dev-server.bunchee.online:8000`
+
+## Memories
+- Adding your answer to memory

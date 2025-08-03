@@ -55,6 +55,10 @@ def after_install():
     _install_watermark_fields_on_install()
     # Install signature fields for all DocTypes on fresh installation
     _install_signature_fields_on_install()
+    # Install retention fields for construction services
+    _install_retention_fields_on_install()
+    # Install Thailand WHT fields for service businesses
+    _install_thailand_wht_fields_on_install()
     # Setup Print Designer UI visibility for new installations
     _setup_print_designer_ui_on_install()
     # TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
@@ -124,6 +128,14 @@ def ensure_all_fields_after_migration():
         _ensure_watermark_fields()
         _ensure_watermark_defaults()
         frappe.logger().info("✅ Signature and watermark fields ensured")
+
+        # 2.1. Retention fields for construction services
+        _ensure_retention_fields()
+        frappe.logger().info("✅ Retention fields ensured")
+
+        # 2.2. Thailand WHT fields for service businesses
+        _ensure_thailand_wht_fields()
+        frappe.logger().info("✅ Thailand WHT fields ensured")
 
         # 3. Enhanced Print Settings fields (includes all watermark configuration)
         setup_enhanced_print_settings()
@@ -1580,3 +1592,107 @@ def _setup_print_designer_ui_on_install():
     except Exception as e:
         click.echo(f"⚠️  Error setting up Print Designer UI: {str(e)}")
         frappe.log_error(f"Error setting up Print Designer UI on install: {str(e)}")
+
+
+def _install_retention_fields_on_install():
+    """
+    Install retention fields for construction services during fresh installation.
+    This ensures retention fields are available immediately after app installation.
+    """
+    try:
+        from print_designer.commands.install_retention_fields import install_retention_fields
+
+        click.echo("🏗️  Installing retention fields for construction services...")
+        
+        # Install retention fields
+        install_retention_fields()
+        
+        click.echo("✅ Retention fields installed successfully!")
+        
+        # Commit the changes
+        frappe.db.commit()
+        
+        # Clear caches to ensure fields are available immediately
+        frappe.clear_cache()
+        
+    except ImportError as e:
+        click.echo("⚠️  Retention field installer not available - skipping retention field installation")
+        frappe.log_error(f"Retention field installer import error: {str(e)}")
+        
+    except Exception as e:
+        click.echo(f"⚠️  Error installing retention fields: {str(e)}")
+        frappe.log_error(f"Error installing retention fields on install: {str(e)}")
+
+
+def _ensure_retention_fields():
+    """
+    Ensure retention fields exist during migration.
+    Safe to run multiple times - will not create duplicates.
+    """
+    try:
+        from print_designer.commands.install_retention_fields import install_retention_fields
+        
+        frappe.logger().info("Ensuring retention fields exist...")
+        
+        # Install/update retention fields (safe to run multiple times)
+        install_retention_fields()
+        
+        frappe.logger().info("✅ Retention fields ensured")
+        
+    except ImportError as e:
+        frappe.logger().warning("Retention field installer not available - skipping retention field check")
+        frappe.log_error(f"Retention field installer import error: {str(e)}")
+        
+    except Exception as e:
+        frappe.logger().error(f"Error ensuring retention fields: {str(e)}")
+        frappe.log_error(f"Error ensuring retention fields: {str(e)}")
+
+
+def _install_thailand_wht_fields_on_install():
+    """
+    Install Thailand WHT fields for service businesses during fresh installation.
+    This ensures Thailand WHT fields are available immediately after app installation.
+    """
+    try:
+        from print_designer.commands.install_thailand_wht_fields import install_thailand_wht_fields
+        click.echo("🇹🇭 Installing Thailand withholding tax fields for service businesses...")
+        
+        # Install Thailand WHT fields
+        install_thailand_wht_fields()
+        
+        click.echo("✅ Thailand WHT fields installed successfully!")
+        
+        # Commit the changes
+        frappe.db.commit()
+        
+    except ImportError as e:
+        click.echo("⚠️  Thailand WHT field installer not available - skipping")
+        frappe.log_error(f"Thailand WHT field installer import error: {str(e)}")
+        
+    except Exception as e:
+        click.echo(f"❌ Error installing Thailand WHT fields: {str(e)}")
+        frappe.log_error(f"Error installing Thailand WHT fields: {str(e)}")
+
+
+def _ensure_thailand_wht_fields():
+    """
+    Ensure Thailand WHT fields exist during migration.
+    Safe to run multiple times - will not create duplicates.
+    """
+    try:
+        from print_designer.commands.install_thailand_wht_fields import install_thailand_wht_fields
+        
+        frappe.logger().info("Ensuring Thailand WHT fields exist...")
+        
+        # Install/update Thailand WHT fields (safe to run multiple times)
+        install_thailand_wht_fields()
+        
+        frappe.logger().info("✅ Thailand WHT fields ensured")
+        
+    except ImportError as e:
+        frappe.logger().warning("Thailand WHT field installer not available - skipping Thailand WHT field check")
+        frappe.log_error(f"Thailand WHT field installer import error: {str(e)}")
+        
+    except Exception as e:
+        frappe.logger().error(f"Error ensuring Thailand WHT fields: {str(e)}")
+        frappe.log_error(f"Error ensuring Thailand WHT fields: {str(e)}")

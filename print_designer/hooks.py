@@ -22,6 +22,8 @@ commands = [
     "print_designer.commands.install_typography_system.install_typography_system",
     "print_designer.commands.install_retention_fields.install_retention_fields",
     "print_designer.commands.install_retention_fields.check_retention_fields",
+    "print_designer.commands.install_thailand_wht_fields.install_thailand_wht_fields",
+    "print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields",
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
 ]
@@ -72,9 +74,11 @@ doctype_js = {
     "Print Settings": "print_designer/client_scripts/print_settings.js",
     "Signature Basic Information": "print_designer/client_scripts/signature_basic_information.js",
     "Delivery Note": "public/js/delivery_approval.js",
-    "Payment Entry": "public/js/delivery_approval.js",
+    "Payment Entry": ["public/js/delivery_approval.js", "print_designer/client_scripts/thailand_wht_payment_entry.js"],
     "Client Script": "print_designer/client_scripts/client_script.js",
-    "Sales Invoice": "print_designer/client_scripts/sales_invoice.js",
+    "Sales Invoice": ["print_designer/client_scripts/sales_invoice.js", "print_designer/client_scripts/thailand_wht_sales_invoice.js"],
+    "Quotation": "print_designer/client_scripts/thailand_wht_quotation.js",
+    "Sales Order": "print_designer/client_scripts/thailand_wht_sales_order.js",
     # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
     "Company": "print_designer/client_scripts/company.js",
 }
@@ -458,6 +462,7 @@ doc_events = {
     "Payment Entry": {
         "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
         "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
+        "on_submit": "print_designer.accounting.thailand_wht_integration.process_payment_entry_wht",
     },
 }
 
