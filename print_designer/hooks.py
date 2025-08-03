@@ -26,6 +26,8 @@ commands = [
     "print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields",
     "print_designer.commands.install_item_service_field.install_item_service_field",
     "print_designer.commands.install_item_service_field.check_item_service_field",
+    "print_designer.commands.install_wht_rate_field.install_wht_rate_field",
+    "print_designer.commands.install_wht_rate_field.check_wht_rate_field",
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
 ]

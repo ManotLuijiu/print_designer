@@ -160,15 +160,32 @@ function calculate_wht_for_service_items_only(frm) {
           // When all items are checked
           if (checked_items === frm.doc.items.length) {
             if (service_amount > 0) {
-              // Calculate 3% WHT on service items only
-              const wht_amount = flt((service_amount * 3.0) / 100, 2);
-              frm.set_value('estimated_wht_amount', wht_amount);
-              
-              // Update description to show service amount
-              const field = frm.get_field('estimated_wht_amount');
-              if (field) {
-                field.set_description(`3% WHT on service items (${format_currency(service_amount, frm.doc.currency)})`);
-              }
+              // Calculate WHT on service items using company's dynamic rate
+              frappe.call({
+                method: 'print_designer.accounting.thailand_wht_integration.calculate_estimated_wht',
+                args: {
+                  base_amount: service_amount,
+                  company: frm.doc.company
+                },
+                callback: function(r) {
+                  if (r.message) {
+                    frm.set_value('estimated_wht_amount', r.message);
+                    
+                    // Get the WHT rate to show in description
+                    frappe.call({
+                      method: 'print_designer.accounting.thailand_wht_integration.get_company_wht_rate',
+                      args: { company: frm.doc.company },
+                      callback: function(rate_r) {
+                        const wht_rate = rate_r.message || 3.0;
+                        const field = frm.get_field('estimated_wht_amount');
+                        if (field) {
+                          field.set_description(`${wht_rate}% WHT on service items (${format_currency(service_amount, frm.doc.currency)})`);
+                        }
+                      }
+                    });
+                  }
+                }
+              });
             } else {
               frm.set_value('estimated_wht_amount', 0);
             }

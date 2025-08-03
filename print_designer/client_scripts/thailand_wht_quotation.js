@@ -64,12 +64,12 @@ function calculate_estimated_wht_amount(frm) {
     return;
   }
   
-  // Call server method to calculate WHT amount
+  // Call server method to calculate WHT amount with company's dynamic rate
   frappe.call({
     method: 'print_designer.accounting.thailand_wht_integration.calculate_estimated_wht',
     args: {
       base_amount: frm.doc.grand_total,
-      wht_rate: 3.0
+      company: frm.doc.company
     },
     callback: function(r) {
       if (r.message) {
@@ -172,17 +172,37 @@ function calculate_wht_for_service_items_only(frm) {
             service_total += item.amount;
           }
           
-          // After checking all items, calculate WHT on service total
+          // After checking all items, calculate WHT on service total using dynamic rate
           if (checked_items === total_items) {
-            const wht_amount = service_total * 0.03; // 3% WHT rate
-            frm.set_value('estimated_wht_amount', wht_amount);
+            frappe.call({
+              method: 'print_designer.accounting.thailand_wht_integration.calculate_estimated_wht',
+              args: {
+                base_amount: service_total,
+                company: frm.doc.company
+              },
+              callback: function(r) {
+                if (r.message) {
+                  frm.set_value('estimated_wht_amount', r.message);
+                }
+              }
+            });
           }
         });
     } else {
       checked_items++;
       if (checked_items === total_items) {
-        const wht_amount = service_total * 0.03;
-        frm.set_value('estimated_wht_amount', wht_amount);
+        frappe.call({
+          method: 'print_designer.accounting.thailand_wht_integration.calculate_estimated_wht',
+          args: {
+            base_amount: service_total,
+            company: frm.doc.company
+          },
+          callback: function(r) {
+            if (r.message) {
+              frm.set_value('estimated_wht_amount', r.message);
+            }
+          }
+        });
       }
     }
   });
