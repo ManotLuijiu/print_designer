@@ -231,22 +231,32 @@ def update_invoice_wht_status(doc, method=None):
 def calculate_estimated_wht(base_amount, wht_rate=None, company=None):
     """Calculate estimated WHT amount for sales documents"""
     try:
-        base_amount = flt(base_amount)
+        # Debug logging
+        print(f"DEBUG: Raw inputs - base_amount: {base_amount} (type: {type(base_amount)}), wht_rate: {wht_rate}, company: {company}")
         
+        base_amount = flt(base_amount)
+        print(f"DEBUG: Converted base_amount: {base_amount}")
+
         # If no rate provided, get from company settings
         if not wht_rate and company:
             company_doc = frappe.get_cached_doc("Company", company)
             wht_rate = company_doc.get("default_wht_rate") or 3.0
-        
+            print(f"DEBUG: Got company WHT rate: {wht_rate}")
+
         wht_rate = flt(wht_rate) if wht_rate else 3.0
+        print(f"DEBUG: Final WHT rate: {wht_rate}")
 
         if base_amount <= 0:
+            print("DEBUG: Base amount is 0 or negative, returning 0")
             return 0
 
         wht_amount = (base_amount * wht_rate) / 100
-        return flt(wht_amount, 2)
+        result = flt(wht_amount, 2)
+        print(f"DEBUG: Calculated WHT amount: {result}")
+        return result
 
     except Exception as e:
+        print(f"ERROR: {str(e)}")
         frappe.log_error(f"Error calculating WHT: {str(e)}")
         return 0
 
@@ -257,13 +267,51 @@ def get_company_wht_rate(company):
     try:
         if not company:
             return 3.0
-            
+
         company_doc = frappe.get_cached_doc("Company", company)
         return flt(company_doc.get("default_wht_rate")) or 3.0
-        
+
     except Exception as e:
         frappe.log_error(f"Error getting company WHT rate: {str(e)}")
         return 3.0
+
+
+@frappe.whitelist()
+def calculate_net_total_after_wht(base_amount, company=None, vat_rate=7.0):
+    """Calculate net total: base_amount + VAT - WHT"""
+    try:
+        base_amount = flt(base_amount)
+        vat_rate = flt(vat_rate) if vat_rate else 7.0
+        
+        print(f"DEBUG: Net total calculation - base_amount: {base_amount}, vat_rate: {vat_rate}, company: {company}")
+        
+        if base_amount <= 0:
+            return 0
+        
+        # Get WHT rate from company settings
+        wht_rate = 3.0  # default
+        if company:
+            company_doc = frappe.get_cached_doc("Company", company)
+            wht_rate = flt(company_doc.get("default_wht_rate")) or 3.0
+        
+        print(f"DEBUG: Using WHT rate: {wht_rate}%")
+        
+        # Calculate components
+        vat_amount = (base_amount * vat_rate) / 100
+        wht_amount = (base_amount * wht_rate) / 100
+        
+        # Net total = base + VAT - WHT
+        net_total = base_amount + vat_amount - wht_amount
+        
+        result = flt(net_total, 2)
+        print(f"DEBUG: base: {base_amount}, VAT: {vat_amount}, WHT: {wht_amount}, net: {result}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        frappe.log_error(f"Error calculating net total after WHT: {str(e)}")
+        return 0
 
 
 @frappe.whitelist()

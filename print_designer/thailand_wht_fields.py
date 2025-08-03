@@ -63,6 +63,16 @@ THAILAND_WHT_FIELDS = {
             "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
         },
+        {
+            "fieldname": "net_total_after_wht",
+            "label": "Net Total (After WHT)",
+            "fieldtype": "Currency",
+            "insert_after": "estimated_wht_amount",
+            "description": "Net total after adding VAT (7%) and deducting WHT",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht",
+            "options": "Company:company:default_currency",
+        },
     ],
     
     "Item": [
@@ -101,6 +111,16 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Currency",
             "insert_after": "subject_to_wht",
             "description": "Estimated withholding tax amount (for reference only)",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht",
+            "options": "Company:company:default_currency",
+        },
+        {
+            "fieldname": "net_total_after_wht",
+            "label": "Net Total (After WHT)",
+            "fieldtype": "Currency",
+            "insert_after": "estimated_wht_amount",
+            "description": "Net total after adding VAT (7%) and deducting WHT",
             "read_only": 1,
             "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
