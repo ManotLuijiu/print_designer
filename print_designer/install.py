@@ -59,6 +59,8 @@ def after_install():
     _install_retention_fields_on_install()
     # Install Thailand WHT fields for service businesses
     _install_thailand_wht_fields_on_install()
+    # Install Item service field for Thailand WHT
+    _install_item_service_field_on_install()
     # Setup Print Designer UI visibility for new installations
     _setup_print_designer_ui_on_install()
     # TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
@@ -136,6 +138,10 @@ def ensure_all_fields_after_migration():
         # 2.2. Thailand WHT fields for service businesses
         _ensure_thailand_wht_fields()
         frappe.logger().info("✅ Thailand WHT fields ensured")
+
+        # 2.3. Item service field for Thailand WHT
+        _ensure_item_service_field()
+        frappe.logger().info("✅ Item service field ensured")
 
         # 3. Enhanced Print Settings fields (includes all watermark configuration)
         setup_enhanced_print_settings()
@@ -1696,3 +1702,53 @@ def _ensure_thailand_wht_fields():
     except Exception as e:
         frappe.logger().error(f"Error ensuring Thailand WHT fields: {str(e)}")
         frappe.log_error(f"Error ensuring Thailand WHT fields: {str(e)}")
+
+
+def _install_item_service_field_on_install():
+    """
+    Install Item service field during fresh installation.
+    This ensures the 'Is Service' field is available immediately after app installation.
+    """
+    try:
+        from print_designer.commands.install_item_service_field import install_item_service_field
+        click.echo("📦 Installing 'Is Service' field for Item DocType...")
+        
+        # Install Item service field
+        install_item_service_field()
+        
+        click.echo("✅ Item service field installed successfully!")
+        
+        # Commit the changes
+        frappe.db.commit()
+        
+    except ImportError as e:
+        click.echo("⚠️  Item service field installer not available - skipping")
+        frappe.log_error(f"Item service field installer import error: {str(e)}")
+        
+    except Exception as e:
+        click.echo(f"❌ Error installing Item service field: {str(e)}")
+        frappe.log_error(f"Error installing Item service field: {str(e)}")
+
+
+def _ensure_item_service_field():
+    """
+    Ensure Item service field exists during migration.
+    Safe to run multiple times - will not create duplicates.
+    """
+    try:
+        from print_designer.commands.install_item_service_field import install_item_service_field
+        
+        frappe.logger().info("Ensuring Item service field exists...")
+        
+        # Install/update Item service field (safe to run multiple times)
+        install_item_service_field()
+        
+        frappe.logger().info("✅ Item service field ensured")
+        
+    except ImportError as e:
+        frappe.logger().warning("Item service field installer not available - skipping Item service field check")
+        frappe.log_error(f"Item service field installer import error: {str(e)}")
+        
+    except Exception as e:
+        frappe.logger().error(f"Error ensuring Item service field: {str(e)}")
+        frappe.log_error(f"Error ensuring Item service field: {str(e)}")

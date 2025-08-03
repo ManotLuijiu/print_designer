@@ -24,6 +24,8 @@ commands = [
     "print_designer.commands.install_retention_fields.check_retention_fields",
     "print_designer.commands.install_thailand_wht_fields.install_thailand_wht_fields",
     "print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields",
+    "print_designer.commands.install_item_service_field.install_item_service_field",
+    "print_designer.commands.install_item_service_field.check_item_service_field",
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
 ]
@@ -79,6 +81,7 @@ doctype_js = {
     "Sales Invoice": ["print_designer/client_scripts/sales_invoice.js", "print_designer/client_scripts/thailand_wht_sales_invoice.js"],
     "Quotation": "print_designer/client_scripts/thailand_wht_quotation.js",
     "Sales Order": "print_designer/client_scripts/thailand_wht_sales_order.js",
+    "Item": "print_designer/client_scripts/thailand_wht_item.js",
     # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
     "Company": "print_designer/client_scripts/company.js",
 }

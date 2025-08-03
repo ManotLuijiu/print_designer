@@ -278,4 +278,9 @@ Critical workflow stages:
 - `erpnext-dev-server.bunchee.online:8000`
 
 ## Memories
-- Adding your answer to memory
+- The test needs to be run within the Frappe context for checking field installations
+- Specific bash commands for checking Thailand Withholding Tax Fields and Item Service Fields:
+  ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields`
+    - Checks Company.thailand_service_business field
+    - Checks Company.default_wht_account field
+  ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_item_service_field.check_item_service_field`

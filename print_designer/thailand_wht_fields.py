@@ -31,7 +31,7 @@ THAILAND_WHT_FIELDS = {
             "label": "Withholding Tax Details",
             "fieldtype": "Section Break",
             "insert_after": "taxes_and_charges",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "collapsible": 1,
         },
         {
@@ -40,7 +40,7 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Check",
             "insert_after": "wht_section",
             "description": "This quotation is for services subject to 3% withholding tax",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "default": 0,
         },
         {
@@ -50,8 +50,20 @@ THAILAND_WHT_FIELDS = {
             "insert_after": "subject_to_wht",
             "description": "Estimated withholding tax amount (for reference only)",
             "read_only": 1,
-            "depends_on": "eval:doc.subject_to_wht && doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
+        },
+    ],
+    
+    "Item": [
+        {
+            "fieldname": "is_service_item",
+            "label": "Is Service",
+            "fieldtype": "Check",
+            "insert_after": "is_fixed_asset",
+            "description": "Check if this item represents a service (subject to 3% WHT in Thailand)",
+            "depends_on": "eval:1",
+            "default": 0,
         },
     ],
     
@@ -61,7 +73,7 @@ THAILAND_WHT_FIELDS = {
             "label": "Withholding Tax Details", 
             "fieldtype": "Section Break",
             "insert_after": "taxes_and_charges",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "collapsible": 1,
         },
         {
@@ -70,7 +82,7 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Check",
             "insert_after": "wht_section",
             "description": "This sales order is for services subject to 3% withholding tax",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "default": 0,
         },
         {
@@ -80,7 +92,7 @@ THAILAND_WHT_FIELDS = {
             "insert_after": "subject_to_wht",
             "description": "Estimated withholding tax amount (for reference only)",
             "read_only": 1,
-            "depends_on": "eval:doc.subject_to_wht && doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
         },
     ],
@@ -91,7 +103,7 @@ THAILAND_WHT_FIELDS = {
             "label": "Withholding Tax Details",
             "fieldtype": "Section Break", 
             "insert_after": "taxes_and_charges",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "collapsible": 1,
         },
         {
@@ -100,7 +112,7 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Check",
             "insert_after": "wht_section",
             "description": "This invoice is for services subject to 3% withholding tax",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.company",
             "default": 0,
         },
         {
@@ -110,7 +122,7 @@ THAILAND_WHT_FIELDS = {
             "insert_after": "subject_to_wht",
             "description": "Estimated withholding tax amount (will be deducted at payment)",
             "read_only": 1,
-            "depends_on": "eval:doc.subject_to_wht && doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.subject_to_wht",
             "options": "Company:company:default_currency",
         },
         {
@@ -119,7 +131,7 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Check",
             "insert_after": "estimated_wht_amount",
             "description": "Customer will provide withholding tax certificate",
-            "depends_on": "eval:doc.subject_to_wht && doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+            "depends_on": "eval:doc.subject_to_wht",
             "default": 1,
         },
     ],
@@ -131,7 +143,7 @@ THAILAND_WHT_FIELDS = {
             "label": "Thailand Withholding Tax",
             "fieldtype": "Section Break",
             "insert_after": "references",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business') && doc.payment_type == 'Receive'",
+            "depends_on": "eval:doc.company && doc.payment_type == 'Receive'",
             "collapsible": 1,
         },
         {
@@ -140,7 +152,7 @@ THAILAND_WHT_FIELDS = {
             "fieldtype": "Check",
             "insert_after": "wht_section",
             "description": "Apply 3% withholding tax on this payment",
-            "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business') && doc.payment_type == 'Receive'",
+            "depends_on": "eval:doc.company && doc.payment_type == 'Receive'",
             "default": 0,
         },
         {
