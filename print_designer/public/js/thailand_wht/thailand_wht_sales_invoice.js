@@ -12,6 +12,19 @@ frappe.ui.form.on('Sales Invoice', {
     }
   },
   
+  // Add missing total-related triggers
+  net_total: function(frm) {
+    if (frm.doc.subject_to_wht) {
+      calculate_estimated_wht_amount(frm);
+    }
+  },
+  
+  total: function(frm) {
+    if (frm.doc.subject_to_wht) {
+      calculate_estimated_wht_amount(frm);
+    }
+  },
+  
   refresh: function(frm) {
     // Show/hide WHT fields based on company setting
     toggle_wht_fields_visibility(frm);
@@ -59,6 +72,80 @@ frappe.ui.form.on('Sales Invoice Item', {
             }, 500);
           }
         });
+    }
+  },
+  
+  // Add missing item-level triggers that affect amounts
+  qty: function(frm, cdt, cdn) {
+    // When quantity changes, amount changes, so WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 200);
+    }
+  },
+  
+  rate: function(frm, cdt, cdn) {
+    // When rate changes, amount changes, so WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 200);
+    }
+  },
+  
+  amount: function(frm, cdt, cdn) {
+    // When amount directly changes, WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 200);
+    }
+  },
+  
+  discount_percentage: function(frm, cdt, cdn) {
+    // When discount changes, amount changes, so WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 200);
+    }
+  }
+});
+
+// Handle changes in taxes table - taxes affect totals which affect WHT calculation
+frappe.ui.form.on('Sales Taxes and Charges', {
+  taxes_and_charges_add: function(frm) {
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 300);
+    }
+  },
+  
+  taxes_and_charges_remove: function(frm) {
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 300);
+    }
+  },
+  
+  rate: function(frm, cdt, cdn) {
+    // When tax rate changes, totals change, so WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 300);
+    }
+  },
+  
+  tax_amount: function(frm, cdt, cdn) {
+    // When tax amount changes, totals change, so WHT should recalculate
+    if (frm.doc.subject_to_wht) {
+      setTimeout(() => {
+        calculate_estimated_wht_amount(frm);
+      }, 300);
     }
   }
 });
@@ -148,6 +235,7 @@ function calculate_wht_for_service_items_only(frm) {
   let checked_items = 0;
   
   frm.doc.items.forEach(function(item) {
+    console.log('item', item);
     if (item.item_code && item.amount) {
       frappe.db.get_value('Item', item.item_code, 'is_service_item')
         .then(function(r) {

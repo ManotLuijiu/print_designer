@@ -182,6 +182,25 @@ THAILAND_WHT_FIELDS = {
             "depends_on": "eval:doc.subject_to_wht",
             "default": 1,
         },
+        {
+            "fieldname": "net_total_after_wht",
+            "label": "Net Total (After WHT)",
+            "fieldtype": "Currency",
+            "insert_after": "wht_certificate_required",
+            "description": "Net total after adding VAT (7%) and deducting WHT",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht",
+            "options": "Company:company:default_currency",
+        },
+        {
+            "fieldname": "net_total_after_wht_in_words",
+            "label": "Net Total (After WHT) in Words",
+            "fieldtype": "Small Text",
+            "insert_after": "net_total_after_wht",
+            "description": "Net total amount in Thai words",
+            "read_only": 1,
+            "depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
+        },
     ],
     
     # Payment Entry - Where actual WHT is calculated and accounted
@@ -294,15 +313,67 @@ def install_thailand_wht_fields():
     """
     Install Thailand withholding tax custom fields for all configured DocTypes
     """
+    import frappe
     from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
     
     try:
         custom_fields = get_thailand_wht_fields()
-        create_custom_fields(custom_fields, update=True)
+        
+        # Try the standard bulk creation first
+        try:
+            # Validate all field values are strings to avoid formatting errors
+            for doctype, fields in custom_fields.items():
+                for field in fields:
+                    for key, value in field.items():
+                        if isinstance(value, (int, float)) and key not in ['default', 'precision', 'read_only', 'collapsible']:
+                            field[key] = str(value)
+            
+            create_custom_fields(custom_fields, update=True)
+            
+        except Exception as bulk_error:
+            print(f"⚠️  Bulk creation failed: {bulk_error}")
+            print("🔄 Falling back to individual field creation...")
+            
+            # Fall back to individual field creation
+            from frappe.custom.doctype.custom_field.custom_field import create_custom_field
+            
+            for doctype, fields in custom_fields.items():
+                print(f"  📋 Creating {doctype} fields...")
+                
+                for field_config in fields:
+                    fieldname = field_config.get("fieldname", "unknown")
+                    
+                    # Check if field already exists
+                    if frappe.db.exists("Custom Field", {"dt": doctype, "fieldname": fieldname}):
+                        print(f"    ✅ {doctype}.{fieldname} already exists")
+                        continue
+                    
+                    try:
+                        field_config["dt"] = doctype
+                        create_custom_field(doctype, field_config)
+                        print(f"    ✅ Created {doctype}.{fieldname}")
+                    except Exception as field_error:
+                        print(f"    ❌ Error creating {doctype}.{fieldname}: {field_error}")
+                        frappe.log_error(f"Failed to create {doctype}.{fieldname}: {str(field_error)}", "WHT Fields Individual Creation")
+        
+        print("✅ Custom fields created successfully!")
+        print("   - Company: thailand_service_business (checkbox)")
+        print("   - Company: default_wht_account (link to Account)")
+        print("   - Quotation: subject_to_wht, estimated_wht_amount, net_total_after_wht")
+        print("   - Sales Order: subject_to_wht, estimated_wht_amount, net_total_after_wht")
+        print("   - Sales Invoice: subject_to_wht, estimated_wht_amount, wht_certificate_required, net_total_after_wht")
+        print("   - Payment Entry: apply_wht, wht_rate, wht_amount, wht_account, net_payment_amount, wht_certificate_no, wht_certificate_date")
+        
+        frappe.db.commit()
         print("✅ Thailand withholding tax custom fields installed successfully")
         return True
     except Exception as e:
         print(f"❌ Error installing Thailand withholding tax fields: {str(e)}")
+        frappe.log_error(f"Thailand WHT Fields Installation Error: {str(e)}")
+        try:
+            frappe.db.rollback()
+        except:
+            pass
         return False
 
 # Function to uninstall withholding tax fields

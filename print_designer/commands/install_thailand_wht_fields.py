@@ -12,30 +12,23 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 def install_thailand_wht_fields():
     """Install custom fields for Thailand withholding tax system."""
     
+    # Use the main installation function from thailand_wht_fields.py to avoid duplication
+    from print_designer.thailand_wht_fields import install_thailand_wht_fields as main_install_function
+    
     print("Installing Thailand Withholding Tax Fields for Service Businesses...")
     
-    # Import field definitions
-    from print_designer.thailand_wht_fields import THAILAND_WHT_FIELDS
-    
     try:
-        # Create custom fields
-        create_custom_fields(THAILAND_WHT_FIELDS, update=True)
+        # Call the main installation function
+        success = main_install_function()
         
-        print("✅ Custom fields created successfully!")
-        print("   - Company: thailand_service_business (checkbox)")
-        print("   - Company: default_wht_account (link to Account)")
-        print("   - Quotation: subject_to_wht, estimated_wht_amount")
-        print("   - Sales Order: subject_to_wht, estimated_wht_amount")
-        print("   - Sales Invoice: subject_to_wht, estimated_wht_amount, wht_certificate_required")
-        print("   - Payment Entry: apply_wht, wht_rate, wht_amount, wht_account, net_payment_amount, wht_certificate_no, wht_certificate_date")
-        
-        # Set up default accounts if needed
-        print("\n🔧 Setting up default withholding tax accounts...")
-        _setup_default_wht_accounts()
-        
-        frappe.db.commit()
-        print("✅ Thailand withholding tax fields installation completed!")
-        
+        if success:
+            # Set up default accounts if needed
+            print("\n🔧 Setting up default withholding tax accounts...")
+            _setup_default_wht_accounts()
+            print("✅ Thailand withholding tax fields installation completed!")
+        else:
+            print("❌ Thailand withholding tax fields installation failed!")
+            
     except Exception as e:
         print(f"❌ Error installing Thailand withholding tax fields: {str(e)}")
         frappe.db.rollback()
@@ -148,6 +141,19 @@ def check_thailand_wht_fields():
     else:
         print("❌ Sales Invoice.estimated_wht_amount field missing")
     
+    # Check new Sales Invoice fields we added
+    si_net_total_field = si_meta.get_field("net_total_after_wht")
+    if si_net_total_field:
+        print("✅ Sales Invoice.net_total_after_wht field found")
+    else:
+        print("❌ Sales Invoice.net_total_after_wht field missing")
+    
+    si_words_field = si_meta.get_field("net_total_after_wht_in_words")
+    if si_words_field:
+        print("✅ Sales Invoice.net_total_after_wht_in_words field found")
+    else:
+        print("❌ Sales Invoice.net_total_after_wht_in_words field missing")
+    
     # Check Payment Entry fields
     pe_meta = frappe.get_meta("Payment Entry")
     
@@ -172,7 +178,7 @@ def check_thailand_wht_fields():
     # Return overall status
     all_fields_exist = all([
         company_business_field, company_account_field,
-        si_wht_field, si_amount_field,
+        si_wht_field, si_amount_field, si_net_total_field, si_words_field,
         pe_apply_field, pe_amount_field, pe_account_field
     ])
     

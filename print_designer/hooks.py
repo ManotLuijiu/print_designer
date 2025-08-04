@@ -361,6 +361,7 @@ after_install = [
     "print_designer.install.handle_erpnext_override",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
+    "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
@@ -383,6 +384,7 @@ after_migrate = [
     # "print_designer.install.ensure_signature_fields",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
+    "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
