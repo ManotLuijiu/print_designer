@@ -30,6 +30,7 @@ commands = [
     "print_designer.commands.install_wht_rate_field.check_wht_rate_field",
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
+    "print_designer.commands.fix_target_signature_field.fix_target_signature_field",
 ]
 
 # Includes in <head>

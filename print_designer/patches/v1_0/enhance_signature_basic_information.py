@@ -83,6 +83,17 @@ def enhance_signature_doctype():
 		)
 		existing_fieldnames = [f.fieldname for f in existing_fields]
 		
+		# Get signature field options
+		options_string = ""
+		try:
+			from print_designer.api.signature_field_options import get_signature_field_options_string
+			options_string = get_signature_field_options_string()
+			frappe.log(f"Populated Target Signature Field options: {len(options_string.split('\n'))} options")
+		except Exception as e:
+			frappe.log(f"Could not populate signature field options: {str(e)}")
+			# Fallback to basic options if the API fails
+			options_string = "\nCompany::ceo_signature\nCompany::authorized_signature_1\nCompany::authorized_signature_2\nUser::signature_image"
+		
 		# Define enhancement fields
 		enhancement_fields = [
 			{
@@ -91,7 +102,7 @@ def enhance_signature_doctype():
 				"label": "Target Signature Field",
 				"description": "Select which document field this signature should populate",
 				"insert_after": "signature_field_name",
-				"options": "",  # Will be populated dynamically
+				"options": options_string,  # Now properly populated
 				"depends_on": "eval:doc.signature_category=='Signature'"
 			},
 			{
@@ -126,6 +137,18 @@ def enhance_signature_doctype():
 			frappe.log(f"Added {len(new_fields)} enhancement fields to Signature Basic Information")
 		else:
 			frappe.log("Enhancement fields already exist for Signature Basic Information")
+		
+		# Update existing signature_target_field with proper options if it exists but has empty options
+		existing_target_field = frappe.db.get_value(
+			"Custom Field",
+			{"dt": "Signature Basic Information", "fieldname": "signature_target_field"},
+			["name", "options"]
+		)
+		
+		if existing_target_field and (not existing_target_field[1] or existing_target_field[1].strip() == ""):
+			frappe.log("Updating existing signature_target_field with proper options")
+			frappe.db.set_value("Custom Field", existing_target_field[0], "options", options_string)
+			frappe.log(f"Updated signature_target_field options with {len(options_string.split('\n'))} options")
 			
 	except Exception as e:
 		frappe.log_error(f"Error enhancing signature DocType: {str(e)}")

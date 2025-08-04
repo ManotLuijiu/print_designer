@@ -39,13 +39,17 @@ def run_complete_signature_diagnostics(company_name="Moo Coding"):
 		step4 = _check_signature_registry(company_name)
 		report["steps"].append(step4)
 		
-		# Step 5: Test original API endpoints
-		step5 = _test_original_api_endpoints(company_name)
+		# Step 5: Check Target Signature Field status
+		step5 = _check_target_signature_field_status()
 		report["steps"].append(step5)
 		
-		# Step 6: Generate recommendations
-		step6 = _generate_recommendations(report["steps"])
+		# Step 6: Test original API endpoints
+		step6 = _test_original_api_endpoints(company_name)
 		report["steps"].append(step6)
+		
+		# Step 7: Generate recommendations
+		step7 = _generate_recommendations(report["steps"])
+		report["steps"].append(step7)
 		
 		return report
 		
@@ -325,3 +329,51 @@ def fix_signature_setup_for_company(company_name="Moo Coding"):
 	except Exception as e:
 		frappe.log_error(f"Error fixing signature setup: {str(e)}")
 		return {"error": str(e), "success": False}
+
+
+def _check_target_signature_field_status():
+	"""
+	Check if the Target Signature Field dropdown is properly populated
+	
+	Returns:
+		dict: Status check results
+	"""
+	try:
+		from print_designer.commands.fix_target_signature_field import check_target_signature_field_status
+		
+		status = check_target_signature_field_status()
+		
+		if status.get("error"):
+			return {
+				"step": 5,
+				"title": "Target Signature Field Status",
+				"success": False,
+				"error": status["error"],
+				"message": "Failed to check Target Signature Field status"
+			}
+		
+		needs_fix = status.get("needs_fix", False)
+		options_count = status.get("options_count", 0)
+		
+		return {
+			"step": 5,
+			"title": "Target Signature Field Status", 
+			"success": not needs_fix,
+			"status": status.get("status"),
+			"options_count": options_count,
+			"needs_fix": needs_fix,
+			"message": f"Target Signature Field has {options_count} options" if not needs_fix else "Target Signature Field dropdown is empty and needs to be populated",
+			"field_name": status.get("field_name"),
+			"api_status": status.get("api_status"),
+			"fix_command": "bench execute print_designer.commands.fix_target_signature_field.fix_signature_target_field_options" if needs_fix else None
+		}
+		
+	except Exception as e:
+		frappe.log_error(f"Error checking Target Signature Field status: {str(e)}")
+		return {
+			"step": 5,
+			"title": "Target Signature Field Status",
+			"success": False,
+			"error": str(e),
+			"message": "Failed to check Target Signature Field status"
+		}

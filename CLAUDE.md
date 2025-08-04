@@ -420,3 +420,194 @@ The events/functions defined in app/public/todo.js will extend > those in the st
 
   This creates a seamless integration where Print Designer enhances the entire print
   workflow across different Frappe pages and forms! 🚀
+
+## Target Signature Field - Complete Code Analysis
+
+### Overview
+
+The **Target Signature Field** is a key feature in the Print Designer app that allows users to map signatures from the `Signature Basic Information` DocType to specific fields in other ERPNext DocTypes (like `Company`, `User`, `Employee`, etc.). This creates a bridge between the signature management system and the document fields that need signatures.
+
+### Key Components
+
+#### 1. Custom Field Definition (`enhance_signature_doctype.py`)
+
+- **Field Name:** `signature_target_field`  
+- **Field Type:** Select dropdown  
+- **Purpose:** Allows users to choose which specific field should receive the signature  
+- **Format:** Uses `DocType::fieldname` format (e.g., `Company::ceo_signature`)  
+- **Location:** Added to `Signature Basic Information` DocType  
+
+#### 2. Supporting Fields
+
+- `target_doctype`: Select field to choose the target DocType (`Company`, `User`, `Employee`, etc.)
+- `auto_populate_field`: Checkbox to enable automatic synchronization
+
+#### 3. Frontend Implementation (`signature_basic_information.js`)
+
+The JavaScript client script provides:
+
+- **Dynamic dropdown population:** Updates `Target Signature Field` based on the selected `target_doctype`
+- **Real-time validation:** Shows field status (installed/not installed)
+- **Helpful UI elements:** Dashboard comments showing available fields
+- **Auto-restore functionality:** Maintains selected values during form refreshes
+
+**Key JavaScript functions:**
+
+```js
+target_doctype: function (frm) {
+    // Updates signature_target_field options based on selected DocType
+    if (frm.doc.target_doctype) {
+        _update_signature_field_options(frm, frm.doc.target_doctype);
+    }
+},
+
+signature_target_field: function (frm) {
+    // Shows field mapping information when target field is selected
+    if (frm.doc.signature_target_field) {
+        _show_field_mapping_info(frm, frm.doc.signature_target_field);
+    }
+}
+```
+
+#### 4. API Layer (`signature_field_options.py`)
+
+Provides backend functions for:
+
+- `get_signature_field_options()`: Returns all available signature fields across DocTypes
+- `parse_signature_field_mapping()`: Parses the `DocType::fieldname` format
+- `get_signature_field_info()`: Returns detailed field information including installation status
+
+#### 5. Synchronization System (`signature_sync.py`)
+
+- `sync_signature_to_target_field()`: Syncs a signature record to its mapped target field  
+- **Auto-sync on save:** Automatically updates target fields when signatures are saved  
+- **Hook integration:** Uses Frappe’s document event hooks for automatic synchronization
+
+#### 6. Installation & Migration (`enhance_signature_basic_information.py`)
+
+Database patch that:
+
+- Adds the Target Signature Field and supporting fields to existing installations  
+- Migrates existing signature records to use the new mapping system  
+- Provides rollback functionality if needed
+
+---
+
+### Workflow Example
+
+#### 1. User Setup
+
+- Open **Signature Basic Information** form  
+- Select **Target DocType** (e.g., `Company`)  
+- Choose **Target Signature Field** (e.g., `Company::ceo_signature`)  
+- Upload signature image  
+- Save record
+
+#### 2. System Processing
+
+- Validates the field mapping format  
+- Checks if target field exists in the system  
+- Auto-populates the target field if `auto_populate_field` is enabled  
+- Creates audit trail of the sync operation  
+
+#### 3. Result
+
+- The signature image is automatically copied to the `Company.ceo_signature` field  
+- The signature is now available for use in print formats and documents
+
+---
+
+### Integration Points
+
+#### Hooks Registration (`hooks.py`)
+
+```python
+doctype_js = {
+    "Signature Basic Information": "public/js/stamps_signatures/signature_basic_information.js",
+}
+
+doc_events = {
+    "Signature Basic Information": {
+        "after_insert": "print_designer.api.signature_sync.auto_sync_on_signature_save",
+        "on_update": "print_designer.api.signature_sync.auto_sync_on_signature_save"
+    }
+}
+```
+
+---
+
+### Command Line Tools
+
+```bash
+# Install signature field enhancements
+bench execute print_designer.api.enhance_signature_doctype.enhance_signature_basic_information_doctype
+
+# Check installation status
+bench execute print_designer.api.install_client_script.check_client_script_status
+
+# Fix dropdown issues
+bench execute print_designer.api.install_client_script.fix_signature_dropdown
+
+# Check Target Signature Field status
+bench execute print_designer.commands.fix_target_signature_field.check_target_signature_field_status
+
+# Fix Target Signature Field dropdown (populate with values)
+bench execute print_designer.commands.fix_target_signature_field.fix_signature_target_field_options
+
+# Command line tool (available as bench command)
+bench fix-target-signature-field
+```
+
+---
+
+### Error Handling & Debugging
+
+The system includes:
+
+- Client-side console logging with `[SIGNATURE DEBUG]` prefix  
+- Server-side error logging via `frappe.log_error()`  
+- User-friendly error messages in the UI  
+- Status indicators for field installation  
+
+---
+
+### Files Involved
+
+- **Core API:** `print_designer/api/enhance_signature_doctype.py`  
+- **Field Options:** `print_designer/api/signature_field_options.py`  
+- **Synchronization:** `print_designer/api/signature_sync.py`  
+- **Frontend:** `print_designer/public/js/stamps_signatures/signature_basic_information.js`  
+- **Migration:** `print_designer/patches/v1_0/enhance_signature_basic_information.py`  
+- **Installation:** `print_designer/api/install_client_script.py`
+
+---
+
+### Common Issues & Solutions
+
+#### Target Signature Field Dropdown is Empty
+
+**Problem:** After installing the signature enhancement, the "Target Signature Field" dropdown shows no options.
+
+**Root Cause:** The migration patch creates the field with empty options (`"options": ""`).
+
+**Solution:** 
+```bash
+# Quick fix - populate the dropdown
+bench execute print_designer.commands.fix_target_signature_field.fix_signature_target_field_options
+
+# Or use the bench command
+bench fix-target-signature-field
+
+# Check if it's fixed
+bench execute print_designer.commands.fix_target_signature_field.check_target_signature_field_status
+```
+
+**Files involved in the fix:**
+- `print_designer/patches/v1_0/enhance_signature_basic_information.py` - Fixed migration
+- `print_designer/patches/v1_0/fix_target_signature_field_options.py` - New patch for existing installations  
+- `print_designer/commands/fix_target_signature_field.py` - Fix command and utilities
+- `print_designer/api/signature_diagnostics.py` - Added diagnostic check
+
+---
+
+This **Target Signature Field system** provides a robust, user-friendly way to map signatures to specific document fields while maintaining data integrity and offering comprehensive error handling and debugging capabilities.

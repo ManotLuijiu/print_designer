@@ -104,7 +104,7 @@ function add_stamps_and_signatures_content(frm) {
 				return;
 			}
 
-			// Move the stamps tab to be the last tab (simplified)
+			// Move the stamps tab to be the last tab and make it visible
 			let tabNavItem = frm.page.wrapper
 				.find('a[href="#company-stamps_signatures_tab"]')
 				.closest("li");
@@ -115,6 +115,16 @@ function add_stamps_and_signatures_content(frm) {
 			if (tabNavItem.length > 0 && dashboardTabNavItem.length > 0) {
 				tabNavItem.insertAfter(dashboardTabNavItem);
 				console.log("✅ Moved stamps tab to last position");
+			}
+
+			// Remove the 'hide' class to make the tab visible
+			stampsTab.removeClass('hide');
+			console.log("✅ Stamps tab made visible (removed 'hide' class)");
+
+			// Also ensure the tab navigation item is visible
+			if (tabNavItem.length > 0) {
+				tabNavItem.removeClass('hide').show();
+				console.log("✅ Tab navigation item made visible");
 			}
 
 			// Add our content directly to the tab pane - Fixed double div structure
