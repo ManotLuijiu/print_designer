@@ -203,6 +203,8 @@ function check_and_enable_wht_for_services(frm) {
                     function() {
                       frm.set_value('subject_to_wht', 0);
                       frm.set_value('estimated_wht_amount', 0);
+                      frm.set_value('net_total_after_wht', 0);
+                      frm.set_value('net_total_after_wht_in_words', '');
                     }
                   );
                 }
@@ -216,13 +218,74 @@ function check_and_enable_wht_for_services(frm) {
 }
 
 function calculate_estimated_wht_amount(frm) {
+  console.log(
+    'calculate_estimated_wht_amount called with:',
+    'subject_to_wht:', frm.doc.subject_to_wht,
+    'total:', frm.doc.total,
+    'net_total:', frm.doc.net_total,
+    'grand_total:', frm.doc.grand_total,
+    'company:', frm.doc.company
+  );
+
+  // Check if WHT is enabled
   if (!frm.doc.subject_to_wht) {
+    console.log('WHT not enabled, setting amount to 0');
     frm.set_value('estimated_wht_amount', 0);
+    frm.set_value('net_total_after_wht', 0);
+    frm.set_value('net_total_after_wht_in_words', '');
+    return;
+  }
+
+  // Check if we have an amount to calculate on
+  // Use net_total if available (post-discount), otherwise use total
+  const base_amount = frm.doc.net_total || frm.doc.total || 0;
+  if (!base_amount || base_amount <= 0) {
+    console.log('No base amount found, setting WHT amount to 0');
+    frm.set_value('estimated_wht_amount', 0);
+    frm.set_value('net_total_after_wht', 0);
+    frm.set_value('net_total_after_wht_in_words', '');
     return;
   }
   
-  // Calculate WHT amount based on service items only
-  calculate_wht_for_service_items_only(frm);
+  console.log('Using base_amount:', base_amount, 
+    '(from', frm.doc.net_total ? 'net_total' : 'total', 'field)');
+
+  console.log(
+    'Calling server with base_amount:',
+    base_amount,
+    'company:',
+    frm.doc.company
+  );
+
+  // Call server method to calculate WHT amount with company's dynamic rate
+  frappe.call({
+    method: 'print_designer.accounting.thailand_wht_integration.calculate_estimated_wht',
+    args: {
+      base_amount: base_amount,
+      company: frm.doc.company
+    },
+    callback: function(r) {
+      console.log('Server response:', r);
+      if (r.message) {
+        console.log('Setting estimated_wht_amount to:', r.message);
+        frm.set_value('estimated_wht_amount', r.message);
+
+        // Also calculate net total after WHT
+        calculate_net_total_after_wht(frm, base_amount);
+      } else {
+        console.log('No message in response, setting to 0');
+        frm.set_value('estimated_wht_amount', 0);
+        frm.set_value('net_total_after_wht', 0);
+        frm.set_value('net_total_after_wht_in_words', '');
+      }
+    },
+    error: function(r) {
+      console.error('Server error:', r);
+      frm.set_value('estimated_wht_amount', 0);
+      frm.set_value('net_total_after_wht', 0);
+      frm.set_value('net_total_after_wht_in_words', '');
+    }
+  });
 }
 
 function calculate_wht_for_service_items_only(frm) {
@@ -259,6 +322,9 @@ function calculate_wht_for_service_items_only(frm) {
                   if (r.message) {
                     frm.set_value('estimated_wht_amount', r.message);
                     
+                    // Also calculate net total after WHT
+                    calculate_net_total_after_wht(frm, service_amount);
+                    
                     // Get the WHT rate to show in description
                     frappe.call({
                       method: 'print_designer.accounting.thailand_wht_integration.get_company_wht_rate',
@@ -276,11 +342,76 @@ function calculate_wht_for_service_items_only(frm) {
               });
             } else {
               frm.set_value('estimated_wht_amount', 0);
+              frm.set_value('net_total_after_wht', 0);
+              frm.set_value('net_total_after_wht_in_words', '');
             }
           }
         });
     } else {
       checked_items++;
+    }
+  });
+}
+
+function calculate_net_total_after_wht(frm, base_amount) {
+  console.log('Calculating net total after WHT for base_amount:', base_amount);
+  
+  frappe.call({
+    method: 'print_designer.accounting.thailand_wht_integration.calculate_net_total_after_wht',
+    args: {
+      base_amount: base_amount,
+      company: frm.doc.company,
+      vat_rate: 7.0 // 7% VAT
+    },
+    callback: function(r) {
+      console.log('Net total response:', r);
+      if (r.message) {
+        console.log('Setting net_total_after_wht to:', r.message);
+        frm.set_value('net_total_after_wht', r.message);
+        
+        // Calculate Thai words for net total
+        calculate_net_total_thai_words(frm, r.message);
+      } else {
+        frm.set_value('net_total_after_wht', 0);
+        frm.set_value('net_total_after_wht_in_words', '');
+      }
+    },
+    error: function(r) {
+      console.error('Net total calculation error:', r);
+      frm.set_value('net_total_after_wht', 0);
+      frm.set_value('net_total_after_wht_in_words', '');
+    }
+  });
+}
+
+function calculate_net_total_thai_words(frm, net_total_amount) {
+  console.log('Calculating Thai words for net total:', net_total_amount);
+  
+  if (!net_total_amount || net_total_amount <= 0) {
+    frm.set_value('net_total_after_wht_in_words', '');
+    return;
+  }
+  
+  frappe.call({
+    method: 'print_designer.utils.thai_amount_to_word.get_amount_in_words',
+    args: {
+      amount: net_total_amount,
+      currency: 'THB',
+      doctype: frm.doc.doctype,
+      docname: frm.doc.name
+    },
+    callback: function(r) {
+      console.log('Thai words response:', r);
+      if (r.message) {
+        console.log('Setting net_total_after_wht_in_words to:', r.message);
+        frm.set_value('net_total_after_wht_in_words', r.message);
+      } else {
+        frm.set_value('net_total_after_wht_in_words', '');
+      }
+    },
+    error: function(r) {
+      console.error('Thai words calculation error:', r);
+      frm.set_value('net_total_after_wht_in_words', '');
     }
   });
 }
@@ -318,6 +449,8 @@ function toggle_wht_fields_visibility(frm) {
         if (frm.doc.subject_to_wht) {
           frm.set_value('subject_to_wht', 0);
           frm.set_value('estimated_wht_amount', 0);
+          frm.set_value('net_total_after_wht', 0);
+          frm.set_value('net_total_after_wht_in_words', '');
           frm.set_value('wht_certificate_required', 0);
         }
       }

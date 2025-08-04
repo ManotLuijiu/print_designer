@@ -14,6 +14,19 @@ frappe.ui.form.on("Quotation", {
 		}
 	},
 
+	// Add missing total-related triggers
+	net_total: function (frm) {
+		if (frm.doc.subject_to_wht) {
+			calculate_estimated_wht_amount(frm);
+		}
+	},
+
+	total: function (frm) {
+		if (frm.doc.subject_to_wht) {
+			calculate_estimated_wht_amount(frm);
+		}
+	},
+
 	refresh: function (frm) {
 		// Show/hide WHT fields based on company setting
 		toggle_wht_fields_visibility(frm);
@@ -68,6 +81,8 @@ function calculate_estimated_wht_amount(frm) {
 		frm.doc.subject_to_wht,
 		"total:",
 		frm.doc.total,
+		"net_total:",
+		frm.doc.net_total,
 		"grand_total:",
 		frm.doc.grand_total,
 		"company:",
@@ -82,12 +97,16 @@ function calculate_estimated_wht_amount(frm) {
 	}
 
 	// Check if we have an amount to calculate on
-	const base_amount = frm.doc.total || 0;
+	// Use net_total if available (post-discount), otherwise use total
+	const base_amount = frm.doc.net_total || frm.doc.total || 0;
 	if (!base_amount || base_amount <= 0) {
 		console.log("No base amount found, setting WHT amount to 0");
 		frm.set_value("estimated_wht_amount", 0);
 		return;
 	}
+	
+	console.log("Using base_amount:", base_amount, 
+		"(from", frm.doc.net_total ? "net_total" : "total", "field)");
 
 	console.log(
 		"Calling server with base_amount:",
