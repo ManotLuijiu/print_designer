@@ -385,6 +385,7 @@ after_migrate = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
+    "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
