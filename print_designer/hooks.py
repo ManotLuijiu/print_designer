@@ -31,6 +31,7 @@ commands = [
     "print_designer.commands.install_company_tab.install_company_tab",
     "print_designer.commands.install_company_tab.remove_company_tab",
     "print_designer.commands.fix_target_signature_field.fix_target_signature_field",
+    "print_designer.commands.emergency_fix_watermark.emergency_fix_watermark",
 ]
 
 # Includes in <head>
@@ -362,6 +363,8 @@ after_install = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
+    "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
+    "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
@@ -386,6 +389,8 @@ after_migrate = [
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
     "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
+    "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
+    "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]

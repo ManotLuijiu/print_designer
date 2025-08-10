@@ -1752,3 +1752,358 @@ def _ensure_item_service_field():
     except Exception as e:
         frappe.logger().error(f"Error ensuring Item service field: {str(e)}")
         frappe.log_error(f"Error ensuring Item service field: {str(e)}")
+
+
+def ensure_watermark_fields_installed():
+    """
+    Comprehensive watermark field installation function.
+    Called from both after_install and after_migrate hooks to ensure
+    watermark fields are ALWAYS properly installed.
+    
+    This function is idempotent and safe to run multiple times.
+    """
+    try:
+        import click
+        
+        frappe.logger().info("🚀 Starting comprehensive watermark field installation...")
+        click.echo("🚀 Ensuring watermark fields are properly installed...")
+        
+        # Step 1: Install document-level watermark fields
+        install_document_watermark_fields_comprehensive()
+        
+        # Step 2: Verify critical fields (especially Stock Entry)
+        verify_critical_watermark_fields()
+        
+        # Step 3: Install Print Format watermark settings  
+        install_print_format_watermark_comprehensive()
+        
+        # Step 4: Install Print Settings watermark configuration
+        install_print_settings_watermark_comprehensive()
+        
+        # Step 5: Set default values
+        set_comprehensive_watermark_defaults()
+        
+        # Step 6: Final verification
+        perform_final_watermark_verification()
+        
+        frappe.db.commit()
+        frappe.logger().info("✅ Comprehensive watermark field installation completed successfully")
+        click.echo("✅ Watermark fields installation completed successfully!")
+        
+    except Exception as e:
+        frappe.log_error(f"Error in comprehensive watermark field installation: {str(e)}")
+        frappe.logger().error(f"Error in comprehensive watermark field installation: {str(e)}")
+        # Don't fail installation/migration for this
+        click.echo(f"⚠️  Warning: Watermark field installation had issues: {str(e)}")
+
+
+def emergency_watermark_fix_fallback():
+    """
+    Emergency fallback function that can be called from hooks.
+    Provides the same functionality as the bench emergency-fix-watermark command
+    but in a function format suitable for after_migrate hooks.
+    """
+    try:
+        frappe.logger().info("🚨 Running emergency watermark fix fallback...")
+        
+        # Critical DocTypes that commonly have watermark field issues
+        critical_doctypes = [
+            "Stock Entry",      # This was the one causing the original error
+            "Sales Invoice",
+            "Purchase Invoice", 
+            "Delivery Note",
+            "Sales Order",
+            "Purchase Order",
+            "Payment Entry",
+            "Journal Entry",
+            "Quotation"
+        ]
+        
+        for doctype in critical_doctypes:
+            try:
+                # Check if database column exists
+                columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+                
+                if not columns:
+                    frappe.logger().warning(f"🔧 Emergency fix: Adding watermark_text column to {doctype}...")
+                    # Use direct SQL ALTER TABLE for maximum reliability
+                    frappe.db.sql(f"""
+                        ALTER TABLE `tab{doctype}` 
+                        ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                    """)
+                    frappe.logger().info(f"✅ Emergency fix: Added column to {doctype}")
+                        
+            except Exception as e:
+                frappe.logger().error(f"⚠️  Emergency fix could not fix {doctype}: {str(e)}")
+        
+        # Ensure Custom Fields exist as well
+        try:
+            from print_designer.watermark_fields import get_watermark_custom_fields
+            
+            # Get all watermark field definitions
+            custom_fields = get_watermark_custom_fields()
+            
+            # Create the custom fields
+            create_custom_fields(custom_fields, update=True)
+            
+            frappe.logger().info("✅ Emergency fix: Watermark Custom Fields ensured")
+            
+        except Exception as e:
+            frappe.logger().error(f"⚠️  Emergency fix could not create Custom Fields: {str(e)}")
+        
+        # Commit changes
+        frappe.db.commit()
+        
+        frappe.logger().info("🎉 Emergency watermark fix fallback completed!")
+        
+    except Exception as e:
+        frappe.log_error(f"Emergency watermark fix fallback failed: {str(e)}")
+        frappe.logger().error(f"Emergency watermark fix fallback failed: {str(e)}")
+        # Don't fail installation/migration
+
+
+def install_document_watermark_fields_comprehensive():
+    """Install watermark_text fields on all document types"""
+    try:
+        from print_designer.watermark_fields import get_watermark_custom_fields
+        
+        frappe.logger().info("Installing document-level watermark fields...")
+        
+        # Get all watermark field definitions
+        custom_fields = get_watermark_custom_fields()
+        
+        # Create the custom fields
+        create_custom_fields(custom_fields, update=True)
+        
+        frappe.logger().info(f"✅ Document watermark fields installed for {len(custom_fields)} DocTypes")
+        
+    except Exception as e:
+        frappe.log_error(f"Error installing document watermark fields: {str(e)}")
+        raise
+
+
+def verify_critical_watermark_fields():
+    """Verify and fix critical watermark fields that commonly cause errors"""
+    try:
+        frappe.logger().info("Verifying critical watermark fields...")
+        
+        # List of critical DocTypes that commonly have watermark field issues
+        critical_doctypes = [
+            "Stock Entry",      # This was the one causing the original error
+            "Sales Invoice", 
+            "Purchase Invoice",
+            "Delivery Note",
+            "Sales Order",
+            "Purchase Order",
+            "Payment Entry",
+            "Journal Entry",
+            "Quotation"
+        ]
+        
+        for doctype in critical_doctypes:
+            verify_single_doctype_watermark_field(doctype)
+        
+        frappe.logger().info("✅ Critical watermark field verification completed")
+        
+    except Exception as e:
+        frappe.log_error(f"Error verifying critical watermark fields: {str(e)}")
+
+
+def verify_single_doctype_watermark_field(doctype):
+    """Verify watermark field for a single DocType"""
+    try:
+        # Step 1: Check if Custom Field exists
+        field_exists = frappe.db.exists("Custom Field", {
+            "dt": doctype,
+            "fieldname": "watermark_text"
+        })
+        
+        if not field_exists:
+            frappe.logger().warning(f"⚠️ {doctype} missing watermark_text Custom Field - creating...")
+            
+            from print_designer.watermark_fields import WATERMARK_FIELDS
+            
+            if doctype in WATERMARK_FIELDS:
+                create_custom_fields({
+                    doctype: WATERMARK_FIELDS[doctype]
+                }, update=True)
+                frappe.logger().info(f"✅ Created watermark_text Custom Field for {doctype}")
+        
+        # Step 2: Check if database column exists  
+        try:
+            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+            if not columns:
+                frappe.logger().warning(f"⚠️ {doctype} missing watermark_text database column - adding...")
+                # Use direct SQL ALTER TABLE for more reliability (emergency fix approach)
+                frappe.db.sql(f"""
+                    ALTER TABLE `tab{doctype}` 
+                    ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                """)
+                frappe.logger().info(f"✅ Added watermark_text database column to {doctype}")
+        except Exception as col_e:
+            frappe.logger().error(f"Could not verify/add column for {doctype}: {str(col_e)}")
+        
+    except Exception as e:
+        frappe.log_error(f"Error verifying watermark field for {doctype}: {str(e)}")
+
+
+def install_print_format_watermark_comprehensive():
+    """Install watermark settings field for Print Format"""
+    try:
+        frappe.logger().info("Installing Print Format watermark fields...")
+        
+        custom_fields = {
+            "Print Format": [
+                {
+                    "depends_on": "eval:doc.print_designer",
+                    "fieldname": "watermark_settings",
+                    "fieldtype": "Select",
+                    "label": "Watermark per Page",
+                    "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+                    "default": "None",
+                    "insert_after": "print_designer_template_app",
+                    "description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"
+                }
+            ]
+        }
+        
+        create_custom_fields(custom_fields, update=True)
+        frappe.logger().info("✅ Print Format watermark fields installed")
+        
+    except Exception as e:
+        frappe.log_error(f"Error installing Print Format watermark fields: {str(e)}")
+
+
+def install_print_settings_watermark_comprehensive():
+    """Install watermark configuration fields for Print Settings if not already done"""
+    try:
+        # Check if watermark fields already exist (they might be installed by setup_enhanced_print_settings)
+        existing_watermark_field = frappe.db.exists("Custom Field", {
+            "dt": "Print Settings",
+            "fieldname": "watermark_settings"
+        })
+        
+        if existing_watermark_field:
+            frappe.logger().info("✅ Print Settings watermark fields already exist")
+            return
+        
+        frappe.logger().info("Installing Print Settings watermark fields...")
+        
+        # These are the minimal watermark fields needed for Print Settings
+        custom_fields = {
+            "Print Settings": [
+                {
+                    "label": "Watermark Settings",
+                    "fieldname": "watermark_settings_section",
+                    "fieldtype": "Section Break",
+                    "insert_after": "print_taxes_with_zero_amount",
+                    "collapsible": 1,
+                },
+                {
+                    "label": "Watermark per Page",
+                    "fieldname": "watermark_settings",
+                    "fieldtype": "Select",
+                    "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+                    "default": "None",
+                    "insert_after": "watermark_settings_section",
+                    "description": "Control watermark display",
+                },
+                {
+                    "label": "Watermark Font Size (px)",
+                    "fieldname": "watermark_font_size",
+                    "fieldtype": "Int",
+                    "default": "24",
+                    "insert_after": "watermark_settings",
+                    "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+                    "description": "Font size for watermark text in pixels",
+                },
+                {
+                    "label": "Watermark Position",
+                    "fieldname": "watermark_position",
+                    "fieldtype": "Select",
+                    "options": "Top Left\nTop Center\nTop Right\nMiddle Left\nMiddle Center\nMiddle Right\nBottom Left\nBottom Center\nBottom Right",
+                    "default": "Top Right",
+                    "insert_after": "watermark_font_size",
+                    "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+                    "description": "Position of watermark text on the page",
+                },
+                {
+                    "label": "Watermark Font Family",
+                    "fieldname": "watermark_font_family",
+                    "fieldtype": "Select",
+                    "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun\nTH Sarabun New",
+                    "default": "Arial",
+                    "insert_after": "watermark_position",
+                    "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
+                    "description": "Font family for watermark text",
+                },
+            ]
+        }
+        
+        create_custom_fields(custom_fields, update=True)
+        frappe.logger().info("✅ Print Settings watermark fields installed")
+        
+    except Exception as e:
+        frappe.log_error(f"Error installing Print Settings watermark fields: {str(e)}")
+
+
+def set_comprehensive_watermark_defaults():
+    """Set default values for watermark fields"""
+    try:
+        frappe.logger().info("Setting watermark default values...")
+        
+        print_settings = frappe.get_single("Print Settings")
+        
+        defaults = {
+            'watermark_font_size': 24,
+            'watermark_position': 'Top Right',
+            'watermark_font_family': 'Arial',
+            'watermark_settings': 'None'
+        }
+        
+        updated = False
+        for field, default_value in defaults.items():
+            if not print_settings.get(field):
+                print_settings.set(field, default_value)
+                updated = True
+        
+        if updated:
+            print_settings.flags.ignore_permissions = True
+            print_settings.flags.ignore_mandatory = True
+            print_settings.save()
+            frappe.logger().info("✅ Watermark default values set")
+        
+    except Exception as e:
+        frappe.log_error(f"Error setting watermark defaults: {str(e)}")
+
+
+def perform_final_watermark_verification():
+    """Perform final verification of watermark field installation"""
+    try:
+        frappe.logger().info("Performing final watermark field verification...")
+        
+        # Check Stock Entry specifically (the one that caused the original error)
+        stock_entry_field = frappe.db.exists("Custom Field", {
+            "dt": "Stock Entry",
+            "fieldname": "watermark_text"
+        })
+        
+        if stock_entry_field:
+            frappe.logger().info("✅ Stock Entry watermark_text field verified")
+        else:
+            frappe.logger().error("❌ Stock Entry watermark_text field still missing after installation")
+        
+        # Check if database column exists
+        try:
+            columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+            if columns:
+                frappe.logger().info("✅ Stock Entry watermark_text database column verified")
+            else:
+                frappe.logger().error("❌ Stock Entry watermark_text database column still missing")
+        except:
+            frappe.logger().warning("⚠️ Could not verify Stock Entry database column")
+        
+        frappe.logger().info("✅ Final watermark field verification completed")
+        
+    except Exception as e:
+        frappe.log_error(f"Error in final watermark field verification: {str(e)}")
