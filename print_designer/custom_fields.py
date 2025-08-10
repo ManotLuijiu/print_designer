@@ -58,5 +58,104 @@ CUSTOM_FIELDS = {
 			"default": "print_designer",
 			"insert_after": "standard",
 		},
+	],
+	"Stock Entry": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "posting_time",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Sales Invoice": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "posting_time",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Purchase Invoice": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "posting_time",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Delivery Note": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "posting_time",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Purchase Receipt": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "posting_time",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Material Request": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "transaction_date",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Quotation": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "transaction_date",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Sales Order": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "transaction_date",
+			"description": "Watermark mode for printing this document"
+		},
+	],
+	"Purchase Order": [
+		{
+			"fieldname": "watermark_text",
+			"fieldtype": "Select",
+			"label": "Watermark Mode",
+			"options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+			"default": "None",
+			"insert_after": "transaction_date",
+			"description": "Watermark mode for printing this document"
+		},
 	]
 }

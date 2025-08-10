@@ -37,16 +37,29 @@ def before_install():
 
 
 def after_install():
-	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True, update=True)
 	on_print_designer_install()
 	add_pdf_generator_option()
 	# TODO: move to get-app command ( not that much harmful as it will check if it is already installed )
 	setup_chromium()
+	click.echo("✓ Print Designer installed with watermark fields")
 
 
 def after_app_install(app):
 	if app != "print_designer":
 		install_default_formats(app)
+
+
+def after_migrate():
+	"""Run after migrate to ensure watermark fields are created/updated"""
+	try:
+		# Create/update custom fields (including watermark fields)
+		create_custom_fields(CUSTOM_FIELDS, ignore_validate=True, update=True)
+		frappe.db.commit()
+		click.echo("✓ Print Designer watermark fields updated successfully")
+	except Exception as e:
+		frappe.log_error(f"Error in Print Designer after_migrate: {str(e)}", "Print Designer Migration")
+		click.echo(f"✗ Error updating Print Designer fields: {str(e)}")
 
 
 def setup_chromium():
