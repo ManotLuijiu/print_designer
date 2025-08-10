@@ -1797,6 +1797,71 @@ def ensure_watermark_fields_installed():
         click.echo(f"⚠️  Warning: Watermark field installation had issues: {str(e)}")
 
 
+def emergency_watermark_fix_fallback():
+    """
+    Emergency fallback function that can be called from hooks.
+    Provides the same functionality as the bench emergency-fix-watermark command
+    but in a function format suitable for after_migrate hooks.
+    """
+    try:
+        frappe.logger().info("🚨 Running emergency watermark fix fallback...")
+        
+        # Critical DocTypes that commonly have watermark field issues
+        critical_doctypes = [
+            "Stock Entry",      # This was the one causing the original error
+            "Sales Invoice",
+            "Purchase Invoice", 
+            "Delivery Note",
+            "Sales Order",
+            "Purchase Order",
+            "Payment Entry",
+            "Journal Entry",
+            "Quotation"
+        ]
+        
+        for doctype in critical_doctypes:
+            try:
+                # Check if database column exists
+                columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+                
+                if not columns:
+                    frappe.logger().warning(f"🔧 Emergency fix: Adding watermark_text column to {doctype}...")
+                    # Use direct SQL ALTER TABLE for maximum reliability
+                    frappe.db.sql(f"""
+                        ALTER TABLE `tab{doctype}` 
+                        ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                    """)
+                    frappe.logger().info(f"✅ Emergency fix: Added column to {doctype}")
+                        
+            except Exception as e:
+                frappe.logger().error(f"⚠️  Emergency fix could not fix {doctype}: {str(e)}")
+        
+        # Ensure Custom Fields exist as well
+        try:
+            from print_designer.watermark_fields import get_watermark_custom_fields
+            
+            # Get all watermark field definitions
+            custom_fields = get_watermark_custom_fields()
+            
+            # Create the custom fields
+            create_custom_fields(custom_fields, update=True)
+            
+            frappe.logger().info("✅ Emergency fix: Watermark Custom Fields ensured")
+            
+        except Exception as e:
+            frappe.logger().error(f"⚠️  Emergency fix could not create Custom Fields: {str(e)}")
+        
+        # Commit changes
+        frappe.db.commit()
+        
+        frappe.logger().info("🎉 Emergency watermark fix fallback completed!")
+        
+    except Exception as e:
+        frappe.log_error(f"Emergency watermark fix fallback failed: {str(e)}")
+        frappe.logger().error(f"Emergency watermark fix fallback failed: {str(e)}")
+        # Don't fail installation/migration
+
+
 def install_document_watermark_fields_comprehensive():
     """Install watermark_text fields on all document types"""
     try:
@@ -1869,8 +1934,11 @@ def verify_single_doctype_watermark_field(doctype):
             columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
             if not columns:
                 frappe.logger().warning(f"⚠️ {doctype} missing watermark_text database column - adding...")
-                # Add the column directly to the database
-                frappe.db.add_column(doctype, "watermark_text", "varchar(140)")
+                # Use direct SQL ALTER TABLE for more reliability (emergency fix approach)
+                frappe.db.sql(f"""
+                    ALTER TABLE `tab{doctype}` 
+                    ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                """)
                 frappe.logger().info(f"✅ Added watermark_text database column to {doctype}")
         except Exception as col_e:
             frappe.logger().error(f"Could not verify/add column for {doctype}: {str(col_e)}")
