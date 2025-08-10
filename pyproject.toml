@@ -11,8 +11,15 @@ dependencies = [
     "PyQRCode~=1.2.1",
     "pypng~=0.20220715.0",
     "python-barcode~=0.15.1",
+<<<<<<< HEAD
     "websockets",
     "distro",
+=======
+    "qrcode[pil]~=7.4.2",
+    "websockets",
+    "distro",
+    "weasyprint"
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 ]
 
 [build-system]

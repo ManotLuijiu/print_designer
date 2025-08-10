@@ -1,0 +1,334 @@
+/**
+ * CSS styles for Print Designer Delivery Approval and Thai WHT systems
+ * Enhances the visual appearance of QR code dialogs and form sections
+ */
+
+/* QR Code Dialog Enhancements */
+.qr-dialog-content {
+    .qr-header {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        color: white;
+        padding: 15px;
+        margin: -15px -15px 20px -15px;
+        border-radius: 6px 6px 0 0;
+        
+        h4 {
+            margin: 0;
+            color: white !important;
+        }
+    }
+    
+    .qr-code-container {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        display: inline-block;
+        
+        img {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            
+            &:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 24px rgba(0, 123, 255, 0.2);
+            }
+        }
+    }
+    
+    .qr-instructions {
+        border: 1px solid #e3f2fd;
+        
+        ul {
+            list-style: none;
+            padding-left: 0;
+            
+            li {
+                padding: 4px 0;
+                position: relative;
+                padding-left: 20px;
+                
+                &:before {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    top: 8px;
+                    width: 6px;
+                    height: 6px;
+                    background: #007bff;
+                    border-radius: 50%;
+                }
+            }
+        }
+    }
+    
+    .qr-url-section {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 10px;
+        border-radius: 4px;
+        margin: 15px 0;
+        
+        a {
+            font-family: monospace;
+            font-size: 12px;
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+    
+    .qr-status {
+        .badge {
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            
+            &.badge-success {
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            }
+            
+            &.badge-warning {
+                background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            }
+            
+            &.badge-danger {
+                background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+            }
+        }
+    }
+}
+
+/* Form Section Enhancements */
+.delivery-approval-section {
+    position: relative;
+    
+    &:before {
+        content: "📱";
+        position: absolute;
+        left: -8px;
+        top: 10px;
+        font-size: 18px;
+    }
+    
+    .section-header {
+        font-weight: 600;
+        color: #007bff;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        
+        .fa {
+            margin-right: 8px;
+        }
+    }
+}
+
+.wht-section {
+    position: relative;
+    
+    &:before {
+        content: "🏛️";
+        position: absolute;
+        left: -8px;
+        top: 10px;
+        font-size: 18px;
+    }
+    
+    .section-header {
+        font-weight: 600;
+        color: #28a745;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        
+        .fa {
+            margin-right: 8px;
+        }
+    }
+}
+
+/* Dashboard Indicators */
+.form-dashboard {
+    .indicator {
+        &.green {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+        }
+        
+        &.orange {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: white;
+            border: none;
+        }
+        
+        &.red {
+            background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+            color: white;
+            border: none;
+        }
+    }
+    
+    .comment {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 8px 12px;
+        margin: 5px 0;
+        border-radius: 0 4px 4px 0;
+        font-size: 12px;
+    }
+}
+
+/* Custom Field Styling */
+.form-control {
+    &[data-fieldname="custom_approval_qr_code"] {
+        font-family: monospace;
+        font-size: 11px;
+        max-height: 100px;
+        overflow: hidden;
+        background: #f8f9fa;
+        border: 1px dashed #dee2e6;
+    }
+    
+    &[data-fieldname="custom_approval_url"] {
+        font-family: monospace;
+        font-size: 12px;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+    }
+    
+    &[data-fieldname="custom_goods_received_status"] {
+        font-weight: 600;
+        
+        &[value="Approved"] {
+            color: #28a745;
+        }
+        
+        &[value="Rejected"] {
+            color: #dc3545;
+        }
+        
+        &[value="Pending"] {
+            color: #ffc107;
+        }
+    }
+}
+
+/* Button Enhancements */
+.btn-group {
+    .btn {
+        &[data-label*="QR"] {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            color: white;
+            
+            &:hover {
+                background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+            }
+        }
+        
+        &[data-label*="WHT"] {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            color: white;
+            
+            &:hover {
+                background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+            }
+        }
+    }
+}
+
+/* Progress Indicator */
+.frappe-progress {
+    .progress-bar {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+}
+
+/* Alert Enhancements */
+.alert-dismissible {
+    &.alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border-color: #28a745;
+    }
+    
+    &.alert-warning {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border-color: #ffc107;
+    }
+    
+    &.alert-danger {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border-color: #dc3545;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .qr-dialog-content {
+        padding: 5px;
+        
+        .qr-code-container img {
+            max-width: 200px;
+            max-height: 200px;
+        }
+        
+        .qr-url-section a {
+            font-size: 10px;
+        }
+    }
+    
+    .delivery-approval-section,
+    .wht-section {
+        margin: 5px 0;
+        padding: 8px;
+        
+        &:before {
+            font-size: 14px;
+        }
+    }
+}
+
+/* Print Styles */
+@media print {
+    .qr-dialog-content {
+        .qr-header {
+            background: #007bff !important;
+            -webkit-print-color-adjust: exact;
+        }
+        
+        .qr-code-container img {
+            border: 2px solid #000 !important;
+        }
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .qr-dialog-content {
+        background: #2c3e50;
+        color: #ecf0f1;
+        
+        .qr-instructions {
+            background: #34495e;
+            border-color: #5a6c7d;
+        }
+        
+        .qr-url-section {
+            background: #34495e;
+            border-color: #5a6c7d;
+        }
+    }
+    
+    .delivery-approval-section,
+    .wht-section {
+        background: #34495e;
+        color: #ecf0f1;
+    }
+}

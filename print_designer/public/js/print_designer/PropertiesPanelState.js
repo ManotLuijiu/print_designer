@@ -702,7 +702,11 @@ export const createPropertiesPanel = () => {
 								const idx = {
 									fieldname: "idx",
 									fieldtype: "Int",
+<<<<<<< HEAD
 									label: "No",
+=======
+									label: "No.",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 									options: undefined,
 									tableName: currentEL["table"],
 								};
@@ -1415,6 +1419,7 @@ export const createPropertiesPanel = () => {
 		],
 	});
 	MainStore.propertiesPanel.push({
+<<<<<<< HEAD
 		title: "Avoid Page Break",
 		sectionCondtional: () => {
 			if (MainStore.mode !== "editing") {
@@ -1470,6 +1475,8 @@ export const createPropertiesPanel = () => {
 		],
 	});
 	MainStore.propertiesPanel.push({
+=======
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		title: "Padding",
 		sectionCondtional: () =>
 			MainStore.getCurrentElementsId.length === 1 &&

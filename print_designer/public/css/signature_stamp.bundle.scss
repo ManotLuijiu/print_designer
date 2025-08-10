@@ -1,0 +1,219 @@
+/* File: print_designer/public/css/signature_stamp.css */
+
+/* Signature and Stamp Sidebar Styling */
+.print-preview-sidebar .frappe-control[data-fieldname="digital_signature"],
+.print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] {
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-label,
+.print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-input,
+.print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-input {
+    border: 1px solid #d1d8dd;
+    border-radius: 4px;
+    transition: border-color 0.2s ease;
+}
+
+.print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-input:focus,
+.print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-input:focus {
+    border-color: #2490ef;
+    box-shadow: 0 0 0 2px rgba(36, 144, 239, 0.1);
+}
+
+/* Print Format Signature and Stamp Styling */
+.digital-signature-container {
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.9);
+    padding: 5px;
+}
+
+.digital-signature-container img {
+    border-radius: 3px;
+    filter: contrast(1.1);
+}
+
+.company-stamp-container {
+    z-index: 999;
+    opacity: 0.85;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.company-stamp-container img {
+    filter: saturate(1.2) contrast(1.1);
+}
+
+/* Approval Section Styling */
+.approval-section {
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #fdfdfd;
+    margin: 20px 0;
+    padding: 15px;
+}
+
+.approval-title {
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #333;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+}
+
+.approval-content {
+    background: #f9f9f9;
+    border: 1px dashed #999;
+    border-radius: 4px;
+    position: relative;
+    min-height: 100px;
+}
+
+/* QR Approval Section Styling */
+.qr-approval-section {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.qr-approval-title {
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+}
+
+.qr-approval-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: white;
+    border-radius: 4px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.qr-code-section {
+    flex-shrink: 0;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.approval-status-section {
+    flex-grow: 1;
+    min-height: 80px;
+}
+
+.approval-status-section > div {
+    border: 2px dashed #ced4da;
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.stamp-section {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media print {
+    .digital-signature-container,
+    .company-stamp-container {
+        -webkit-print-color-adjust: exact;
+        color-adjust: exact;
+    }
+
+    .approval-section,
+    .qr-approval-section {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+}
+
+/* Status indicators */
+.signature-title,
+.stamp-title {
+    font-family: Arial, sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.signature-description,
+.stamp-type {
+    font-family: Arial, sans-serif;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Animation for approved status */
+@keyframes approvedFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.approval-status-section img {
+    animation: approvedFadeIn 0.5s ease-in-out;
+}
+
+/* Hover effects for interactive elements */
+.qr-code-section:hover {
+    background: #e9ecef;
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+/* Print-specific optimizations */
+@media print {
+    .digital-signature-container {
+        box-shadow: none;
+        border: 1px solid #999;
+    }
+
+    .company-stamp-container {
+        opacity: 1;
+    }
+
+    .qr-approval-section {
+        background: white;
+        border: 1px solid #333;
+    }
+
+    .qr-code-section {
+        background: white;
+        border: 1px solid #333;
+    }
+}

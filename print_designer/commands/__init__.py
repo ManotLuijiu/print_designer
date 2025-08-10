@@ -8,6 +8,7 @@ def setup_chorme():
 	setup_chromium()
 
 
+<<<<<<< HEAD
 @click.command("install-watermark-fields", help="Install or update watermark fields for Print Designer")
 def install_watermark_fields():
 	"""Install watermark fields for all supported DocTypes"""
@@ -101,3 +102,16 @@ def check_watermark_fields():
 
 
 commands = [setup_chorme, install_watermark_fields, check_watermark_fields]
+=======
+@click.command("add-weasyprint-option", help="add WeasyPrint to PDF Generator dropdown")
+def add_weasyprint_option():
+	from print_designer.install import add_weasyprint_pdf_generator_option
+	
+	add_weasyprint_pdf_generator_option()
+
+
+# Import watermark fields command
+from print_designer.commands.install_watermark_fields import install_watermark_fields
+
+commands = [setup_chorme, add_weasyprint_option, install_watermark_fields]
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd

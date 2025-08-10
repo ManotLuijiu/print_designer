@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{{ layout_direction }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <meta name="generator" content="frappe">
+    
+    <!-- Print Designer CSS Bundle -->
+    <link href="/assets/print_designer/css/print_designer.bundle.css" rel="stylesheet">
+    
+    <!-- Print Designer specific styles -->
+    {% if print_style %}
+    <style>
+    {{ print_style }}
+    </style>
+    {% endif %}
+</head>
+<body>
+    <!-- Action Banner for Print Preview -->
+    <div class="action-banner no-print">
+        <a onclick="window.print();">
+            {{ _("Print") }}
+        </a>
+        <a href="/api/method/frappe.utils.print_format.download_pdf?doctype={{doctype|e}}&name={{name|e}}&format={{print_format|e}}&letterhead={{letterhead|e}}&no_letterhead={{no_letterhead|e}}&_lang={{lang|e}}">
+            {{ _('Get PDF') }}
+        </a>
+    </div>
+    
+    <!-- Print Designer Content -->
+    <div class="print-designer-content">
+        {{ body }}
+    </div>
+</body>
+</html>

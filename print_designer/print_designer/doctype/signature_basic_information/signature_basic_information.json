@@ -1,0 +1,242 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-18 17:38:03.864898",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_information_section",
+  "signature_category",
+  "signature_name",
+  "column_break_yagt",
+  "signature_title",
+  "user",
+  "company_stamp_section",
+  "stamp_type",
+  "stamp_authority",
+  "column_break_stamp",
+  "stamp_number",
+  "stamp_expiry",
+  "signature_data_section",
+  "signature_type",
+  "column_break_qecr",
+  "signature_image",
+  "signature_data",
+  "default_settings_section",
+  "default_width",
+  "column_break_myxe",
+  "default_height",
+  "is_active",
+  "column_break_active",
+  "is_default",
+  "print_designer_integration_section",
+  "signature_field_name",
+  "column_break_uped",
+  "company",
+  "section_break_dvme",
+  "signature_usage"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_information_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "signature_category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Signature\nCompany Stamp",
+   "reqd": 1,
+   "default": "Signature",
+   "in_list_view": 1
+  },
+  {
+   "description": "Human-readable name for the signature",
+   "fieldname": "signature_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Signature Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_yagt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Job title or position (e.g., \"CEO\", \"Manager\")",
+   "fieldname": "signature_title",
+   "fieldtype": "Data",
+   "label": "Signature Title"
+  },
+  {
+   "description": "Link to Frappe user who owns this signature",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "company_stamp_section",
+   "fieldtype": "Section Break",
+   "label": "Company Stamp Details",
+   "depends_on": "eval:doc.signature_category=='Company Stamp'"
+  },
+  {
+   "fieldname": "stamp_type",
+   "fieldtype": "Select",
+   "label": "Stamp Type",
+   "options": "Official Seal\nTax Stamp\nRevenue Stamp\nCompany Seal\nAuthentication Stamp",
+   "depends_on": "eval:doc.signature_category=='Company Stamp'"
+  },
+  {
+   "fieldname": "stamp_authority",
+   "fieldtype": "Data",
+   "label": "Issuing Authority",
+   "description": "Authority that issued or registered this stamp",
+   "depends_on": "eval:doc.signature_category=='Company Stamp'"
+  },
+  {
+   "fieldname": "column_break_stamp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stamp_number",
+   "fieldtype": "Data",
+   "label": "Stamp Number",
+   "description": "Registration or serial number of the stamp",
+   "depends_on": "eval:doc.signature_category=='Company Stamp'"
+  },
+  {
+   "fieldname": "stamp_expiry",
+   "fieldtype": "Date",
+   "label": "Stamp Expiry",
+   "description": "Expiry date if applicable",
+   "depends_on": "eval:doc.signature_category=='Company Stamp'"
+  },
+  {
+   "fieldname": "signature_data_section",
+   "fieldtype": "Section Break",
+   "label": "Signature Data"
+  },
+  {
+   "fieldname": "signature_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Signature Type",
+   "options": "Digital Drawing\nUploaded Image\nText Signature",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_qecr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Upload signature image file",
+   "fieldname": "signature_image",
+   "fieldtype": "Attach Image",
+   "label": "Signature Image"
+  },
+  {
+   "description": "Base64 encoded signature data (for digital drawings)",
+   "fieldname": "signature_data",
+   "fieldtype": "Long Text",
+   "label": "Signature Data"
+  },
+  {
+   "fieldname": "default_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Default Settings"
+  },
+  {
+   "default": "150",
+   "fieldname": "default_width",
+   "fieldtype": "Int",
+   "label": "Default Width (px)"
+  },
+  {
+   "fieldname": "column_break_myxe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "75",
+   "fieldname": "default_height",
+   "fieldtype": "Int",
+   "label": "Default Height (px)"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_active",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default Signature",
+   "description": "Set as default signature for this user"
+  },
+  {
+   "fieldname": "print_designer_integration_section",
+   "fieldtype": "Section Break",
+   "label": "Print Designer Integration"
+  },
+  {
+   "description": "Field name to use in print designer templates",
+   "fieldname": "signature_field_name",
+   "fieldtype": "Data",
+   "label": "Field Name for Print Designer"
+  },
+  {
+   "fieldname": "column_break_uped",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Company this signature belongs to",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_dvme",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "signature_usage",
+   "fieldtype": "Table",
+   "label": "Signature Usage",
+   "options": "Signature Usage"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-18 17:55:03.514045",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Signature Basic Information",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

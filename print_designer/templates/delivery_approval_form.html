@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delivery Note Approval</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
+        .form-container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .signature-pad { border: 2px dashed #007bff; width: 100%; height: 200px; background-color: #f8f9fa; border-radius: 5px; }
+        .btn { padding: 10px 20px; margin: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; border: none; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { background: #6c757d; color: white; border: none; }
+        .btn-secondary:hover { background: #545b62; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; box-sizing: border-box; }
+        .delivery-details { background: #e9ecef; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .delivery-details p { margin: 5px 0; }
+        .success-message { text-align: center; color: #155724; background: #d4edda; padding: 30px; border-radius: 10px; border: 1px solid #c3e6cb; }
+        .error-message { text-align: center; color: #721c24; background: #f8d7da; padding: 30px; border-radius: 10px; border: 1px solid #f5c6cb; }
+        h2 { color: #495057; text-align: center; margin-bottom: 20px; }
+        h3 { color: #007bff; text-align: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>Delivery Note Approval</h2>
+        <h3>{{ delivery_note.name }}</h3>
+        
+        <div class="delivery-details">
+            <p><strong>Customer:</strong> {{ delivery_note.customer_name }}</p>
+            <p><strong>Date:</strong> {{ delivery_note.posting_date }}</p>
+            <p><strong>Total Amount:</strong> {{ delivery_note.grand_total }}</p>
+        </div>
+        
+        <form id="approvalForm">
+            <div class="form-group">
+                <label for="customerName">Your Name:</label>
+                <input type="text" id="customerName" name="customerName" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Digital Signature:</label>
+                <canvas id="signaturePad" class="signature-pad"></canvas>
+                <button type="button" onclick="clearSignature()">Clear</button>
+            </div>
+            
+            <div class="form-group">
+                <label for="remarks">Remarks (Optional):</label>
+                <textarea id="remarks" name="remarks" rows="3"></textarea>
+            </div>
+            
+            <button type="button" class="btn btn-primary" onclick="submitApproval()">
+                Approve Delivery
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="rejectDelivery()">
+                Reject
+            </button>
+        </form>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script>
+        const canvas = document.getElementById('signaturePad');
+        const signaturePad = new SignaturePad(canvas);
+        
+        function clearSignature() {
+            signaturePad.clear();
+        }
+        
+        function submitApproval() {
+            const customerName = document.getElementById('customerName').value;
+            if (!customerName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            const signatureData = signaturePad.isEmpty() ? null : signaturePad.toDataURL();
+            const remarks = document.getElementById('remarks').value;
+            
+            fetch('/api/method/print_designer.custom.delivery_note_qr.approve_delivery_goods', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Frappe-CSRF-Token': window.csrf_token || ''
+                },
+                body: JSON.stringify({
+                    delivery_note_name: '{{ delivery_note.name }}',
+                    customer_name: customerName,
+                    customer_signature: signatureData,
+                    remarks: remarks
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message && data.message.status === 'success') {
+                    document.body.innerHTML = '<div class="success-message"><h2>✅ Delivery Approved Successfully!</h2><p>Thank you for confirming receipt of your goods.</p><p><strong>Approved by:</strong> ' + customerName + '</p><p><strong>Date:</strong> ' + new Date().toLocaleString() + '</p></div>';
+                } else {
+                    alert('Error: ' + (data.exc || data.message || 'Unknown error occurred'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+        
+        function rejectDelivery() {
+            const customerName = document.getElementById('customerName').value;
+            if (!customerName) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            const remarks = document.getElementById('remarks').value;
+            if (!remarks) {
+                alert('Please provide a reason for rejection');
+                return;
+            }
+            
+            fetch('/api/method/print_designer.custom.delivery_note_qr.reject_delivery_goods', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Frappe-CSRF-Token': window.csrf_token || ''
+                },
+                body: JSON.stringify({
+                    delivery_note_name: '{{ delivery_note.name }}',
+                    customer_name: customerName,
+                    remarks: remarks
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message && data.message.status === 'success') {
+                    document.body.innerHTML = '<div class="error-message"><h2>❌ Delivery Rejected</h2><p>Your rejection has been recorded and the supplier will be notified.</p><p><strong>Rejected by:</strong> ' + customerName + '</p><p><strong>Reason:</strong> ' + remarks + '</p><p><strong>Date:</strong> ' + new Date().toLocaleString() + '</p></div>';
+                } else {
+                    alert('Error: ' + (data.exc || data.message || 'Unknown error occurred'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:title",
+ "creation": "2025-07-19 10:30:06.196473",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "stamp_image",
+  "column_break_3",
+  "description",
+  "is_active",
+  "section_break_6",
+  "company",
+  "stamp_type",
+  "usage_purpose"
+ ],
+ "fields": [
+   {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "stamp_image",
+   "fieldtype": "Attach Image",
+   "label": "Stamp Image",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "section_break_6",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stamp_type",
+   "fieldtype": "Select",
+   "label": "Stamp Type",
+   "options": "Official\nApproval\nReceived\nPaid\nCancelled\nUrgent\nConfidential\nCopy\nOriginal\nCustom"
+  },
+  {
+   "fieldname": "usage_purpose",
+   "fieldtype": "Select",
+   "label": "Usage Purpose",
+   "options": "Invoice\nDelivery Note\nPurchase Order\nSales Order\nPayment\nReceipt\nGeneral\nAll Documents"
+  }
+ ],
+ "icon": "fa fa-certificate",
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-19 10:30:06.196473",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Company Stamp",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Print Designer Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1
+}

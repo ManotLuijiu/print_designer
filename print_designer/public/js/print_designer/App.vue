@@ -45,7 +45,11 @@
 </template>
 
 <script setup>
+<<<<<<< HEAD
 import { computed, onMounted, watchEffect } from "vue";
+=======
+import { computed, onMounted, onUnmounted, watchEffect } from "vue";
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 import { useMainStore } from "./store/MainStore";
 import AppHeader from "./components/layout/AppHeader.vue";
 import AppToolbar from "./components/layout/AppToolbar.vue";
@@ -70,6 +74,48 @@ const toolbarClasses = computed(() => {
 	];
 });
 
+<<<<<<< HEAD
+=======
+// Helper function to populate page numbers for browser print
+const populatePageNumbers = () => {
+	// Get current date
+	const dateObj = new Date();
+	
+	// Find all page number elements and populate them
+	const pageElements = document.getElementsByClassName('page_info_page');
+	const topageElements = document.getElementsByClassName('page_info_topage');
+	const dateElements = document.getElementsByClassName('page_info_date');
+	const isodateElements = document.getElementsByClassName('page_info_isodate');
+	const timeElements = document.getElementsByClassName('page_info_time');
+	
+	// For browser print, we typically have just one page, but this can be enhanced
+	const currentPage = 1;
+	const totalPages = 1;
+	
+	// Populate page numbers
+	for (let i = 0; i < pageElements.length; i++) {
+		pageElements[i].textContent = currentPage;
+	}
+	
+	for (let i = 0; i < topageElements.length; i++) {
+		topageElements[i].textContent = totalPages;
+	}
+	
+	// Populate dates and times
+	for (let i = 0; i < dateElements.length; i++) {
+		dateElements[i].textContent = dateObj.toLocaleDateString();
+	}
+	
+	for (let i = 0; i < isodateElements.length; i++) {
+		isodateElements[i].textContent = dateObj.toISOString();
+	}
+	
+	for (let i = 0; i < timeElements.length; i++) {
+		timeElements[i].textContent = dateObj.toLocaleTimeString();
+	}
+};
+
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 useAttachKeyBindings();
 onMounted(() => {
 	MainStore.printDesignName = props.print_format_name;
@@ -91,7 +137,32 @@ onMounted(() => {
 			MainStore.printStyleSheet = document.styleSheets[i];
 		}
 	}
+<<<<<<< HEAD
 });
+=======
+	
+	// Add event listeners for browser print to fix page numbers and layout
+	const handleBeforePrint = () => {
+		populatePageNumbers();
+	};
+	
+	// Listen for browser print events
+	window.addEventListener('beforeprint', handleBeforePrint);
+	
+	// Store cleanup function
+	MainStore.printCleanup = () => {
+		window.removeEventListener('beforeprint', handleBeforePrint);
+	};
+});
+
+onUnmounted(() => {
+	// Clean up event listeners
+	if (MainStore.printCleanup) {
+		MainStore.printCleanup();
+	}
+});
+
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 watchEffect(() => {
 	if (MainStore.activeControl == "mouse-pointer") {
 		MainStore.isMarqueeActive = true;

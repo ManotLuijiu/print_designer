@@ -1,4 +1,5 @@
 // TODO: revisit and properly implement this client script
+<<<<<<< HEAD
 frappe.pages["print"].on_page_load = function (wrapper) {
 	frappe.require(["pdfjs.bundle.css", "print_designer.bundle.css"]);
 	frappe.ui.make_app_page({
@@ -337,3 +338,2438 @@ frappe.ui.form.PrintView = class PrintView extends frappe.ui.form.PrintView {
 		});
 	}
 };
+=======
+
+/**
+ * Print Designer PDF Generation Logger
+ *
+ * Client-side utility for logging PDF generation issues to server-side log files.
+ * This helps debug PDF generation freezing and other issues.
+ */
+class PDFGenerationLogger {
+    constructor() {
+        this.sessionId = this.generateSessionId();
+        this.logQueue = [];
+        this.isProcessing = false;
+        this.maxQueueSize = 100;
+        this.enableConsoleLogging = true;
+        this.enableServerLogging = true;
+
+        // Performance monitoring
+        this.performanceMetrics = {
+            startTime: null,
+            endTime: null,
+            retryCount: 0,
+            generatorAttempts: []
+        };
+    }
+
+    generateSessionId() {
+        return `pdf_session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+
+    /**
+     * Log a PDF generation event
+     * @param {string} eventType - Type of event (PDF_GENERATION_START, PDF_GENERATION_ERROR, etc.)
+     * @param {string} message - Human-readable message
+     * @param {object} details - Additional details
+     * @param {string} logLevel - Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+     */
+    async log(eventType, message, details = {}, logLevel = 'INFO') {
+        const timestamp = new Date().toISOString();
+        const logEntry = {
+            sessionId: this.sessionId,
+            eventType,
+            message,
+            timestamp,
+            details: {
+                ...details,
+                url: window.location.href,
+                userAgent: navigator.userAgent,
+                viewport: {
+                    width: window.innerWidth,
+                    height: window.innerHeight
+                }
+            },
+            logLevel
+        };
+
+        // Add to queue
+        this.logQueue.push(logEntry);
+
+        // Limit queue size
+        if (this.logQueue.length > this.maxQueueSize) {
+            this.logQueue.shift();
+        }
+
+        // Console logging
+        if (this.enableConsoleLogging) {
+            const consoleMethod = this.getConsoleMethod(logLevel);
+            consoleMethod(`[PDFLogger] [${eventType}] ${message}`, details);
+        }
+
+        // Server logging
+        if (this.enableServerLogging) {
+            await this.sendToServer(logEntry);
+        }
+
+        return logEntry;
+    }
+
+    getConsoleMethod(logLevel) {
+        switch (logLevel.toUpperCase()) {
+            case 'DEBUG':
+                return console.debug;
+            case 'INFO':
+                return console.info;
+            case 'WARNING':
+                return console.warn;
+            case 'ERROR':
+            case 'CRITICAL':
+                return console.error;
+            default:
+                return console.log;
+        }
+    }
+
+    async sendToServer(logEntry) {
+        if (this.isProcessing) {
+            return;
+        }
+
+        try {
+            this.isProcessing = true;
+
+            await frappe.call({
+                method: 'print_designer.pdf_logging.log_pdf_generation_issue',
+                args: {
+                    event_type: logEntry.eventType,
+                    message: logEntry.message,
+                    details: JSON.stringify(logEntry.details),
+                    log_level: logEntry.logLevel
+                },
+                callback: (response) => {
+                    if (!response.message.success) {
+                        console.error('Failed to log to server:', response.message.message);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error sending log to server:', error);
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+
+    // Performance monitoring methods
+    startPerformanceMonitoring() {
+        this.performanceMetrics.startTime = performance.now();
+        this.performanceMetrics.retryCount = 0;
+        this.performanceMetrics.generatorAttempts = [];
+
+        this.log('PDF_GENERATION_START', 'PDF generation started', {
+            startTime: this.performanceMetrics.startTime
+        });
+    }
+
+    endPerformanceMonitoring(success = true) {
+        this.performanceMetrics.endTime = performance.now();
+        const duration = this.performanceMetrics.endTime - this.performanceMetrics.startTime;
+
+        this.log(
+            success ? 'PDF_GENERATION_SUCCESS' : 'PDF_GENERATION_FAILED',
+            `PDF generation ${success ? 'completed' : 'failed'} in ${duration.toFixed(2)}ms`,
+            {
+                duration,
+                retryCount: this.performanceMetrics.retryCount,
+                generatorAttempts: this.performanceMetrics.generatorAttempts,
+                endTime: this.performanceMetrics.endTime
+            },
+            success ? 'INFO' : 'ERROR'
+        );
+    }
+
+    recordGeneratorAttempt(generator, success = false) {
+        this.performanceMetrics.generatorAttempts.push({
+            generator,
+            success,
+            timestamp: performance.now()
+        });
+
+        if (!success) {
+            this.performanceMetrics.retryCount++;
+        }
+    }
+
+    // Specialized logging methods for common events
+    logPDFStart(url, generator, format) {
+        this.startPerformanceMonitoring();
+        return this.log('PDF_GENERATION_START', 'Starting PDF generation', {
+            url,
+            generator,
+            format,
+            browserInfo: {
+                browser: this.getBrowserInfo(),
+                pdfSupport: this.checkPDFSupport()
+            }
+        });
+    }
+
+    logPDFError(url, generator, format, error) {
+        this.recordGeneratorAttempt(generator, false);
+        return this.log('PDF_GENERATION_ERROR', 'PDF generation failed', {
+            url,
+            generator,
+            format,
+            error: error.toString(),
+            stackTrace: error.stack
+        }, 'ERROR');
+    }
+
+    logPDFFreeze(url, generator, format, timeoutDuration) {
+        return this.log('PDF_GENERATION_FREEZE', 'PDF generation appears to be frozen', {
+            url,
+            generator,
+            format,
+            timeoutDuration,
+            possibleCauses: [
+                'Network timeout',
+                'Server overload',
+                'Browser compatibility issue',
+                'PDF generation process stuck'
+            ]
+        }, 'ERROR');
+    }
+
+    logPDFRetry(url, newGenerator, previousGenerator, retryCount) {
+        this.recordGeneratorAttempt(previousGenerator, false);
+        return this.log('PDF_GENERATION_RETRY', `Retrying PDF generation with ${newGenerator}`,
+            {
+                url,
+                newGenerator,
+                previousGenerator,
+                retryCount,
+                retryReason: `${previousGenerator} failed or timed out`
+            }, 'WARNING');
+    }
+
+    logPDFSuccess(url, generator, format) {
+        this.recordGeneratorAttempt(generator, true);
+        this.endPerformanceMonitoring(true);
+        return this.log('PDF_GENERATION_SUCCESS', 'PDF generation completed successfully', {
+            url,
+            generator,
+            format
+        }, 'INFO');
+    }
+
+    // Browser detection and support checking
+    getBrowserInfo() {
+        const userAgent = navigator.userAgent;
+        let browser = 'Unknown';
+
+        if (userAgent.includes('Chrome')) browser = 'Chrome';
+        else if (userAgent.includes('Firefox')) browser = 'Firefox';
+        else if (userAgent.includes('Safari')) browser = 'Safari';
+        else if (userAgent.includes('Edge')) browser = 'Edge';
+
+        return {
+            name: browser,
+            userAgent,
+            version: this.getBrowserVersion(userAgent)
+        };
+    }
+
+    getBrowserVersion(userAgent) {
+        const match = userAgent.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
+        return match ? match[2] : 'Unknown';
+    }
+
+    checkPDFSupport() {
+        return {
+            objectTag: 'object' in document.createElement('object'),
+            embedTag: 'embed' in document.createElement('embed'),
+            plugins: navigator.plugins && navigator.plugins.length > 0,
+            mimeTypes: navigator.mimeTypes && navigator.mimeTypes['application/pdf'],
+            // Modern PDF support detection
+            pdfViewerSupported: 'PDFViewer' in window || 'chrome' in window && 'webstore' in window.chrome
+        };
+    }
+
+    // Utility methods
+    async getRecentLogs(limit = 50, logLevel = null) {
+        try {
+            const response = await frappe.call({
+                method: 'print_designer.pdf_logging.get_pdf_generation_logs',
+                args: {
+                    limit,
+                    log_level: logLevel
+                }
+            });
+
+            return response.message;
+        } catch (error) {
+            console.error('Error fetching logs:', error);
+            return { success: false, message: error.toString() };
+        }
+    }
+
+    async clearLogs() {
+        try {
+            const response = await frappe.call({
+                method: 'print_designer.pdf_logging.clear_pdf_generation_logs'
+            });
+
+            return response.message;
+        } catch (error) {
+            console.error('Error clearing logs:', error);
+            return { success: false, message: error.toString() };
+        }
+    }
+
+    // Export current session logs
+    exportSessionLogs() {
+        const sessionLogs = this.logQueue.filter(log => log.sessionId === this.sessionId);
+        const blob = new Blob([JSON.stringify(sessionLogs, null, 2)], {
+            type: 'application/json'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pdf_logs_${this.sessionId}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
+
+// Create global instance
+if (!window.pdfLogger) {
+    window.pdfLogger = new PDFGenerationLogger();
+    // Log initialization for testing
+    window.pdfLogger.log('LOGGER_INITIALIZED', 'PDF Logger initialized successfully', {
+        loggerVersion: '1.0',
+        initTime: new Date().toISOString()
+    }, 'INFO');
+}
+
+// Initialize print page with proper checks
+function initializePrintPage() {
+  if (!frappe.pages) {
+    frappe.pages = {};
+  }
+
+  // Don't override the core print page - let it load first
+  if (!frappe.pages['print']) {
+    // If the core print page hasn't loaded yet, wait for it
+    setTimeout(initializePrintPage, 100);
+    return;
+  }
+
+  // Store the original on_page_load function
+  const originalOnPageLoad = frappe.pages['print'].on_page_load;
+
+  frappe.pages['print'].on_page_load = function (wrapper) {
+    console.log('Print Designer: Enhancing print page...', wrapper);
+
+    // Call the original page load function first
+    if (originalOnPageLoad) {
+      originalOnPageLoad(wrapper);
+    } else {
+      // Fallback to basic setup if original not available
+      frappe.require(['pdfjs.bundle.css', 'print_designer.bundle.css']);
+
+      frappe.ui.make_app_page({
+        parent: wrapper,
+      });
+
+      let print_view = new frappe.ui.form.PrintView(wrapper);
+      console.log('Print view created:', print_view);
+    }
+
+    // Our enhancement will be applied through the PrintView class extension below
+    console.log('Print Designer: Print page enhanced successfully');
+}
+
+// Initialize the print page when the script loads
+function safeInitializePrintPage() {
+  try {
+    if (typeof frappe !== 'undefined' && frappe.ready) {
+      frappe.ready(() => {
+        try {
+          initializePrintPage();
+        } catch (error) {
+          console.error('Error initializing print page:', error);
+          // Fallback to basic initialization
+          if (frappe.pages) {
+            frappe.pages['print'] = { on_page_load: function() {} };
+          }
+        }
+      });
+    } else {
+      // Fallback: Initialize after DOM is loaded
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          try {
+            initializePrintPage();
+          } catch (error) {
+            console.error('Error initializing print page on DOM load:', error);
+          }
+        });
+      } else {
+        try {
+          initializePrintPage();
+        } catch (error) {
+          console.error('Error initializing print page immediately:', error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Fatal error in print page initialization:', error);
+  }
+}
+
+safeInitializePrintPage();
+
+// Ensure the core PrintView class is available before extending it
+function extendPrintView() {
+  if (!frappe.ui.form.PrintView) {
+    console.log('Core PrintView not available yet, waiting...');
+    setTimeout(extendPrintView, 100);
+    return;
+  }
+
+  // Store the original class
+  const OriginalPrintView = frappe.ui.form.PrintView;
+
+  frappe.ui.form.PrintView = class PrintView extends OriginalPrintView {
+  constructor(wrapper) {
+    console.log('[WATERMARK DEBUG] PrintView constructor called');
+    super(wrapper);
+  }
+  make() {
+    console.log('[WATERMARK DEBUG] PrintView make() called');
+    super.make();
+    this.print_wrapper = this.page.main.append(
+      `<div class="print-designer-wrapper">
+				<div id="preview-container" class="preview-container"
+					style="background-color: white; position: relative;">
+					${frappe.render_template('print_skeleton_loading')}
+				</div>
+			</div>`,
+    );
+    this.header_prepend_container = $(
+      `<div class="print_selectors flex col align-items-center"></div>`,
+    ).prependTo(this.page.page_actions);
+
+    // Add copy controls container to the top right
+    this.copy_controls_container = $(
+      `<div class="copy-controls-container" style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 15px;">
+        <div class="copy-count-control" style="display: flex; align-items: center; gap: 5px;">
+          <span style="font-size: 12px; color: #666;">${__('Copies:')}</span>
+          <button class="btn btn-xs btn-secondary copy-decrease" style="padding: 2px 6px; font-size: 12px;">-</button>
+          <input type="number" class="form-control copy-count-input" style="width: 50px; height: 26px; font-size: 12px; text-align: center;" value="1" min="1" max="10">
+          <button class="btn btn-xs btn-secondary copy-increase" style="padding: 2px 6px; font-size: 12px;">+</button>
+        </div>
+        <div class="copy-labels-control" style="display: flex; align-items: center; gap: 5px;">
+          <input type="text" class="form-control original-label-input" style="width: 70px; height: 26px; font-size: 12px;" placeholder="${__('Original')}" value="${__('Original')}">
+          <input type="text" class="form-control copy-label-input" style="width: 70px; height: 26px; font-size: 12px;" placeholder="${__('Copy')}" value="${__('Copy')}">
+        </div>
+      </div>`,
+    ).appendTo(this.page.page_actions);
+
+    this.toolbar_print_format_selector = frappe.ui.form.make_control({
+      df: {
+        fieldtype: 'Link',
+        fieldname: 'print_format',
+        options: 'Print Format',
+        placeholder: __('Print Format'),
+        get_query: () => {
+          return { filters: { doc_type: this.frm.doctype } };
+        },
+        change: () => {
+          if (
+            this.toolbar_print_format_selector.value ==
+            this.toolbar_print_format_selector.last_value
+          )
+            return;
+          this.print_format_item.set_value(
+            this.toolbar_print_format_selector.value,
+          );
+        },
+      },
+      parent: this.header_prepend_container,
+      only_input: true,
+      render_input: true,
+    });
+    this.toolbar_language_selector = frappe.ui.form.make_control({
+      df: {
+        fieldtype: 'Link',
+        fieldname: 'language',
+        placeholder: __('Language'),
+        options: 'Language',
+        change: () => {
+          if (
+            this.toolbar_language_selector.value ==
+            this.toolbar_language_selector.last_value
+          )
+            return;
+          this.language_item.set_value(this.toolbar_language_selector.value);
+        },
+      },
+      parent: this.header_prepend_container,
+      only_input: true,
+      render_input: true,
+    });
+
+    this.toolbar_print_format_selector.$input_area.addClass(
+      'my-0 px-3 hidden-xs hidden-md',
+    );
+    this.toolbar_language_selector.$input_area.addClass(
+      'my-0 px-3 hidden-xs hidden-md',
+    );
+
+    // Setup copy controls event handlers
+    this.setup_copy_controls();
+
+    this.sidebar_toggle = $('.page-head').find('.sidebar-toggle-btn');
+    $(document.body).on('toggleSidebar', () => {
+      if (this.sidebar.is(':hidden')) {
+        this.toolbar_print_format_selector.$wrapper.show();
+        this.toolbar_language_selector.$wrapper.show();
+        this.copy_controls_container.show();
+      } else {
+        this.toolbar_print_format_selector.$wrapper.hide();
+        this.toolbar_language_selector.$wrapper.hide();
+        this.copy_controls_container.hide();
+      }
+    });
+  }
+
+  setup_copy_controls() {
+    // Get references to the copy controls
+    this.copy_count_input = this.copy_controls_container.find('.copy-count-input');
+    this.copy_decrease_btn = this.copy_controls_container.find('.copy-decrease');
+    this.copy_increase_btn = this.copy_controls_container.find('.copy-increase');
+    this.original_label_input = this.copy_controls_container.find('.original-label-input');
+    this.copy_label_input = this.copy_controls_container.find('.copy-label-input');
+
+    // Setup event handlers for copy count controls
+    this.copy_decrease_btn.on('click', () => {
+      let currentValue = parseInt(this.copy_count_input.val()) || 1;
+      if (currentValue > 1) {
+        this.copy_count_input.val(currentValue - 1);
+        this.sync_copy_controls_with_sidebar();
+      }
+    });
+
+    this.copy_increase_btn.on('click', () => {
+      let currentValue = parseInt(this.copy_count_input.val()) || 1;
+      if (currentValue < 10) {
+        this.copy_count_input.val(currentValue + 1);
+        this.sync_copy_controls_with_sidebar();
+      }
+    });
+
+    // Handle direct input changes
+    this.copy_count_input.on('change', () => {
+      let value = parseInt(this.copy_count_input.val()) || 1;
+      if (value < 1) value = 1;
+      if (value > 10) value = 10;
+      this.copy_count_input.val(value);
+      this.sync_copy_controls_with_sidebar();
+    });
+
+    // Handle label changes
+    this.original_label_input.on('change', () => {
+      this.sync_copy_controls_with_sidebar();
+    });
+
+    this.copy_label_input.on('change', () => {
+      this.sync_copy_controls_with_sidebar();
+    });
+  }
+
+  sync_copy_controls_with_sidebar() {
+    // Sync the top-right copy controls with the sidebar copy options
+    if (this.copy_count_item) {
+      const count = parseInt(this.copy_count_input.val()) || 1;
+      this.copy_count_item.set_value(count);
+
+      // Auto-enable copies if count > 1
+      if (count > 1) {
+        if (this.enable_copies_item) {
+          this.enable_copies_item.set_value(1);
+        }
+      }
+    }
+
+    if (this.copy_labels_item) {
+      const originalLabel = this.original_label_input.val() || __('Original');
+      const copyLabel = this.copy_label_input.val() || __('Copy');
+      const labels = `${originalLabel}, ${copyLabel}`;
+      this.copy_labels_item.set_value(labels);
+    }
+  }
+
+  createPdfEl(url, wrapperContainer) {
+    const mainSectionWidth =
+      document.getElementsByClassName('main-section')[0].offsetWidth + 'px';
+
+    let pdfEl = document.getElementById('pd-pdf-viewer');
+    if (!pdfEl) {
+      pdfEl = document.createElement('object');
+      pdfEl.id = 'pd-pdf-viewer';
+      pdfEl.type = 'application/pdf';
+      wrapperContainer.appendChild(pdfEl);
+    }
+    pdfEl.style.height = '0px';
+
+    pdfEl.data = url;
+
+    pdfEl.style.width = mainSectionWidth;
+
+    return pdfEl;
+  }
+
+  createPdfFallback(url, wrapperContainer) {
+    // Create an iframe fallback for browsers without PDF plugin support
+    let iframeEl = document.getElementById('pd-pdf-iframe');
+    if (!iframeEl) {
+      iframeEl = document.createElement('iframe');
+      iframeEl.id = 'pd-pdf-iframe';
+      iframeEl.style.width = '100%';
+      iframeEl.style.height = 'calc(100vh - var(--page-head-height) - var(--navbar-height))';
+      iframeEl.style.border = 'none';
+      wrapperContainer.appendChild(iframeEl);
+    }
+
+    iframeEl.src = url;
+    return iframeEl;
+  }
+
+  createDownloadFallback(url, wrapperContainer) {
+    // Create download fallback when PDF can't be displayed
+    let downloadEl = document.getElementById('pd-pdf-download');
+    if (!downloadEl) {
+      downloadEl = document.createElement('div');
+      downloadEl.id = 'pd-pdf-download';
+      downloadEl.style.textAlign = 'center';
+      downloadEl.style.padding = '50px';
+      downloadEl.style.backgroundColor = '#f8f9fa';
+      downloadEl.style.border = '2px dashed #dee2e6';
+      downloadEl.style.borderRadius = '8px';
+      downloadEl.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+        </div>
+        <h4 style="margin-bottom: 10px; color: #495057;">${__('PDF Preview Unavailable')}</h4>
+        <p style="color: #6c757d; margin-bottom: 20px;">${__('Your browser cannot display PDFs inline. Please download the PDF to view it.')}</p>
+        <a href="${url}" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px;">${__('Download PDF')}</a>
+      `;
+      wrapperContainer.appendChild(downloadEl);
+    }
+
+    // Update the download link
+    const downloadLink = downloadEl.querySelector('a');
+    if (downloadLink) {
+      downloadLink.href = url;
+    }
+
+    return downloadEl;
+  }
+
+  getFormDefaultLanguage() {
+    // Try to get language from the form document in order of preference
+
+    // 1. Check if document has a language field
+    if (this.frm.doc && this.frm.doc.language) {
+      console.log('Using document language:', this.frm.doc.language);
+      return this.frm.doc.language;
+    }
+
+    // 2. Check if document has a customer with default language
+    if (this.frm.doc && this.frm.doc.customer_language) {
+      return this.frm.doc.customer_language;
+    }
+
+    // 3. Check if document has a party_name with language (for invoices, quotations)
+    if (this.frm.doc && this.frm.doc.party_name && this.frm.doc.customer) {
+      // This would require a server call to get customer language, so we'll skip for now
+    }
+
+    // 4. Check if document has a territory with default language
+    if (this.frm.doc && this.frm.doc.territory) {
+      // This would also require a server call, so we'll skip for now
+    }
+
+    // 5. Check if doctype has a default language in meta
+    if (this.frm.meta && this.frm.meta.default_language) {
+      return this.frm.meta.default_language;
+    }
+
+    // 6. Check if document has a company with default language
+    if (this.frm.doc && this.frm.doc.company) {
+      // This would require a server call to get company language, so we'll skip for now
+    }
+
+    // 7. Fall back to user's selected language from the language selector
+    if (this.language_item && this.language_item.value) {
+      return this.language_item.value;
+    }
+
+    // 8. Fall back to stored user language preference
+    const stored_lang = localStorage.getItem('print_designer_language');
+    if (stored_lang) {
+      return stored_lang;
+    }
+
+    // 9. Final fallback to user's GUI language
+    const fallbackLang = this.lang_code || 'en';
+    console.log('Using fallback language (user GUI):', fallbackLang);
+    return fallbackLang;
+  }
+
+  async checkPDFUrl(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return {
+        valid: response.ok && response.headers.get('content-type')?.includes('application/pdf'),
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        isPermissionError: response.status === 403,
+        isServerError: response.status >= 500,
+        isClientError: response.status >= 400 && response.status < 500
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error.message,
+        isNetworkError: true
+      };
+    }
+  }
+
+  showDownloadFallback(url, wrapperContainer, canvasContainer) {
+    // Log final failure
+    if (window.pdfLogger) {
+      window.pdfLogger.log('PDF_GENERATION_FINAL_FAILURE', 'All PDF generation and display attempts failed', {
+        url: url,
+        attempts: this.pdf_retry_attempted ? 2 : 1,
+        iframe_attempted: this.iframe_fallback_attempted || false,
+        fallback_type: 'download'
+      }, 'CRITICAL');
+    }
+
+    // Hide loading indicator
+    canvasContainer.style.display = 'none';
+
+    // Hide any existing PDF elements
+    const existingPdfEl = document.getElementById('pd-pdf-viewer');
+    if (existingPdfEl) {
+      existingPdfEl.style.display = 'none';
+    }
+
+    const existingIframeEl = document.getElementById('pd-pdf-iframe');
+    if (existingIframeEl) {
+      existingIframeEl.style.display = 'none';
+    }
+
+    // Show download fallback
+    const downloadEl = this.createDownloadFallback(url, wrapperContainer);
+    downloadEl.style.display = 'block';
+
+    // Show detailed error with suggestions
+    frappe.show_alert(
+      {
+        message: __('PDF cannot be displayed inline. Please download the PDF to view it, or try using a different PDF generator from the sidebar.'),
+        indicator: 'orange',
+      },
+      8,
+    );
+  }
+
+  // Enhanced print parameters to include signature and stamp
+  get_print_params() {
+    let params = super.get_print_params ? super.get_print_params() : {};
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.digital_signature = this.signature_selector.val();
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.company_stamp = this.company_stamp_selector.val();
+    }
+
+    return params;
+  }
+
+  async designer_pdf(print_format) {
+    // Initialize logging for this PDF generation session
+    if (window.pdfLogger) {
+      window.pdfLogger.log('PDF_GENERATION_INIT', 'Starting PDF generation process', {
+        print_format: print_format.name,
+        doctype: this.frm.doc.doctype,
+        docname: this.frm.doc.name
+      });
+    }
+
+    let print_designer_settings = JSON.parse(
+      print_format.print_designer_settings,
+    );
+    let page_settings = print_designer_settings.page;
+    let canvasContainer = document.getElementById('preview-container');
+
+    // Add preview-mode class for CSS targeting
+    canvasContainer.classList.add('preview-mode');
+
+    canvasContainer.style.display = 'block';
+    const wrapperContainer = document.getElementsByClassName(
+      'print-designer-wrapper',
+    )[0];
+    // canvasContainer.style.minHeight = page_settings.height + 'px';
+    // canvasContainer.style.width = page_settings.width + 'px';
+
+    // Ensure proper container styling for preview
+    canvasContainer.style.backgroundColor = 'white';
+    canvasContainer.style.position = 'relative';
+    canvasContainer.style.minHeight = page_settings.height + 'mm';
+    canvasContainer.style.width = page_settings.width + 'mm';
+    canvasContainer.style.margin = '0 auto';
+
+    let params = new URLSearchParams({
+      doctype: this.frm.doc.doctype,
+      name: this.frm.doc.name,
+      format: this.selected_format(),
+      _lang: this.getFormDefaultLanguage(),
+    });
+
+    // Add PDF generator parameter - only send if not auto
+    const selected_generator = this.selected_pdf_generator || 'auto';
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
+
+    // Add copy parameters if enabled
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      params.set('copy_count', this.copy_count_item.value || 2);
+      if (this.copy_labels_item.value) {
+        params.set('copy_labels', this.copy_labels_item.value);
+      }
+
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+      }
+
+      console.log('Copy parameters added to preview:', {
+        copy_count: this.copy_count_item.value || 2,
+        copy_labels: this.copy_labels_item.value,
+        pdf_generator: params.get('pdf_generator')
+      });
+    }
+
+    // Add letterhead if selected (works with wkhtmltopdf)
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
+      params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
+    }
+
+    // Add watermark parameter for Print Designer PDF preview
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark to Print Designer PDF preview:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode:', watermarkValue);
+      }
+    }
+
+    console.log('params', params);
+
+    // Initialize safe PDF client and get URL
+    let url;
+    if (window.safePDFClient) {
+      try {
+        await window.safePDFClient.initialize();
+
+        // Convert URLSearchParams to object for safe client
+        const paramsObj = {};
+        for (const [key, value] of params.entries()) {
+          paramsObj[key] = value;
+        }
+
+        url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
+
+        // Log safe client usage
+        if (window.pdfLogger) {
+          window.pdfLogger.log('PDF_SAFE_CLIENT_USED', 'Using safe PDF client for URL generation', {
+            safeEndpoints: window.safePDFClient.isUsingSafeEndpoints(),
+            conflicts: window.safePDFClient.getDetectedConflicts(),
+            generatedUrl: url
+          });
+        }
+      } catch (error) {
+        console.error('Print Designer: Safe PDF client failed, using standard URL:', error);
+        url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+
+        if (window.pdfLogger) {
+          window.pdfLogger.log('PDF_SAFE_CLIENT_FAILED', 'Safe PDF client failed, using standard URL', {
+            error: error.message,
+            fallbackUrl: url
+          });
+        }
+      }
+    } else {
+      url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    }
+
+    // Show enhanced loading state with generator information
+    const loadingHTML = `
+      <div class="print-loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; background: #f8f9fa; border-radius: 8px; margin: 20px;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; margin-bottom: 20px;">
+          <span class="sr-only">Loading...</span>
+        </div>
+        <h4 style="color: #495057; margin-bottom: 10px;">${__('Generating PDF...')}</h4>
+        <p style="color: #6c757d; text-align: center; margin-bottom: 15px;">
+          ${__('Generator')}: <strong>${params.get('pdf_generator')}</strong><br>
+          ${__('Format')}: <strong>${params.get('format')}</strong>
+        </p>
+        <div class="progress" style="width: 200px; height: 4px; background-color: #e9ecef; border-radius: 2px; overflow: hidden;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated"
+               role="progressbar"
+               style="width: 100%; background-color: #007bff; animation: progress-bar-stripes 1s linear infinite;">
+          </div>
+        </div>
+        <small style="color: #6c757d; margin-top: 15px; text-align: center;">
+          ${__('This may take a few moments...')}<br>
+          ${__('If it takes too long, try switching to a different PDF generator from the sidebar.')}
+        </small>
+      </div>
+    `;
+    canvasContainer.innerHTML = loadingHTML;
+
+    // Log PDF generation start
+    if (window.pdfLogger) {
+      window.pdfLogger.logPDFStart(url, params.get('pdf_generator') || 'auto', params.get('format'));
+
+      // Log language information
+      window.pdfLogger.log('PDF_LANGUAGE_INFO', 'PDF generation language selection', {
+        selectedLanguage: this.getFormDefaultLanguage(),
+        documentLanguage: this.frm.doc?.language || 'not set',
+        customerLanguage: this.frm.doc?.customer_language || 'not set',
+        userGuiLanguage: this.lang_code || 'not set',
+        languageSelectorValue: this.language_item?.value || 'not set',
+        storedLanguage: localStorage.getItem('print_designer_language') || 'not set'
+      }, 'INFO');
+
+      // Log signature and stamp usage
+      if (params.get('digital_signature') || params.get('company_stamp')) {
+        window.pdfLogger.log('PDF_SIGNATURE_STAMP_INFO', 'PDF generation with signature/stamp', {
+          digitalSignature: params.get('digital_signature') || 'not selected',
+          companyStamp: params.get('company_stamp') || 'not selected',
+          letterhead: params.get('letterhead') || 'not selected'
+        }, 'INFO');
+      }
+    }
+
+    // Reset retry flags for each new PDF generation
+    this.pdf_retry_attempted = false;
+    this.iframe_fallback_attempted = false;
+    this.letterhead_retry_attempted = false;
+
+    const pdfEl = this.createPdfEl(url, wrapperContainer);
+    const onError = () => {
+      // Log the error with comprehensive details
+      if (window.pdfLogger) {
+        window.pdfLogger.logPDFError(
+          url,
+          params.get('pdf_generator') || 'auto',
+          params.get('format'),
+          new Error('PDF Object failed to load')
+        );
+      }
+
+      // Try to get more specific error information
+      console.error('PDF Generation Error:', {
+        url: url,
+        generator: params.get('pdf_generator') || 'auto',
+        format: params.get('format')
+      });
+
+      // Before trying retries or fallbacks, check if the PDF URL is valid
+      this.checkPDFUrl(url).then(async urlCheck => {
+        // Handle specific error types
+        if (urlCheck.isPermissionError) {
+          // 403 Forbidden - This might be due to letterhead permissions
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_PERMISSION_ERROR', 'PDF generation failed due to permission error', {
+              url: url,
+              status: urlCheck.status,
+              statusText: urlCheck.statusText,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format'),
+              hasLetterhead: !!(this.letterhead_selector && this.letterhead_selector.val())
+            }, 'ERROR');
+          }
+
+          // If letterhead is selected, try without it
+          if (this.letterhead_selector && this.letterhead_selector.val() && !this.letterhead_retry_attempted) {
+            this.letterhead_retry_attempted = true;
+
+            frappe.show_alert({
+              message: __('Permission denied with letterhead. Retrying without letterhead...'),
+              indicator: 'orange'
+            }, 3);
+
+            // Remove letterhead and retry
+            const originalLetterhead = this.letterhead_selector.val();
+            this.letterhead_selector.val('').trigger('change');
+
+            // Create new params object without letterhead
+            const retryParams = new URLSearchParams({
+              doctype: this.frm.doc.doctype,
+              name: this.frm.doc.name,
+              format: this.selected_format(),
+              _lang: this.getFormDefaultLanguage(),
+            });
+
+            // Add PDF generator parameter if not auto
+            const selected_generator = this.selected_pdf_generator || 'auto';
+            if (selected_generator !== 'auto') {
+              retryParams.set('pdf_generator', selected_generator);
+            }
+
+            // Add copy parameters if enabled (but NO letterhead)
+            if (this.enable_copies_item && this.enable_copies_item.value) {
+              retryParams.set('copy_count', this.copy_count_item.value || 2);
+              if (this.copy_labels_item.value) {
+                retryParams.set('copy_labels', this.copy_labels_item.value);
+              }
+
+              // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+              if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+                retryParams.set('pdf_generator', 'wkhtmltopdf');
+              }
+            }
+
+            // Add signature and stamp parameters (keep these)
+            if (this.signature_selector && this.signature_selector.val()) {
+              retryParams.set('digital_signature', this.signature_selector.val());
+            }
+            if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+              retryParams.set('company_stamp', this.company_stamp_selector.val());
+            }
+
+            let retryUrl;
+            if (window.safePDFClient) {
+              try {
+                const retryParamsObj = {};
+                for (const [key, value] of retryParams.entries()) {
+                  retryParamsObj[key] = value;
+                }
+                retryUrl = await window.safePDFClient.getPDFDownloadURL(retryParamsObj);
+              } catch (error) {
+                retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+              }
+            } else {
+              retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${retryParams.toString()}`;
+            }
+
+            // Log the retry attempt
+            if (window.pdfLogger) {
+              window.pdfLogger.log('PDF_LETTERHEAD_RETRY', 'Retrying PDF generation without letterhead due to permission error', {
+                originalUrl: url,
+                retryUrl: retryUrl,
+                originalLetterhead: originalLetterhead,
+                generator: selected_generator,
+                format: this.selected_format()
+              }, 'INFO');
+            }
+
+            setTimeout(() => {
+              // Clean up existing PDF objects
+              if (pdfEl.parentNode) {
+                pdfEl.parentNode.removeChild(pdfEl);
+              }
+
+              // Also clean up any existing retry objects
+              const existingRetryEl = document.getElementById('pd-pdf-viewer-retry');
+              if (existingRetryEl && existingRetryEl.parentNode) {
+                existingRetryEl.parentNode.removeChild(existingRetryEl);
+              }
+
+              // Create a completely new PDF object for the retry (not reusing the ID)
+              const newPdfEl = document.createElement('object');
+              newPdfEl.id = 'pd-pdf-viewer-retry';
+              newPdfEl.type = 'application/pdf';
+              newPdfEl.data = retryUrl;
+              newPdfEl.style.height = '0px';
+              newPdfEl.style.width = document.getElementsByClassName('main-section')[0].offsetWidth + 'px';
+              wrapperContainer.appendChild(newPdfEl);
+
+              // Debug: Confirm the retry URL
+              console.log('Letterhead retry URL:', retryUrl);
+              console.log('Letterhead present in retry URL:', retryUrl.includes('letterhead'));
+
+              // Set up event listeners for the new PDF object
+              newPdfEl.addEventListener('load', () => {
+                if (freezeTimeout) {
+                  clearTimeout(freezeTimeout);
+                }
+                onPdfLoad();
+
+                // Notify user about successful retry without letterhead
+                frappe.show_alert({
+                  message: __('PDF generated successfully without letterhead'),
+                  indicator: 'green'
+                }, 3);
+              });
+
+              newPdfEl.addEventListener('error', () => {
+                if (freezeTimeout) {
+                  clearTimeout(freezeTimeout);
+                }
+                // Restore letterhead selection for user
+                this.letterhead_selector.val(originalLetterhead);
+
+                // Create a new error handler for the retry attempt that uses the retry URL
+                const handleRetryError = () => {
+                  // Check the retry URL instead of the original URL
+                  this.checkPDFUrl(retryUrl).then(urlCheck => {
+                    if (window.pdfLogger) {
+                      window.pdfLogger.log('PDF_LETTERHEAD_RETRY_FAILED', 'PDF generation failed even without letterhead', {
+                        retryUrl: retryUrl,
+                        originalLetterhead: originalLetterhead,
+                        generator: selected_generator,
+                        format: this.selected_format(),
+                        urlCheck: urlCheck
+                      }, 'ERROR');
+                    }
+
+                    let errorMessage;
+                    if (urlCheck.isPermissionError) {
+                      errorMessage = __('PDF generation failed: Access denied even without letterhead. This may be a deeper permissions issue.');
+                    } else if (urlCheck.isServerError) {
+                      errorMessage = __('PDF generation failed: Server error ({0}). Please try again later.', [urlCheck.status]);
+                    } else if (urlCheck.isNetworkError) {
+                      errorMessage = __('PDF generation failed: Network error. Please check your connection.');
+                    } else {
+                      errorMessage = __('PDF generation failed even without letterhead. This may be a server or permissions issue.');
+                    }
+
+                    frappe.show_alert({
+                      message: errorMessage,
+                      indicator: 'red'
+                    }, 8);
+
+                    this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                  }).catch(() => {
+                    // Error checking URL, show generic message
+                    frappe.show_alert({
+                      message: __('PDF generation failed even without letterhead. This may be a server or permissions issue.'),
+                      indicator: 'red'
+                    }, 8);
+
+                    this.showDownloadFallback(retryUrl, wrapperContainer, canvasContainer);
+                  });
+                };
+
+                handleRetryError();
+              });
+
+              // Reset freeze timeout for retry
+              resetFreezeTimeout();
+            }, 1000);
+
+            return;
+          }
+
+          let errorMessage = __('PDF generation failed: Access denied (403)');
+          if (this.letterhead_selector && this.letterhead_selector.val()) {
+            errorMessage += '. ' + __('This might be due to letterhead permissions. Try generating without letterhead.');
+          }
+
+          frappe.show_alert({
+            message: errorMessage,
+            indicator: 'red'
+          }, 10);
+
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+
+        if (urlCheck.isServerError) {
+          // 500+ Server Error - Don't retry with different generators, this is a server issue
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_SERVER_ERROR', 'PDF generation failed due to server error', {
+              url: url,
+              status: urlCheck.status,
+              statusText: urlCheck.statusText,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
+
+          frappe.show_alert({
+            message: __('PDF generation failed: Server error ({0}). Please try again later.', [urlCheck.status]),
+            indicator: 'red'
+          }, 8);
+
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+
+        if (urlCheck.isNetworkError) {
+          // Network error - Don't retry with different generators
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_NETWORK_ERROR', 'PDF generation failed due to network error', {
+              url: url,
+              error: urlCheck.error,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
+
+          frappe.show_alert({
+            message: __('PDF generation failed: Network error. Please check your connection.'),
+            indicator: 'red'
+          }, 8);
+
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+
+        // Try alternative PDF generators if auto-selection failed (only for client-side display issues)
+        const currentGenerator = params.get('pdf_generator');
+        const alternativeGenerators = ['wkhtmltopdf', 'chrome'].filter(g => g !== currentGenerator);
+
+        if (alternativeGenerators.length > 0 && !this.pdf_retry_attempted && !urlCheck.isClientError) {
+          this.pdf_retry_attempted = true;
+          const nextGenerator = alternativeGenerators[0];
+
+          // Log the retry attempt
+          if (window.pdfLogger) {
+            window.pdfLogger.logPDFRetry(
+              url,
+              nextGenerator,
+              currentGenerator,
+              1
+            );
+          }
+
+          frappe.show_alert({
+            message: __('Retrying with {0} generator...', [nextGenerator]),
+            indicator: 'blue'
+          }, 3);
+
+          // Retry with different generator
+          params.set('pdf_generator', nextGenerator);
+          let retryUrl;
+          if (window.safePDFClient) {
+            try {
+              const retryParamsObj = {};
+              for (const [key, value] of params.entries()) {
+                retryParamsObj[key] = value;
+              }
+              retryUrl = await window.safePDFClient.getPDFDownloadURL(retryParamsObj);
+            } catch (error) {
+              retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+            }
+          } else {
+            retryUrl = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+          }
+
+          // Remove the failed PDF object and create a new one
+          setTimeout(() => {
+            if (pdfEl.parentNode) {
+              pdfEl.parentNode.removeChild(pdfEl);
+            }
+
+            // Create a new PDF object for the retry
+            const newPdfEl = this.createPdfEl(retryUrl, wrapperContainer);
+
+            // Set up event listeners for the new PDF object
+            newPdfEl.addEventListener('load', () => {
+              if (freezeTimeout) {
+                clearTimeout(freezeTimeout);
+              }
+              onPdfLoad();
+            });
+
+            newPdfEl.addEventListener('error', () => {
+              if (freezeTimeout) {
+                clearTimeout(freezeTimeout);
+              }
+              onError();
+            });
+
+            // Reset freeze timeout for retry
+            resetFreezeTimeout();
+          }, 1000);
+
+          return;
+        }
+
+        // For other client errors or when retries are exhausted, continue with fallback logic
+        if (!urlCheck.valid) {
+          // Other unhandled errors
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_UNKNOWN_ERROR', 'PDF generation failed with unknown error', {
+              url: url,
+              urlCheck: urlCheck,
+              generator: params.get('pdf_generator') || 'auto',
+              format: params.get('format')
+            }, 'ERROR');
+          }
+
+          this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          return;
+        }
+
+        // PDF URL is valid, try iframe fallback if we haven't already
+        if (!this.iframe_fallback_attempted) {
+          this.iframe_fallback_attempted = true;
+
+          // Log iframe fallback attempt
+          if (window.pdfLogger) {
+            window.pdfLogger.log('PDF_FALLBACK_IFRAME', 'Attempting iframe fallback for PDF display', {
+              url: url,
+              generator: params.get('pdf_generator'),
+              format: params.get('format')
+            }, 'INFO');
+          }
+
+          // Hide the failed object element
+          pdfEl.style.display = 'none';
+
+          // Try iframe fallback
+          const iframeEl = this.createPdfFallback(url, wrapperContainer);
+
+          // Set up iframe error handling
+          iframeEl.onload = () => {
+            canvasContainer.style.display = 'none';
+            iframeEl.style.display = 'block';
+
+            if (window.pdfLogger) {
+              window.pdfLogger.log('PDF_FALLBACK_SUCCESS', 'Iframe fallback successful', {
+                url: url,
+                generator: params.get('pdf_generator'),
+                format: params.get('format')
+              }, 'INFO');
+            }
+          };
+
+          iframeEl.onerror = () => {
+            // Even iframe failed, show download fallback
+            this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+          };
+
+          return;
+        }
+
+        // Both object and iframe failed, show download fallback
+        this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+      }).catch(error => {
+        // Error checking URL, proceed with fallback
+        console.error('Error checking PDF URL:', error);
+        this.showDownloadFallback(url, wrapperContainer, canvasContainer);
+      });
+    };
+    const onPdfLoad = () => {
+      // Log successful PDF generation
+      if (window.pdfLogger) {
+        window.pdfLogger.logPDFSuccess(
+          url,
+          params.get('pdf_generator'),
+          params.get('format')
+        );
+      }
+
+      canvasContainer.style.display = 'none';
+      pdfEl.style.display = 'block';
+      pdfEl.style.height =
+        'calc(100vh - var(--page-head-height) - var(--navbar-height))';
+    };
+    // Add freeze detection with timeout
+    const FREEZE_TIMEOUT = 30000; // 30 seconds
+    let freezeTimeout;
+
+    const resetFreezeTimeout = () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      freezeTimeout = setTimeout(() => {
+        if (window.pdfLogger) {
+          window.pdfLogger.logPDFFreeze(
+            url,
+            params.get('pdf_generator'),
+            params.get('format'),
+            FREEZE_TIMEOUT
+          );
+        }
+
+        // Show freeze alert
+        frappe.show_alert({
+          message: __('PDF generation appears to be stuck. This may be due to server overload or network issues.'),
+          indicator: 'orange'
+        }, 10);
+
+        // Auto-retry after showing freeze alert
+        setTimeout(() => {
+          if (confirm(__('PDF generation seems frozen. Would you like to retry?'))) {
+            location.reload();
+          }
+        }, 2000);
+      }, FREEZE_TIMEOUT);
+    };
+
+    // Start freeze detection
+    resetFreezeTimeout();
+
+    pdfEl.addEventListener('load', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      onPdfLoad();
+    });
+
+    pdfEl.addEventListener('error', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+      onError();
+    });
+
+    // Clear timeout on component cleanup
+    $(document).on('beforeunload', () => {
+      if (freezeTimeout) {
+        clearTimeout(freezeTimeout);
+      }
+    });
+  }
+  printit() {
+    // Check if this is a Print Designer format
+    let print_format = this.get_print_format();
+    if (print_format.print_designer && print_format.print_designer_body) {
+      // For Print Designer formats, use the proper Print Designer rendering system
+      this.printit_print_designer();
+      return;
+    }
+
+    // If copy functionality is enabled, use our custom logic
+    if (this.enable_copies_item && this.enable_copies_item.value) {
+      // For copies, redirect to PDF download instead of direct printing
+      // since browser printing doesn't support our copy logic
+      frappe.show_alert({
+        message: __('Multiple copies detected. Downloading PDF for printing...'),
+        indicator: 'blue'
+      });
+      this.render_pdf();
+      return;
+    }
+
+    // Enable Network Printing
+    if (parseInt(this.print_settings.enable_print_server)) {
+      super.printit();
+      return;
+    }
+    super.printit();
+  }
+
+  printit_print_designer() {
+    // For Print Designer formats, open the print preview in a new window
+    // This uses the same rendering system as the PDF but optimized for browser printing
+
+    let params = new URLSearchParams({
+      doctype: this.frm.doctype,
+      name: this.frm.docname,
+      format: this.selected_format(),
+      _lang: this.getFormDefaultLanguage(),
+      trigger_print: 1  // This will trigger the print dialog automatically
+    });
+
+    // Add letterhead if selected
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
+      params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
+    }
+
+    // Add copy settings if enabled (check both sidebar and toolbar controls)
+    const copyCount = this.copy_count_input ? parseInt(this.copy_count_input.val()) || 1 : 
+                     (this.copy_count_item ? parseInt(this.copy_count_item.value) || 1 : 1);
+    
+    if (copyCount > 1 || (this.enable_copies_item && this.enable_copies_item.value)) {
+      params.set('copy_count', copyCount);
+
+      // Get labels from top-right controls or sidebar
+      let originalLabel, copyLabel;
+      if (this.original_label_input && this.copy_label_input) {
+        originalLabel = this.original_label_input.val() || __('Original');
+        copyLabel = this.copy_label_input.val() || __('Copy');
+      } else if (this.copy_labels_item && this.copy_labels_item.value) {
+        const labels = this.copy_labels_item.value.split(',');
+        originalLabel = labels[0] ? labels[0].trim() : __('Original');
+        copyLabel = labels[1] ? labels[1].trim() : __('Copy');
+      } else {
+        originalLabel = __('Original');
+        copyLabel = __('Copy');
+      }
+      params.set('copy_labels', `${originalLabel}, ${copyLabel}`);
+    }
+
+    // Add watermark settings
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark to print:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template for print:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode for print:', watermarkValue);
+      }
+    }
+
+    // Use standard print endpoint which supports Print Designer formats
+    const url = `/printview?${params.toString()}`;
+
+    // Open in new window for printing
+    let w = window.open(frappe.urllib.get_full_url(url));
+    if (!w) {
+      frappe.msgprint(__('Please enable pop-ups'));
+      return;
+    }
+
+    // Show success message
+    frappe.show_alert({
+      message: __('Opening print preview in new window...'),
+      indicator: 'green'
+    }, 3);
+  }
+
+  show(frm) {
+    console.log('PrintView.show called with:', frm);
+    super.show(frm);
+    // Restore user's preferred language after parent initialization
+    this.restore_user_language();
+    // Set default signature and stamp when showing
+    this.set_default_signature_and_stamp();
+    this.inner_msg = this.page.add_inner_message(`
+				<a style="line-height: 2.4" href="/app/print-designer?doctype=${this.frm.doctype}">
+					${__('Try the new Print Designer')}
+				</a>
+			`);
+  }
+  preview() {
+    console.log('[WATERMARK DEBUG] ===========================================');
+    console.log('[WATERMARK DEBUG] preview() method called');
+    
+    let print_format = this.get_print_format();
+    console.log('[WATERMARK DEBUG] Current print format:', print_format);
+    console.log('[WATERMARK DEBUG] Print format name:', print_format?.name);
+    console.log('[WATERMARK DEBUG] Has print_designer:', !!print_format?.print_designer);
+    console.log('[WATERMARK DEBUG] Has print_designer_body:', !!print_format?.print_designer_body);
+    console.log('[WATERMARK DEBUG] sidebar_dynamic_section exists:', !!this.sidebar_dynamic_section);
+    console.log('[WATERMARK DEBUG] watermark_selector exists:', !!this.watermark_selector);
+    
+    if (print_format.print_designer && print_format.print_designer_body) {
+      console.log('[WATERMARK DEBUG] PRINT DESIGNER FORMAT DETECTED');
+      this.inner_msg.hide();
+      this.print_wrapper.find('.print-preview-wrapper').hide();
+      this.print_wrapper.find('.preview-beta-wrapper').hide();
+      this.print_wrapper.find('.print-designer-wrapper').show();
+      this.designer_pdf(print_format);
+      this.full_page_btn.hide();
+      this.pdf_btn.hide();
+      this.page.add_menu_item('Download PDF', () => this.render_pdf());
+
+      // Add debug menu for PDF generation logs
+      this.page.add_menu_item('View PDF Logs', () => this.showPDFLogs());
+      this.page.add_menu_item('Export PDF Logs', () => this.exportPDFLogs());
+      this.page.add_menu_item('Clear PDF Logs', () => this.clearPDFLogs());
+      this.print_btn.show();
+      this.letterhead_selector.hide();
+      this.signature_selector.hide();
+      this.company_stamp_selector.hide();
+      
+      console.log('[WATERMARK DEBUG] About to show sidebar_dynamic_section...');
+      if (this.sidebar_dynamic_section) {
+        this.sidebar_dynamic_section.show();
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section.show() called');
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section is visible:', this.sidebar_dynamic_section.is(':visible'));
+        console.log('[WATERMARK DEBUG] sidebar_dynamic_section display style:', this.sidebar_dynamic_section.css('display'));
+      } else {
+        console.log('[WATERMARK DEBUG] ERROR: sidebar_dynamic_section is null/undefined!');
+      }
+      
+      // Keep sidebar visible for print designer formats but hide redundant sections
+      this.sidebar.show();
+      console.log('[WATERMARK DEBUG] Main sidebar shown');
+      
+      // Check watermark selector specifically
+      if (this.watermark_selector) {
+        console.log('[WATERMARK DEBUG] watermark_selector exists, parent visible:', this.watermark_selector.parent().is(':visible'));
+        console.log('[WATERMARK DEBUG] watermark_selector display:', this.watermark_selector.css('display'));
+        console.log('[WATERMARK DEBUG] watermark_selector parent classes:', this.watermark_selector.parent().attr('class'));
+      } else {
+        console.log('[WATERMARK DEBUG] ERROR: watermark_selector is null/undefined!');
+      }
+      
+      // Hide specific form elements that are now in the toolbar
+      if (this.print_format_item) {
+        this.print_format_item.$wrapper.hide();
+      }
+      if (this.language_item) {
+        this.language_item.$wrapper.hide();
+      }
+      this.toolbar_print_format_selector.$wrapper.show();
+      this.toolbar_language_selector.$wrapper.show();
+      console.log('[WATERMARK DEBUG] PRINT DESIGNER FORMAT SETUP COMPLETE');
+      return;
+    }
+    
+    console.log('[WATERMARK DEBUG] TRADITIONAL FORMAT DETECTED');
+    this.print_wrapper.find('.print-designer-wrapper').hide();
+    this.inner_msg.show();
+    this.full_page_btn.show();
+    this.pdf_btn.show();
+    this.print_btn.show();
+    this.letterhead_selector.show();
+    this.signature_selector.show();
+    this.company_stamp_selector.show();
+    
+    console.log('[WATERMARK DEBUG] About to show sidebar_dynamic_section for traditional format...');
+    if (this.sidebar_dynamic_section) {
+      this.sidebar_dynamic_section.show();
+      console.log('[WATERMARK DEBUG] sidebar_dynamic_section.show() called for traditional');
+      console.log('[WATERMARK DEBUG] sidebar_dynamic_section is visible:', this.sidebar_dynamic_section.is(':visible'));
+    } else {
+      console.log('[WATERMARK DEBUG] ERROR: sidebar_dynamic_section is null/undefined for traditional!');
+    }
+    
+    this.sidebar.show();
+    
+    // Restore sidebar form elements for non-print designer formats
+    if (this.print_format_item) {
+      this.print_format_item.$wrapper.show();
+    }
+    if (this.language_item) {
+      this.language_item.$wrapper.show();
+    }
+    this.toolbar_print_format_selector.$wrapper.hide();
+    this.toolbar_language_selector.$wrapper.hide();
+    console.log('[WATERMARK DEBUG] TRADITIONAL FORMAT SETUP COMPLETE');
+    console.log('[WATERMARK DEBUG] ===========================================');
+    super.preview();
+  }
+  
+  setup_toolbar() {
+    this.print_btn = this.page.set_primary_action(
+      __('Print'),
+      () => this.printit(),
+      'printer',
+    );
+
+    this.full_page_btn = this.page.add_button(
+      __('Full Page'),
+      () => this.render_page('/printview?'),
+      {
+        icon: 'full-page',
+      },
+    );
+
+    this.pdf_btn = this.page.add_button(__('PDF'), () => this.render_pdf(), {
+      icon: 'small-file',
+    });
+
+    this.refresh_btn = this.page.add_button(
+      __('Refresh'),
+      () => this.refresh_print_format(),
+      {
+        icon: 'refresh',
+      },
+    );
+
+    this.page.add_action_icon(
+      'file',
+      () => {
+        this.go_to_form_view();
+      },
+      '',
+      __('Form'),
+    );
+  }
+  setup_sidebar() {
+    console.log('[WATERMARK DEBUG] *** setup_sidebar() called ***');
+    this.sidebar = this.page.sidebar.addClass('print-preview-sidebar');
+    console.log('[WATERMARK DEBUG] Sidebar initialized:', this.sidebar);
+
+    this.print_format_item = this.add_sidebar_item({
+      fieldtype: 'Link',
+      fieldname: 'print_format',
+      options: 'Print Format',
+      placeholder: __('Print Format'),
+      get_query: () => {
+        return { filters: { doc_type: this.frm.doctype } };
+      },
+      change: () => {
+        if (this.print_format_item.value == this.print_format_item.last_value)
+          return;
+        this.toolbar_print_format_selector.set_value(
+          this.print_format_item.value,
+        );
+        this.refresh_print_format();
+      },
+    });
+    this.print_format_selector = this.print_format_item.$input;
+
+    // Initialize print settings
+    this.load_print_settings();
+
+    this.language_item = this.add_sidebar_item({
+      fieldtype: 'Link',
+      fieldname: 'language',
+      placeholder: __('Language'),
+      options: 'Language',
+      change: () => {
+        if (this.language_item.value == this.language_item.last_value) return;
+        this.toolbar_language_selector.set_value(this.language_item.value);
+        this.set_user_lang();
+        this.refresh_copy_options_labels();
+        this.preview();
+      },
+    });
+    this.language_selector = this.language_item.$input;
+
+    this.letterhead_selector = this.add_sidebar_item({
+      fieldtype: 'Link',
+      fieldname: 'letterhead',
+      options: 'Letter Head',
+      placeholder: __('Letter Head'),
+      change: () => this.preview(),
+    }).$input;
+
+    // NEW: Digital Signature selector
+    this.signature_selector = this.add_sidebar_item({
+      fieldtype: "Link",
+      fieldname: "digital_signature",
+      options: "Digital Signature",
+      placeholder: __("Digital Signature"),
+      get_query: () => {
+        let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+        return {
+          filters: {
+            is_active: 1,
+            company: ["in", [company, ""]]
+          }
+        };
+      },
+      change: () => this.preview(),
+    }).$input;
+
+    // NEW: Company Stamp selector
+    this.company_stamp_selector = this.add_sidebar_item({
+      fieldtype: "Link",
+      fieldname: "company_stamp",
+      options: "Company Stamp",
+      placeholder: __("Company Stamp"),
+      get_query: () => {
+        let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+        let doctype = this.frm.doctype;
+
+        // Map doctypes to usage purposes
+        let usage_mapping = {
+          "Sales Invoice": "Invoice",
+          "Purchase Invoice": "Invoice",
+          "Delivery Note": "Delivery Note",
+          "Sales Order": "Sales Order",
+          "Purchase Order": "Purchase Order",
+          "Payment Entry": "Payment",
+          "Payment Request": "Payment"
+        };
+
+        let usage_purpose = usage_mapping[doctype] || "General";
+
+        return {
+          filters: {
+            is_active: 1,
+            company: company,
+            usage_purpose: ["in", [usage_purpose, "All Documents", ""]]
+          }
+        };
+      },
+      change: () => this.preview(),
+    }).$input;
+
+    // NOTE: Watermark selector moved to setup_copy_options() to be conditional
+
+    this.sidebar_dynamic_section = $(
+      `<div class="dynamic-settings"></div>`,
+    ).appendTo(this.sidebar);
+
+    // Add PDF generator selection section
+    if (!this.pdf_generator_initialized) {
+      this.pdf_generator_initialized = true;
+
+      this.pdf_generator_section = $(`
+        <div class="pdf-generator-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('PDF Generator')}</div>
+        </div>
+      `).appendTo(this.sidebar);
+
+      // PDF Generator selector
+      this.pdf_generator_item = this.add_sidebar_item({
+        fieldtype: 'Select',
+        fieldname: 'pdf_generator',
+        label: __('PDF Generator'),
+        options: [
+          'auto',
+          'wkhtmltopdf',
+          'WeasyPrint',
+          'chrome'
+        ].join('\n'),
+        default: 'auto',
+        description: __('Auto lets server choose the best available generator'),
+        change: () => {
+          if (this.pdf_generator_item.value === 'auto') {
+            // Let the system choose the best generator
+            this.selected_pdf_generator = null;
+          } else {
+            this.selected_pdf_generator = this.pdf_generator_item.value;
+          }
+          this.preview(); // Refresh preview with new generator
+        },
+      });
+
+      // Add WeasyPrint option to PDF generator if available
+      if (this.pdf_generator_item && this.pdf_generator_item.df.options.indexOf('WeasyPrint') === -1) {
+        this.pdf_generator_item.df.options = this.pdf_generator_item.df.options.replace('chrome', 'WeasyPrint\nchrome');
+        this.pdf_generator_item.refresh();
+      }
+    }
+
+    // Copy options will be set up after print settings are loaded
+  }
+
+  load_print_settings() {
+    console.log('[WATERMARK DEBUG] *** load_print_settings() called ***');
+    
+    // Load both Print Settings and Watermark Settings in parallel
+    Promise.all([
+      // Load traditional Print Settings for copy configuration
+      new Promise((resolve) => {
+        frappe.call({
+          method: 'frappe.client.get_single',
+          args: {
+            doctype: 'Print Settings'
+          },
+          callback: (r) => {
+            if (r.message) {
+              console.log('[WATERMARK DEBUG] Print settings loaded:', r.message);
+              resolve(r.message);
+            } else {
+              console.log('[WATERMARK DEBUG] No print settings returned from API');
+              // Create default settings if none exist
+              resolve({
+                enable_multiple_copies: 1,
+                show_copy_controls_in_toolbar: 1,
+                watermark_settings: 'None'
+              });
+            }
+          },
+          error: (err) => {
+            console.log('[WATERMARK DEBUG] Error loading print settings:', err);
+            // Create default settings on error
+            resolve({
+              enable_multiple_copies: 1,
+              show_copy_controls_in_toolbar: 1,
+              watermark_settings: 'None'
+            });
+          }
+        });
+      }),
+      
+      // Load new Watermark Settings configuration
+      new Promise((resolve) => {
+        frappe.call({
+          method: 'print_designer.api.watermark.get_available_watermark_templates',
+          callback: (r) => {
+            if (r.message) {
+              console.log('[WATERMARK DEBUG] Watermark templates loaded:', r.message);
+              resolve({ templates: r.message });
+            } else {
+              console.log('[WATERMARK DEBUG] No watermark templates available');
+              resolve({ templates: [] });
+            }
+          },
+          error: (err) => {
+            console.log('[WATERMARK DEBUG] Error loading watermark templates:', err);
+            resolve({ templates: [] });
+          }
+        });
+      })
+    ]).then((results) => {
+      const [printSettings, watermarkData] = results;
+      
+      this.print_settings = printSettings;
+      this.watermark_templates = watermarkData.templates || [];
+      
+      console.log('[WATERMARK DEBUG] Combined settings loaded:', {
+        print_settings: this.print_settings,
+        watermark_templates: this.watermark_templates
+      });
+      
+      // Setup copy options and watermark with enhanced configuration
+      this.setup_copy_options();
+    });
+  }
+
+  setup_copy_options() {
+    console.log('[WATERMARK DEBUG] *** setup_copy_options() called ***');
+    console.log('[WATERMARK DEBUG] copy_options_initialized:', this.copy_options_initialized);
+    console.log('[WATERMARK DEBUG] print_settings exists:', !!this.print_settings);
+    console.log('[WATERMARK DEBUG] print_settings:', this.print_settings);
+    
+    // Don't setup if already initialized or settings not loaded
+    if (this.copy_options_initialized || !this.print_settings) {
+      console.log('[WATERMARK DEBUG] Early return from setup_copy_options - already initialized or no settings');
+      return;
+    }
+
+    this.copy_options_initialized = true;
+    console.log('[WATERMARK DEBUG] Setting copy_options_initialized = true');
+
+    // Create enhanced watermark selector with templates integration
+    console.log('[WATERMARK DEBUG] Creating enhanced watermark selector...');
+    console.log('[WATERMARK DEBUG] Available watermark templates:', this.watermark_templates);
+    
+    try {
+      // Build options list combining basic modes and templates
+      let watermarkOptions = [
+        "None",
+        "Original on First Page", 
+        "Copy on All Pages",
+        "Original,Copy on Sequence"
+      ];
+      
+      // Add available templates from Watermark Settings
+      if (this.watermark_templates && this.watermark_templates.length > 0) {
+        watermarkOptions.push('---'); // Separator
+        this.watermark_templates.forEach(template => {
+          watermarkOptions.push(`Template: ${template.name}`);
+        });
+      }
+      
+      this.watermark_selector = this.add_sidebar_item({
+        fieldtype: "Select",
+        fieldname: "watermark_settings",
+        label: __("Watermark Configuration"),
+        options: watermarkOptions.join('\n'),
+        default: this.print_settings.watermark_settings || "None",
+        description: __("Watermark options: Basic modes (None, Original, Copy, Sequence) or custom templates from Watermark Settings"),
+        change: () => {
+          const selectedValue = this.watermark_selector.val();
+          console.log('[WATERMARK DEBUG] Watermark selector changed, value:', selectedValue);
+          
+          // If a template is selected, show template details
+          if (selectedValue && selectedValue.startsWith('Template: ')) {
+            const templateName = selectedValue.replace('Template: ', '');
+            this.show_watermark_template_info(templateName);
+          }
+          
+          this.preview();
+        },
+      });
+      
+      console.log('[WATERMARK DEBUG] Enhanced watermark selector created:', this.watermark_selector);
+      
+      // Force append to sidebar_dynamic_section if it exists
+      if (this.sidebar_dynamic_section && this.watermark_selector) {
+        console.log('[WATERMARK DEBUG] Moving watermark selector to sidebar_dynamic_section...');
+        this.watermark_selector.parent().appendTo(this.sidebar_dynamic_section);
+        console.log('[WATERMARK DEBUG] Watermark selector moved to dynamic section');
+      }
+      
+    } catch (error) {
+      console.log('[WATERMARK DEBUG] ERROR creating enhanced watermark selector:', error);
+    }
+    
+    // Show watermark selector if copy controls are enabled in toolbar (original logic)
+    if (this.print_settings.show_copy_controls_in_toolbar) {
+      console.log('[WATERMARK DEBUG] Copy controls enabled in toolbar - watermark should be visible');
+    } else {
+      console.log('[WATERMARK DEBUG] Copy controls NOT enabled in toolbar - but showing anyway for debug');
+    }
+
+    // Only show copy options if enabled in print settings
+    if (this.print_settings.enable_multiple_copies) {
+      this.copy_section = $(`
+        <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
+          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
+        </div>
+      `).appendTo(this.sidebar);
+
+      // Enable copies checkbox
+      this.enable_copies_item = this.add_sidebar_item({
+        fieldtype: 'Check',
+        fieldname: 'enable_copies',
+        label: __('Generate Multiple Copies'),
+        default: 0,
+        change: () => {
+          if (this.enable_copies_item.value) {
+            this.copy_count_item.$wrapper.show();
+            this.copy_labels_item.$wrapper.show();
+          } else {
+            this.copy_count_item.$wrapper.hide();
+            this.copy_labels_item.$wrapper.hide();
+            // Reset top-right controls when disabled
+            if (this.copy_count_input) {
+              this.copy_count_input.val(1);
+            }
+          }
+        },
+      });
+
+      // Number of copies
+      this.copy_count_item = this.add_sidebar_item({
+        fieldtype: 'Int',
+        fieldname: 'copy_count',
+        label: __('Number of Copies'),
+        default: this.print_settings.default_copy_count || 2,
+        description: __('Total number of copies to generate'),
+        change: () => {
+          // Sync sidebar changes back to top-right controls
+          if (this.copy_count_input) {
+            this.copy_count_input.val(this.copy_count_item.value || 1);
+          }
+        },
+      });
+
+      // Custom labels
+      this.copy_labels_item = this.add_sidebar_item({
+        fieldtype: 'Small Text',
+        fieldname: 'copy_labels',
+        label: __('Copy Labels'),
+        placeholder: (this.print_settings.default_original_label || __('Original')) + ', ' +
+                    (this.print_settings.default_copy_label || __('Copy')) + ' (' + __('Optional') + ')',
+        default: (this.print_settings.default_original_label || __('Original')) + ', ' +
+                (this.print_settings.default_copy_label || __('Copy')),
+        description: __('Comma-separated labels for each copy'),
+        change: () => {
+          // Sync sidebar changes back to top-right controls
+          if (this.original_label_input && this.copy_label_input) {
+            const labels = (this.copy_labels_item.value || '').split(',');
+            const originalLabel = labels[0] ? labels[0].trim() : this.print_settings.default_original_label || __('Original');
+            const copyLabel = labels[1] ? labels[1].trim() : this.print_settings.default_copy_label || __('Copy');
+            this.original_label_input.val(originalLabel);
+            this.copy_label_input.val(copyLabel);
+          }
+        },
+      });
+
+      // Initially hide copy options
+      this.copy_count_item.$wrapper.hide();
+      this.copy_labels_item.$wrapper.hide();
+    }
+  }
+
+  show_watermark_template_info(templateName) {
+    // Show template details when a watermark template is selected
+    const template = this.watermark_templates.find(t => t.name === templateName);
+    if (template) {
+      console.log('[WATERMARK DEBUG] Showing template info for:', template);
+      
+      // Show template details in a toast notification
+      frappe.show_alert({
+        message: __('Watermark Template: {0}<br>Mode: {1}<br>{2}', [
+          template.name,
+          template.watermark_mode || 'None',
+          template.description || 'No description available'
+        ]),
+        indicator: 'blue'
+      }, 5);
+    }
+  }
+
+  refresh_copy_options_labels() {
+    // Refresh copy options section title and labels after language change
+    if (this.copy_section) {
+      this.copy_section.find('div:first').text(__('Copy Options'));
+    }
+
+    // Refresh field labels
+    if (this.enable_copies_item) {
+      this.enable_copies_item.df.label = __('Generate Multiple Copies');
+      this.enable_copies_item.refresh();
+    }
+
+    if (this.copy_count_item) {
+      this.copy_count_item.df.label = __('Number of Copies');
+      this.copy_count_item.df.description = __('Total number of copies to generate');
+      this.copy_count_item.refresh();
+    }
+
+    if (this.copy_labels_item) {
+      this.copy_labels_item.df.label = __('Copy Labels');
+      this.copy_labels_item.df.placeholder = __('Original, Copy') + ' (' + __('Optional') + ')';
+      this.copy_labels_item.df.description = __('Comma-separated labels for each copy');
+      this.copy_labels_item.refresh();
+    }
+  }
+
+  // Set default values for signature and stamp based on company
+  set_default_signature_and_stamp() {
+    let company = this.frm.doc.company || frappe.defaults.get_user_default("Company");
+
+    if (company && !this.signature_selector.val()) {
+      // Try to set default signature for company
+      frappe.db.get_list("Digital Signature", {
+        filters: { company: company, is_active: 1 },
+        limit: 1,
+        order_by: "creation desc"
+      }).then(signatures => {
+        if (signatures.length > 0) {
+          this.signature_selector.val(signatures[0].name);
+        }
+      });
+    }
+
+    if (company && !this.company_stamp_selector.val()) {
+      // Try to set default stamp for company and doctype
+      let doctype = this.frm.doctype;
+      let usage_mapping = {
+        "Sales Invoice": "Invoice",
+        "Purchase Invoice": "Invoice",
+        "Delivery Note": "Delivery Note",
+        "Sales Order": "Sales Order",
+        "Purchase Order": "Purchase Order"
+      };
+      let usage_purpose = usage_mapping[doctype] || "General";
+
+      frappe.db.get_list("Company Stamp", {
+        filters: {
+          company: company,
+          is_active: 1,
+          usage_purpose: ["in", [usage_purpose, "All Documents"]]
+        },
+        limit: 1,
+        order_by: "creation desc"
+      }).then(stamps => {
+        if (stamps.length > 0) {
+          this.company_stamp_selector.val(stamps[0].name);
+        }
+      });
+    }
+  }
+
+  set_default_print_language() {
+    super.set_default_print_language();
+    this.toolbar_language_selector.$input.val(this.lang_code);
+  }
+  set_user_lang() {
+    // Update lang_code when language is changed
+    this.lang_code = this.language_item.value || 'en';
+    // Store user's language preference in localStorage
+    localStorage.setItem('print_designer_language', this.lang_code);
+    super.set_user_lang();
+  }
+  restore_user_language() {
+    // Restore user's preferred language from localStorage
+    const stored_lang = localStorage.getItem('print_designer_language');
+    if (stored_lang && stored_lang !== this.lang_code) {
+      this.lang_code = stored_lang;
+      if (this.language_item) {
+        this.language_item.set_value(stored_lang);
+      }
+      if (this.toolbar_language_selector) {
+        this.toolbar_language_selector.set_value(stored_lang);
+      }
+    }
+  }
+  set_default_print_format() {
+    super.set_default_print_format();
+    if (
+      frappe.meta
+        .get_print_formats(this.frm.doctype)
+        .includes(this.toolbar_print_format_selector.$input.val())
+    )
+      return;
+    if (!this.frm.meta.default_print_format) {
+      let pd_print_format = '';
+      if (this.frm.doctype == 'Sales Invoice') {
+        pd_print_format = 'Sales Invoice PD Format v2';
+      } else if (this.frm.doctype == 'Sales Order') {
+        pd_print_format = 'Sales Order PD v2';
+      }
+      if (pd_print_format) {
+        this.print_format_selector.val(pd_print_format);
+        this.toolbar_print_format_selector.$input.val(pd_print_format);
+      }
+      return;
+    }
+    this.toolbar_print_format_selector.$input.empty();
+    this.toolbar_print_format_selector.$input.val(
+      this.frm.meta.default_print_format,
+    );
+  }
+  async render_pdf() {
+    // Construct PDF URL like the parent class
+    let params = new URLSearchParams({
+      doctype: this.frm.doctype,
+      name: this.frm.docname,
+      format: this.selected_format(),
+      _lang: this.getFormDefaultLanguage(),
+    });
+
+    // Add PDF generator parameter - only send if not auto
+    const selected_generator = this.selected_pdf_generator || 'auto';
+    if (selected_generator !== 'auto') {
+      params.set('pdf_generator', selected_generator);
+    }
+
+    // Add copy parameters from top-right controls
+    const copyCount = this.copy_count_input ? parseInt(this.copy_count_input.val()) || 1 : 1;
+    if (copyCount > 1) {
+      params.set('copy_count', copyCount);
+
+      // Get labels from top-right controls
+      const originalLabel = this.original_label_input ? this.original_label_input.val() || __('Original') : __('Original');
+      const copyLabel = this.copy_label_input ? this.copy_label_input.val() || __('Copy') : __('Copy');
+      params.set('copy_labels', `${originalLabel}, ${copyLabel}`);
+
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+
+        // Inform user about the change
+        frappe.show_alert({
+          message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
+          indicator: 'blue'
+        }, 5);
+      }
+    } else if (this.enable_copies_item && this.enable_copies_item.value) {
+      // Fallback to sidebar controls if top-right controls are not available
+      params.set('copy_count', this.copy_count_item.value || 2);
+      if (this.copy_labels_item.value) {
+        params.set('copy_labels', this.copy_labels_item.value);
+      }
+
+      // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+      if (!this.selected_pdf_generator || this.selected_pdf_generator === 'auto') {
+        params.set('pdf_generator', 'wkhtmltopdf');
+
+        // Inform user about the change
+        frappe.show_alert({
+          message: __('Copy functionality works best with wkhtmltopdf. Letter Head is available.'),
+          indicator: 'blue'
+        }, 5);
+      }
+    }
+
+    // Add letterhead if selected (works with wkhtmltopdf)
+    if (this.letterhead_selector && this.letterhead_selector.val()) {
+      params.set('letterhead', this.letterhead_selector.val());
+    }
+
+    // Add signature and stamp parameters
+    if (this.signature_selector && this.signature_selector.val()) {
+      params.set('digital_signature', this.signature_selector.val());
+    }
+    if (this.company_stamp_selector && this.company_stamp_selector.val()) {
+      params.set('company_stamp', this.company_stamp_selector.val());
+    }
+    
+    // Add watermark parameter
+    if (this.watermark_selector && this.watermark_selector.val() && this.watermark_selector.val() !== 'None') {
+      const watermarkValue = this.watermark_selector.val();
+      console.log('[WATERMARK DEBUG] Adding watermark parameter to PDF URL:', watermarkValue);
+      
+      // Handle template selection vs basic watermark modes
+      if (watermarkValue.startsWith('Template: ')) {
+        const templateName = watermarkValue.replace('Template: ', '');
+        params.set('watermark_template', templateName);
+        console.log('[WATERMARK DEBUG] Using watermark template for PDF download:', templateName);
+      } else {
+        params.set('watermark_settings', watermarkValue);
+        console.log('[WATERMARK DEBUG] Using basic watermark mode for PDF download:', watermarkValue);
+      }
+    }
+
+    // Construct the full URL
+    let url;
+    if (window.safePDFClient) {
+      try {
+        await window.safePDFClient.initialize();
+
+        // Convert URLSearchParams to object for safe client
+        const paramsObj = {};
+        for (const [key, value] of params.entries()) {
+          paramsObj[key] = value;
+        }
+
+        url = await window.safePDFClient.getPDFDownloadURL(paramsObj);
+      } catch (error) {
+        console.error('Print Designer: Safe PDF client failed for copy printing, using standard URL:', error);
+        url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+      }
+    } else {
+      url = `${window.location.origin}/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+    }
+    console.log('PDF URL with copy parameters:', url);
+
+    // Open the PDF download
+    window.open(url, '_blank');
+  }
+
+  download_pdf() {
+    this.pdfDoc.getData().then((arrBuff) => {
+      const downloadFile = (blob, fileName) => {
+        const link = document.createElement('a');
+        // create a blobURI pointing to our Blob
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        // some browser needs the anchor to be in the doc
+        document.body.append(link);
+        link.click();
+        link.remove();
+        // in case the Blob uses a lot of memory
+        setTimeout(() => URL.revokeObjectURL(link.href), 7000);
+      };
+      downloadFile(
+        new Blob([arrBuff], { type: 'application/pdf' }),
+        `${frappe.get_route().slice(2).join('/')}.pdf`,
+      );
+    });
+  }
+
+  // Debug methods for PDF generation logs
+  async showPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    try {
+      const response = await window.pdfLogger.getRecentLogs(100);
+      if (response.success) {
+        const logs = response.logs.join('\n');
+        frappe.msgprint({
+          title: __('PDF Generation Logs'),
+          message: `<pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">${logs}</pre>`,
+          wide: true
+        });
+      } else {
+        frappe.show_alert({
+          message: __('Failed to retrieve logs: {0}', [response.message]),
+          indicator: 'red'
+        });
+      }
+    } catch (error) {
+      frappe.show_alert({
+        message: __('Error retrieving logs: {0}', [error.message]),
+        indicator: 'red'
+      });
+    }
+  }
+
+  exportPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    try {
+      window.pdfLogger.exportSessionLogs();
+      frappe.show_alert({
+        message: __('PDF logs exported successfully'),
+        indicator: 'green'
+      });
+    }
+    catch (error) {
+      frappe.show_alert({
+        message: __('Error exporting logs: {0}', [error.message]),
+        indicator: 'red'
+      });
+    }
+  }
+
+  async clearPDFLogs() {
+    if (!window.pdfLogger) {
+      frappe.show_alert({
+        message: __('PDF Logger not available'),
+        indicator: 'red'
+      });
+      return;
+    }
+
+    if (confirm(__('Are you sure you want to clear all PDF generation logs?'))) {
+      try {
+        const response = await window.pdfLogger.clearLogs();
+        if (response.success) {
+          frappe.show_alert({
+            message: __('PDF logs cleared successfully'),
+            indicator: 'green'
+          });
+        } else {
+          frappe.show_alert({
+            message: __('Failed to clear logs: {0}', [response.message]),
+            indicator: 'red'
+          });
+        }
+      } catch (error) {
+        frappe.show_alert({
+          message: __('Error clearing logs: {0}', [error.message]),
+          indicator: 'red'
+        });
+      }
+    }
+  }
+}; // End of PrintView class
+
+} // End of extendPrintView function
+
+// Call the function to extend PrintView
+extendPrintView();
+
+}
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd

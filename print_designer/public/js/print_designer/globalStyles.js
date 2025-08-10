@@ -8,15 +8,24 @@ export const globalStyles = {
 		mainRuleSelector: ".staticText",
 		style: {
 			display: "inline-block",
+<<<<<<< HEAD
 			fontFamily: "Inter",
 			fontSize: "14px",
+=======
+			fontFamily: "Sarabun",
+			fontSize: "12px",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontWeight: 400,
 			color: "#000000",
 			textAlign: "left",
 			fontStyle: "normal",
 			textDecoration: "none",
 			textTransform: "none",
+<<<<<<< HEAD
 			lineHeight: 1.25,
+=======
+			lineHeight: 1.5,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			letterSpacing: "0px",
 			contenteditable: false,
 			border: "none",
@@ -51,7 +60,11 @@ export const globalStyles = {
 		labelRuleSelector: ".dynamicText .label-text",
 		style: {
 			display: "inline-block",
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			fontFamily: "Sarabun",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontSize: "14px",
 			fontWeight: 400,
 			color: "#000000",
@@ -83,7 +96,11 @@ export const globalStyles = {
 			opacity: 1,
 		},
 		labelStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			fontFamily: "Sarabun",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontSize: "14px",
 			fontWeight: 600,
 			color: "#000000",
@@ -214,7 +231,11 @@ export const globalStyles = {
 		altRuleSelector: ".printTable tr:nth-child(even) td",
 		labelRuleSelector: ".printTable .label-text",
 		style: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			fontFamily: "Sarabun",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontSize: "10px",
 			fontWeight: 400,
 			color: "#000000",
@@ -246,7 +267,11 @@ export const globalStyles = {
 			opacity: 1,
 		},
 		labelStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			fontFamily: "Sarabun",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontSize: "10px",
 			fontWeight: 600,
 			color: "#000000",
@@ -277,7 +302,11 @@ export const globalStyles = {
 			zIndex: 1,
 		},
 		headerStyle: {
+<<<<<<< HEAD
 			fontFamily: "Inter",
+=======
+			fontFamily: "Sarabun",
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 			fontSize: "11px",
 			fontWeight: 600,
 			color: "#000000",

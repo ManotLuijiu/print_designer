@@ -5,8 +5,12 @@
     {%- if settings.get("schema_version") == "1.1.0" -%}
         {%- set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%}
     {%- endif -%}
+<<<<<<< HEAD
     {%- set pageBreak = element.get("breakInside", "auto") -%}
     <div style="position:relative;  top: 0px; {%- if element.rectangleContainer -%}margin-top:{{element.startY}}px; margin-left:{{element.startX}}px;{%- endif -%} width:{{ element.width }}px; {%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px; {%- endif -%}  break-inside: {{ pageBreak }}; {{convert_css(element.style)}}"
+=======
+    <div style="position:relative;  top: 0px; {%- if element.rectangleContainer -%}margin-top:{{element.startY}}px; margin-left:{{element.startX}}px;{%- endif -%} width:{{ element.width }}px; {%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px; {%- endif -%} {{convert_css(element.style)}}"
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
     class="rectangle {{ element.classes | join(' ') }}">
         {% if element.childrens %}
             {% for object in element.childrens %}
@@ -27,8 +31,12 @@
     {%- if settings.get("schema_version") == "1.1.0" -%}
         {%- set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%}
     {%- endif -%}
+<<<<<<< HEAD
     {%- set pageBreak = element.get("breakInside", "auto") -%}
     <div style="position:relative; left:{{ element.startX }}px; {%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px; {%- endif -%} break-inside: {{ pageBreak }}; {{convert_css(element.style)}}"
+=======
+    <div style="position:relative; left:{{ element.startX }}px; {%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px; {%- endif -%} {{convert_css(element.style)}}"
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
     class="rectangle relative-row {{ element.classes | join(' ') }}">
         {% if element.childrens %}
             {% for object in element.childrens %}

@@ -33,6 +33,44 @@
         .printview-header-margin {
             display: none;
         }
+<<<<<<< HEAD
+=======
+        
+        /* Fix double footer/header issue by hiding hidden-pdf elements during browser print */
+        .hidden-pdf {
+            display: none !important;
+        }
+        
+        /* Show visible-pdf elements during browser print */
+        .visible-pdf {
+            display: block !important;
+        }
+        
+        /* Add CSS-based page numbering for browser print */
+        @page {
+            margin: 20mm;
+            @top-right {
+                content: counter(page) " / " counter(pages);
+                font-size: 12px;
+                color: #666;
+            }
+        }
+        
+        /* Reset page counter for each document */
+        body {
+            counter-reset: page;
+        }
+        
+        /* Ensure proper page breaks */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        /* Fix header/footer positioning for browser print */
+        #header-html, #footer-html {
+            position: static !important;
+        }
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
     }
     .print-designer-container {
         position: absolute;
@@ -99,4 +137,8 @@
         -webkit-box-sizing: border-box;
     }
 </style>
+<<<<<<< HEAD
 {% endmacro %}
+=======
+{% endmacro %}
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd

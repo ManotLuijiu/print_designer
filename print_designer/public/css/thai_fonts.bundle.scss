@@ -1,0 +1,33 @@
+/* 
+ * Thai Fonts Bundle - Font Loading Only
+ * 
+ * This bundle is responsible for loading Thai fonts from Google Fonts CDN.
+ * Font stack configuration is now handled dynamically by the Global Typography Override system.
+ * Do not add static font-family declarations here - they will conflict with user preferences.
+ */
+
+/* Google Fonts Import for Thai fonts */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@100;200;300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@100;200;300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Mitr:wght@200;300;400;500;600;700&family=Noto+Sans+Thai&family=Pattaya&family=Pridi:wght@200;300;400;500;600;700&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+
+/* 
+ * Font stack configuration is handled by:
+ * 1. Global Typography Override system (user-configurable through Global Defaults)
+ * 2. File: global_typography_override.bundle.css (dynamic CSS generation)
+ * 3. API: print_designer.api.global_typography (backend management)
+ * 4. Client: global_defaults.js (immediate visual feedback)
+ * 
+ * Static font assignments have been removed to prevent conflicts with user preferences.
+ * The dynamic system provides:
+ * - User-configurable font selection through Global Defaults
+ * - Immediate visual feedback when changing fonts
+ * - Proper CSS variable overrides (--font-stack)
+ * - Comprehensive element coverage
+ * - Thai font optimization features
+ */
+
+/* Fallback font loading verification (development only) */
+@media (max-width: 1px) {
+  .thai-fonts-loaded {
+    font-family: 'Noto Sans Thai', 'Sarabun', 'IBM Plex Sans Thai', 'Kanit', 'Prompt', 'Mitr', 'Pridi';
+  }
+}

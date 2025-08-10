@@ -1,0 +1,496 @@
+{
+    "doctype": "Print Format",
+    "name": "Official Thai Form 50ทวิ - Withholding Tax Certificate",
+    "doc_type": "Payment Entry",
+    "print_designer": 1,
+    "font": "Sarabun",
+    "font_size": 12,
+    "margin_top": 15,
+    "margin_bottom": 15,
+    "margin_left": 15,
+    "margin_right": 15,
+    "page_size": "A4",
+    "default_print_language": "th",
+    "print_designer_settings": {
+      "page": {
+        "width": 595,
+        "height": 842,
+        "marginTop": 15,
+        "marginBottom": 15,
+        "marginLeft": 15,
+        "marginRight": 15,
+        "headerHeight": 0,
+        "footerHeight": 0
+      },
+      "schema_version": "1.1.0"
+    },
+    "print_designer_body": [
+      {
+        "type": "page",
+        "index": 0,
+        "childrens": [
+          {
+            "type": "text",
+            "id": "form_title",
+            "content": "หนังสือรับรองการหักภาษี ณ ที่จ่าย",
+            "startX": 50,
+            "startY": 30,
+            "width": 500,
+            "height": 25,
+            "style": {
+              "fontSize": "16px",
+              "fontWeight": "bold",
+              "textAlign": "center",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "text",
+            "id": "form_subtitle",
+            "content": "ตามมาตรา 50 ทวิ แห่งประมวลรัษฎากร",
+            "startX": 50,
+            "startY": 55,
+            "width": 500,
+            "height": 20,
+            "style": {
+              "fontSize": "12px",
+              "textAlign": "center",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "text",
+            "id": "copy_number",
+            "content": "ฉบับที่ 1 (สำหรับผู้ถูกหักภาษี ณ ที่จ่าย ใช้แนบพร้อมกับแบบแสดงรายการภาษี)",
+            "startX": 50,
+            "startY": 80,
+            "width": 500,
+            "height": 20,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "rectangle",
+            "id": "payer_section",
+            "startX": 50,
+            "startY": 110,
+            "width": 500,
+            "height": 100,
+            "style": {
+              "border": "1px solid #000"
+            },
+            "childrens": [
+              {
+                "type": "text",
+                "id": "payer_title",
+                "content": "ผู้มีหน้าที่หักภาษี ณ ที่จ่าย :-",
+                "startX": 10,
+                "startY": 10,
+                "width": 480,
+                "height": 15,
+                "style": {
+                  "fontSize": "12px",
+                  "fontWeight": "bold",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_name_label",
+                "content": "ชื่อ",
+                "startX": 15,
+                "startY": 30,
+                "width": 30,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_name",
+                "isDynamic": true,
+                "startX": 50,
+                "startY": 30,
+                "width": 420,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "company",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_address_label",
+                "content": "ที่อยู่",
+                "startX": 15,
+                "startY": 50,
+                "width": 30,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_address",
+                "isDynamic": true,
+                "startX": 50,
+                "startY": 50,
+                "width": 420,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "custom_company_address",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_tax_id_label",
+                "content": "เลขประจำตัวผู้เสียภาษีอากร",
+                "startX": 15,
+                "startY": 70,
+                "width": 150,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payer_tax_id",
+                "isDynamic": true,
+                "startX": 170,
+                "startY": 70,
+                "width": 200,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "custom_company_tax_id",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              }
+            ]
+          },
+          {
+            "type": "rectangle",
+            "id": "payee_section",
+            "startX": 50,
+            "startY": 220,
+            "width": 500,
+            "height": 100,
+            "style": {
+              "border": "1px solid #000"
+            },
+            "childrens": [
+              {
+                "type": "text",
+                "id": "payee_title",
+                "content": "ผู้ถูกหักภาษี ณ ที่จ่าย :-",
+                "startX": 10,
+                "startY": 10,
+                "width": 480,
+                "height": 15,
+                "style": {
+                  "fontSize": "12px",
+                  "fontWeight": "bold",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_name_label",
+                "content": "ชื่อ",
+                "startX": 15,
+                "startY": 30,
+                "width": 30,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_name",
+                "isDynamic": true,
+                "startX": 50,
+                "startY": 30,
+                "width": 420,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "party_name",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_address_label",
+                "content": "ที่อยู่",
+                "startX": 15,
+                "startY": 50,
+                "width": 30,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_address",
+                "isDynamic": true,
+                "startX": 50,
+                "startY": 50,
+                "width": 420,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "custom_party_address",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_tax_id_label",
+                "content": "เลขประจำตัวผู้เสียภาษีอากร",
+                "startX": 15,
+                "startY": 70,
+                "width": 150,
+                "height": 15,
+                "style": {
+                  "fontSize": "11px",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "payee_tax_id",
+                "isDynamic": true,
+                "startX": 170,
+                "startY": 70,
+                "width": 200,
+                "height": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "custom_party_tax_id",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              }
+            ]
+          },
+          {
+            "type": "table",
+            "id": "income_types_table",
+            "startX": 50,
+            "startY": 340,
+            "width": 500,
+            "height": 280,
+            "style": {
+              "border": "1px solid #000",
+              "fontSize": "10px",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            },
+            "columns": [
+              {
+                "label": "ประเภทเงินได้พึงประเมินที่จ่าย\n(กรุณาทำเครื่องหมาย ✓ ใน □ ที่ตรงกับประเภทเงินได้ที่จ่าย และระบุรายละเอียด)",
+                "width": 50,
+                "content": "1. □ เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส เงินรางวัล เบี้ยประชุม เงินพิเศษ ฯลฯ ตามมาตรา 40(1)\n2. □ ค่าธรรมเนียม ค่านายหน้า ฯลฯ ตามมaตรา 40(2)\n3. □ ค่าแห่งลิขสิทธิ์ ค่าบริการทางเทคนิค ฯลฯ ตามมาตรา 40(3)\n4. (1) □ ดอกเบี้ย ตามมาตรา 40(4)(ก)\n   (2) □ เงินปันผล กำไรสุทธิ ฯลฯ ตามมาตรา 40(4)(ข) และ (ค)\n5. □ ค่าเช่าทรัพย์สิน ตามมาตรา 40(5)\n6. □ อื่น ๆ (โปรดระบุ) ________________"
+              },
+              {
+                "label": "วัน เดือน ปี ภาษีที่จ่าย",
+                "width": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "posting_date",
+                    "is_static": false
+                  }
+                ]
+              },
+              {
+                "label": "จำนวนเงินที่จ่าย",
+                "width": 15,
+                "dynamicContent": [
+                  {
+                    "fieldname": "paid_amount",
+                    "is_static": false
+                  }
+                ]
+              },
+              {
+                "label": "ภาษีที่หักและนำส่งไว้",
+                "width": 20,
+                "dynamicContent": [
+                  {
+                    "fieldname": "tax_amount",
+                    "is_static": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "rectangle",
+            "id": "total_section",
+            "startX": 350,
+            "startY": 630,
+            "width": 200,
+            "height": 30,
+            "style": {
+              "border": "1px solid #000"
+            },
+            "childrens": [
+              {
+                "type": "text",
+                "id": "total_label",
+                "content": "รวมเงินที่จ่ายและภาษีที่หักนำส่ง",
+                "startX": 10,
+                "startY": 5,
+                "width": 120,
+                "height": 20,
+                "style": {
+                  "fontSize": "11px",
+                  "fontWeight": "bold",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              },
+              {
+                "type": "text",
+                "id": "total_amount",
+                "isDynamic": true,
+                "startX": 130,
+                "startY": 5,
+                "width": 60,
+                "height": 20,
+                "dynamicContent": [
+                  {
+                    "fieldname": "custom_total_tax_withheld",
+                    "is_static": false
+                  }
+                ],
+                "style": {
+                  "fontSize": "11px",
+                  "textAlign": "right",
+                  "borderBottom": "1px dotted #000",
+                  "fontFamily": "Sarabun, Arial, sans-serif"
+                }
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "payer_type_section",
+            "content": "ผู้จ่ายเงิน   (1) □ หัก ณ ที่จ่าย ตามอัตราที่กำหนดในกฎหมาย   (2) □ ออกให้เพื่อประโยชน์ในการขอคืนภาษี",
+            "startX": 50,
+            "startY": 680,
+            "width": 500,
+            "height": 20,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "text",
+            "id": "certification_text",
+            "content": "ขอรับรองว่าได้หักภาษี ณ ที่จ่าย ถูกต้องตามจำนวนดังกล่าวข้างต้น และได้นำส่งเงินภาษีดังกล่าวให้แก่กรมสรรพากรแล้ว\nตามใบนำส่งภาษีหัก ณ ที่จ่าย",
+            "startX": 50,
+            "startY": 710,
+            "width": 500,
+            "height": 30,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif",
+              "whiteSpace": "pre-line"
+            }
+          },
+          {
+            "type": "text",
+            "id": "submission_details",
+            "content": "แบบ ภ.ง.ด.1ก ลงวันที่........................ เลขที่ใบนำส่ง..........................",
+            "startX": 50,
+            "startY": 750,
+            "width": 300,
+            "height": 15,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "text",
+            "id": "date_place",
+            "content": "ออก ณ ................................. วันที่ .......... เดือน .................... พ.ศ. ........",
+            "startX": 350,
+            "startY": 750,
+            "width": 200,
+            "height": 15,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif"
+            }
+          },
+          {
+            "type": "text",
+            "id": "signature_section",
+            "content": "ลงชื่อ........................................... ผู้จ่ายเงิน\n         (                                        )\n\nตำแหน่ง ........................................",
+            "startX": 350,
+            "startY": 780,
+            "width": 200,
+            "height": 60,
+            "style": {
+              "fontSize": "11px",
+              "fontFamily": "Sarabun, Arial, sans-serif",
+              "textAlign": "center",
+              "whiteSpace": "pre-line"
+            }
+          }
+        ]
+      }
+    ],
+    "css": "/* Official Thai Form 50ทวิ Styles */\n@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');\n\nbody {\n    font-family: 'Sarabun', Arial, sans-serif;\n    font-size: 12px;\n    line-height: 1.2;\n    color: #000;\n}\n\n.form-50-twi {\n    font-family: 'Sarabun', Arial, sans-serif;\n    max-width: 210mm;\n    margin: 0 auto;\n    background: white;\n}\n\n.checkbox-area {\n    font-family: Arial, sans-serif;\n    font-size: 12px;\n}\n\n.dotted-line {\n    border-bottom: 1px dotted #000;\n    min-height: 15px;\n    display: inline-block;\n}\n\n@media print {\n    body {\n        font-size: 11px;\n        margin: 0;\n        padding: 0;\n    }\n    \n    .form-50-twi {\n        width: 100%;\n        margin: 0;\n    }\n    \n    .signature-area {\n        page-break-inside: avoid;\n    }\n}"
+  }

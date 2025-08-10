@@ -17,3 +17,19 @@ print_designer.patches.change_dynamic_height_variable
 print_designer.patches.introduce_z_index
 print_designer.patches.move_header_footers_to_new_schema
 print_designer.patches.convert_formats_for_recursive_container
+<<<<<<< HEAD
+=======
+print_designer.patches.add_watermark_settings_field
+print_designer.patches.set_wkhtmltopdf_for_print_designer_formats
+print_designer.patches.add_signature_tab_to_accounts_settings
+print_designer.patches.remove_signature_tab_from_accounts_settings
+print_designer.patches.add_signature_tab_to_print_settings
+print_designer.patches.update_signature_css_for_theme_support
+print_designer.patches.fix_signature_badges_width_and_count
+print_designer.patches.fix_signature_script_visibility
+print_designer.patches.v1_0.enhance_signature_basic_information
+print_designer.patches.v1_0.install_watermark_fields
+print_designer.patches.v1_0.fix_target_signature_field_options
+print_designer.patches.v1_0.install_sales_invoice_wht_net_total_fields
+print_designer.patches.v1_1.install_complete_watermark_fields
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd

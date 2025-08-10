@@ -194,3 +194,10 @@ cypress/videos
 
 # JetBrains IDEs
 .idea/
+<<<<<<< HEAD
+=======
+
+# Local Images
+images/local/
+print_designer/public/images/local/
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd

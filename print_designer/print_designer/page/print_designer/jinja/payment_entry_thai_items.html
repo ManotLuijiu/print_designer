@@ -1,0 +1,65 @@
+{%- macro get_invoice_items(payment_entry) -%}
+  {%- set all_items = [] -%}
+  {%- set invoice_totals = {} -%}
+  
+  {%- for reference in payment_entry.references -%}
+    {%- if reference.reference_doctype == "Sales Invoice" -%}
+      {%- set invoice = frappe.get_doc("Sales Invoice", reference.reference_name) -%}
+      {%- for item in invoice.items -%}
+        {%- set item_with_invoice = {
+          'item_code': item.item_code,
+          'item_name': item.item_name,
+          'description': item.description,
+          'qty': item.qty,
+          'uom': item.uom,
+          'rate': item.rate,
+          'amount': item.amount,
+          'invoice_no': invoice.name,
+          'invoice_date': invoice.posting_date,
+          'tax_rate': 0
+        } -%}
+        
+        {%- if invoice.taxes -%}
+          {%- for tax in invoice.taxes -%}
+            {%- if 'VAT' in tax.description or 'ภาษี' in tax.description -%}
+              {%- set _ = item_with_invoice.update({'tax_rate': tax.rate}) -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+        
+        {%- set _ = all_items.append(item_with_invoice) -%}
+      {%- endfor -%}
+      
+      {%- set _ = invoice_totals.update({
+        invoice.name: {
+          'net_total': invoice.net_total,
+          'grand_total': invoice.grand_total,
+          'total_taxes_and_charges': invoice.total_taxes_and_charges
+        }
+      }) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  
+  {{ {'items': all_items, 'invoice_totals': invoice_totals} | tojson }}
+{%- endmacro -%}
+
+{%- macro format_thai_currency(amount, currency='THB') -%}
+  {%- if currency == 'THB' -%}
+    ฿{{ '{:,.2f}'.format(amount) }}
+  {%- else -%}
+    {{ '{:,.2f}'.format(amount) }} {{ currency }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{%- macro thai_date_format(date) -%}
+  {%- if date -%}
+    {%- set thai_months = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+      'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ] -%}
+    {%- set day = date.day -%}
+    {%- set month = thai_months[date.month - 1] -%}
+    {%- set year = date.year + 543 -%}
+    {{ day }} {{ month }} {{ year }}
+  {%- endif -%}
+{%- endmacro -%}

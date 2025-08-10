@@ -1,5 +1,6 @@
 import { useMainStore } from "./store/MainStore";
 
+<<<<<<< HEAD
 export const createRectangle = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -12,12 +13,37 @@ export const createRectangle = (cordinates, parent = null) => {
 			pageY: cordinates.y,
 		};
 	}
+=======
+export const createRectangle = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+			position: 'absolute' // Default to absolute
+		};
+	}
+
+	// Determine positioning strategy
+	const positioning = coordinates.position || 'absolute';
+	const isFlowLayout = positioning === 'relative' || parent?.layoutType === 'flex-row' || parent?.layoutType === 'flex-col';
+
+	console.log('positioning',positioning)
+	console.log('isFlowLayout',isFlowLayout)
+
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 	const newRectangle = {
 		id: id,
 		type: "rectangle",
 		DOMRef: null,
 		childrens: [],
 		parent: parent,
+<<<<<<< HEAD
 		isDraggable: false,
 		isResizable: false,
 		isDropZone: false,
@@ -27,6 +53,43 @@ export const createRectangle = (cordinates, parent = null) => {
 		pageY: cordinates.pageY,
 		width: 0,
 		height: 0,
+=======
+
+		// Layout properties
+		layoutType: coordinates.layoutType || 'absolute',
+		positioning: positioning,
+		flowDirection: coordinates.flowDirection || 'column',
+
+		// Position properties (conditional based on layout)
+		...(isFlowLayout ? {
+			// Relative positioning properties
+			marginTop: coordinates.marginTop || 0,
+			marginBottom: coordinates.marginBottom || 0,
+			marginLeft: coordinates.marginLeft || 0,
+			marginRight: coordinates.marginRight || 0,
+			order: coordinates.order || 0
+		} : {
+			// Absolute positioning properties (current)
+			startX: coordinates.startX,
+			startY: coordinates.startY,
+			pageX: coordinates.pageX,
+			pageY: coordinates.pageY
+		}),
+		width: 0,
+		// height: 0,
+		height: coordinates.height || 'auto', // Allow auto height
+    	minHeight: coordinates.minHeight || 0,
+    	maxHeight: coordinates.maxHeight || 'none',
+
+		// Rest of properties remain the same
+		isDraggable: false,
+		isResizable: false,
+		isDropZone: false,
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		styleEditMode: "main",
 		style: {},
 		classes: [],
@@ -36,6 +99,7 @@ export const createRectangle = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newRectangle;
 	return newRectangle;
 };
+<<<<<<< HEAD
 export const createImage = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -46,6 +110,18 @@ export const createImage = (cordinates, parent = null) => {
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+=======
+export const createImage = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		};
 	}
 	const newImage = {
@@ -58,10 +134,17 @@ export const createImage = (cordinates, parent = null) => {
 		isDropZone: false,
 		isDynamic: false,
 		image: null,
+<<<<<<< HEAD
 		startX: cordinates.startX,
 		startY: cordinates.startY,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
+=======
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -73,6 +156,7 @@ export const createImage = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newImage;
 	return newImage;
 };
+<<<<<<< HEAD
 export const createBarcode = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -83,6 +167,18 @@ export const createBarcode = (cordinates, parent = null) => {
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+=======
+export const createBarcode = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		};
 	}
 	const newBarcode = {
@@ -99,10 +195,17 @@ export const createBarcode = (cordinates, parent = null) => {
 		isDynamic: false,
 		value: "",
 		dynamicContent: [],
+<<<<<<< HEAD
 		startX: cordinates.startX,
 		startY: cordinates.startY,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
+=======
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -114,6 +217,7 @@ export const createBarcode = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newBarcode;
 	return newBarcode;
 };
+<<<<<<< HEAD
 export const createTable = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -124,6 +228,18 @@ export const createTable = (cordinates, parent = null) => {
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+=======
+export const createTable = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		};
 	}
 	const newTable = {
@@ -139,10 +255,17 @@ export const createTable = (cordinates, parent = null) => {
 		PreviewRowNo: 1,
 		selectedColumn: null,
 		selectedDynamicText: null,
+<<<<<<< HEAD
 		startX: cordinates.startX,
 		startY: cordinates.startY,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
+=======
+		startX: coordinates.startX,
+		startY: coordinates.startY,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -160,6 +283,7 @@ export const createTable = (cordinates, parent = null) => {
 	return newTable;
 };
 
+<<<<<<< HEAD
 export const createText = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -170,6 +294,18 @@ export const createText = (cordinates, parent = null) => {
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+=======
+export const createText = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		};
 	}
 	const newStaticText = {
@@ -185,10 +321,17 @@ export const createText = (cordinates, parent = null) => {
 		isResizable: false,
 		isDropZone: false,
 		parseJinja: false,
+<<<<<<< HEAD
 		startX: cordinates.startX - 5,
 		startY: cordinates.startY - 16,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
+=======
+		startX: coordinates.startX - 5,
+		startY: coordinates.startY - 16,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -200,6 +343,7 @@ export const createText = (cordinates, parent = null) => {
 	MainStore.lastCreatedElement = newStaticText;
 	return newStaticText;
 };
+<<<<<<< HEAD
 export const createDynamicText = (cordinates, parent = null) => {
 	const MainStore = useMainStore();
 
@@ -210,6 +354,18 @@ export const createDynamicText = (cordinates, parent = null) => {
 			startY: cordinates.offsetY,
 			pageX: cordinates.x,
 			pageY: cordinates.y,
+=======
+export const createDynamicText = (coordinates, parent = null) => {
+	const MainStore = useMainStore();
+
+	let id = frappe.utils.get_random(10);
+	if (coordinates instanceof MouseEvent) {
+		coordinates = {
+			startX: coordinates.offsetX,
+			startY: coordinates.offsetY,
+			pageX: coordinates.x,
+			pageY: coordinates.y,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		};
 	}
 	const newDynamicText = {
@@ -226,10 +382,17 @@ export const createDynamicText = (cordinates, parent = null) => {
 		isDraggable: false,
 		isResizable: false,
 		isDropZone: false,
+<<<<<<< HEAD
 		startX: cordinates.startX - 5,
 		startY: cordinates.startY - 16,
 		pageX: cordinates.pageX,
 		pageY: cordinates.pageY,
+=======
+		startX: coordinates.startX - 5,
+		startY: coordinates.startY - 16,
+		pageX: coordinates.pageX,
+		pageY: coordinates.pageY,
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 		width: 0,
 		height: 0,
 		styleEditMode: "main",
@@ -396,6 +559,29 @@ export const GoogleFonts = {
 		[100, 200, 300, 400, 500, 600, 700, 800, 900],
 		[100, 200, 300, 400, 500, 600, 700, 800, 900],
 	],
+<<<<<<< HEAD
+=======
+	"Noto Sans Thai": [
+        [100, 200, 300, 400, 500, 600, 700, 800],
+        [100, 200, 300, 400, 500, 600, 700, 800]
+    ],
+	"IBM Plex Sans Thai": [
+        [100, 200, 300, 400, 500, 600, 700],
+        [100, 200, 300, 400, 500, 600, 700]
+    ],
+	"Sarabun": [
+        [100, 200, 300, 400, 500, 600, 700, 800],
+        [100, 200, 300, 400, 500, 600, 700, 800]
+    ],
+    "Kanit": [
+        [100, 200, 300, 400, 500, 600, 700, 800, 900],
+        [100, 200, 300, 400, 500, 600, 700, 800, 900]
+    ],
+    "Prompt": [
+        [100, 200, 300, 400, 500, 600, 700, 800, 900],
+        [100, 200, 300, 400, 500, 600, 700, 800, 900]
+    ],
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 };
 
 export const barcodeFormats = [

@@ -1,0 +1,118 @@
+/* Define theme-aware color variables */
+:root,
+[data-theme="light"] {
+    --sig-bg: #ffffff;
+    --sig-btn-bg: #f8f9fa;
+    --sig-text: #212529;
+    --sig-border: #dee2e6;
+}
+
+[data-theme="dark"] {
+    --sig-bg: #1c1c1c;
+    --sig-btn-bg: #343a40;
+    --sig-text: #f1f1f1;
+    --sig-border: #444;
+}
+
+/* Container for the Stamps & Signatures tab */
+#company-stamps_signatures_tab,
+.tab-pane#company-stamps_signatures_tab {
+    background-color: var(--sig-bg);
+    color: var(--sig-text);
+    margin: 0;
+    padding: 0;
+}
+
+/* Section header styling */
+#company-stamps_signatures_tab .section-head {
+    background-color: var(--sig-bg);
+    color: var(--sig-text);
+    padding: 12px 16px;
+    margin: 0;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    border-bottom: 1px solid var(--sig-border);
+}
+
+/* Card base styling */
+#company-stamps_signatures_tab .card {
+    background-color: var(--sig-bg);
+    color: var(--sig-text);
+    border: 1px solid var(--sig-border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    opacity: 0.7;
+}
+
+/* Hover state */
+#company-stamps_signatures_tab .card:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+/* Special stamp/signature cards */
+#company-stamps_signatures_tab .stamp-card,
+#company-stamps_signatures_tab .signature-card {
+    background-color: var(--sig-bg);
+    color: var(--sig-text);
+    border: 1px solid var(--sig-border);
+    border-radius: 8px;
+    padding: 16px;
+    height: 100%;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0.6;
+}
+
+#company-stamps_signatures_tab .stamp-card:hover,
+#company-stamps_signatures_tab .signature-card:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Images in cards */
+#company-stamps_signatures_tab .stamp-card img,
+#company-stamps_signatures_tab .signature-card img {
+    cursor: pointer;
+    background-color: var(--sig-bg);
+    border: 1px solid var(--sig-border);
+    opacity: 0.7;
+    border-radius: 4px;
+    padding: 2px;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#company-stamps_signatures_tab .stamp-card img:hover,
+#company-stamps_signatures_tab .signature-card img:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Refresh preview button */
+#company-stamps_signatures_tab .refresh-preview-btn {
+    font-size: 0.875rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    background-color: var(--sig-btn-bg);
+    color: var(--sig-text);
+    border: none;
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#company-stamps_signatures_tab .refresh-preview-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #company-stamps_signatures_tab .col-md-4 {
+        margin-bottom: 20px;
+    }
+
+    #company-stamps_signatures_tab .stamp-card,
+    #company-stamps_signatures_tab .signature-card {
+        padding: 12px;
+    }
+}

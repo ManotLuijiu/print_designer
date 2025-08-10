@@ -1,0 +1,380 @@
+{%- from "print_designer/print_designer/page/print_designer/jinja/payment_entry_thai_items.html" 
+    import get_invoice_items, format_thai_currency, thai_date_format -%}
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ใบกำกับภาษี / Tax Invoice</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Sarabun', sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #000;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .thai-tax-invoice {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .company-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+        
+        .company-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .company-header .document-type {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 5px 0;
+        }
+        
+        .document-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        
+        .info-section {
+            flex: 1;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .info-table td {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        
+        .info-table .label {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            width: 40%;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border: 1px solid #000;
+        }
+        
+        .items-table th,
+        .items-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .items-table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .items-table .text-center {
+            text-align: center;
+        }
+        
+        .items-table .text-right {
+            text-align: right;
+        }
+        
+        .totals-section {
+            display: flex;
+            justify-content: flex-end;
+            margin: 20px 0;
+        }
+        
+        .totals-table {
+            width: 300px;
+            border-collapse: collapse;
+        }
+        
+        .totals-table td {
+            padding: 6px 12px;
+            border: 1px solid #000;
+        }
+        
+        .totals-table .label {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .totals-table .amount {
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .signature-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        
+        .signature-box {
+            flex: 1;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 20px;
+            min-height: 80px;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 60px;
+            padding-top: 5px;
+            font-size: 12px;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                font-size: 12px;
+            }
+            
+            .signature-box {
+                min-height: 60px;
+            }
+            
+            .signature-line {
+                margin-top: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="thai-tax-invoice">
+        <!-- Company Header -->
+        <div class="company-header">
+            <h1>{{ doc.company }}</h1>
+            {%- if frappe.get_doc("Company", doc.company).address -%}
+                <div style="font-size: 14px; margin: 5px 0;">
+                    {{ frappe.get_doc("Company", doc.company).address }}
+                </div>
+            {%- endif -%}
+            <div class="document-type">
+                ใบกำกับภาษี / Tax Invoice<br>
+                ใบเสร็จรับเงิน / Receipt
+            </div>
+        </div>
+
+        <!-- Document Information -->
+        <div class="document-info">
+            <div class="info-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">เลขที่เอกสาร<br>Document No.</td>
+                        <td>{{ doc.name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">วันที่<br>Date</td>
+                        <td>
+                            {{ doc.posting_date.strftime('%d/%m/%Y') if doc.posting_date else '' }}<br>
+                            <small>({{ thai_date_format(doc.posting_date) }})</small>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="label">ประเภทการชำระ<br>Payment Type</td>
+                        <td>{{ doc.payment_type }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="info-section">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">ลูกค้า<br>Customer</td>
+                        <td>{{ doc.party_name or doc.party }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">วิธีชำระเงิน<br>Payment Method</td>
+                        <td>{{ doc.mode_of_payment or '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">จำนวนเงิน<br>Amount</td>
+                        <td>{{ format_thai_currency(doc.paid_amount, doc.paid_to_account_currency or doc.company_currency) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Get items from referenced invoices -->
+        {%- set invoice_data = get_invoice_items(doc) -%}
+        {%- set parsed_data = invoice_data | from_json -%}
+        {%- set all_items = parsed_data.items -%}
+        {%- set invoice_totals = parsed_data.invoice_totals -%}
+
+        <!-- Items Section -->
+        {% if all_items %}
+        <div class="section-title">รายการสินค้าและบริการ / Items and Services</div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">รหัสสินค้า<br>Item Code</th>
+                    <th style="width: 35%;">รายละเอียด<br>Description</th>
+                    <th style="width: 10%;">จำนวน<br>Qty</th>
+                    <th style="width: 8%;">หน่วย<br>UOM</th>
+                    <th style="width: 12%;">ราคาต่อหน่วย<br>Unit Price</th>
+                    <th style="width: 12%;">จำนวนเงิน<br>Amount</th>
+                    <th style="width: 8%;">อ้างอิง<br>Invoice</th>
+                </tr>
+            </thead>
+            <tbody>
+                {%- set running_total = 0 -%}
+                {% for item in all_items %}
+                <tr>
+                    <td>{{ item.item_code }}</td>
+                    <td>{{ item.description or item.item_name }}</td>
+                    <td class="text-center">{{ '{:,.0f}'.format(item.qty) }}</td>
+                    <td class="text-center">{{ item.uom }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(item.rate) }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(item.amount) }}</td>
+                    <td class="text-center">{{ item.invoice_no }}</td>
+                </tr>
+                {%- set running_total = running_total + item.amount -%}
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Summary by Invoice -->
+        {% if invoice_totals %}
+        <div class="section-title">สรุปตามใบแจ้งหนี้ / Summary by Invoice</div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>เลขที่ใบแจ้งหนี้<br>Invoice No.</th>
+                    <th>ยอดก่อนภาษี<br>Net Total</th>
+                    <th>ภาษี<br>Tax</th>
+                    <th>ยอดรวม<br>Grand Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {%- set total_net = 0 -%}
+                {%- set total_tax = 0 -%}
+                {%- set total_grand = 0 -%}
+                {% for invoice_no, totals in invoice_totals.items() %}
+                <tr>
+                    <td>{{ invoice_no }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(totals.net_total) }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(totals.total_taxes_and_charges or 0) }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(totals.grand_total) }}</td>
+                </tr>
+                {%- set total_net = total_net + totals.net_total -%}
+                {%- set total_tax = total_tax + (totals.total_taxes_and_charges or 0) -%}
+                {%- set total_grand = total_grand + totals.grand_total -%}
+                {% endfor %}
+                <tr style="font-weight: 600; background-color: #f8f9fa;">
+                    <td>รวม / Total</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(total_net) }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(total_tax) }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(total_grand) }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+        {% endif %}
+
+        <!-- Referenced Documents -->
+        {% if doc.references %}
+        <div class="section-title">เอกสารอ้างอิง / Referenced Documents</div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>ประเภทเอกสาร<br>Document Type</th>
+                    <th>เลขที่เอกสาร<br>Document No.</th>
+                    <th>จำนวนเงินที่จัดสรร<br>Allocated Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reference in doc.references %}
+                <tr>
+                    <td>{{ reference.reference_doctype }}</td>
+                    <td>{{ reference.reference_name }}</td>
+                    <td class="text-right">{{ '{:,.2f}'.format(reference.allocated_amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <!-- Payment Summary -->
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td class="label">จำนวนเงินที่ชำระ<br>Payment Amount</td>
+                    <td class="amount">{{ format_thai_currency(doc.paid_amount, doc.paid_to_account_currency or doc.company_currency) }}</td>
+                </tr>
+                {% if doc.difference_amount %}
+                <tr>
+                    <td class="label">ส่วนต่าง<br>Difference</td>
+                    <td class="amount">{{ format_thai_currency(doc.difference_amount, doc.paid_to_account_currency or doc.company_currency) }}</td>
+                </tr>
+                {% endif %}
+                <tr style="font-weight: 700; font-size: 16px;">
+                    <td class="label">ยอดสุทธิ<br>Net Amount</td>
+                    <td class="amount">{{ format_thai_currency(doc.paid_amount, doc.paid_to_account_currency or doc.company_currency) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Signatures -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-line">
+                    ผู้รับเงิน<br>Received by
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">
+                    ผู้อนุมัติ<br>Approved by
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-line">
+                    ลูกค้า<br>Customer
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Note -->
+        <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+            <p>เอกสารนี้ออกโดยระบบอัตโนมัติ / This document is generated automatically</p>
+            <p>พิมพ์เมื่อ: {{ frappe.utils.now() }} / Printed on: {{ frappe.utils.now() }}</p>
+        </div>
+    </div>
+</body>
+</html>

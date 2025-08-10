@@ -132,7 +132,11 @@ watch(
 );
 
 const getPageClass = (field) => {
+<<<<<<< HEAD
 	if (["page", "frompage", "time", "date"].indexOf(field.fieldname) == -1) return "";
+=======
+	if (["page", "topage", "time", "date"].indexOf(field.fieldname) == -1) return "";
+>>>>>>> 39ca001769177d07a16b71422cd7a0845858f8fd
 	return `page_info_${field.fieldname}`;
 };
 </script>
