@@ -32,6 +32,8 @@ commands = [
     "print_designer.commands.install_company_tab.remove_company_tab",
     "print_designer.commands.fix_target_signature_field.fix_target_signature_field",
     "print_designer.commands.emergency_fix_watermark.emergency_fix_watermark",
+    "print_designer.commands.install_retention_client_script.install_retention_client_script",
+    "print_designer.commands.install_retention_client_script.check_retention_client_script",
 ]
 
 # Includes in <head>
@@ -89,7 +91,6 @@ doctype_js = {
         "public/js/thailand_wht/thailand_wht_payment_entry.js",
     ],
     "Sales Invoice": [
-        "public/js/retention/sales_invoice.js",
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
     ],
     "Sales Order": "public/js/thailand_wht/thailand_wht_sales_order.js",
@@ -446,6 +447,8 @@ doc_events = {
     # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
+        "validate": "print_designer.custom.sales_invoice_retention.validate_retention_fields",
+        "before_save": "print_designer.custom.sales_invoice_retention.calculate_retention_on_save",
     },
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
