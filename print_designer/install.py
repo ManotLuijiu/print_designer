@@ -398,9 +398,13 @@ def fix_print_settings_field_ordering():
         frappe.logger().error(f"Error fixing field ordering: {str(e)}")
 
 
-def after_app_install(app):
-    if app != "print_designer":
-        install_default_formats(app)
+def after_app_install():
+    """Legacy function for compatibility with after_install hook"""
+    # Since this is called during print_designer installation, we don't need app parameter
+    # This function was originally meant for installing formats for other apps
+    # But when called via after_install hook, we're already installing print_designer
+    # So we install default formats for print_designer itself
+    install_default_formats(app="print_designer")
 
 
 def setup_chromium():
@@ -1479,9 +1483,10 @@ def _install_watermark_fields_on_install():
 #         doc.pdf_generator = "wkhtmltopdf"
 
 
-def handle_erpnext_override(app_name):
+def handle_erpnext_override():
     """Handle ERPNext integration after app installation - now uses consolidated function"""
-    if app_name == "erpnext":
+    # Since this is called during print_designer installation, check if ERPNext is installed
+    if "erpnext" in frappe.get_installed_apps():
         frappe.logger().info("ERPNext detected - ensuring Print Settings integration")
         # Use the new consolidated function instead of the old complex system
         setup_enhanced_print_settings()
