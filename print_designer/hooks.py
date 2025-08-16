@@ -486,12 +486,12 @@ doc_events = {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
-    # Thai Withholding Tax events
-    "Payment Entry": {
-        "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
-        "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
-        "on_submit": "print_designer.accounting.thailand_wht_integration.process_payment_entry_wht",
-    },
+    # Thai Withholding Tax events - DISABLED: Missing custom fields cause save/submit issues
+    # "Payment Entry": {
+    #     "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
+    #     "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
+    #     "on_submit": "print_designer.accounting.thailand_wht_integration.process_payment_entry_wht",
+    # },
 }
 
 
