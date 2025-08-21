@@ -5,6 +5,33 @@ All notable changes to Print Designer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-01-21
+
+### Added
+- **Enhanced Retention System**: Complete retention management system for construction services
+  - Added `construction_service` field to Company doctype for enabling construction features
+  - Added `default_retention_rate` field with 5% default for construction projects
+  - Added `default_retention_account` field for retention liability management
+  - Added `custom_retention` and `custom_retention_amount` fields to Sales Invoice
+  - Implemented automated account discovery and setup functions
+  - Created comprehensive validation and checking system
+- **Thai Business Integration**: Following Thailand Service Business pattern for consistency
+  - Mirrored Default Withholding Tax Account pattern for retention accounts
+  - Integrated with existing WHT calculation system
+  - Enhanced client-side caching for performance optimization
+
+### Enhanced
+- Improved installation command system with `install_enhanced_retention_fields.py`
+- Added intelligent account search functionality for retention accounts
+- Enhanced field dependency management with proper `depends_on` evaluation
+- Comprehensive error handling and rollback mechanisms for field installation
+
+### Technical
+- Added automated retention account setup with fallback to suitable payable accounts
+- Implemented field validation system to prevent installation conflicts
+- Enhanced retention calculation integration with existing tax systems
+- Improved user experience for starter users with pre-configured defaults
+
 ## [1.5.6] - 2024-08-21
 
 ### Fixed
