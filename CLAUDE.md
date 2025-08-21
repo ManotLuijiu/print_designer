@@ -69,3 +69,4 @@ bench build --app print_designer  # Build only print_designer assets
 - Add the memory to provide guidance for executing tests within the Frappe context and checking specific field installations
 
 - No need TH Sarabun New usinng Kanit and Noto Sans Thai instead.
+- Add your answer to memory inside print_designer app
