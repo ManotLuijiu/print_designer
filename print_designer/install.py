@@ -294,7 +294,7 @@ def setup_enhanced_print_settings():
                         "label": _("Watermark Font Family"),
                         "fieldname": "watermark_font_family",
                         "fieldtype": "Select",
-                        "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
+                        "options": "Arial\nSarabun\nKanit\nNoto Sans Thai\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
                         "default": "Arial",
                         "insert_after": "watermark_position",
                         "depends_on": "eval:doc.watermark_settings != 'None'",
@@ -825,7 +825,18 @@ def setup_enhanced_print_settings():
 
     except Exception as e:
         click.echo(f"❌ Error setting up enhanced Print Settings: {str(e)}")
-        frappe.log_error(f"Enhanced Print Settings setup failed: {e}")
+        # Handle long error messages for error log
+        error_msg = str(e)
+        if len(error_msg) > 130:
+            frappe.log_error(
+                message=f"Full error: {str(e)}",
+                title="Print Settings setup failed"
+            )
+        else:
+            frappe.log_error(
+                message=str(e),
+                title="Print Settings setup failed"
+            )
         # Don't fail installation for this
         pass
 
@@ -868,6 +879,25 @@ def migrate_existing_print_settings():
                 pass
             except Exception as e:
                 click.echo(f"  ⚠️ Could not update {fieldname}: {str(e)}")
+
+        # Update field options for watermark_font_family to include all expected fonts
+        try:
+            font_field = frappe.get_doc(
+                "Custom Field", {"dt": "Print Settings", "fieldname": "watermark_font_family"}
+            )
+            expected_options = "Arial\nSarabun\nKanit\nNoto Sans Thai\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma"
+            
+            if font_field.options != expected_options:
+                old_options = font_field.options
+                font_field.options = expected_options
+                font_field.save()
+                click.echo(f"  ✅ Updated watermark_font_family options to include all expected fonts")
+                
+        except frappe.DoesNotExistError:
+            # Field doesn't exist, will be created later
+            pass
+        except Exception as e:
+            click.echo(f"  ⚠️ Could not update watermark_font_family options: {str(e)}")
 
         # Ensure any missing fields are created
         missing_fields = check_missing_print_settings_fields()
@@ -1067,8 +1097,8 @@ def get_print_settings_field_definitions():
             "label": _("Watermark Font Family"),
             "fieldname": "watermark_font_family",
             "fieldtype": "Select",
-            "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
-            "default": "Arial",
+            "options": "Arial\nSarabun\nKanit\nNoto Sans Thai\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma",
+            "default": "Sarabun",
             "insert_after": "watermark_position",
             "depends_on": "watermark_settings",  # Simplified dependency
             "description": _("Font family for watermark text"),
@@ -1208,7 +1238,7 @@ def create_enhanced_print_settings_fields():
                     "label": _("Watermark Font Family"),
                     "fieldname": "watermark_font_family",
                     "fieldtype": "Select",
-                    "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
+                    "options": "Arial\nSarabun\nKanit\nNoto Sans Thai\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
                     "default": "Arial",
                     "insert_after": "watermark_position",
                     "depends_on": "watermark_settings",  # Simplified dependency
@@ -1251,7 +1281,36 @@ def setup_default_print_settings_values():
         if not print_settings.get("watermark_position"):
             print_settings.set("watermark_position", "Top Right")
 
-        if not print_settings.get("watermark_font_family"):
+        # Handle watermark_font_family - validate against field options
+        current_font = print_settings.get("watermark_font_family")
+        if current_font:
+            # Get field options
+            field_options = frappe.db.get_value(
+                "Custom Field", 
+                {"dt": "Print Settings", "fieldname": "watermark_font_family"}, 
+                "options"
+            )
+            
+            if field_options:
+                valid_options = field_options.split("\n")
+                # Check if current value is valid
+                if current_font not in valid_options:
+                    # Try to find a suitable replacement
+                    if "TH Sarabun New" in current_font and "Sarabun" in valid_options:
+                        print_settings.set("watermark_font_family", "Sarabun")
+                        click.echo(f"  ℹ️ Changed watermark font from '{current_font}' to 'Sarabun'")
+                    elif current_font == "TH Sarabun New" and "Kanit" in valid_options:
+                        print_settings.set("watermark_font_family", "Kanit")
+                        click.echo(f"  ℹ️ Changed watermark font from '{current_font}' to 'Kanit'")
+                    elif "Arial" in valid_options:
+                        print_settings.set("watermark_font_family", "Arial")
+                        click.echo(f"  ℹ️ Changed watermark font from '{current_font}' to 'Arial'")
+                    else:
+                        # Use first available option
+                        print_settings.set("watermark_font_family", valid_options[0])
+                        click.echo(f"  ℹ️ Changed watermark font from '{current_font}' to '{valid_options[0]}'")
+        else:
+            # No value set, use default
             print_settings.set("watermark_font_family", "Sarabun")
 
         # Save the settings
@@ -1262,7 +1321,15 @@ def setup_default_print_settings_values():
         click.echo("✅ Print Settings default values configured")
 
     except Exception as e:
-        frappe.log_error(f"Error setting up Print Settings values: {str(e)}")
+        # Truncate error message if too long for error log
+        error_msg = str(e)
+        if len(error_msg) > 130:
+            error_msg = error_msg[:130] + "..."
+        
+        frappe.log_error(
+            message=f"Full error: {str(e)}",
+            title=f"Print Settings setup error"
+        )
         click.echo(f"⚠️ Error setting Print Settings defaults: {str(e)}")
 
 
@@ -2036,7 +2103,7 @@ def install_print_settings_watermark_comprehensive():
                     "label": "Watermark Font Family",
                     "fieldname": "watermark_font_family",
                     "fieldtype": "Select",
-                    "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun\nTH Sarabun New",
+                    "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun\nKanit\nNoto Sans Thai",
                     "default": "Arial",
                     "insert_after": "watermark_position",
                     "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",

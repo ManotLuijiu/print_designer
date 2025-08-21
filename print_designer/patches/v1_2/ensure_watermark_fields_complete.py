@@ -202,7 +202,7 @@ def install_print_settings_watermark_fields():
                     "label": "Watermark Font Family",
                     "fieldname": "watermark_font_family",
                     "fieldtype": "Select",
-                    "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun\nTH Sarabun New",
+                    "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri\nSarabun\nKanit\nNoto Sans Thai",
                     "default": "Arial",
                     "insert_after": "watermark_position",
                     "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",

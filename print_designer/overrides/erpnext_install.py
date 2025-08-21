@@ -137,7 +137,7 @@ def create_print_setting_custom_fields():
                     "label": _("Watermark Font Family"),
                     "fieldname": "watermark_font_family",
                     "fieldtype": "Select",
-                    "options": "Arial\nSarabun\nTH Sarabun New\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
+                    "options": "Arial\nSarabun\nKanit\nNoto Sans Thai\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia",
                     "default": "Arial",
                     "insert_after": "watermark_position", 
                     "depends_on": "eval:doc.watermark_settings != 'None'",
