@@ -22,6 +22,8 @@ commands = [
     "print_designer.commands.install_typography_system.install_typography_system",
     "print_designer.commands.install_retention_fields.install_retention_fields",
     "print_designer.commands.install_retention_fields.check_retention_fields",
+    "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",
+    "print_designer.commands.install_enhanced_retention_fields.check_enhanced_retention_fields",
     "print_designer.commands.install_thailand_wht_fields.install_thailand_wht_fields",
     "print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields",
     "print_designer.commands.install_item_service_field.install_item_service_field",
@@ -447,8 +449,8 @@ doc_events = {
     # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.sales_invoice_retention.validate_retention_fields",
-        "before_save": "print_designer.custom.sales_invoice_retention.calculate_retention_on_save",
+        "validate": "print_designer.custom.sales_invoice_retention_enhanced.validate_retention_fields",
+        "before_save": "print_designer.custom.sales_invoice_retention_enhanced.calculate_retention_on_save",
     },
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
