@@ -449,7 +449,7 @@ doc_events = {
     # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.sales_invoice_retention_enhanced.validate_retention_fields",
+        # "validate": "print_designer.custom.sales_invoice_retention_enhanced.validate_retention_fields",  # DISABLED - Caused API flooding
         "before_save": "print_designer.custom.sales_invoice_retention_enhanced.calculate_retention_on_save",
     },
     "Purchase Invoice": {

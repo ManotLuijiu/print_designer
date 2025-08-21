@@ -135,30 +135,38 @@ def calculate_retention_on_save(doc, method):
     """
     Calculate retention amount when Sales Invoice is saved.
     This is a server-side validation to ensure consistency.
+    OPTIMIZED: Uses single API call instead of multiple calls.
     """
     if not doc.company:
         return
     
-    # Check if construction service is enabled for the company
-    construction_service = frappe.db.get_value("Company", doc.company, "construction_service")
-    
-    if not construction_service:
-        # Clear retention fields if construction service is disabled
+    # Single API call to get both construction_service and default_retention_rate
+    # This prevents the API flooding issue from multiple separate calls
+    try:
+        company_data = frappe.db.get_value("Company", doc.company, 
+            ["construction_service", "default_retention_rate"], as_dict=True)
+        
+        if not company_data or not company_data.construction_service:
+            # Clear retention fields if construction service is disabled
+            doc.custom_retention = 0
+            doc.custom_retention_amount = 0
+            return
+        
+        # If retention percentage is not set, use company default
+        if not doc.custom_retention and company_data.default_retention_rate:
+            doc.custom_retention = company_data.default_retention_rate
+        
+        # Calculate retention amount if retention percentage is set
+        if doc.custom_retention and doc.base_net_total:
+            retention_amount = (doc.base_net_total * doc.custom_retention) / 100
+            doc.custom_retention_amount = retention_amount
+        else:
+            doc.custom_retention_amount = 0
+            
+    except Exception as e:
+        frappe.log_error(f"Error calculating retention for Sales Invoice {doc.name}: {str(e)}", "Retention Calculation Error")
+        # Fallback: clear retention fields on error
         doc.custom_retention = 0
-        doc.custom_retention_amount = 0
-        return
-    
-    # If retention percentage is not set, use company default
-    if not doc.custom_retention:
-        default_rate = frappe.db.get_value("Company", doc.company, "default_retention_rate")
-        if default_rate:
-            doc.custom_retention = default_rate
-    
-    # Calculate retention amount if retention percentage is set
-    if doc.custom_retention and doc.base_net_total:
-        retention_amount = (doc.base_net_total * doc.custom_retention) / 100
-        doc.custom_retention_amount = retention_amount
-    else:
         doc.custom_retention_amount = 0
 
 
