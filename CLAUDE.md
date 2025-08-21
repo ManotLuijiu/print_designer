@@ -67,3 +67,5 @@ bench build --app print_designer  # Build only print_designer assets
     - Checks Company.default_wht_account field
   ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_item_service_field.check_item_service_field`
 - Add the memory to provide guidance for executing tests within the Frappe context and checking specific field installations
+
+- No need TH Sarabun New usinng Kanit and Noto Sans Thai instead.
