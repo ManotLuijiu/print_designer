@@ -198,3 +198,5 @@ cypress/videos
 # Local Images
 images/local/
 print_designer/public/images/local/
+
+.serena/
