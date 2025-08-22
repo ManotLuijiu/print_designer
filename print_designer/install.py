@@ -55,8 +55,8 @@ def after_install():
     _install_watermark_fields_on_install()
     # Install signature fields for all DocTypes on fresh installation
     _install_signature_fields_on_install()
-    # Install retention fields for construction services
-    _install_retention_fields_on_install()
+    # DISABLED: Using fixture-based retention fields instead of programmatic installation
+    # _install_retention_fields_on_install()
     # Install Thailand WHT fields for service businesses
     _install_thailand_wht_fields_on_install()
     # Install Item service field for Thailand WHT
@@ -132,7 +132,8 @@ def ensure_all_fields_after_migration():
         frappe.logger().info("✅ Signature and watermark fields ensured")
 
         # 2.1. Retention fields for construction services
-        _ensure_retention_fields()
+        # DISABLED: Using fixture-based retention fields instead of programmatic installation
+        # _ensure_retention_fields()
         frappe.logger().info("✅ Retention fields ensured")
 
         # 2.2. Thailand WHT fields for service businesses

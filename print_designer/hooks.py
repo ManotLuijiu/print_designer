@@ -139,7 +139,7 @@ fixtures = [
     #         ]
     #     ],
     # },
-    # Custom Fields are installed programmatically via install.py to avoid conflicts with existing fields
+    # Retention System Custom Fields - Using fixture-based installation with conditional visibility
     {
         "doctype": "Custom Field",
         "filters": [
@@ -149,10 +149,11 @@ fixtures = [
                 [
                     # Sales Invoice - Retention System Fields (for learning/export)
                     "Sales Invoice-custom_retention",
-                    "Sales Invoice-custom_retention_amount", 
+                    "Sales Invoice-custom_retention_amount",
                     "Sales Invoice-custom_withholding_tax",
                     "Sales Invoice-custom_withholding_tax_amount",
                     "Sales Invoice-custom_payment_amount",
+                    "Sales Invoice-custom_subject_to_retention",
                 ],
             ]
         ],
@@ -161,7 +162,7 @@ fixtures = [
     #     "doctype": "Custom Field",
     #     "filters": [
     #         [
-    #             "name", 
+    #             "name",
     #             "in",
     #             [
     #                 # Company DocType - Stamps & Signatures Tab and Fields
@@ -385,7 +386,11 @@ after_install = [
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
-    "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
+    # DISABLED: Conflicts with fixture-based retention fields - using fixtures instead
+    # The retention system (custom_retention, custom_retention_amount, etc.) is now managed
+    # exclusively through fixtures in print_designer/fixtures/custom_field.json to prevent
+    # conflicts and ensure consistent conditional visibility with depends_on expressions
+    # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
@@ -409,7 +414,11 @@ after_migrate = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
-    "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
+    # DISABLED: Using fixture-based retention fields instead of programmatic installation
+    # Retention fields (custom_retention, custom_retention_amount, custom_withholding_tax,
+    # custom_withholding_tax_amount, custom_payment_amount) are now managed exclusively
+    # through fixtures to prevent conflicts and ensure proper conditional visibility
+    # "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     # "print_designer.api.global_typography.setup_default_typography",

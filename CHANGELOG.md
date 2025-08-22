@@ -5,6 +5,18 @@ All notable changes to Print Designer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2025-08-22
+
+### Fixed
+- Fixed retention system field conflicts between programmatic installation and fixtures
+- Cleaned up duplicate field installation mechanisms to prevent API loops
+- Disabled conflicting programmatic retention field installation in hooks.py and install.py
+
+### Changed
+- Consolidated retention system to use fixtures-only approach for better reliability
+- Updated custom field fixtures with proper conditional visibility (depends_on expressions)
+- Improved retention field UX with proper validation feedback and automatic calculations
+
 ## [1.7.0] - 2025-08-22
 
 ### Added
