@@ -51,11 +51,11 @@ app_include_js = [
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    "signature_stamp.bundle.css",
-    "signature_preview.bundle.css",
+    # "signature_stamp.bundle.css",
+    # "signature_preview.bundle.css",
     # "delivery_approval.bundle.css",
     # "global_typography_override.bundle.css",
-    "company_preview.bundle.css",
+    # "company_preview.bundle.css",
 ]
 
 
@@ -140,11 +140,29 @@ fixtures = [
     #     ],
     # },
     # Custom Fields are installed programmatically via install.py to avoid conflicts with existing fields
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    # Sales Invoice - Retention System Fields (for learning/export)
+                    "Sales Invoice-custom_retention",
+                    "Sales Invoice-custom_retention_amount", 
+                    "Sales Invoice-custom_withholding_tax",
+                    "Sales Invoice-custom_withholding_tax_amount",
+                    "Sales Invoice-custom_payment_amount",
+                    "Sales Invoice-custom_retention_percent",
+                ],
+            ]
+        ],
+    },
     # {
     #     "doctype": "Custom Field",
     #     "filters": [
     #         [
-    #             "name",
+    #             "name", 
     #             "in",
     #             [
     #                 # Company DocType - Stamps & Signatures Tab and Fields
@@ -368,6 +386,7 @@ after_install = [
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
+    "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
@@ -449,8 +468,8 @@ doc_events = {
     # Temporarily disabled Sales Invoice before_print due to Chrome issues
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        # "validate": "print_designer.custom.sales_invoice_retention_enhanced.validate_retention_fields",  # DISABLED - Caused API flooding
-        "before_save": "print_designer.custom.sales_invoice_retention_enhanced.calculate_retention_on_save",
+        "validate": "print_designer.print_designer.doctype.company_retention_settings.company_retention_settings.sales_invoice_validate",
+        "before_save": "print_designer.print_designer.doctype.company_retention_settings.company_retention_settings.sales_invoice_before_save",
     },
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",

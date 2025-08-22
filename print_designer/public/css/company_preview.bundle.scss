@@ -1,18 +1,18 @@
 /* Define theme-aware color variables */
-:root,
-[data-theme="light"] {
-    --sig-bg: #ffffff;
-    --sig-btn-bg: #f8f9fa;
-    --sig-text: #212529;
-    --sig-border: #dee2e6;
-}
+// :root,
+// [data-theme="light"] {
+//     --sig-bg: #ffffff;
+//     --sig-btn-bg: #f8f9fa;
+//     --sig-text: #212529;
+//     --sig-border: #dee2e6;
+// }
 
-[data-theme="dark"] {
-    --sig-bg: #1c1c1c;
-    --sig-btn-bg: #343a40;
-    --sig-text: #f1f1f1;
-    --sig-border: #444;
-}
+// [data-theme="dark"] {
+//     --sig-bg: #1c1c1c;
+//     --sig-btn-bg: #343a40;
+//     --sig-text: #f1f1f1;
+//     --sig-border: #444;
+// }
 
 /* Container for the Stamps & Signatures tab */
 #company-stamps_signatures_tab,

@@ -19,4 +19,7 @@ def add_weasyprint_option():
 from print_designer.commands.install_watermark_fields import install_watermark_fields
 from print_designer.commands.emergency_fix_watermark import emergency_fix_watermark
 
-commands = [setup_chorme, add_weasyprint_option, install_watermark_fields, emergency_fix_watermark]
+# Import retention fields restructure command
+from print_designer.commands.restructure_retention_fields import restructure_retention_fields
+
+commands = [setup_chorme, add_weasyprint_option, install_watermark_fields, emergency_fix_watermark, restructure_retention_fields]

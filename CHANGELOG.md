@@ -5,6 +5,33 @@ All notable changes to Print Designer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2025-08-22
+
+### Added
+- **Retention System Fixtures Export**: Complete retention fields system exported to fixtures for deployment
+  - Added 6 custom fields for Sales Invoice retention calculations:
+    - `custom_retention` - Retention (%) 
+    - `custom_retention_amount` - Retention Amount (Currency)
+    - `custom_withholding_tax` - Withholding Tax (%)
+    - `custom_withholding_tax_amount` - Withholding Tax Amount (Currency)
+    - `custom_payment_amount` - Payment Amount (Currency)
+    - `custom_retention_percent` - Retention % (alternate field)
+- **Retention System Commands**: New management commands for retention field installation
+  - Added `restructure_retention_fields.py` command for field restructuring
+  - Enhanced retention field installation with fixture support
+- **Custom Retention Backend**: Sales Invoice retention calculation backend integration
+- **Company Retention Settings**: New DocType for company-level retention configuration
+
+### Changed
+- **Hooks Configuration**: Updated fixtures configuration to include retention system fields
+- **Installation Commands**: Enhanced retention field installation with better error handling
+- **Frontend Styling**: Updated company preview CSS for better retention display
+
+### Technical Notes
+- Retention fields are now exportable as fixtures enabling cross-installation deployment
+- Fields can be converted from fixtures to programmatic installation for better maintainability
+- Supports Thai business retention requirements with proper currency handling
+
 ## [1.6.1] - 2025-01-21
 
 ### Fixed
