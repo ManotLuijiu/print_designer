@@ -147,18 +147,10 @@ THAILAND_WHT_FIELDS = {
     
     "Sales Invoice": [
         {
-            "fieldname": "wht_section",
-            "label": "Withholding Tax Details",
-            "fieldtype": "Section Break", 
-            "insert_after": "taxes_and_charges",
-            "depends_on": "eval:doc.company",
-            "collapsible": 1,
-        },
-        {
             "fieldname": "subject_to_wht",
             "label": "Subject to Withholding Tax",
             "fieldtype": "Check",
-            "insert_after": "wht_section",
+            "insert_after": "taxes_and_charges",
             "description": "This invoice is for services subject to withholding tax",
             "depends_on": "eval:doc.company",
             "default": 0,
@@ -364,6 +356,10 @@ def install_thailand_wht_fields():
         print("   - Sales Invoice: subject_to_wht, estimated_wht_amount, wht_certificate_required, net_total_after_wht")
         print("   - Payment Entry: apply_wht, wht_rate, wht_amount, wht_account, net_payment_amount, wht_certificate_no, wht_certificate_date")
         
+        # Run migration to fix existing installations
+        print("\n🔄 Running migration for existing installations...")
+        migrate_sales_invoice_wht_fields()
+        
         frappe.db.commit()
         print("✅ Thailand withholding tax custom fields installed successfully")
         return True
@@ -396,6 +392,60 @@ def uninstall_thailand_wht_fields():
         return True
     except Exception as e:
         print(f"❌ Error removing Thailand withholding tax fields: {str(e)}")
+        return False
+
+# Migration function to update existing installations
+def migrate_sales_invoice_wht_fields():
+    """
+    Migrate Sales Invoice WHT fields to remove wht_section and consolidate into taxes section.
+    This function ensures existing installations are updated to the new field structure.
+    """
+    import frappe
+    
+    try:
+        print("🔄 Migrating Sales Invoice WHT fields...")
+        
+        # Step 1: Check if wht_section exists
+        wht_section_exists = frappe.db.exists("Custom Field", {"dt": "Sales Invoice", "fieldname": "wht_section"})
+        
+        if wht_section_exists:
+            print("  📋 Found existing wht_section field - removing...")
+            
+            # Delete the wht_section field
+            frappe.delete_doc("Custom Field", wht_section_exists, ignore_permissions=True)
+            print("  ✅ Removed wht_section field")
+        else:
+            print("  ℹ️  wht_section field not found - already removed")
+        
+        # Step 2: Update subject_to_wht to insert after taxes_and_charges
+        subject_to_wht_exists = frappe.db.exists("Custom Field", {"dt": "Sales Invoice", "fieldname": "subject_to_wht"})
+        
+        if subject_to_wht_exists:
+            subject_field = frappe.get_doc("Custom Field", subject_to_wht_exists)
+            current_insert_after = subject_field.insert_after
+            
+            if current_insert_after != "taxes_and_charges":
+                print(f"  📝 Updating subject_to_wht position: '{current_insert_after}' → 'taxes_and_charges'")
+                subject_field.insert_after = "taxes_and_charges"
+                subject_field.save(ignore_permissions=True)
+                print("  ✅ Updated subject_to_wht field position")
+            else:
+                print("  ℹ️  subject_to_wht field already in correct position")
+        else:
+            print("  ⚠️  subject_to_wht field not found - may need full installation")
+        
+        # Step 3: Commit changes
+        frappe.db.commit()
+        print("✅ Sales Invoice WHT field migration completed successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error during Sales Invoice WHT field migration: {str(e)}")
+        frappe.log_error(f"Sales Invoice WHT Migration Error: {str(e)}", "WHT Field Migration")
+        try:
+            frappe.db.rollback()
+        except:
+            pass
         return False
 
 # Function to calculate withholding tax amount

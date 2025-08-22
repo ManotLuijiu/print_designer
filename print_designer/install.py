@@ -1766,6 +1766,10 @@ def _ensure_thailand_wht_fields():
         # Install/update Thailand WHT fields (safe to run multiple times)
         install_thailand_wht_fields()
         
+        # Run specific migration for Sales Invoice field structure changes
+        from print_designer.thailand_wht_fields import migrate_sales_invoice_wht_fields
+        migrate_sales_invoice_wht_fields()
+        
         frappe.logger().info("✅ Thailand WHT fields ensured")
         
     except ImportError as e:

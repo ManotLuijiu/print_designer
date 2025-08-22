@@ -384,6 +384,7 @@ after_install = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
+    "print_designer.thailand_wht_fields.migrate_sales_invoice_wht_fields",  # Migrate Sales Invoice WHT field structure (v1.7.2)
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     # DISABLED: Conflicts with fixture-based retention fields - using fixtures instead
@@ -414,6 +415,7 @@ after_migrate = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
     "print_designer.thailand_wht_fields.install_thailand_wht_fields",  # Install Thailand WHT fields
+    "print_designer.thailand_wht_fields.migrate_sales_invoice_wht_fields",  # Migrate Sales Invoice WHT field structure (v1.7.2)
     # DISABLED: Using fixture-based retention fields instead of programmatic installation
     # Retention fields (custom_retention, custom_retention_amount, custom_withholding_tax,
     # custom_withholding_tax_amount, custom_payment_amount) are now managed exclusively
