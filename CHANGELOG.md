@@ -5,6 +5,23 @@ All notable changes to Print Designer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2025-08-22
+
+### Fixed
+- Fixed Sales Invoice form state management issue where Submit button reverted to Save after saving document
+- Eliminated problematic client scripts that caused form dirty state during refresh
+- Implemented proper ERPNext-pattern server-side calculations for Thailand WHT and retention amounts
+
+### Added  
+- Added comprehensive server-side calculation system in `print_designer.custom.sales_invoice_calculations`
+- Added proper validation-time calculations for retention amounts, withholding tax, and final payment amounts
+- Added graceful error handling and defensive programming for missing company settings
+
+### Changed
+- Moved Thailand WHT and retention calculations from client scripts to validate() method following ERPNext grand_total pattern
+- Updated Sales Invoice hooks to use proper server-side validation instead of client-side interference
+- Commented out unused modules in thailand_wht_fields.py to reflect active Sales Invoice-only scope
+
 ## [1.7.1] - 2025-08-22
 
 ### Fixed

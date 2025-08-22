@@ -475,11 +475,10 @@ doc_events = {
         "on_update": "print_designer.api.watermark.clear_format_watermark_cache",
     },
     # Consolidated before_print hooks using the enhanced pdf.before_print function
-    # Temporarily disabled Sales Invoice before_print due to Chrome issues
+    # Sales Invoice with proper server-side calculations (following ERPNext pattern)
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.print_designer.doctype.company_retention_settings.company_retention_settings.sales_invoice_validate",
-        "before_save": "print_designer.print_designer.doctype.company_retention_settings.company_retention_settings.sales_invoice_before_save",
+        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
     },
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
