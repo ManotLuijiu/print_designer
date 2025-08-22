@@ -153,7 +153,6 @@ fixtures = [
                     "Sales Invoice-custom_withholding_tax",
                     "Sales Invoice-custom_withholding_tax_amount",
                     "Sales Invoice-custom_payment_amount",
-                    "Sales Invoice-custom_retention_percent",
                 ],
             ]
         ],
