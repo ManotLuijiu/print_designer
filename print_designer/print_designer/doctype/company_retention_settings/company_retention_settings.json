@@ -1,0 +1,173 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:company",
+ "creation": "2025-08-21 17:07:45.466352",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company_info_section",
+  "company",
+  "column_break_xpzv",
+  "construction_service_enabled",
+  "retention_settings_section",
+  "default_retention_rate",
+  "column_break_fgjk",
+  "retention_account",
+  "advanced_settings_section",
+  "auto_calculate_retention",
+  "minimum_invoice_amount",
+  "column_break_mlpq",
+  "maximum_retention_rate",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company_info_section",
+   "fieldtype": "Section Break",
+   "label": "Company Information"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_xpzv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "construction_service_enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enable Construction Service"
+  },
+  {
+   "depends_on": "construction_service_enabled",
+   "fieldname": "retention_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Retention Settings"
+  },
+  {
+   "default": "5.0",
+   "depends_on": "construction_service_enabled",
+   "fieldname": "default_retention_rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Default Retention Rate (%)",
+   "precision": 2
+  },
+  {
+   "fieldname": "column_break_fgjk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "construction_service_enabled",
+   "fieldname": "retention_account",
+   "fieldtype": "Link",
+   "label": "Retention Payable Account",
+   "options": "Account"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "construction_service_enabled",
+   "fieldname": "advanced_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Advanced Settings"
+  },
+  {
+   "default": "1",
+   "depends_on": "construction_service_enabled",
+   "fieldname": "auto_calculate_retention",
+   "fieldtype": "Check",
+   "label": "Auto Calculate Retention"
+  },
+  {
+   "depends_on": "construction_service_enabled",
+   "fieldname": "minimum_invoice_amount",
+   "fieldtype": "Currency",
+   "label": "Minimum Invoice Amount for Retention",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "column_break_mlpq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "10.0",
+   "depends_on": "construction_service_enabled",
+   "fieldname": "maximum_retention_rate",
+   "fieldtype": "Percent",
+   "label": "Maximum Retention Rate (%)",
+   "precision": 2
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-21 17:07:45.466352",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Company Retention Settings",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1
+}
