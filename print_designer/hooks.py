@@ -160,14 +160,15 @@ fixtures = [
                     # Sales Invoice - Watermark Field
                     "Sales Invoice-watermark_text",
                     
+                    # Sales Invoice - VAT Treatment Field
+                    "Sales Invoice-vat_treatment",
+                    
                     # Sales Invoice - WHT (Withholding Tax) Fields
                     "Sales Invoice-subject_to_wht",
                     "Sales Invoice-wht_note",
-                    "Sales Invoice-estimated_wht_amount",
                     "Sales Invoice-wht_base_amount",
                     "Sales Invoice-wht_certificate_required",
                     "Sales Invoice-wht_description",
-                    "Sales Invoice-net_total_after_wht",
                     "Sales Invoice-wht_income_type",
                     "Sales Invoice-net_total_after_wht_in_words",
                     
@@ -175,8 +176,6 @@ fixtures = [
                     "Sales Invoice-thai_wht_preview_section",
                     "Sales Invoice-wht_amounts_column_break",
                     "Sales Invoice-wht_preview_column_break",
-                    "Sales Invoice-estimated_wht_rate",
-                    "Sales Invoice-net_payment_amount",
                     
                     # Sales Invoice - Retention System Fields
                     "Sales Invoice-custom_retention",
@@ -185,6 +184,42 @@ fixtures = [
                     "Sales Invoice-custom_withholding_tax_amount",
                     "Sales Invoice-custom_payment_amount",
                     "Sales Invoice-custom_subject_to_retention",
+                    "Sales Invoice-custom_net_total_after_wht_and_retention_in_words",
+                    
+                    # Quotation - Signature Fields
+                    "Quotation-prepared_by_signature",
+                    
+                    # Quotation - Watermark Field
+                    "Quotation-watermark_text",
+                    
+                    # Quotation - VAT Treatment Field
+                    "Quotation-vat_treatment",
+                    
+                    # Quotation - WHT (Withholding Tax) Fields
+                    "Quotation-wht_note",
+                    "Quotation-subject_to_wht",
+                    "Quotation-wht_base_amount",
+                    "Quotation-wht_description",
+                    "Quotation-wht_income_type",
+                    "Quotation-net_total_after_wht_in_words",
+                    "Quotation-estimated_wht_rate",
+                    "Quotation-estimated_wht_amount", 
+                    "Quotation-net_payment_amount",
+                    "Quotation-net_total_after_wht",
+                    
+                    # Quotation - Thai WHT Preview Fields
+                    "Quotation-thai_wht_preview_section",
+                    "Quotation-wht_amounts_column_break",
+                    "Quotation-wht_preview_column_break",
+                    
+                    # Quotation - Retention System Fields
+                    "Quotation-custom_subject_to_retention",
+                    "Quotation-custom_net_total_after_wht_and_retention_in_words",
+                    "Quotation-custom_retention",
+                    "Quotation-custom_retention_amount",
+                    "Quotation-custom_withholding_tax",
+                    "Quotation-custom_withholding_tax_amount", 
+                    "Quotation-custom_payment_amount",
                 ],
             ]
         ],

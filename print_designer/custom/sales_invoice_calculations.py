@@ -73,8 +73,10 @@ def calculate_retention_amounts(doc):
 def calculate_withholding_tax_amounts(doc):
     """Calculate withholding tax amounts based on company settings"""
     try:
-        # Check if company has Thailand service business enabled
-        thailand_service = frappe.get_cached_value("Company", doc.company, "thailand_service_business") or 0
+        # Check if company has Thailand service business enabled - use document-level caching to prevent excessive API calls
+        if not hasattr(doc, '_thailand_service_business_cached'):
+            doc._thailand_service_business_cached = frappe.get_cached_value("Company", doc.company, "thailand_service_business") or 0
+        thailand_service = doc._thailand_service_business_cached
         
         if not thailand_service:
             # Clear WHT fields if Thailand service not enabled
@@ -84,8 +86,10 @@ def calculate_withholding_tax_amounts(doc):
             doc.custom_withholding_tax_amount = 0
             return
         
-        # Get default WHT rate from company
-        default_wht_rate = frappe.get_cached_value("Company", doc.company, "default_wht_rate") or 3.0
+        # Get default WHT rate from company - use document-level caching to prevent excessive API calls
+        if not hasattr(doc, '_default_wht_rate_cached'):
+            doc._default_wht_rate_cached = frappe.get_cached_value("Company", doc.company, "default_wht_rate") or 3.0
+        default_wht_rate = doc._default_wht_rate_cached
         
         # If subject to WHT, calculate estimated amount
         if doc.subject_to_wht and doc.base_net_total:
