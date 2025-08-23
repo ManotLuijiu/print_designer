@@ -36,6 +36,12 @@ commands = [
     "print_designer.commands.emergency_fix_watermark.emergency_fix_watermark",
     "print_designer.commands.install_retention_client_script.install_retention_client_script",
     "print_designer.commands.install_retention_client_script.check_retention_client_script",
+    # Thai WHT Preview System Commands
+    "print_designer.commands.install_thai_wht_preview.install_thai_wht_preview",
+    "print_designer.commands.install_thai_wht_preview.check_thai_wht_preview",
+    "print_designer.commands.install_thai_wht_preview.remove_thai_wht_preview",
+    "print_designer.commands.install_thai_wht_preview.test_thai_wht_preview",
+    "print_designer.commands.install_thai_wht_preview.refresh_wht_preview",
 ]
 
 # Includes in <head>
@@ -452,6 +458,7 @@ pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
 
 override_doctype_class = {
     "Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
+    "Company": "print_designer.overrides.company.CustomCompany",
 }
 
 # Path Relative to the app folder where default templates should be stored
@@ -474,24 +481,14 @@ doc_events = {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
         "on_update": "print_designer.api.watermark.clear_format_watermark_cache",
     },
-    # Consolidated before_print hooks using the enhanced pdf.before_print function
-    # Sales Invoice with proper server-side calculations (following ERPNext pattern)
-    "Sales Invoice": {
-        "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-    },
+    # Sales Invoice events - consolidated in doc_events section below
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
         "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
         "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
     },
-    "Sales Order": {
-        "before_print": "print_designer.pdf.before_print",
-    },
+    # Sales Order and Quotation events - consolidated in doc_events section below
     "Purchase Order": {
-        "before_print": "print_designer.pdf.before_print",
-    },
-    "Quotation": {
         "before_print": "print_designer.pdf.before_print",
     },
     "Delivery Note": {
@@ -522,6 +519,35 @@ doc_events = {
     #     "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
     #     "on_submit": "print_designer.accounting.thailand_wht_integration.process_payment_entry_wht",
     # },
+    # Company DocType - Sync retention data to Company Retention Settings
+    "Company": {
+        "validate": "print_designer.overrides.company.sync_company_retention_settings",
+        "on_update": "print_designer.overrides.company.sync_company_retention_settings",
+    },
+    # Thai WHT Preview System - Sales Documents
+    "Quotation": {
+        "before_print": "print_designer.pdf.before_print",
+        "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+    },
+    "Sales Order": {
+        "before_print": "print_designer.pdf.before_print",
+        "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+    },
+    # Sales Invoice - Updated to include WHT preview alongside existing events
+    "Sales Invoice": {
+        "before_print": "print_designer.pdf.before_print",
+        "validate": [
+            "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
+            "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler"
+        ],
+        "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
+        "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
+    },
+    # Customer WHT Configuration Changes
+    "Customer": {
+        "validate": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
+        "on_update": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
+    },
 }
 
 

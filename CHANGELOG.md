@@ -5,6 +5,37 @@ All notable changes to Print Designer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2025-08-23
+
+### Added
+- **Thailand WHT System Unification**: Complete consolidation of Thailand Withholding Tax preview and field systems into unified management interface
+  - New comprehensive `thailand_wht_fields.py` system (1,110 lines) providing unified field definitions for all WHT-enabled DocTypes
+  - Added `print_designer.custom.thai_wht_custom_fields` module with complete field definition system (448 lines)
+  - Added `print_designer.custom.thai_wht_events` module for centralized WHT event handling
+  - Added `print_designer.custom.thai_wht_preview` module for real-time WHT calculation and preview
+  - New `print_designer.commands.install_thai_wht_preview` installation command system
+  - Added `print_designer.overrides.company` for Thailand-specific company integration
+
+### Enhanced
+- **Sales Document Integration**: WHT fields now properly integrated into existing taxes sections across Quotation, Sales Order, and Sales Invoice
+  - WHT preview fields positioned logically following ERPNext UI patterns
+  - Real-time WHT amount calculations and preview functionality in all sales documents
+  - Comprehensive field coverage: Company configuration, Customer setup, and Sales document preview
+  - Multi-DocType support with consistent field structure and behavior
+
+### Changed
+- **Consolidated Installation Commands**: Merged separate WHT installation systems into unified command structure in hooks.py
+- **Improved Field Organization**: WHT fields repositioned from separate sections into logical tax-related sections
+- **Enhanced System Architecture**: Moved from multiple scattered files to centralized system management
+- **Better Integration**: Updated hooks.py with streamlined Thai WHT event system and comprehensive command registration
+
+### Technical
+- **Field Definition Consolidation**: Merged multiple WHT field definition files into comprehensive unified system
+- **Enhanced Error Handling**: Improved installation and validation processes for WHT field management
+- **Migration Support**: Automatic migration of existing WHT field installations with `migrate_sales_invoice_wht_fields()`
+- **Thai Language Support**: Proper Thai descriptions and formatting for WHT income types and compliance requirements
+- **Standard Rate Integration**: Built-in support for Thai standard WHT rates (3% services, 5% professional services, etc.)
+
 ## [1.7.2] - 2025-08-22
 
 ### Fixed

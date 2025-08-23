@@ -51,8 +51,9 @@ class CompanyRetentionSettings(Document):
                               alert=True, indicator="green")
 
     def on_update(self):
-        """Clear cache when settings are updated"""
+        """Clear cache when settings are updated and sync back to Company"""
         frappe.cache().delete_key(f"retention_settings_{self.company}")
+        self.sync_to_company()
 
     @staticmethod
     def get_retention_settings(company):
@@ -117,6 +118,46 @@ class CompanyRetentionSettings(Document):
         settings.insert()
         
         return settings
+
+    def sync_to_company(self):
+        """Sync retention settings back to Company DocType"""
+        try:
+            # Skip if sync flag is set to prevent infinite loops
+            if hasattr(self, 'flags') and getattr(self.flags, 'skip_company_sync', False):
+                return
+                
+            # Get Company record
+            company_doc = frappe.get_cached_doc("Company", self.company)
+            
+            # Map Company Retention Settings fields back to Company fields
+            field_mapping = {
+                'construction_service_enabled': 'construction_service',
+                'default_retention_rate': 'default_retention_rate',
+                'retention_account': 'default_retention_account'
+            }
+            
+            # Track if any changes were made
+            changes_made = False
+            
+            for settings_field, company_field in field_mapping.items():
+                settings_value = getattr(self, settings_field, None)
+                current_company_value = getattr(company_doc, company_field, None)
+                
+                # Only update if values are different
+                if settings_value != current_company_value:
+                    frappe.db.set_value("Company", self.company, company_field, settings_value, update_modified=False)
+                    changes_made = True
+            
+            if changes_made:
+                frappe.db.commit()
+                
+        except Exception as e:
+            frappe.log_error(
+                f"Error syncing Company Retention Settings to Company {self.company}: {str(e)}",
+                "Company Retention Reverse Sync Error"
+            )
+            # Don't fail the save if reverse sync fails
+            pass
 
     def before_save(self):
         """Set defaults before saving"""
