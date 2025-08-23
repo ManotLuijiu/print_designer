@@ -73,3 +73,4 @@ bench build --app print_designer  # Build only print_designer assets
 - Add to memory.
 - Add to memory.
 - Add your answer to memory.
+- Add this command to your memory: bench --site erpnext-dev-server.bunchee.online export-fixtures --app print_designer

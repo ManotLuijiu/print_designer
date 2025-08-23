@@ -220,6 +220,31 @@ fixtures = [
                     "Quotation-custom_withholding_tax",
                     "Quotation-custom_withholding_tax_amount", 
                     "Quotation-custom_payment_amount",
+                    
+                    # Sales Order - Signature Fields
+                    "Sales Order-prepared_by_signature",
+                    "Sales Order-approved_by_signature",
+                    
+                    # Sales Order - Watermark Field
+                    "Sales Order-watermark_text",
+                    
+                    # Sales Order - WHT (Withholding Tax) Fields
+                    "Sales Order-subject_to_wht",
+                    "Sales Order-wht_note",
+                    "Sales Order-wht_base_amount",
+                    "Sales Order-wht_description",
+                    "Sales Order-wht_income_type",
+                    "Sales Order-net_total_after_wht_in_words",
+                    "Sales Order-estimated_wht_rate",
+                    "Sales Order-estimated_wht_amount",
+                    "Sales Order-net_payment_amount",
+                    "Sales Order-net_total_after_wht",
+                    "Sales Order-wht_section",
+                    
+                    # Sales Order - Thai WHT Preview Fields
+                    "Sales Order-thai_wht_preview_section",
+                    "Sales Order-wht_amounts_column_break",
+                    "Sales Order-wht_preview_column_break",
                 ],
             ]
         ],
