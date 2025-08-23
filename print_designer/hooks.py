@@ -145,7 +145,7 @@ fixtures = [
     #         ]
     #     ],
     # },
-    # Retention System Custom Fields - Using fixture-based installation with conditional visibility
+    # Print Designer Custom Fields for Sales Invoice
     {
         "doctype": "Custom Field",
         "filters": [
@@ -153,7 +153,32 @@ fixtures = [
                 "name",
                 "in",
                 [
-                    # Sales Invoice - Retention System Fields (for learning/export)
+                    # Sales Invoice - Signature Fields
+                    "Sales Invoice-prepared_by_signature",
+                    "Sales Invoice-approved_by_signature",
+                    
+                    # Sales Invoice - Watermark Field
+                    "Sales Invoice-watermark_text",
+                    
+                    # Sales Invoice - WHT (Withholding Tax) Fields
+                    "Sales Invoice-subject_to_wht",
+                    "Sales Invoice-wht_note",
+                    "Sales Invoice-estimated_wht_amount",
+                    "Sales Invoice-wht_base_amount",
+                    "Sales Invoice-wht_certificate_required",
+                    "Sales Invoice-wht_description",
+                    "Sales Invoice-net_total_after_wht",
+                    "Sales Invoice-wht_income_type",
+                    "Sales Invoice-net_total_after_wht_in_words",
+                    
+                    # Sales Invoice - Thai WHT Preview Fields
+                    "Sales Invoice-thai_wht_preview_section",
+                    "Sales Invoice-wht_amounts_column_break",
+                    "Sales Invoice-wht_preview_column_break",
+                    "Sales Invoice-estimated_wht_rate",
+                    "Sales Invoice-net_payment_amount",
+                    
+                    # Sales Invoice - Retention System Fields
                     "Sales Invoice-custom_retention",
                     "Sales Invoice-custom_retention_amount",
                     "Sales Invoice-custom_withholding_tax",
