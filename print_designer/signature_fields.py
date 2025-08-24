@@ -85,49 +85,22 @@ SIGNATURE_FIELDS = {
 	# Accounting Module
 	"Company": [
 		{
-			"fieldname": "stamps_signatures_tab",
-			"fieldtype": "Tab Break",
-			"label": "Stamps & Signatures",
-			"insert_after": "default_in_transit_warehouse",
-		},
-		{
-			"fieldname": "company_signatures_section",
-			"label": "Company Signatures",
-			"fieldtype": "Section Break",
-			"insert_after": "stamps_signatures_tab",
-		},
-		{
-			"fieldname": "authorized_signature_1",
-			"fieldtype": "Attach Image",
-			"label": "Authorized Signature 1",
-			"insert_after": "company_signatures_section",
-			"description": "Primary authorized signatory for company documents"
-		},
-		{
-			"fieldname": "authorized_signature_2",
-			"fieldtype": "Attach Image",
-			"label": "Authorized Signature 2",
-			"insert_after": "authorized_signature_1",
-			"description": "Secondary authorized signatory for company documents"
-		},
-		{
-			"fieldname": "ceo_signature",
-			"fieldtype": "Attach Image",
-			"label": "CEO Signature",
-			"insert_after": "authorized_signature_2",
-			"description": "CEO signature for executive documents"
-		},
-		{
 			"fieldname": "company_stamps_section",
-			"label": "Company Stamps",
+			"label": "Company Stamps & Signatures",
 			"fieldtype": "Section Break",
-			"insert_after": "ceo_signature",
+			"insert_after": "address_html",
+		},
+		{
+			"fieldname": "company_stamps_column_break",
+			"fieldtype": "Column Break",
+			"label": "",
+			"insert_after": "company_stamps_section",
 		},
 		{
 			"fieldname": "company_stamp_1",
 			"fieldtype": "Attach Image",
 			"label": "Company Stamp 1",
-			"insert_after": "company_stamps_section",
+			"insert_after": "company_stamps_column_break",
 			"description": "Primary company stamp for official documents"
 		},
 		{
@@ -143,6 +116,33 @@ SIGNATURE_FIELDS = {
 			"label": "Official Seal",
 			"insert_after": "company_stamp_2",
 			"description": "Official company seal for legal documents"
+		},
+		{
+			"fieldname": "custom_column_break_phyun",
+			"fieldtype": "Column Break",
+			"label": "",
+			"insert_after": "official_seal",
+		},
+		{
+			"fieldname": "authorized_signature_1",
+			"fieldtype": "Attach Image",
+			"label": "Authorized Signature 1",
+			"insert_after": "custom_column_break_phyun",
+			"description": "Primary authorized signatory for company documents"
+		},
+		{
+			"fieldname": "authorized_signature_2",
+			"fieldtype": "Attach Image",
+			"label": "Authorized Signature 2",
+			"insert_after": "authorized_signature_1",
+			"description": "Secondary authorized signatory for company documents"
+		},
+		{
+			"fieldname": "ceo_signature",
+			"fieldtype": "Attach Image",
+			"label": "CEO Signature",
+			"insert_after": "authorized_signature_2",
+			"description": "CEO signature for executive documents"
 		}
 	],
 	

@@ -7,15 +7,28 @@ from frappe import _
 from frappe.utils import flt
 
 
-def calculate_thailand_amounts(doc):
+def quotation_calculate_thailand_amounts(doc, method=None):
     """
-    Calculate Thailand withholding tax and retention amounts during Quotation validation.
-    This follows the same pattern as ERPNext's calculate_taxes_and_totals() method.
+    Calculate Thailand amounts for Quotation DocType ONLY.
+    
+    This function is specifically designed for Quotation and handles:
+    - Company default WHT/retention rates integration
+    - Thai business logic based on Company configuration
+    - Custom field calculations (custom_withholding_tax_amount, custom_retention_amount)
+    - Final payment amount calculations (net_total_after_wht)
     
     Called from Quotation validate() method - runs server-side before save.
+    Uses Company default values when Quotation fields are not specified.
     """
+    # Ensure this function only processes Quotation DocType
+    if doc.doctype != "Quotation":
+        return
+        
     if not doc.company:
         return
+    
+    # Apply Company defaults if Quotation fields are not specified
+    apply_company_defaults(doc)
     
     # Calculate withholding tax amounts
     calculate_withholding_tax_amounts(doc)
@@ -27,11 +40,43 @@ def calculate_thailand_amounts(doc):
     calculate_final_payment_amounts(doc)
 
 
+def apply_company_defaults(doc):
+    """
+    Apply Company default values to Quotation when fields are not specified.
+    Uses Company.default_wht_rate and Company.default_retention_rate as fallbacks.
+    """
+    try:
+        # Get Company configuration
+        company_doc = frappe.get_cached_doc("Company", doc.company)
+        
+        # Apply default WHT rate if custom_withholding_tax is not specified
+        if not doc.get('custom_withholding_tax') and company_doc.get('default_wht_rate'):
+            doc.custom_withholding_tax = flt(company_doc.default_wht_rate)
+        
+        # Apply default retention rate if custom_retention is not specified  
+        if not doc.get('custom_retention') and company_doc.get('default_retention_rate'):
+            doc.custom_retention = flt(company_doc.default_retention_rate)
+            
+        # Note: subject_to_wht should be manually controlled by user
+        # Field visibility is controlled by depends_on condition in Custom Field
+        # User decides whether Quotation contains services subject to WHT
+                
+        # Enable custom_subject_to_retention based on Company construction_service or default_retention_rate
+        if (company_doc.get('construction_service') or company_doc.get('default_retention_rate')) and not doc.get('custom_subject_to_retention'):
+            # Only auto-enable if retention rate is available (either custom or default)
+            if doc.get('custom_retention') or company_doc.get('default_retention_rate'):
+                doc.custom_subject_to_retention = 1
+                
+    except Exception as e:
+        frappe.log_error(f"Error applying Company defaults to Quotation {doc.name}: {str(e)}")
+        # Don't fail validation - just continue without defaults
+
+
 def calculate_withholding_tax_amounts(doc):
     """Calculate withholding tax amounts based on custom_withholding_tax percentage"""
     try:
-        # Calculate WHT amount: custom_withholding_tax_amount = net_total * custom_withholding_tax
-        if doc.custom_withholding_tax and doc.net_total:
+        # Only calculate WHT if user has enabled subject_to_wht
+        if doc.get('subject_to_wht') and doc.custom_withholding_tax and doc.net_total:
             wht_rate = flt(doc.custom_withholding_tax)  # Already in percentage
             base_amount = flt(doc.net_total)
             
@@ -128,32 +173,5 @@ def validate_thailand_calculations(doc):
         )
 
 
-# Main entry point - called from Quotation validate() method
-def quotation_calculate_thailand_amounts(doc, method=None):
-    """
-    Main calculation method called from Quotation validate().
-    This follows the ERPNext pattern - server-side calculation during validation.
-    
-    Args:
-        doc: Quotation document
-        method: Hook method (validate)
-    """
-    try:
-        # Only calculate for draft documents
-        if doc.docstatus != 0:
-            return
-        
-        # Perform all Thailand-specific calculations
-        calculate_thailand_amounts(doc)
-        
-        # Validate calculations
-        validate_thailand_calculations(doc)
-        
-    except Exception as e:
-        frappe.log_error(
-            f"Error in Thailand calculations for Quotation {doc.name}: {str(e)}",
-            "Thailand Quotation Calculations"
-        )
-        # Re-raise validation errors, but not calculation errors
-        if isinstance(e, frappe.ValidationError):
-            raise
+# Note: This function is the main entry point called from hooks.py
+# quotation_calculate_thailand_amounts (defined at line 10) is the correct function

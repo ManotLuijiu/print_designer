@@ -57,8 +57,8 @@ def after_install():
     _install_signature_fields_on_install()
     # DISABLED: Using fixture-based retention fields instead of programmatic installation
     # _install_retention_fields_on_install()
-    # Install Thailand WHT fields for service businesses
-    _install_thailand_wht_fields_on_install()
+    # REMOVED: Thailand WHT fields - Now handled by separate quotation module
+    # _install_thailand_wht_fields_on_install()
     # Install Item service field for Thailand WHT
     _install_item_service_field_on_install()
     # Setup Print Designer UI visibility for new installations
@@ -136,9 +136,9 @@ def ensure_all_fields_after_migration():
         # _ensure_retention_fields()
         frappe.logger().info("✅ Retention fields ensured")
 
-        # 2.2. Thailand WHT fields for service businesses
-        _ensure_thailand_wht_fields()
-        frappe.logger().info("✅ Thailand WHT fields ensured")
+        # REMOVED: Thailand WHT fields - Now handled by separate quotation module
+        # _ensure_thailand_wht_fields()
+        frappe.logger().info("✅ Thailand WHT fields handled by quotation module")
 
         # 2.3. Item service field for Thailand WHT
         _ensure_item_service_field()

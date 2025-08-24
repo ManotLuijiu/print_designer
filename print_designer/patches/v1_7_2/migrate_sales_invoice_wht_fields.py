@@ -21,11 +21,12 @@ def execute():
     try:
         frappe.logger().info("Starting Sales Invoice WHT field migration (v1.7.2)...")
         
-        # Import the migration function
-        from print_designer.thailand_wht_fields import migrate_sales_invoice_wht_fields
+        # REMOVED: thailand_wht_fields.py deleted - Now handled by separate modules
+        # from print_designer.thailand_wht_fields import migrate_sales_invoice_wht_fields
         
-        # Run the migration
-        success = migrate_sales_invoice_wht_fields()
+        # DISABLED: Migration handled by separate sales-invoice module
+        # success = migrate_sales_invoice_wht_fields()
+        success = True  # Skip migration since fields are now module-specific
         
         if success:
             frappe.logger().info("✅ Sales Invoice WHT field migration completed successfully")
