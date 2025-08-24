@@ -156,13 +156,10 @@ fixtures = [
                     # Sales Invoice - Signature Fields
                     "Sales Invoice-prepared_by_signature",
                     "Sales Invoice-approved_by_signature",
-                    
                     # Sales Invoice - Watermark Field
                     "Sales Invoice-watermark_text",
-                    
                     # Sales Invoice - VAT Treatment Field
                     "Sales Invoice-vat_treatment",
-                    
                     # Sales Invoice - WHT (Withholding Tax) Fields
                     "Sales Invoice-subject_to_wht",
                     "Sales Invoice-wht_note",
@@ -171,12 +168,10 @@ fixtures = [
                     "Sales Invoice-wht_description",
                     "Sales Invoice-wht_income_type",
                     "Sales Invoice-net_total_after_wht_in_words",
-                    
                     # Sales Invoice - Thai WHT Preview Fields
                     "Sales Invoice-thai_wht_preview_section",
                     "Sales Invoice-wht_amounts_column_break",
                     "Sales Invoice-wht_preview_column_break",
-                    
                     # Sales Invoice - Retention System Fields
                     "Sales Invoice-custom_retention",
                     "Sales Invoice-custom_retention_amount",
@@ -184,50 +179,42 @@ fixtures = [
                     "Sales Invoice-custom_withholding_tax_amount",
                     "Sales Invoice-custom_payment_amount",
                     "Sales Invoice-custom_subject_to_retention",
+                    "Sales Invoice-custom_net_total_after_wht_retention",
                     "Sales Invoice-custom_net_total_after_wht_and_retention_in_words",
-                    
+                    "Sales Invoice-custom_retention_note",
                     # Quotation - Signature Fields
                     "Quotation-prepared_by_signature",
-                    
                     # Quotation - Watermark Field
                     "Quotation-watermark_text",
-                    
                     # Quotation - VAT Treatment Field
                     "Quotation-vat_treatment",
-                    
                     # Quotation - WHT (Withholding Tax) Fields
                     "Quotation-wht_note",
                     "Quotation-subject_to_wht",
-                    "Quotation-wht_base_amount",
                     "Quotation-wht_description",
                     "Quotation-wht_income_type",
                     "Quotation-net_total_after_wht_in_words",
-                    "Quotation-estimated_wht_rate",
-                    "Quotation-estimated_wht_amount", 
-                    "Quotation-net_payment_amount",
+                    "Quotation-estimated_wht_amount",
                     "Quotation-net_total_after_wht",
-                    
                     # Quotation - Thai WHT Preview Fields
                     "Quotation-thai_wht_preview_section",
                     "Quotation-wht_amounts_column_break",
                     "Quotation-wht_preview_column_break",
-                    
                     # Quotation - Retention System Fields
                     "Quotation-custom_subject_to_retention",
+                    "Quotation-custom_net_total_after_wht_retention",
                     "Quotation-custom_net_total_after_wht_and_retention_in_words",
                     "Quotation-custom_retention",
                     "Quotation-custom_retention_amount",
+                    "Quotation-custom_retention_note",
                     "Quotation-custom_withholding_tax",
-                    "Quotation-custom_withholding_tax_amount", 
+                    "Quotation-custom_withholding_tax_amount",
                     "Quotation-custom_payment_amount",
-                    
                     # Sales Order - Signature Fields
                     "Sales Order-prepared_by_signature",
                     "Sales Order-approved_by_signature",
-                    
                     # Sales Order - Watermark Field
                     "Sales Order-watermark_text",
-                    
                     # Sales Order - WHT (Withholding Tax) Fields
                     "Sales Order-subject_to_wht",
                     "Sales Order-wht_note",
@@ -240,11 +227,70 @@ fixtures = [
                     "Sales Order-net_payment_amount",
                     "Sales Order-net_total_after_wht",
                     "Sales Order-wht_section",
-                    
                     # Sales Order - Thai WHT Preview Fields
                     "Sales Order-thai_wht_preview_section",
                     "Sales Order-wht_amounts_column_break",
                     "Sales Order-wht_preview_column_break",
+                ],
+            ]
+        ],
+    },
+    # Company DocType - All Custom Fields for Print Designer
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    # Company - Stamps & Signatures Fields (relocated to proper sections)
+                    "Company-company_signatures_section",
+                    "Company-authorized_signature_1",
+                    "Company-authorized_signature_2",
+                    "Company-ceo_signature",
+                    "Company-company_stamps_section",
+                    "Company-company_stamp_1",
+                    "Company-company_stamp_2",
+                    "Company-official_seal",
+                    # Company - Thai Business Configuration
+                    "Company-thailand_service_business",
+                    "Company-default_wht_account",
+                    # Company - Retention Settings
+                    "Company-retention_section",
+                    "Company-retention_enabled",
+                    "Company-retention_percentage",
+                    "Company-retention_account",
+                    "Company-retention_description",
+                    "Company-retention_notes",
+                    # Company - Thai WHT Settings
+                    "Company-thai_wht_section",
+                    "Company-wht_enabled",
+                    "Company-default_wht_rate",
+                    "Company-wht_liability_account",
+                    "Company-wht_description",
+                    "Company-wht_certificate_required",
+                    # Company - Typography Settings
+                    "Company-typography_section",
+                    "Company-default_print_font",
+                    "Company-enable_thai_fonts",
+                    "Company-custom_css_styles",
+                    # Company - Watermark Settings
+                    "Company-watermark_section",
+                    "Company-default_watermark_text",
+                    "Company-watermark_enabled",
+                    "Company-watermark_position",
+                    "Company-watermark_opacity",
+                    # Company - Print Format Settings
+                    "Company-print_format_section",
+                    "Company-default_print_format",
+                    "Company-enable_company_signature",
+                    "Company-auto_apply_watermark",
+                    # Company - Document Numbering
+                    "Company-document_numbering_section",
+                    "Company-custom_invoice_prefix",
+                    "Company-enable_thai_numbering",
+                    "Company-thai_business_registration",
+                    "Company-vat_registration_number",
                 ],
             ]
         ],
@@ -612,7 +658,10 @@ doc_events = {
     # Thai WHT Preview System - Sales Documents
     "Quotation": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+        "validate": [
+            "print_designer.custom.quotation_calculations.quotation_calculate_thailand_amounts",
+            "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+        ],
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
@@ -623,7 +672,7 @@ doc_events = {
         "before_print": "print_designer.pdf.before_print",
         "validate": [
             "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-            "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler"
+            "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
         ],
         "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
         "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
