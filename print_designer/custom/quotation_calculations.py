@@ -20,11 +20,21 @@ def quotation_calculate_thailand_amounts(doc, method=None):
     Called from Quotation validate() method - runs server-side before save.
     Uses Company default values when Quotation fields are not specified.
     """
+    # DEBUG: Log function entry
+    frappe.logger().info(f"🔍 Quotation Calc: quotation_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    frappe.logger().info(f"🔍 Quotation Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 Quotation Calc: quotation_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    print(f"🔍 Quotation Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    
     # Ensure this function only processes Quotation DocType
     if doc.doctype != "Quotation":
+        frappe.logger().info(f"🔍 Quotation Calc: Not a Quotation ({doc.doctype}), skipping")
+        print(f"🔍 Quotation Calc: Not a Quotation ({doc.doctype}), skipping")
         return
         
     if not doc.company:
+        frappe.logger().info(f"🔍 Quotation Calc: No company set, skipping")
+        print(f"🔍 Quotation Calc: No company set, skipping")
         return
     
     # Apply Company defaults if Quotation fields are not specified
@@ -38,6 +48,12 @@ def quotation_calculate_thailand_amounts(doc, method=None):
     
     # Calculate final payment amounts
     calculate_final_payment_amounts(doc)
+    
+    # DEBUG: Log final state
+    frappe.logger().info(f"🔍 Quotation Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Quotation Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+    print(f"🔍 Quotation Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 Quotation Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
 
 
 def apply_company_defaults(doc):

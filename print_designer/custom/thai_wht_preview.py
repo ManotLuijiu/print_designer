@@ -98,23 +98,47 @@ def calculate_thai_wht_preview(doc):
     Returns:
         dict: WHT preview information
     """
+    # DEBUG: Log function entry
+    frappe.logger().info(f"🔍 WHT Preview: calculate_thai_wht_preview called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    frappe.logger().info(f"🔍 WHT Preview: Current subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 WHT Preview: calculate_thai_wht_preview called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    print(f"🔍 WHT Preview: Current subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    
     if not should_calculate_wht_preview(doc):
+        frappe.logger().info(f"🔍 WHT Preview: should_calculate_wht_preview = False, clearing fields")
+        print(f"🔍 WHT Preview: should_calculate_wht_preview = False, clearing fields")
         return clear_wht_preview_fields(doc)
+    
+    # Check if user manually enabled WHT on the document
+    manual_wht_enabled = getattr(doc, 'subject_to_wht', False)
+    frappe.logger().info(f"🔍 WHT Preview: manual_wht_enabled = {manual_wht_enabled}")
+    print(f"🔍 WHT Preview: manual_wht_enabled = {manual_wht_enabled}")
     
     # Get customer's WHT configuration
     customer_wht_config = get_customer_wht_config(doc.customer)
+    customer_wht_enabled = customer_wht_config.get('subject_to_wht', False)
+    frappe.logger().info(f"🔍 WHT Preview: customer_wht_enabled = {customer_wht_enabled} for customer {doc.customer}")
+    print(f"🔍 WHT Preview: customer_wht_enabled = {customer_wht_enabled} for customer {doc.customer}")
     
-    if not customer_wht_config.get('subject_to_wht'):
+    # FIXED: Respect user's manual choice OR customer configuration
+    # If user manually enabled WHT, respect that choice
+    # If customer has WHT enabled, suggest it (but don't override manual choice)
+    if not (manual_wht_enabled or customer_wht_enabled):
+        frappe.logger().info(f"🔍 WHT Preview: Neither manual nor customer WHT enabled, clearing fields")
+        print(f"🔍 WHT Preview: Neither manual nor customer WHT enabled, clearing fields")
         return clear_wht_preview_fields(doc)
     
     # Calculate base amount for WHT
     base_amount = get_wht_base_amount(doc)
+    frappe.logger().info(f"🔍 WHT Preview: base_amount = {base_amount}, threshold = {THAI_WHT_THRESHOLD}")
     
     if base_amount < THAI_WHT_THRESHOLD:
+        frappe.logger().info(f"🔍 WHT Preview: base_amount below threshold, clearing fields")
         return clear_wht_preview_fields(doc)
     
     # Get applicable WHT rate
     wht_rate = get_applicable_wht_rate(doc, customer_wht_config)
+    frappe.logger().info(f"🔍 WHT Preview: wht_rate = {wht_rate}%")
     
     # Calculate WHT amount
     wht_amount = (base_amount * wht_rate) / 100
@@ -132,6 +156,8 @@ def calculate_thai_wht_preview(doc):
         'wht_income_type': customer_wht_config.get('income_type', 'service_fees'),
         'wht_description': get_wht_description(customer_wht_config.get('income_type', 'service_fees'))
     }
+    
+    frappe.logger().info(f"🔍 WHT Preview: Calculated preview - subject_to_wht={wht_preview['subject_to_wht']}, amount={wht_preview['estimated_wht_amount']}")
     
     return wht_preview
 
@@ -217,9 +243,16 @@ def get_wht_description(income_type):
 
 
 def clear_wht_preview_fields(doc):
-    """Clear WHT preview fields"""
-    return {
-        'subject_to_wht': 0,
+    """Clear WHT preview fields while preserving user's manual subject_to_wht choice"""
+    # FIXED: Don't override user's manual subject_to_wht setting
+    current_subject_to_wht = getattr(doc, 'subject_to_wht', 0)
+    
+    # DEBUG: Log field clearing
+    frappe.logger().info(f"🔍 WHT Preview: clear_wht_preview_fields called - preserving subject_to_wht = {current_subject_to_wht}")
+    print(f"🔍 WHT Preview: clear_wht_preview_fields called - preserving subject_to_wht = {current_subject_to_wht}")
+    
+    cleared_fields = {
+        'subject_to_wht': current_subject_to_wht,  # Preserve user's choice
         'estimated_wht_rate': 0,
         'estimated_wht_amount': 0,
         'wht_base_amount': 0,
@@ -227,6 +260,11 @@ def clear_wht_preview_fields(doc):
         'wht_income_type': '',
         'wht_description': ''
     }
+    
+    frappe.logger().info(f"🔍 WHT Preview: Returning cleared fields with subject_to_wht = {cleared_fields['subject_to_wht']}")
+    print(f"🔍 WHT Preview: Returning cleared fields with subject_to_wht = {cleared_fields['subject_to_wht']}")
+    
+    return cleared_fields
 
 
 def is_thai_company(company):

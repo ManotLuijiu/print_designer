@@ -34,13 +34,29 @@ def calculate_wht_preview_on_validate(doc, method=None):
         if doc.doctype not in ['Quotation', 'Sales Order', 'Sales Invoice']:
             return
         
+        # DEBUG: Log validation entry
+        frappe.logger().info(f"🔍 WHT Events: calculate_wht_preview_on_validate called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+        frappe.logger().info(f"🔍 WHT Events: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+        print(f"🔍 WHT Events: calculate_wht_preview_on_validate called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+        print(f"🔍 WHT Events: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+        
         # Calculate WHT preview
         wht_preview = calculate_thai_wht_preview(doc)
+        
+        # DEBUG: Log what preview system returned
+        frappe.logger().info(f"🔍 WHT Events: Preview system returned: {wht_preview}")
         
         # Update document fields
         for field, value in wht_preview.items():
             if hasattr(doc, field):
+                old_value = getattr(doc, field, 'NOT_SET')
                 setattr(doc, field, value)
+                if field == 'subject_to_wht' and old_value != value:
+                    frappe.logger().info(f"🔍 WHT Events: CHANGED {field}: {old_value} → {value}")
+        
+        # DEBUG: Log final state
+        frappe.logger().info(f"🔍 WHT Events: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+        print(f"🔍 WHT Events: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
         
         # Add informational message if WHT applies
         if wht_preview.get('subject_to_wht'):
