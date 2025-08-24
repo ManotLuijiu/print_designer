@@ -157,6 +157,9 @@ def calculate_final_payment_amounts(doc):
                 _("Warning: Total deductions exceed quotation amount. Payment amount set to zero."),
                 alert=True, indicator="orange"
             )
+        
+        # Convert amounts to words (Thai language support)
+        convert_amounts_to_words(doc)
             
     except Exception as e:
         frappe.log_error(f"Error calculating final payment amounts for Quotation {doc.name}: {str(e)}")
@@ -187,6 +190,49 @@ def validate_thailand_calculations(doc):
                 total_deductions, doc.grand_total
             )
         )
+
+
+def convert_amounts_to_words(doc):
+    """
+    Convert calculated amounts to words for display in Thai documents.
+    Updates the 'in_words' fields for net_total_after_wht and custom_net_total_after_wht_and_retention.
+    """
+    try:
+        from frappe.utils import money_in_words
+        
+        # Convert net_total_after_wht to words
+        if doc.net_total_after_wht and hasattr(doc, 'net_total_after_wht_in_words'):
+            try:
+                doc.net_total_after_wht_in_words = money_in_words(doc.net_total_after_wht)
+                print(f"🔍 Quotation Calc: net_total_after_wht_in_words = {doc.net_total_after_wht_in_words}")
+            except Exception as e:
+                doc.net_total_after_wht_in_words = ""
+                print(f"🔍 Quotation Calc: Error converting net_total_after_wht to words: {str(e)}")
+        
+        # Convert custom_net_total_after_wht_retention to words (if retention applies)
+        if (doc.custom_subject_to_retention and 
+            doc.custom_net_total_after_wht_retention and 
+            hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words')):
+            try:
+                doc.custom_net_total_after_wht_and_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
+                print(f"🔍 Quotation Calc: custom_net_total_after_wht_and_retention_in_words = {doc.custom_net_total_after_wht_and_retention_in_words}")
+            except Exception as e:
+                doc.custom_net_total_after_wht_and_retention_in_words = ""
+                print(f"🔍 Quotation Calc: Error converting custom_net_total_after_wht_retention to words: {str(e)}")
+        else:
+            # Clear retention in_words field if not applicable
+            if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
+                doc.custom_net_total_after_wht_and_retention_in_words = ""
+                print(f"🔍 Quotation Calc: Cleared custom_net_total_after_wht_and_retention_in_words (no retention)")
+                
+    except Exception as e:
+        frappe.log_error(f"Error converting amounts to words for Quotation {doc.name}: {str(e)}")
+        # Clear the in_words fields on error
+        if hasattr(doc, 'net_total_after_wht_in_words'):
+            doc.net_total_after_wht_in_words = ""
+        if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
+            doc.custom_net_total_after_wht_and_retention_in_words = ""
+        print(f"🔍 Quotation Calc: Error in convert_amounts_to_words: {str(e)}")
 
 
 # Note: This function is the main entry point called from hooks.py
