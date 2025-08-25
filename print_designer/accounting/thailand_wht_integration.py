@@ -69,7 +69,7 @@ def _calculate_wht_amounts(doc):
     doc.wht_amount = flt((total_wht_base * flt(doc.wht_rate)) / 100, 2)
 
     # Calculate net payment amount
-    doc.net_payment_amount = flt(doc.paid_amount) - flt(doc.wht_amount)
+    doc.net_total_after_wht = flt(doc.paid_amount) - flt(doc.wht_amount)
 
     # Set WHT account if not already set
     if not doc.wht_account:
@@ -153,11 +153,11 @@ def _update_payment_amounts(doc):
 
     # Update the paid amount to net amount (this affects the cash/bank account)
     original_paid_amount = doc.paid_amount
-    doc.paid_amount = doc.net_payment_amount
+    doc.paid_amount = doc.net_total_after_wht
 
     # Update received amount if different
     if doc.received_amount == original_paid_amount:
-        doc.received_amount = doc.net_payment_amount
+        doc.received_amount = doc.net_total_after_wht
 
     # Add a comment explaining the adjustment
     doc.add_comment(
@@ -165,7 +165,7 @@ def _update_payment_amounts(doc):
         _("Payment adjusted for Thailand WHT: Original {0}, WHT {1}, Net {2}").format(
             frappe.format_value(original_paid_amount, {"fieldtype": "Currency"}),
             frappe.format_value(doc.wht_amount, {"fieldtype": "Currency"}),
-            frappe.format_value(doc.net_payment_amount, {"fieldtype": "Currency"}),
+            frappe.format_value(doc.net_total_after_wht, {"fieldtype": "Currency"}),
         ),
     )
 

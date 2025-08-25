@@ -143,8 +143,8 @@ def calculate_thai_wht_preview(doc):
     # Calculate WHT amount
     wht_amount = (base_amount * wht_rate) / 100
     
-    # Calculate net payment amount (after WHT deduction)
-    net_payment_amount = doc.grand_total - wht_amount
+    # Calculate net total after WHT deduction
+    net_total_after_wht = doc.grand_total - wht_amount
     
     # Update WHT preview fields
     wht_preview = {
@@ -152,7 +152,7 @@ def calculate_thai_wht_preview(doc):
         'estimated_wht_rate': wht_rate,
         'estimated_wht_amount': flt(wht_amount, 2),
         'wht_base_amount': flt(base_amount, 2),
-        'net_payment_amount': flt(net_payment_amount, 2),
+        'net_total_after_wht': flt(net_total_after_wht, 2),
         'wht_income_type': customer_wht_config.get('income_type', 'service_fees'),
         'wht_description': get_wht_description(customer_wht_config.get('income_type', 'service_fees'))
     }
@@ -256,7 +256,7 @@ def clear_wht_preview_fields(doc):
         'estimated_wht_rate': 0,
         'estimated_wht_amount': 0,
         'wht_base_amount': 0,
-        'net_payment_amount': flt(doc.grand_total, 2),
+        'net_total_after_wht': flt(doc.grand_total, 2),
         'wht_income_type': '',
         'wht_description': ''
     }
@@ -393,7 +393,7 @@ def get_wht_info_for_print(doc):
             'wht_amount': flt(doc.estimated_wht_amount, 2),
             'wht_description': getattr(doc, 'wht_description', ''),
             'base_amount': flt(doc.wht_base_amount, 2),
-            'net_payment': flt(doc.net_payment_amount, 2),
+            'net_payment': flt(doc.net_total_after_wht, 2),
             'wht_note': _('หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน'),
             'wht_note_en': _('Note: Withholding tax amount will be deducted upon payment')
         }

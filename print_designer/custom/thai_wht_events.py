@@ -61,7 +61,7 @@ def calculate_wht_preview_on_validate(doc, method=None):
         # Add informational message if WHT applies
         if wht_preview.get('subject_to_wht'):
             wht_amount = wht_preview.get('estimated_wht_amount', 0)
-            net_amount = wht_preview.get('net_payment_amount', 0)
+            net_amount = wht_preview.get('net_total_after_wht', 0)
             
             if wht_amount > 0:
                 frappe.msgprint(
@@ -164,7 +164,7 @@ def sales_invoice_wht_preview_handler(doc, method=None):
                 doc.estimated_wht_rate = 0
                 doc.estimated_wht_amount = 0
                 doc.wht_base_amount = 0
-                doc.net_payment_amount = flt(doc.grand_total, 2)
+                doc.net_total_after_wht = flt(doc.grand_total, 2)
         
     except Exception as e:
         frappe.log_error(
@@ -425,7 +425,7 @@ def preview_wht_calculation_api(customer, grand_total, net_total=None, income_ty
                 'wht_description': get_wht_description(income_type),
                 'estimated_wht_rate': wht_rate,
                 'estimated_wht_amount': flt(wht_amount, 2),
-                'net_payment_amount': flt(grand_total - wht_amount, 2)
+                'net_total_after_wht': flt(grand_total - wht_amount, 2)
             })
         
         return wht_preview

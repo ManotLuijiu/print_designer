@@ -192,30 +192,44 @@ fixtures = [
                     "Sales Invoice-approved_by_signature",
                     # Sales Invoice - Watermark Field
                     "Sales Invoice-watermark_text",
+                    # Sales Invoice - Digisoft ERP Tab
+                    "Sales Invoice-digisoft_erp_tab",
+                    # Sales Invoice - Thai Tax Information Fields
+                    "Sales Invoice-thai_tax_information_section",
+                    "Sales Invoice-thai_invoice_type",
+                    "Sales Invoice-thai_tax_invoice_number",
+                    "Sales Invoice-thai_tax_invoice_date",
+                    "Sales Invoice-thai_customer_tax_id",
+                    "Sales Invoice-thai_customer_branch_code",
+                    # Sales Invoice - Thai Compliance Fields
+                    "Sales Invoice-thai_compliance_section",
+                    "Sales Invoice-thai_vat_eligible",
+                    "Sales Invoice-thai_export_eligible",
+                    "Sales Invoice-thai_cash_receipt",
                     # Sales Invoice - VAT Treatment Field
-                    "Sales Invoice-vat_treatment",
+                    "Sales Invoice-custom_vat_treatment",
                     # Sales Invoice - WHT (Withholding Tax) Fields
                     "Sales Invoice-subject_to_wht",
-                    "Sales Invoice-wht_note",
-                    # REMOVED: "Sales Invoice-wht_base_amount" - field deleted from database
-                    "Sales Invoice-wht_certificate_required",
-                    "Sales Invoice-wht_description",
                     "Sales Invoice-wht_income_type",
+                    "Sales Invoice-wht_description",
+                    "Sales Invoice-wht_certificate_required",
+                    "Sales Invoice-net_total_after_wht",
                     "Sales Invoice-net_total_after_wht_in_words",
+                    "Sales Invoice-wht_note",
                     # Sales Invoice - Thai WHT Preview Fields
                     "Sales Invoice-thai_wht_preview_section",
                     "Sales Invoice-wht_amounts_column_break",
                     "Sales Invoice-wht_preview_column_break",
                     # Sales Invoice - Retention System Fields
+                    "Sales Invoice-custom_subject_to_retention",
+                    "Sales Invoice-custom_net_total_after_wht_retention",
+                    "Sales Invoice-custom_net_total_after_wht_and_retention_in_words",
+                    "Sales Invoice-custom_retention_note",
                     "Sales Invoice-custom_retention",
                     "Sales Invoice-custom_retention_amount",
                     "Sales Invoice-custom_withholding_tax",
                     "Sales Invoice-custom_withholding_tax_amount",
                     "Sales Invoice-custom_payment_amount",
-                    "Sales Invoice-custom_subject_to_retention",
-                    "Sales Invoice-custom_net_total_after_wht_retention",
-                    "Sales Invoice-custom_net_total_after_wht_and_retention_in_words",
-                    "Sales Invoice-custom_retention_note",
                     # Quotation - Signature Fields
                     "Quotation-prepared_by_signature",
                     # Quotation - Watermark Field
@@ -249,22 +263,36 @@ fixtures = [
                     "Sales Order-approved_by_signature",
                     # Sales Order - Watermark Field
                     "Sales Order-watermark_text",
+                    # Sales Order - Deposit Fields
+                    "Sales Order-has_deposit",
+                    "Sales Order-deposit_invoice",
+                    "Sales Order-percent_deposit",
+                    "Sales Order-column_break_euapx",
+                    "Sales Order-section_break_o8q38",
+                    "Sales Order-deposit_deduction_method",
+                    # Sales Order - VAT Treatment Field
+                    "Sales Order-custom_vat_treatment",
                     # Sales Order - WHT (Withholding Tax) Fields
                     "Sales Order-subject_to_wht",
                     "Sales Order-wht_note",
-                    # "Sales Order-wht_base_amount",
                     "Sales Order-wht_description",
                     "Sales Order-wht_income_type",
                     "Sales Order-net_total_after_wht_in_words",
-                    # "Sales Order-estimated_wht_rate",
-                    "Sales Order-estimated_wht_amount",
-                    "Sales Order-net_payment_amount",
                     "Sales Order-net_total_after_wht",
-                    "Sales Order-wht_section",
                     # Sales Order - Thai WHT Preview Fields
                     "Sales Order-thai_wht_preview_section",
                     "Sales Order-wht_amounts_column_break",
                     "Sales Order-wht_preview_column_break",
+                    # Sales Order - Retention System Fields
+                    "Sales Order-custom_subject_to_retention",
+                    "Sales Order-custom_net_total_after_wht_retention",
+                    "Sales Order-custom_net_total_after_wht_retention_in_words",
+                    "Sales Order-custom_retention_note",
+                    "Sales Order-custom_retention",
+                    "Sales Order-custom_retention_amount",
+                    "Sales Order-custom_withholding_tax",
+                    "Sales Order-custom_withholding_tax_amount",
+                    "Sales Order-custom_payment_amount",
                 ],
             ]
         ],

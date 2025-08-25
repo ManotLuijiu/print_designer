@@ -178,7 +178,7 @@ def test_thai_wht_preview(context):
             if result.get('success'):
                 print(f"  ✅ WHT Rate: {result.get('estimated_wht_rate', 0)}%")
                 print(f"  ✅ WHT Amount: ฿{result.get('estimated_wht_amount', 0):,.2f}")
-                print(f"  ✅ Net Payment: ฿{result.get('net_payment_amount', 0):,.2f}")
+                print(f"  ✅ Net Payment: ฿{result.get('net_total_after_wht', 0):,.2f}")
             else:
                 print(f"  ❌ Error: {result.get('error', 'Unknown error')}")
         

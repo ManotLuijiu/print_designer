@@ -32,7 +32,7 @@ def test_wht_service_system():
         print(f"{status} Sales Invoice.{field}: {'Found' if exists else 'Missing'}")
     
     # Payment Entry fields
-    pe_fields = ['apply_wht', 'wht_rate', 'wht_amount', 'wht_account', 'net_payment_amount']
+    pe_fields = ['apply_wht', 'wht_rate', 'wht_amount', 'wht_account', 'net_total_after_wht']
     for field in pe_fields:
         exists = frappe.db.exists("Custom Field", {"dt": "Payment Entry", "fieldname": field})
         status = "✅" if exists else "❌"
