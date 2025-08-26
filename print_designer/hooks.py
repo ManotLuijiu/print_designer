@@ -551,17 +551,19 @@ doc_events = {
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+        # "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",  # Generic handler - commented out
+        "validate": "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",  # Specific Sales Order handler like Quotation
     },
-    # Sales Invoice - Updated to include WHT preview alongside existing events
+    # Sales Invoice - Updated to use specific calculation module like Quotation/Sales Order
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": [
-            "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-            "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
-        ],
-        "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
-        "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
+        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",  # Specific Sales Invoice handler like Quotation
+        # "validate": [  # Old configuration - commented out
+        #     "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
+        #     "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
+        # ],
+        # "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
+        # "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
     },
     # Customer WHT Configuration Changes
     "Customer": {

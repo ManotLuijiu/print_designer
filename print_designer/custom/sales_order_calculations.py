@@ -1,7 +1,7 @@
 """
-Sales Invoice Thailand Calculations Module
+Sales Order Thailand Calculations Module
 
-Handles Thailand-specific calculations for Sales Invoice DocType:
+Handles Thailand-specific calculations for Sales Order DocType:
 - Withholding Tax (WHT) calculations
 - Retention calculations
 - Net total after WHT
@@ -12,37 +12,37 @@ from frappe import _
 from frappe.utils import flt, money_in_words
 
 
-def sales_invoice_calculate_thailand_amounts(doc, method=None):
+def sales_order_calculate_thailand_amounts(doc, method=None):
     """
-    Calculate Thailand amounts for Sales Invoice DocType ONLY.
+    Calculate Thailand amounts for Sales Order DocType ONLY.
     
-    This function is specifically designed for Sales Invoice and handles:
+    This function is specifically designed for Sales Order and handles:
     - Company default WHT/retention rates integration
     - Thai business logic based on Company configuration
     - Custom field calculations (custom_withholding_tax_amount, custom_retention_amount)
     - Final payment amount calculations (net_total_after_wht)
     
-    Called from Sales Invoice validate() method - runs server-side before save.
-    Uses Company default values when Sales Invoice fields are not specified.
+    Called from Sales Order validate() method - runs server-side before save.
+    Uses Company default values when Sales Order fields are not specified.
     """
     # DEBUG: Log function entry
-    frappe.logger().info(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    frappe.logger().info(f"🔍 Sales Invoice Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    print(f"🔍 Sales Invoice Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: sales_order_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 Sales Order Calc: sales_order_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    print(f"🔍 Sales Order Calc: BEFORE - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
     
-    # Ensure this function only processes Sales Invoice DocType
-    if doc.doctype != "Sales Invoice":
-        frappe.logger().info(f"🔍 Sales Invoice Calc: Not a Sales Invoice ({doc.doctype}), skipping")
-        print(f"🔍 Sales Invoice Calc: Not a Sales Invoice ({doc.doctype}), skipping")
+    # Ensure this function only processes Sales Order DocType
+    if doc.doctype != "Sales Order":
+        frappe.logger().info(f"🔍 Sales Order Calc: Not a Sales Order ({doc.doctype}), skipping")
+        print(f"🔍 Sales Order Calc: Not a Sales Order ({doc.doctype}), skipping")
         return
         
     if not doc.company:
-        frappe.logger().info(f"🔍 Sales Invoice Calc: No company set, skipping")
-        print(f"🔍 Sales Invoice Calc: No company set, skipping")
+        frappe.logger().info(f"🔍 Sales Order Calc: No company set, skipping")
+        print(f"🔍 Sales Order Calc: No company set, skipping")
         return
     
-    # Apply Company defaults if Sales Invoice fields are not specified
+    # Apply Company defaults if Sales Order fields are not specified
     apply_company_defaults(doc)
     
     # Calculate withholding tax amounts
@@ -55,15 +55,15 @@ def sales_invoice_calculate_thailand_amounts(doc, method=None):
     calculate_final_payment_amounts(doc)
     
     # DEBUG: Log final state
-    frappe.logger().info(f"🔍 Sales Invoice Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    frappe.logger().info(f"🔍 Sales Invoice Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Invoice Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Invoice Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+    print(f"🔍 Sales Order Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 Sales Order Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
 
 
 def apply_company_defaults(doc):
     """
-    Apply Company default settings to Sales Invoice when not specified.
+    Apply Company default settings to Sales Order when not specified.
     Uses Company-level settings as defaults for Thai business calculations.
     """
     try:
@@ -75,16 +75,16 @@ def apply_company_defaults(doc):
             # Set subject_to_wht if not already set
             if not getattr(doc, 'subject_to_wht', None):
                 doc.subject_to_wht = 1
-                frappe.logger().info(f"🔍 Sales Invoice Calc: Applied Thai business default - subject_to_wht = 1")
-                print(f"🔍 Sales Invoice Calc: Applied Thai business default - subject_to_wht = 1")
+                frappe.logger().info(f"🔍 Sales Order Calc: Applied Thai business default - subject_to_wht = 1")
+                print(f"🔍 Sales Order Calc: Applied Thai business default - subject_to_wht = 1")
         
         # Apply WHT rate if subject to WHT and rate not specified
         if getattr(doc, 'subject_to_wht', None):
             if not getattr(doc, 'withholding_tax_rate', None):
                 default_rate = getattr(company_doc, 'default_wht_rate', 3.0)
                 doc.withholding_tax_rate = default_rate
-                frappe.logger().info(f"🔍 Sales Invoice Calc: Applied Company default WHT rate: {default_rate}%")
-                print(f"🔍 Sales Invoice Calc: Applied Company default WHT rate: {default_rate}%")
+                frappe.logger().info(f"🔍 Sales Order Calc: Applied Company default WHT rate: {default_rate}%")
+                print(f"🔍 Sales Order Calc: Applied Company default WHT rate: {default_rate}%")
         
         # Apply retention settings if not specified
         if hasattr(company_doc, 'enable_retention') and company_doc.enable_retention:
@@ -95,17 +95,17 @@ def apply_company_defaults(doc):
                 if not getattr(doc, 'retention_percentage', None):
                     default_retention = getattr(company_doc, 'default_retention_percentage', 5.0)
                     doc.retention_percentage = default_retention
-                    frappe.logger().info(f"🔍 Sales Invoice Calc: Applied Company default retention: {default_retention}%")
-                    print(f"🔍 Sales Invoice Calc: Applied Company default retention: {default_retention}%")
+                    frappe.logger().info(f"🔍 Sales Order Calc: Applied Company default retention: {default_retention}%")
+                    print(f"🔍 Sales Order Calc: Applied Company default retention: {default_retention}%")
                 
     except Exception as e:
-        frappe.logger().error(f"🔍 Sales Invoice Calc: Error applying company defaults: {str(e)}")
-        print(f"🔍 Sales Invoice Calc: Error applying company defaults: {str(e)}")
+        frappe.logger().error(f"🔍 Sales Order Calc: Error applying company defaults: {str(e)}")
+        print(f"🔍 Sales Order Calc: Error applying company defaults: {str(e)}")
 
 
 def calculate_withholding_tax_amounts(doc):
     """
-    Calculate withholding tax amounts for Sales Invoice.
+    Calculate withholding tax amounts for Sales Order.
     Sets custom_withholding_tax_amount based on net total and WHT rate.
     """
     try:
@@ -118,22 +118,22 @@ def calculate_withholding_tax_amounts(doc):
             wht_amount = base_amount * (wht_rate / 100)
             doc.custom_withholding_tax_amount = wht_amount
             
-            frappe.logger().info(f"🔍 Sales Invoice Calc: WHT Calculation - Base: {base_amount}, Rate: {wht_rate}%, Amount: {wht_amount}")
-            print(f"🔍 Sales Invoice Calc: WHT Calculation - Base: {base_amount}, Rate: {wht_rate}%, Amount: {wht_amount}")
+            frappe.logger().info(f"🔍 Sales Order Calc: WHT Calculation - Base: {base_amount}, Rate: {wht_rate}%, Amount: {wht_amount}")
+            print(f"🔍 Sales Order Calc: WHT Calculation - Base: {base_amount}, Rate: {wht_rate}%, Amount: {wht_amount}")
         else:
             doc.custom_withholding_tax_amount = 0
-            frappe.logger().info(f"🔍 Sales Invoice Calc: Not subject to WHT, setting amount to 0")
-            print(f"🔍 Sales Invoice Calc: Not subject to WHT, setting amount to 0")
+            frappe.logger().info(f"🔍 Sales Order Calc: Not subject to WHT, setting amount to 0")
+            print(f"🔍 Sales Order Calc: Not subject to WHT, setting amount to 0")
             
     except Exception as e:
-        frappe.logger().error(f"🔍 Sales Invoice Calc: Error calculating WHT: {str(e)}")
-        print(f"🔍 Sales Invoice Calc: Error calculating WHT: {str(e)}")
+        frappe.logger().error(f"🔍 Sales Order Calc: Error calculating WHT: {str(e)}")
+        print(f"🔍 Sales Order Calc: Error calculating WHT: {str(e)}")
         doc.custom_withholding_tax_amount = 0
 
 
 def calculate_retention_amounts(doc):
     """
-    Calculate retention amounts for Sales Invoice.
+    Calculate retention amounts for Sales Order.
     Sets custom_retention_amount based on grand total and retention percentage.
     """
     try:
@@ -146,22 +146,22 @@ def calculate_retention_amounts(doc):
             retention_amount = base_amount * (retention_rate / 100)
             doc.custom_retention_amount = retention_amount
             
-            frappe.logger().info(f"🔍 Sales Invoice Calc: Retention Calculation - Base: {base_amount}, Rate: {retention_rate}%, Amount: {retention_amount}")
-            print(f"🔍 Sales Invoice Calc: Retention Calculation - Base: {base_amount}, Rate: {retention_rate}%, Amount: {retention_amount}")
+            frappe.logger().info(f"🔍 Sales Order Calc: Retention Calculation - Base: {base_amount}, Rate: {retention_rate}%, Amount: {retention_amount}")
+            print(f"🔍 Sales Order Calc: Retention Calculation - Base: {base_amount}, Rate: {retention_rate}%, Amount: {retention_amount}")
         else:
             doc.custom_retention_amount = 0
-            frappe.logger().info(f"🔍 Sales Invoice Calc: Not subject to retention, setting amount to 0")
-            print(f"🔍 Sales Invoice Calc: Not subject to retention, setting amount to 0")
+            frappe.logger().info(f"🔍 Sales Order Calc: Not subject to retention, setting amount to 0")
+            print(f"🔍 Sales Order Calc: Not subject to retention, setting amount to 0")
             
     except Exception as e:
-        frappe.logger().error(f"🔍 Sales Invoice Calc: Error calculating retention: {str(e)}")
-        print(f"🔍 Sales Invoice Calc: Error calculating retention: {str(e)}")
+        frappe.logger().error(f"🔍 Sales Order Calc: Error calculating retention: {str(e)}")
+        print(f"🔍 Sales Order Calc: Error calculating retention: {str(e)}")
         doc.custom_retention_amount = 0
 
 
 def calculate_final_payment_amounts(doc):
     """
-    Calculate final payment amounts after WHT and retention deductions for Sales Invoice.
+    Calculate final payment amounts after WHT and retention deductions for Sales Order.
     Sets net_total_after_wht which represents the amount to be paid.
     
     Formula: net_total_after_wht = grand_total - custom_withholding_tax_amount - custom_retention_amount
@@ -180,13 +180,13 @@ def calculate_final_payment_amounts(doc):
         net_total_after_wht = grand_total - wht_amount - retention_amount
         doc.net_total_after_wht = net_total_after_wht
         
-        frappe.logger().info(f"🔍 Sales Invoice Calc: Final Payment Calculation:")
+        frappe.logger().info(f"🔍 Sales Order Calc: Final Payment Calculation:")
         frappe.logger().info(f"  Grand Total: {grand_total}")
         frappe.logger().info(f"  - WHT: {wht_amount}")
         frappe.logger().info(f"  - Retention: {retention_amount}")
         frappe.logger().info(f"  = Net After WHT: {net_total_after_wht}")
         
-        print(f"🔍 Sales Invoice Calc: Final Payment Calculation:")
+        print(f"🔍 Sales Order Calc: Final Payment Calculation:")
         print(f"  Grand Total: {grand_total}")
         print(f"  - WHT: {wht_amount}")
         print(f"  - Retention: {retention_amount}")
@@ -196,8 +196,8 @@ def calculate_final_payment_amounts(doc):
         convert_amounts_to_words(doc)
         
     except Exception as e:
-        frappe.logger().error(f"🔍 Sales Invoice Calc: Error calculating final payment: {str(e)}")
-        print(f"🔍 Sales Invoice Calc: Error calculating final payment: {str(e)}")
+        frappe.logger().error(f"🔍 Sales Order Calc: Error calculating final payment: {str(e)}")
+        print(f"🔍 Sales Order Calc: Error calculating final payment: {str(e)}")
         doc.net_total_after_wht = doc.grand_total
 
 
@@ -278,5 +278,5 @@ def convert_amounts_to_words(doc):
             doc.custom_retention_amount_in_words = money_in_words(doc.custom_retention_amount, currency)
             
     except Exception as e:
-        frappe.logger().error(f"🔍 Sales Invoice Calc: Error converting amounts to words: {str(e)}")
-        print(f"🔍 Sales Invoice Calc: Error converting amounts to words: {str(e)}")
+        frappe.logger().error(f"🔍 Sales Order Calc: Error converting amounts to words: {str(e)}")
+        print(f"🔍 Sales Order Calc: Error converting amounts to words: {str(e)}")
