@@ -3,10 +3,9 @@ Programmatic Custom Field Installation for Quotation
 ====================================================
 
 This module provides programmatic installation of custom fields for Quotation DocType,
-maintaining exact field order and section grouping as defined in custom_field.json.
+maintaining exact field definitions from fixtures for production environment compatibility.
 
-This system is designed to work in production environments where fixture-based
-installation may not be reliable.
+Updated to exactly match fixtures/custom_field.json definitions.
 """
 
 import frappe
@@ -19,16 +18,16 @@ def install_quotation_custom_fields():
 	"""
 	Install all custom fields for Quotation DocType programmatically
 	
-	This function creates custom fields in the exact order and structure
+	This function creates custom fields with the exact structure
 	as defined in the custom_field.json fixture file.
 	
 	Returns:
 		dict: Installation status and results
 	"""
 	try:
-		print("=== Installing Quotation Custom Fields ===")
+		print("=== Installing Quotation Custom Fields (From Fixtures) ===")
 		
-		# Define custom fields in exact order from custom_field.json
+		# Define custom fields exactly matching fixtures
 		custom_fields = get_quotation_custom_fields_definition()
 		
 		# Install fields using Frappe's standard method
@@ -57,13 +56,10 @@ def install_quotation_custom_fields():
 
 def get_quotation_custom_fields_definition():
 	"""
-	Define all Quotation custom fields in exact order from custom_field.json
+	Define all Quotation custom fields exactly as in fixtures
 	
-	This maintains the precise field ordering and section grouping:
-	1. Thailand Business Section (fields 1-3)
-	2. Retention Section (fields 4-8) 
-	3. Withholding Tax Section (fields 9-14)
-	4. Final Amounts Section (fields 15-22)
+	This maintains exact field definitions and properties from custom_field.json
+	to ensure consistent behavior between fixture and programmatic installation.
 	
 	Returns:
 		dict: Custom fields definition for create_custom_fields()
@@ -71,171 +67,272 @@ def get_quotation_custom_fields_definition():
 	
 	return {
 		"Quotation": [
-			# === THAILAND BUSINESS SECTION ===
 			{
-				"fieldname": "thailand_business_section",
-				"label": "Thailand Business",
-				"fieldtype": "Section Break",
-				"insert_after": "tax_category",
-				"collapsible": 1,
-				"depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'country') === 'Thailand'"
+				"fieldname": "custom_net_total_after_wht_and_retention_in_words",
+				"label": "Net Total (After WHT and Retention) in Words",
+				"fieldtype": "Data",
+				"insert_after": "custom_net_total_after_wht_retention",
+				"depends_on": "eval:doc.custom_subject_to_retention",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_item_service_type",
-				"label": "Service Type",
-				"fieldtype": "Select",
-				"options": "Service\nProduct\nBoth",
-				"default": "Service",
-				"insert_after": "thailand_business_section"
+				"fieldname": "custom_net_total_after_wht_retention",
+				"label": "Net Total (After WHT & Retention)",
+				"fieldtype": "Currency",
+				"insert_after": "custom_subject_to_retention",
+				"depends_on": "eval:doc.custom_subject_to_retention",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "thailand_column_break_1",
-				"fieldtype": "Column Break",
-				"insert_after": "custom_item_service_type"
-			},
-			
-			# === RETENTION SECTION ===
-			{
-				"fieldname": "retention_section",
-				"label": "Retention",
-				"fieldtype": "Section Break",
-				"insert_after": "thailand_column_break_1",
-				"collapsible": 1,
-				"depends_on": "eval:doc.thailand_business_section && doc.custom_item_service_type === 'Service'"
+				"fieldname": "custom_payment_amount",
+				"label": "Payment Amount",
+				"fieldtype": "Currency",
+				"insert_after": "custom_withholding_tax_amount",
+				"depends_on": "eval:doc.subject_to_wht || doc.custom_subject_to_retention",
+				"read_only": 1,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_enable_retention",
-				"label": "Enable Retention",
-				"fieldtype": "Check",
-				"default": 0,
-				"insert_after": "retention_section"
-			},
-			{
-				"fieldname": "custom_retention_percentage",
+				"fieldname": "custom_retention",
 				"label": "Retention (%)",
-				"fieldtype": "Float",
-				"precision": 2,
-				"default": 5.0,
-				"insert_after": "custom_enable_retention",
-				"depends_on": "custom_enable_retention",
-				"mandatory_depends_on": "custom_enable_retention"
+				"fieldtype": "Percent",
+				"insert_after": "base_in_words",
+				"depends_on": "eval:doc.custom_subject_to_retention",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
 				"fieldname": "custom_retention_amount",
 				"label": "Retention Amount",
 				"fieldtype": "Currency",
-				"read_only": 1,
-				"insert_after": "custom_retention_percentage",
-				"depends_on": "custom_enable_retention"
+				"insert_after": "custom_retention",
+				"depends_on": "eval:doc.custom_subject_to_retention",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "retention_column_break",
-				"fieldtype": "Column Break",
-				"insert_after": "custom_retention_amount"
+				"fieldname": "custom_retention_note",
+				"label": "Retention Note",
+				"fieldtype": "Small Text",
+				"insert_after": "custom_net_total_after_wht_and_retention_in_words",
+				"depends_on": "eval:doc.custom_subject_to_retention",
+				"default": "หมายเหตุ: จำนวนเงินประกันผลงาน  จะถูกหักเมื่อชำระเงิน\nNote: Retention amount will be deducted upon payment",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_net_total_after_retention",
-				"label": "Net Total After Retention",
-				"fieldtype": "Currency",
-				"read_only": 1,
-				"insert_after": "retention_column_break",
-				"depends_on": "custom_enable_retention"
-			},
-			
-			# === WITHHOLDING TAX SECTION ===
-			{
-				"fieldname": "withholding_tax_section",
-				"label": "Withholding Tax",
-				"fieldtype": "Section Break",
-				"insert_after": "custom_net_total_after_retention",
-				"collapsible": 1,
-				"depends_on": "eval:doc.thailand_business_section"
+				"fieldname": "custom_subject_to_retention",
+				"label": "Subject to Retention",
+				"fieldtype": "Check",
+				"insert_after": "wht_preview_column_break",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
 				"fieldname": "custom_withholding_tax",
 				"label": "Withholding Tax (%)",
-				"fieldtype": "Float",
-				"precision": 2,
-				"default": 3.0,
-				"insert_after": "withholding_tax_section"
+				"fieldtype": "Percent",
+				"insert_after": "custom_retention_amount",
+				"depends_on": "eval:doc.subject_to_wht",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
 				"fieldname": "custom_withholding_tax_amount",
 				"label": "Withholding Tax Amount",
 				"fieldtype": "Currency",
-				"read_only": 1,
-				"insert_after": "custom_withholding_tax"
+				"insert_after": "custom_withholding_tax",
+				"depends_on": "eval:doc.subject_to_wht",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_net_total_after_wht",
-				"label": "Net Total After WHT",
+				"fieldname": "estimated_wht_amount",
+				"label": "Estimated WHT Amount",
 				"fieldtype": "Currency",
+				"insert_after": "estimated_wht_rate",
+				"depends_on": "eval:doc.subject_to_wht",
+				"options": "Company:company:default_currency",
 				"read_only": 1,
-				"insert_after": "custom_withholding_tax_amount"
+				"hidden": 0,
+				"collapsible": 0,
+				"precision": "2",
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "withholding_column_break",
-				"fieldtype": "Column Break",
-				"insert_after": "custom_net_total_after_wht"
-			},
-			{
-				"fieldname": "custom_wht_base_amount",
-				"label": "WHT Base Amount",
+				"fieldname": "net_total_after_wht",
+				"label": "Net Total (After WHT)",
 				"fieldtype": "Currency",
+				"insert_after": "net_payment_amount",
+				"depends_on": "eval:doc.subject_to_wht",
+				"options": "Company:company:default_currency",
 				"read_only": 1,
-				"insert_after": "withholding_column_break"
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_subject_to_wht",
-				"label": "Subject to WHT",
+				"fieldname": "net_total_after_wht_in_words",
+				"label": "Net Total (After WHT) in Words",
+				"fieldtype": "Small Text",
+				"insert_after": "net_total_after_wht",
+				"depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
+				"read_only": 1,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "prepared_by_signature",
+				"label": "Prepared By Signature",
+				"fieldtype": "Attach Image",
+				"insert_after": "sales_team",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "subject_to_wht",
+				"label": "Subject to Withholding Tax",
 				"fieldtype": "Check",
-				"default": 1,
-				"insert_after": "custom_wht_base_amount"
+				"insert_after": "wht_section",
+				"depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+				"default": "0",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
-			
-			# === FINAL AMOUNTS SECTION ===
 			{
-				"fieldname": "final_amounts_section",
-				"label": "Final Payment Amounts",
+				"fieldname": "thai_wht_preview_section",
+				"label": "Thai Ecosystem Preview (ภาษีหัก ณ ที่จ่าย/เงินประกันผลงาน)",
 				"fieldtype": "Section Break",
-				"insert_after": "custom_subject_to_wht",
+				"insert_after": "named_place",
+				"read_only": 1,
+				"hidden": 0,
 				"collapsible": 1,
-				"depends_on": "eval:doc.thailand_business_section"
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_payment_amount",
-				"label": "Net Cash to be Paid",
-				"fieldtype": "Currency",
-				"read_only": 1,
-				"insert_after": "final_amounts_section",
-				"bold": 1
+				"fieldname": "vat_treatment",
+				"label": "VAT Treatment",
+				"fieldtype": "Select",
+				"insert_after": "wht_amounts_column_break",
+				"default": "Standard VAT (7%)",
+				"options": "\nStandard VAT (7%)\nExempt from VAT\nZero-rated for Export (0%)",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "final_amounts_column_break",
+				"fieldname": "watermark_text",
+				"label": "Document Watermark",
+				"fieldtype": "Select",
+				"insert_after": "quotation_to",
+				"default": "None",
+				"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nOrdered\nExpired\nDuplicate",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "wht_amounts_column_break",
 				"fieldtype": "Column Break",
-				"insert_after": "custom_payment_amount"
-			},
-			{
-				"fieldname": "custom_total_withholding_retention",
-				"label": "Total Retention + WHT",
-				"fieldtype": "Currency",
+				"insert_after": "thai_wht_preview_section",
 				"read_only": 1,
-				"insert_after": "final_amounts_column_break"
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
 			},
 			{
-				"fieldname": "custom_payment_breakdown_html",
-				"label": "Payment Breakdown",
-				"fieldtype": "HTML",
-				"insert_after": "custom_total_withholding_retention",
-				"depends_on": "eval:doc.custom_enable_retention || doc.custom_withholding_tax > 0"
-			},
-			{
-				"fieldname": "custom_contract_value_display",
-				"label": "Contract Value (Display)",
-				"fieldtype": "Currency",
+				"fieldname": "wht_description",
+				"label": "WHT Description",
+				"fieldtype": "Data",
+				"insert_after": "wht_income_type",
+				"depends_on": "eval:doc.wht_income_type",
 				"read_only": 1,
-				"insert_after": "custom_payment_breakdown_html"
-			}
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "wht_income_type",
+				"label": "WHT Income Type",
+				"fieldtype": "Select",
+				"insert_after": "subject_to_wht",
+				"depends_on": "eval:doc.subject_to_wht",
+				"options": "\nprofessional_services\nrental\nservice_fees\nconstruction\nadvertising\nother_services",
+				"read_only": 0,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "wht_note",
+				"label": "WHT Note",
+				"fieldtype": "Small Text",
+				"insert_after": "net_total_after_wht_in_words",
+				"depends_on": "eval:doc.wht_income_type",
+				"default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน\nNote: Withholding tax amount will be deducted upon payment",
+				"read_only": 1,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
+			{
+				"fieldname": "wht_preview_column_break",
+				"fieldtype": "Column Break",
+				"insert_after": "wht_note",
+				"read_only": 1,
+				"hidden": 0,
+				"collapsible": 0,
+				"length": 0,
+				"bold": 0,
+			},
 		]
 	}
 
@@ -294,7 +391,7 @@ def validate_quotation_fields_installation():
 						})
 		
 		# Report results
-		print(f"📊 Expected fields: {len(expected_fields)}")
+		print(f"📊 Expected fields: {len(expected_fields)} (from fixtures)")
 		print(f"📊 Installed fields: {len(installed_fields)}")
 		print(f"📊 Missing fields: {len(missing_fields)}")
 		print(f"📊 Field mismatches: {len(field_mismatches)}")
@@ -350,7 +447,7 @@ def check_quotation_fields_status():
 		expected_count = len(expected_def["Quotation"])
 		
 		print(f"📊 Current fields: {len(current_fields)}")
-		print(f"📊 Expected fields: {expected_count}")
+		print(f"📊 Expected fields: {expected_count} (matching fixtures)")
 		
 		# Show field summary
 		if current_fields:
