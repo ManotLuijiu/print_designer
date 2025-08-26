@@ -148,6 +148,7 @@ def get_quotation_custom_fields_definition():
 				"read_only": 0,
 				"hidden": 0,
 				"collapsible": 0,
+				"in_list_view": 1,
 				"length": 0,
 				"bold": 0,
 			},
@@ -245,6 +246,8 @@ def get_quotation_custom_fields_definition():
 				"read_only": 0,
 				"hidden": 0,
 				"collapsible": 0,
+				"in_list_view": 1,
+				"in_standard_filter": 1,
 				"length": 0,
 				"bold": 0,
 			},
@@ -263,6 +266,7 @@ def get_quotation_custom_fields_definition():
 			},
 			{
 				"fieldname": "wht_amounts_column_break",
+				"label": None,
 				"fieldtype": "Column Break",
 				"insert_after": "thai_wht_preview_section",
 				"read_only": 1,
@@ -311,6 +315,7 @@ def get_quotation_custom_fields_definition():
 			},
 			{
 				"fieldname": "wht_preview_column_break",
+				"label": None,
 				"fieldtype": "Column Break",
 				"insert_after": "wht_note",
 				"read_only": 1,
