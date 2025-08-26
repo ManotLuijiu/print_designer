@@ -242,7 +242,6 @@ fixtures = [
                     "Quotation-wht_description",
                     "Quotation-wht_income_type",
                     "Quotation-net_total_after_wht_in_words",
-                    "Quotation-estimated_wht_amount",
                     "Quotation-net_total_after_wht",
                     # Quotation - Thai WHT Preview Fields
                     "Quotation-thai_wht_preview_section",
@@ -414,6 +413,7 @@ after_install = [
     # REMOVED: thailand_wht_fields.py - Now handled by separate quotation module
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
+    "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     # DISABLED: Conflicts with fixture-based retention fields - using fixtures instead
     # The retention system (custom_retention, custom_retention_amount, etc.) is now managed
     # exclusively through fixtures in print_designer/fixtures/custom_field.json to prevent
@@ -449,6 +449,7 @@ after_migrate = [
     # "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
+    "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
