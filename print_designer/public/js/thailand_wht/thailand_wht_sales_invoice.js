@@ -108,6 +108,12 @@ frappe.ui.form.on('Sales Invoice', {
         if (trackingChanges) {
             trackFieldChanges(frm, "REFRESH");
         }
+        
+        // ADDED: Populate Company fields on form load if company is set but fields are empty
+        if (frm.doc.company && !frm.doc.thailand_service_business && !frm.doc.construction_service) {
+            // Trigger company event to populate fields
+            frm.events.company(frm);
+        }
     },
     
     before_save: function(frm) {
@@ -193,6 +199,36 @@ frappe.ui.form.on('Sales Invoice', {
             docstatus: frm.doc.docstatus,
             status: frm.doc.status
         });
+    },
+    
+    // Populate Company fields when company is selected - ADDED FOR FIELD VISIBILITY
+    company: function(frm) {
+        if (frm.doc.company) {
+            // Get Company configuration and populate fields for depends_on visibility
+            frappe.db.get_value('Company', frm.doc.company, [
+                'thailand_service_business', 
+                'construction_service'
+            ]).then(r => {
+                if (r.message) {
+                    // Populate fields silently for depends_on conditions
+                    frm.doc.thailand_service_business = r.message.thailand_service_business || 0;
+                    frm.doc.construction_service = r.message.construction_service || 0;
+                    
+                    // Refresh the form to trigger depends_on evaluation
+                    frm.refresh();
+                    
+                    console.log('Thailand WHT: Company fields populated', {
+                        thailand_service_business: frm.doc.thailand_service_business,
+                        construction_service: frm.doc.construction_service
+                    });
+                }
+            });
+        } else {
+            // Clear fields when company is cleared
+            frm.doc.thailand_service_business = 0;
+            frm.doc.construction_service = 0;
+            frm.refresh();
+        }
     }
 });
 
