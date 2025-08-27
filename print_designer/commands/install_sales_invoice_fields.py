@@ -23,7 +23,7 @@ def install_sales_invoice_custom_fields():
     
     try:
         print(f"📦 Installing {len(custom_fields['Sales Invoice'])} custom fields...")
-        create_custom_fields(custom_fields)
+        create_custom_fields(custom_fields, update=True)
         
         # Validate installation
         validation_result = validate_sales_invoice_fields_installation()
@@ -106,7 +106,7 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "vat_treatment",
                 "description": "This invoice is for services subject to withholding tax",
                 "default": "0",
-                "depends_on": "eval:doc.company",
+                "depends_on": "eval:doc.company && doc.thailand_service_business",
             },
             
             {
@@ -193,6 +193,7 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Subject to Retention",
                 "insert_after": "wht_preview_column_break",
                 "description": "This invoice is for construction subject to retention deduct.",
+                "depends_on": "eval:doc.company && doc.construction_service",
             },
             
             {
@@ -355,6 +356,57 @@ def validate_sales_invoice_fields_installation():
             "success": False,
             "error": str(e),
             "field_count": 0
+        }
+
+
+def reinstall_sales_invoice_custom_fields():
+    """
+    Reinstall all Sales Invoice custom fields (useful for updates/fixes)
+    
+    This will update existing fields and add any missing ones.
+    Forces update even if fields already exist.
+    
+    Returns:
+        dict: Reinstallation results
+    """
+    try:
+        print("=== Reinstalling Sales Invoice Custom Fields ===")
+        
+        # Get current status
+        status = check_sales_invoice_fields_status()
+        print(f"Current status: {status['current_count']}/{status['expected_count']} fields")
+        
+        # Get field definitions and force installation with update=True
+        custom_fields = get_sales_invoice_custom_fields_definition()
+        
+        print(f"📦 Reinstalling {len(custom_fields['Sales Invoice'])} custom fields...")
+        create_custom_fields(custom_fields, update=True)
+        
+        # Validate installation
+        validation_result = validate_sales_invoice_fields_installation()
+        
+        if validation_result.get("success"):
+            print("✅ Sales Invoice custom fields reinstallation completed successfully!")
+            print(f"📊 Total fields: {validation_result.get('field_count', 0)}")
+            return {
+                "success": True,
+                "fields_installed": validation_result.get('field_count', 0),
+                "validation": validation_result
+            }
+        else:
+            print(f"⚠️ Reinstallation completed with issues: {validation_result.get('message', '')}")
+            return {
+                "success": False,
+                "error": validation_result.get('message', 'Unknown validation error'),
+                "validation": validation_result
+            }
+        
+    except Exception as e:
+        error_msg = f"Error reinstalling Sales Invoice custom fields: {str(e)}"
+        print(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg
         }
 
 

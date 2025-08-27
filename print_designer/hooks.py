@@ -446,6 +446,8 @@ after_migrate = [
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
+    "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
+    "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
