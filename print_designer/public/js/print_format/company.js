@@ -54,9 +54,8 @@ function waitForTabsToRender(frm, maxAttempts = 15) {
 
 frappe.ui.form.on("Company", {
 	refresh: function (frm) {
-		if (!frm.is_new()) {
-			add_stamps_and_signatures_content(frm);
-		}
+		// Stamps & Signatures tab has been removed - functionality disabled
+		console.log("ℹ️ Stamps & Signatures tab functionality has been disabled");
 	},
 });
 
