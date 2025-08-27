@@ -283,20 +283,20 @@ def check_calculation_system_status():
             calculation_errors.append(f"Import error: {str(e)}")
             print(f"❌ Calculation modules: Import failed - {str(e)}")
         
-        # Test WHT events system
+        # Test WHT preview system
         try:
-            from print_designer.custom.thai_wht_events import calculate_wht_preview_on_validate
-            print("✅ WHT events system: Available")
+            from print_designer.custom.quotation_calculations import calculate_wht_preview_for_quotation
+            print("✅ WHT preview system: Available")
         except ImportError as e:
-            calculation_errors.append(f"WHT events import error: {str(e)}")
-            print(f"❌ WHT events system: Import failed - {str(e)}")
+            calculation_errors.append(f"WHT preview import error: {str(e)}")
+            print(f"❌ WHT preview system: Import failed - {str(e)}")
         
         return {
             "available": calculation_available,
             "errors": calculation_errors,
             "modules_status": {
                 "quotation_calculations": calculation_available,
-                "thai_wht_events": len([e for e in calculation_errors if "thai_wht_events" in e]) == 0
+                "wht_preview": len([e for e in calculation_errors if "WHT preview" in e]) == 0
             }
         }
         

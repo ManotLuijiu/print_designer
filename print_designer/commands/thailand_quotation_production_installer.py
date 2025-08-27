@@ -201,7 +201,7 @@ def analyze_system_state():
         
         try:
             from print_designer.custom.quotation_calculations import quotation_calculate_thailand_amounts
-            from print_designer.custom.thai_wht_events import calculate_wht_preview_on_validate
+            from print_designer.custom.quotation_calculations import calculate_wht_preview_for_quotation
             calculation_system_working = True
         except ImportError as e:
             calculation_errors.append(str(e))
@@ -374,7 +374,7 @@ def execute_calculation_fix():
     try:
         # For now, just validate that the calculation system is importable
         from print_designer.custom.quotation_calculations import quotation_calculate_thailand_amounts
-        from print_designer.custom.thai_wht_events import calculate_wht_preview_on_validate
+        from print_designer.custom.quotation_calculations import calculate_wht_preview_for_quotation
         
         print("   Calculation fix: ✅ System verified")
         return {"success": True, "message": "Calculation system verified"}
