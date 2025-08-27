@@ -130,7 +130,7 @@ def get_customer_wht_summary(customer):
         
         # Get count of open documents
         open_quotations = frappe.db.count("Quotation", {
-            "customer": customer, 
+            "party_name": customer, 
             "docstatus": 0
         })
         

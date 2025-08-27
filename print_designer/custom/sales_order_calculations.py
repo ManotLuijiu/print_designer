@@ -68,10 +68,9 @@ def apply_company_defaults_for_sales_order(doc):
         if not doc.get('custom_retention') and company_doc.get('default_retention_rate'):
             doc.custom_retention = flt(company_doc.default_retention_rate)
             
-        # Enable custom_subject_to_retention based on Company settings
-        if (company_doc.get('construction_service') or company_doc.get('default_retention_rate')) and not doc.get('custom_subject_to_retention'):
-            if doc.get('custom_retention') or company_doc.get('default_retention_rate'):
-                doc.custom_subject_to_retention = 1
+        # NOTE: Removed auto-enablement of custom_subject_to_retention
+        # Field visibility is controlled by depends_on condition: "eval:doc.company && doc.construction_service"
+        # Users must manually enable retention when needed
                 
     except Exception as e:
         frappe.log_error(f"Error applying Company defaults to Sales Order {doc.name}: {str(e)}")

@@ -82,11 +82,9 @@ def apply_company_defaults(doc):
         # Field visibility is controlled by depends_on condition in Custom Field
         # User decides whether Quotation contains services subject to WHT
                 
-        # Enable custom_subject_to_retention based on Company construction_service or default_retention_rate
-        if (company_doc.get('construction_service') or company_doc.get('default_retention_rate')) and not doc.get('custom_subject_to_retention'):
-            # Only auto-enable if retention rate is available (either custom or default)
-            if doc.get('custom_retention') or company_doc.get('default_retention_rate'):
-                doc.custom_subject_to_retention = 1
+        # NOTE: Removed auto-enablement of custom_subject_to_retention
+        # Field visibility is controlled by depends_on condition: "eval:doc.company && doc.construction_service"
+        # Users must manually enable retention when needed
                 
     except Exception as e:
         frappe.log_error(f"Error applying Company defaults to Quotation {doc.name}: {str(e)}")

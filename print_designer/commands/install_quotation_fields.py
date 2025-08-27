@@ -145,6 +145,7 @@ def get_quotation_custom_fields_definition():
 				"label": "Subject to Retention",
 				"fieldtype": "Check",
 				"insert_after": "wht_preview_column_break",
+				"depends_on": "eval:doc.company && doc.construction_service",
 				"read_only": 0,
 				"hidden": 0,
 				"collapsible": 0,

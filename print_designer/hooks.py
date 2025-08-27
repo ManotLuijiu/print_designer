@@ -196,7 +196,7 @@ fixtures = [
                     "Sales Invoice-thai_tax_invoice_number",
                     "Sales Invoice-thai_tax_invoice_date",
                     "Sales Invoice-thai_customer_tax_id",
-                    "Sales Invoice-thai_customer_branch_code",
+                    # "Sales Invoice-thai_customer_branch_code",
                     # Sales Invoice - Thai Compliance Fields
                     "Sales Invoice-thai_compliance_section",
                     "Sales Invoice-thai_vat_eligible",
@@ -288,6 +288,14 @@ fixtures = [
                     "Sales Order-custom_withholding_tax",
                     "Sales Order-custom_withholding_tax_amount",
                     "Sales Order-custom_payment_amount",
+                    # Customer - Thai WHT Configuration Fields (Print Designer Section)
+                    "Customer-print_designer_wht_section",
+                    "Customer-print_designer_wht_column_1",
+                    "Customer-subject_to_wht",
+                    "Customer-wht_income_type",
+                    "Customer-custom_wht_rate",
+                    "Customer-print_designer_wht_column_2",
+                    "Customer-is_juristic_person",
                 ],
             ]
         ],

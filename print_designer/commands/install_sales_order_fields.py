@@ -227,6 +227,7 @@ def get_sales_order_custom_fields_definition():
 				"label": "Subject to Retention",
 				"insert_after": "wht_preview_column_break",
 				"description": "This SO is for construction subject to retention deduct.",
+				"depends_on": "eval:doc.company && doc.construction_service",
 				"in_list_view": 1,
 				"read_only": 0,
 				"hidden": 0,
