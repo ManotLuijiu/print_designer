@@ -1,10 +1,11 @@
 # Quotation Server-Side Calculations for Thailand WHT and Retention
 # Following ERPNext pattern like grand_total calculation
 # Called during validate() method - NO client scripts needed
+# Consolidated from thai_wht_events.py to remove redundancy
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, cint
 
 
 def quotation_calculate_thailand_amounts(doc, method=None):
@@ -237,3 +238,126 @@ def convert_amounts_to_words(doc):
 
 # Note: This function is the main entry point called from hooks.py
 # quotation_calculate_thailand_amounts (defined at line 10) is the correct function
+
+
+# ==================================================
+# CONSOLIDATED WHT PREVIEW SYSTEM
+# ==================================================
+# Moved from thai_wht_events.py to consolidate calculation logic
+
+def calculate_wht_preview_for_quotation(doc, method=None):
+    """
+    Calculate WHT preview for Quotation documents
+    Consolidated from thai_wht_events.py system
+    """
+    try:
+        if doc.doctype != "Quotation":
+            return
+        
+        # Import preview calculation from thai_wht_preview module
+        from .thai_wht_preview import (
+            calculate_thai_wht_preview,
+            should_calculate_wht_preview
+        )
+        
+        # Calculate WHT preview
+        wht_preview = calculate_thai_wht_preview(doc)
+        
+        # Update document fields with preview values
+        for field, value in wht_preview.items():
+            if hasattr(doc, field):
+                old_value = getattr(doc, field, None)
+                setattr(doc, field, value)
+                
+                # Log important changes
+                if field == 'subject_to_wht' and old_value != value:
+                    frappe.logger().info(f"Quotation WHT Preview: {field} changed from {old_value} to {value}")
+        
+        # Add informational message if WHT applies
+        if wht_preview.get('subject_to_wht'):
+            wht_amount = wht_preview.get('estimated_wht_amount', 0)
+            net_amount = wht_preview.get('net_total_after_wht', 0)
+            
+            if wht_amount > 0:
+                frappe.msgprint(
+                    _(f"WHT Preview: ฿{flt(wht_amount, 2):,.2f} withholding tax estimated. "
+                      f"Net payment: ฿{flt(net_amount, 2):,.2f}"),
+                    title=_("Withholding Tax Preview"),
+                    indicator="blue"
+                )
+        
+    except Exception as e:
+        # Log error but don't fail validation
+        frappe.log_error(
+            f"Error calculating WHT preview for Quotation {doc.name}: {str(e)}",
+            "Quotation WHT Preview Error"
+        )
+
+
+@frappe.whitelist()
+def get_customer_wht_info_for_quotation(customer):
+    """
+    Get WHT configuration for a customer (consolidated from thai_wht_events.py)
+    """
+    if not customer:
+        return {}
+    
+    try:
+        customer_doc = frappe.get_cached_doc("Customer", customer)
+        
+        return {
+            'subject_to_wht': getattr(customer_doc, 'subject_to_wht', False),
+            'wht_income_type': getattr(customer_doc, 'wht_income_type', 'service_fees'),
+            'custom_wht_rate': getattr(customer_doc, 'custom_wht_rate', 0),
+            'is_juristic_person': getattr(customer_doc, 'is_juristic_person', True),
+            'tax_id': getattr(customer_doc, 'tax_id', '')
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Error getting customer WHT info for Quotation {customer}: {str(e)}")
+        return {}
+
+
+def handle_customer_wht_config_change_for_quotation(customer_name):
+    """
+    Handle customer WHT configuration changes for open quotations
+    Consolidated from thai_wht_events.py
+    """
+    try:
+        # Find open quotations for this customer
+        open_quotations = frappe.get_all("Quotation", 
+            filters={"customer": customer_name, "docstatus": 0},
+            fields=["name"]
+        )
+        
+        if not open_quotations:
+            return 0
+            
+        updated_count = 0
+        for quotation_info in open_quotations:
+            try:
+                quotation_doc = frappe.get_doc("Quotation", quotation_info['name'])
+                
+                # Recalculate both custom and preview WHT
+                quotation_calculate_thailand_amounts(quotation_doc)
+                calculate_wht_preview_for_quotation(quotation_doc)
+                
+                # Save without triggering validation loops
+                quotation_doc.flags.ignore_validate = True
+                quotation_doc.save()
+                updated_count += 1
+                
+            except Exception as e:
+                frappe.log_error(
+                    f"Error updating WHT for Quotation {quotation_info['name']}: {str(e)}",
+                    "Customer WHT Config Update Error"
+                )
+        
+        return updated_count
+        
+    except Exception as e:
+        frappe.log_error(
+            f"Error handling customer WHT config change for quotations: {str(e)}",
+            "Customer WHT Config Error"
+        )
+        return 0

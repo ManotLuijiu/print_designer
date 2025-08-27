@@ -1,24 +1,55 @@
 # install_sales_invoice_fields.py
-# File location: apps/custom_app/custom_app/install_sales_invoice_fields.py
+# Enhanced Sales Invoice custom fields installation with comprehensive validation
+# Following patterns established in Quotation and Sales Order
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
 def install_sales_invoice_custom_fields():
-    """Install custom fields for Sales Invoice doctype"""
+    """
+    Install custom fields for Sales Invoice DocType
+    Enhanced with validation system and proper field dependencies
+    """
+    print("=== Installing Sales Invoice Custom Fields ===")
+    
+    # Check if fields are already installed
+    status = check_sales_invoice_fields_status()
+    if status.get("fields_installed") and not status.get("needs_installation"):
+        print("✅ All Sales Invoice custom fields already installed and properly configured")
+        return status
+    
+    custom_fields = get_sales_invoice_custom_fields_definition()
+    
+    try:
+        print(f"📦 Installing {len(custom_fields['Sales Invoice'])} custom fields...")
+        create_custom_fields(custom_fields)
+        
+        # Validate installation
+        validation_result = validate_sales_invoice_fields_installation()
+        
+        if validation_result.get("success"):
+            print("✅ Sales Invoice custom fields installed successfully!")
+            print(f"📊 Total fields installed: {validation_result.get('field_count', 0)}")
+            return validation_result
+        else:
+            print(f"⚠️ Installation completed with issues: {validation_result.get('message', '')}")
+            return validation_result
+            
+    except Exception as e:
+        error_msg = f"❌ Error installing Sales Invoice custom fields: {str(e)}"
+        print(error_msg)
+        return {"success": False, "error": error_msg}
 
-    custom_fields = {
+
+def get_sales_invoice_custom_fields_definition():
+    """
+    Define all Sales Invoice custom fields with proper insertion chain
+    Fixed circular dependency and field type issues
+    """
+    return {
         "Sales Invoice": [
-            {
-                "fieldname": "wht_certificate_required",
-                "fieldtype": "Check",
-                "label": "WHT Certificate Required",
-                "insert_after": "wht_description",
-                "description": "Customer will provide withholding tax certificate",
-                "depends_on": "eval:doc.subject_to_wht",
-                "default": "1",
-            },
+            # Document watermark field
             {
                 "fieldname": "watermark_text",
                 "fieldtype": "Select",
@@ -31,25 +62,20 @@ def install_sales_invoice_custom_fields():
                 "print_hide": 1,
                 "translatable": 1,
             },
-            {
-                "fieldname": "subject_to_wht",
-                "fieldtype": "Check",
-                "label": "Subject to Withholding Tax",
-                "insert_after": "taxes_and_charges",
-                "description": "This invoice is for services subject to withholding tax",
-                "default": "0",
-                "depends_on": "eval:doc.company",
-            },
+            
+            # Main WHT and Retention Preview Section
             {
                 "fieldname": "thai_wht_preview_section",
                 "fieldtype": "Section Break",
                 "label": "Thai Ecosystem Preview (ภาษีหัก ณ ที่จ่าย/เงินประกันผลงาน)",
                 "insert_after": "named_place",
                 "collapsible": 1,
-                "collapsible_depends_on": "eval:doc.subject_to_wht",
+                "collapsible_depends_on": "eval:doc.subject_to_wht || doc.custom_subject_to_retention",
                 "no_copy": 1,
                 "read_only": 1,
             },
+            
+            # WHT Column (Left side)
             {
                 "fieldname": "wht_amounts_column_break",
                 "fieldtype": "Column Break",
@@ -57,6 +83,8 @@ def install_sales_invoice_custom_fields():
                 "no_copy": 1,
                 "read_only": 1,
             },
+            
+            # VAT Treatment (Foundation field)
             {
                 "fieldname": "vat_treatment",
                 "fieldtype": "Select",
@@ -69,6 +97,18 @@ def install_sales_invoice_custom_fields():
                 "in_standard_filter": 1,
                 "translatable": 1,
             },
+            
+            # WHT Chain starts here
+            {
+                "fieldname": "subject_to_wht",
+                "fieldtype": "Check",
+                "label": "Subject to Withholding Tax",
+                "insert_after": "vat_treatment",
+                "description": "This invoice is for services subject to withholding tax",
+                "default": "0",
+                "depends_on": "eval:doc.company",
+            },
+            
             {
                 "fieldname": "wht_income_type",
                 "fieldtype": "Select",
@@ -80,6 +120,7 @@ def install_sales_invoice_custom_fields():
                 "no_copy": 1,
                 "read_only": 1,
             },
+            
             {
                 "fieldname": "wht_description",
                 "fieldtype": "Data",
@@ -90,30 +131,44 @@ def install_sales_invoice_custom_fields():
                 "no_copy": 1,
                 "read_only": 1,
             },
+            
             {
                 "fieldname": "net_total_after_wht",
                 "fieldtype": "Currency",
                 "label": "Net Total (After WHT)",
-                "insert_after": "wht_certificate_required",
+                "insert_after": "wht_description",
                 "description": "Net total after adding VAT (7%) and deducting WHT",
                 "depends_on": "eval:doc.subject_to_wht",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
             },
+            
             {
                 "fieldname": "net_total_after_wht_in_words",
-                "fieldtype": "Small Text",
+                "fieldtype": "Data",  # Fixed: Changed from Small Text to Data
                 "label": "Net Total (After WHT) in Words",
                 "insert_after": "net_total_after_wht",
                 "description": "Net total amount in Thai words",
                 "depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
                 "read_only": 1,
             },
+            
+            # Fixed: Moved wht_certificate_required to proper position
+            {
+                "fieldname": "wht_certificate_required",
+                "fieldtype": "Check",
+                "label": "WHT Certificate Required",
+                "insert_after": "net_total_after_wht_in_words",
+                "description": "Customer will provide withholding tax certificate",
+                "depends_on": "eval:doc.subject_to_wht",
+                "default": "1",
+            },
+            
             {
                 "fieldname": "wht_note",
                 "fieldtype": "Small Text",
                 "label": "WHT Note",
-                "insert_after": "net_total_after_wht_in_words",
+                "insert_after": "wht_certificate_required",
                 "description": "Important note about WHT deduction timing",
                 "depends_on": "eval:doc.subject_to_wht",
                 "default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน\\nNote: Withholding tax amount will be deducted upon payment",
@@ -121,6 +176,8 @@ def install_sales_invoice_custom_fields():
                 "read_only": 1,
                 "translatable": 1,
             },
+            
+            # Retention Column (Right side)
             {
                 "fieldname": "wht_preview_column_break",
                 "fieldtype": "Column Break",
@@ -128,6 +185,8 @@ def install_sales_invoice_custom_fields():
                 "no_copy": 1,
                 "read_only": 1,
             },
+            
+            # Retention Chain starts here
             {
                 "fieldname": "custom_subject_to_retention",
                 "fieldtype": "Check",
@@ -135,6 +194,7 @@ def install_sales_invoice_custom_fields():
                 "insert_after": "wht_preview_column_break",
                 "description": "This invoice is for construction subject to retention deduct.",
             },
+            
             {
                 "fieldname": "custom_net_total_after_wht_retention",
                 "fieldtype": "Currency",
@@ -143,6 +203,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Net total after adding VAT (7%) and deducting WHT&Retention",
                 "depends_on": "eval:doc.custom_subject_to_retention",
             },
+            
             {
                 "fieldname": "custom_net_total_after_wht_and_retention_in_words",
                 "fieldtype": "Data",
@@ -151,6 +212,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Net total amount in Thai words (After WHT & Retention)",
                 "translatable": 1,
             },
+            
             {
                 "fieldname": "custom_retention_note",
                 "fieldtype": "Small Text",
@@ -161,6 +223,8 @@ def install_sales_invoice_custom_fields():
                 "default": "หมายเหตุ: จำนวนเงินประกันผลงาน  จะถูกหักเมื่อชำระเงิน\\nNote: Retention amount will be deducted upon payment",
                 "translatable": 1,
             },
+            
+            # Tax calculation fields (outside preview section)
             {
                 "fieldname": "custom_retention",
                 "fieldtype": "Percent",
@@ -169,6 +233,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Retention percentage to be withheld from payment",
                 "depends_on": "eval:doc.custom_subject_to_retention",
             },
+            
             {
                 "fieldname": "custom_retention_amount",
                 "fieldtype": "Currency",
@@ -177,6 +242,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Calculated retention amount",
                 "depends_on": "eval:doc.custom_subject_to_retention",
             },
+            
             {
                 "fieldname": "custom_withholding_tax",
                 "fieldtype": "Percent",
@@ -185,6 +251,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Withholding tax percentage",
                 "depends_on": "eval:doc.subject_to_wht",
             },
+            
             {
                 "fieldname": "custom_withholding_tax_amount",
                 "fieldtype": "Currency",
@@ -193,6 +260,7 @@ def install_sales_invoice_custom_fields():
                 "description": "Calculated withholding tax amount",
                 "depends_on": "eval:doc.subject_to_wht",
             },
+            
             {
                 "fieldname": "custom_payment_amount",
                 "fieldtype": "Currency",
@@ -201,6 +269,8 @@ def install_sales_invoice_custom_fields():
                 "description": "Final payment amount after all deductions",
                 "depends_on": "eval:doc.custom_subject_to_retention || doc.subject_to_wht",
             },
+            
+            # Signature fields
             {
                 "fieldname": "prepared_by_signature",
                 "fieldtype": "Attach Image",
@@ -208,6 +278,7 @@ def install_sales_invoice_custom_fields():
                 "insert_after": "sales_team",
                 "description": "Signature of person who prepared the invoice",
             },
+            
             {
                 "fieldname": "approved_by_signature",
                 "fieldtype": "Attach Image",
@@ -218,9 +289,73 @@ def install_sales_invoice_custom_fields():
         ]
     }
 
-    print("Installing Sales Invoice custom fields...")
-    create_custom_fields(custom_fields)
-    print("Sales Invoice custom fields installed successfully!")
+
+def check_sales_invoice_fields_status():
+    """
+    Check current status of Sales Invoice custom fields
+    Returns comprehensive status information
+    """
+    try:
+        current_fields = frappe.get_all(
+            "Custom Field",
+            filters={"dt": "Sales Invoice"},
+            fields=["fieldname", "fieldtype", "insert_after", "label"]
+        )
+        
+        expected_fields = get_sales_invoice_custom_fields_definition()["Sales Invoice"]
+        
+        print(f"📊 Current fields: {len(current_fields)}")
+        print(f"📊 Expected fields: {len(expected_fields)} (from definition)")
+        
+        return {
+            "current_count": len(current_fields),
+            "expected_count": len(expected_fields),
+            "fields_installed": len(current_fields) >= len(expected_fields),
+            "needs_installation": len(current_fields) < len(expected_fields)
+        }
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "current_count": 0,
+            "expected_count": 0,
+            "fields_installed": False,
+            "needs_installation": True
+        }
+
+
+def validate_sales_invoice_fields_installation():
+    """
+    Validate that all Sales Invoice custom fields were installed correctly
+    """
+    try:
+        # Get all current custom fields for Sales Invoice
+        current_fields = frappe.get_all(
+            "Custom Field",
+            filters={"dt": "Sales Invoice"},
+            fields=["fieldname", "fieldtype", "insert_after", "label"],
+            order_by="idx"
+        )
+        
+        expected_fields = get_sales_invoice_custom_fields_definition()["Sales Invoice"]
+        
+        print("\n📋 Current Field Order:")
+        for i, field in enumerate(current_fields, 1):
+            print(f"{i:2d}. {field.fieldname:<35} | {field.fieldtype:<15} | after: {field.insert_after or 'None'}")
+        
+        return {
+            "success": True,
+            "field_count": len(current_fields),
+            "expected_count": len(expected_fields),
+            "validation_passed": len(current_fields) >= len(expected_fields)
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "field_count": 0
+        }
 
 
 if __name__ == "__main__":

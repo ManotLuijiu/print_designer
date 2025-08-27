@@ -35,12 +35,8 @@ commands = [
     "print_designer.commands.emergency_fix_watermark.emergency_fix_watermark",
     "print_designer.commands.install_retention_client_script.install_retention_client_script",
     "print_designer.commands.install_retention_client_script.check_retention_client_script",
-    # Thai WHT Preview System Commands
-    "print_designer.commands.install_thai_wht_preview.install_thai_wht_preview",
-    "print_designer.commands.install_thai_wht_preview.check_thai_wht_preview",
-    "print_designer.commands.install_thai_wht_preview.remove_thai_wht_preview",
-    "print_designer.commands.install_thai_wht_preview.test_thai_wht_preview",
-    "print_designer.commands.install_thai_wht_preview.refresh_wht_preview",
+    # Thai WHT System Commands (DocType-specific installers)
+    # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
 
 # Includes in <head>
@@ -545,31 +541,27 @@ doc_events = {
         "validate": "print_designer.overrides.company.sync_company_retention_settings",
         "on_update": "print_designer.overrides.company.sync_company_retention_settings",
     },
-    # Thai WHT Preview System - Sales Documents
+    # Thai WHT Preview System - Sales Documents (Consolidated Calculations)
     "Quotation": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.quotation_calculations.quotation_calculate_thailand_amounts",
+        "validate": [
+            "print_designer.custom.quotation_calculations.quotation_calculate_thailand_amounts",
+            "print_designer.custom.quotation_calculations.calculate_wht_preview_for_quotation",
+        ],
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
-        # "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",  # Generic handler - commented out
-        "validate": "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",  # Specific Sales Order handler like Quotation
+        "validate": "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",
     },
-    # Sales Invoice - Updated to use specific calculation module like Quotation/Sales Order
+    # Sales Invoice - Using consolidated calculation functions
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",  # Specific Sales Invoice handler like Quotation
-        # "validate": [  # Old configuration - commented out
-        #     "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-        #     "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
-        # ],
-        # "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
-        # "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",  # Generic handler - commented out
+        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
     },
-    # Customer WHT Configuration Changes
+    # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {
-        "validate": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
-        "on_update": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
+        "validate": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
+        "on_update": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
     },
 }
 
