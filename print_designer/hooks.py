@@ -545,29 +545,29 @@ doc_events = {
         "validate": "print_designer.overrides.company.sync_company_retention_settings",
         "on_update": "print_designer.overrides.company.sync_company_retention_settings",
     },
-    # Thai WHT Preview System - Sales Documents
+    # Thai WHT Preview System - Sales Documents (Consolidated Calculations)
     "Quotation": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.quotation_calculations.quotation_calculate_thailand_amounts",
+        "validate": [
+            "print_designer.custom.quotation_calculations.quotation_calculate_thailand_amounts",
+            "print_designer.custom.quotation_calculations.calculate_wht_preview_for_quotation",
+        ],
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.thai_wht_events.calculate_wht_preview_on_validate",
+        "validate": "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",
     },
-    # Sales Invoice - Updated to include WHT preview alongside existing events
+    # Sales Invoice - Consolidated calculation functions
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": [
-            "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-            "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
-        ],
-        "on_submit": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
-        "on_cancel": "print_designer.custom.thai_wht_events.sales_invoice_wht_preview_handler",
+        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_comprehensive_wht_handler",
+        "on_submit": "print_designer.custom.sales_invoice_calculations.sales_invoice_comprehensive_wht_handler",
+        "on_cancel": "print_designer.custom.sales_invoice_calculations.sales_invoice_comprehensive_wht_handler",
     },
-    # Customer WHT Configuration Changes
+    # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {
-        "validate": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
-        "on_update": "print_designer.custom.thai_wht_events.customer_wht_config_changed",
+        "validate": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
+        "on_update": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
     },
 }
 
