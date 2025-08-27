@@ -23,7 +23,7 @@ def execute():
                 "fieldtype": "Check",
                 "label": "Subject to Withholding Tax",
                 "insert_after": "wht_section",
-                "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+                "depends_on": "eval:doc.company && doc.thailand_service_business",
                 "description": "This quotation is for services subject to 3% withholding tax",
                 "default": "0",
                 "allow_on_submit": 0,

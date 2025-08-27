@@ -217,7 +217,7 @@ def get_quotation_custom_fields_definition():
 				"label": "Subject to Withholding Tax",
 				"fieldtype": "Check",
 				"insert_after": "vat_treatment",
-				"depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+				"depends_on": "eval:doc.company && doc.thailand_service_business",
 				"default": "0",
 				"read_only": 0,
 				"hidden": 0,

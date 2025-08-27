@@ -66,6 +66,10 @@ def apply_company_defaults(doc):
         # Get Company configuration
         company_doc = frappe.get_cached_doc("Company", doc.company)
         
+        # Populate fields for client-side depends_on conditions
+        doc.thailand_service_business = company_doc.get('thailand_service_business', 0)
+        doc.construction_service = company_doc.get('construction_service', 0)
+        
         # Apply default WHT rate if custom_withholding_tax is not specified
         if not doc.get('custom_withholding_tax') and company_doc.get('default_wht_rate'):
             doc.custom_withholding_tax = flt(company_doc.default_wht_rate)

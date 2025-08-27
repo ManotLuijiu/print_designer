@@ -51,7 +51,7 @@ def install_enhanced_retention_fields():
                 "label": "Retention Details",
                 "fieldtype": "Section Break",
                 "insert_after": "taxes_and_charges",
-                "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'construction_service')",
+                "depends_on": "eval:doc.company && doc.construction_service",
                 "collapsible": 1,
             },
             {
@@ -60,7 +60,7 @@ def install_enhanced_retention_fields():
                 "fieldtype": "Percent",
                 "insert_after": "retention_section",
                 "description": "Retention percentage to be withheld from payment",
-                "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'construction_service')",
+                "depends_on": "eval:doc.company && doc.construction_service",
                 "precision": 2,
             },
             {
@@ -70,7 +70,7 @@ def install_enhanced_retention_fields():
                 "insert_after": "custom_retention",
                 "description": "Calculated retention amount",
                 "read_only": 1,
-                "depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'construction_service')",
+                "depends_on": "eval:doc.company && doc.construction_service",
                 "options": "Company:company:default_currency",
             },
         ],

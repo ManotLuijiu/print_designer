@@ -71,7 +71,7 @@ def get_sales_order_custom_fields_definition():
 				"insert_after": "vat_treatment",
 				"description": "This sales order is for services subject to 3% withholding tax",
 				"default": "0",
-				"depends_on": "eval:doc.company && frappe.db.get_value('Company', doc.company, 'thailand_service_business')",
+				"depends_on": "eval:doc.company && doc.thailand_service_business",
 				"read_only": 0,
 				"hidden": 0,
 				"collapsible": 0,
