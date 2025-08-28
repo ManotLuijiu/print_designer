@@ -401,6 +401,8 @@ override_whitelisted_methods = {
     "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
     # Override Print Settings API to include watermark fields in print sidebar
     "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
+    # Override Quotation make_sales_order to include WHT field mapping
+    "erpnext.selling.doctype.quotation.quotation.make_sales_order": "print_designer.overrides.quotation_mapper.make_sales_order_with_wht",
 }
 
 # Installation

@@ -142,16 +142,20 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         # Start with grand total (includes VAT)
         grand_total = flt(doc.grand_total)
         
-        # Get deduction amounts
-        wht_amount = flt(getattr(doc, 'estimated_wht_amount', 0))
+        # Get deduction amounts - use correct field name: custom_withholding_tax_amount (not estimated_wht_amount)
+        wht_amount = flt(getattr(doc, 'custom_withholding_tax_amount', 0))
         retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
         
-        # Calculate net_total_after_wht: grand_total - estimated_wht_amount
-        doc.net_total_after_wht = flt(grand_total - wht_amount, 2)
+        # Calculate net_total_after_wht: Only if not already set (preserve copied values from Quotation)
+        if not doc.get('net_total_after_wht'):
+            doc.net_total_after_wht = flt(grand_total - wht_amount, 2)
+            frappe.logger().info(f"Sales Order Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
+        else:
+            frappe.logger().info(f"Sales Order Calc: Preserved copied net_total_after_wht = {doc.net_total_after_wht}")
         
         # Calculate payment amount based on retention status
         if doc.get('custom_subject_to_retention') and retention_amount > 0:
-            # custom_net_total_after_wht_retention = grand_total - estimated_wht_amount - custom_retention_amount
+            # custom_net_total_after_wht_retention = grand_total - custom_withholding_tax_amount - custom_retention_amount
             doc.custom_net_total_after_wht_retention = flt(grand_total - wht_amount - retention_amount, 2)
             
             # custom_payment_amount = custom_net_total_after_wht_retention
