@@ -219,7 +219,7 @@ fixtures = [
                     # Sales Invoice - Retention System Fields
                     "Sales Invoice-custom_subject_to_retention",
                     "Sales Invoice-custom_net_total_after_wht_retention",
-                    "Sales Invoice-custom_net_total_after_wht_and_retention_in_words",
+                    "Sales Invoice-custom_net_total_after_wht_retention_in_words",
                     "Sales Invoice-custom_retention_note",
                     "Sales Invoice-custom_retention",
                     "Sales Invoice-custom_retention_amount",
@@ -246,7 +246,7 @@ fixtures = [
                     # Quotation - Retention System Fields
                     "Quotation-custom_subject_to_retention",
                     "Quotation-custom_net_total_after_wht_retention",
-                    "Quotation-custom_net_total_after_wht_and_retention_in_words",
+                    "Quotation-custom_net_total_after_wht_retention_in_words",
                     "Quotation-custom_retention",
                     "Quotation-custom_retention_amount",
                     "Quotation-custom_retention_note",

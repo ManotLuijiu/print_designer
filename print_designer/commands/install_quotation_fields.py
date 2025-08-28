@@ -68,11 +68,13 @@ def get_quotation_custom_fields_definition():
 	return {
 		"Quotation": [
 			{
-				"fieldname": "custom_net_total_after_wht_and_retention_in_words",
+				"fieldname": "custom_net_total_after_wht_retention_in_words",
 				"label": "Net Total (After WHT and Retention) in Words",
 				"fieldtype": "Data",
 				"insert_after": "custom_net_total_after_wht_retention",
+				"description": "Net total amount in Thai words (After WHT & Retention)",
 				"depends_on": "eval:doc.custom_subject_to_retention",
+				"translatable": 1,
 				"read_only": 0,
 				"hidden": 0,
 				"collapsible": 0,
@@ -131,7 +133,7 @@ def get_quotation_custom_fields_definition():
 				"fieldname": "custom_retention_note",
 				"label": "Retention Note",
 				"fieldtype": "Small Text",
-				"insert_after": "custom_net_total_after_wht_and_retention_in_words",
+				"insert_after": "custom_net_total_after_wht_retention_in_words",
 				"depends_on": "eval:doc.custom_subject_to_retention",
 				"default": "หมายเหตุ: จำนวนเงินประกันผลงาน  จะถูกหักเมื่อชำระเงิน\nNote: Retention amount will be deducted upon payment",
 				"read_only": 0,

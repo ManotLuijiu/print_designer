@@ -204,26 +204,26 @@ def convert_amounts_to_words_for_sales_invoice(doc):
         # Convert custom_net_total_after_wht_retention to words (if retention applies)
         if (doc.get('custom_subject_to_retention') and 
             doc.get('custom_net_total_after_wht_retention') and 
-            hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words')):
+            hasattr(doc, 'custom_net_total_after_wht_retention_in_words')):
             try:
-                doc.custom_net_total_after_wht_and_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
-                print(f"🔍 Sales Invoice Calc: custom_net_total_after_wht_and_retention_in_words = {doc.custom_net_total_after_wht_and_retention_in_words}")
+                doc.custom_net_total_after_wht_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
+                print(f"🔍 Sales Invoice Calc: custom_net_total_after_wht_retention_in_words = {doc.custom_net_total_after_wht_retention_in_words}")
             except Exception as e:
-                doc.custom_net_total_after_wht_and_retention_in_words = ""
+                doc.custom_net_total_after_wht_retention_in_words = ""
                 print(f"🔍 Sales Invoice Calc: Error converting custom_net_total_after_wht_retention to words: {str(e)}")
         else:
             # Clear retention in_words field if not applicable
-            if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
-                doc.custom_net_total_after_wht_and_retention_in_words = ""
-                print(f"🔍 Sales Invoice Calc: Cleared custom_net_total_after_wht_and_retention_in_words (no retention)")
+            if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
+                doc.custom_net_total_after_wht_retention_in_words = ""
+                print(f"🔍 Sales Invoice Calc: Cleared custom_net_total_after_wht_retention_in_words (no retention)")
                 
     except Exception as e:
         frappe.log_error(f"Error converting amounts to words for Sales Invoice {doc.name}: {str(e)}")
         # Clear the in_words fields on error
         if hasattr(doc, 'net_total_after_wht_in_words'):
             doc.net_total_after_wht_in_words = ""
-        if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
-            doc.custom_net_total_after_wht_and_retention_in_words = ""
+        if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
+            doc.custom_net_total_after_wht_retention_in_words = ""
         print(f"🔍 Sales Invoice Calc: Error in convert_amounts_to_words_for_sales_invoice: {str(e)}")
 
 

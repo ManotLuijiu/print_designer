@@ -22,15 +22,21 @@ def sales_order_calculate_thailand_amounts(doc, method=None):
     """
     # DEBUG: Log function entry
     frappe.logger().info(f"🔍 Sales Order Calc: sales_order_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    print(f"🔍 Sales Order Calc: sales_order_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    print(f"\n🔍 SALES ORDER CALC STARTED for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    print(f"  - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
+    print(f"  - custom_withholding_tax_amount = {getattr(doc, 'custom_withholding_tax_amount', 'NOT_SET')}")
+    print(f"  - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+    print(f"  - custom_payment_amount = {getattr(doc, 'custom_payment_amount', 'NOT_SET')}")
     
     # Ensure this function only processes Sales Order DocType
     if doc.doctype != "Sales Order":
         frappe.logger().info(f"🔍 Sales Order Calc: Not a Sales Order ({doc.doctype}), skipping")
+        print(f"🔍 Sales Order Calc: Not a Sales Order ({doc.doctype}), skipping")
         return
         
     if not doc.company:
         frappe.logger().info(f"🔍 Sales Order Calc: No company set, skipping")
+        print(f"🔍 Sales Order Calc: No company set, skipping")
         return
     
     # Apply Company defaults if Sales Order fields are not specified
@@ -142,31 +148,48 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         # Start with grand total (includes VAT)
         grand_total = flt(doc.grand_total)
         
+        # DEBUG: Print initial values
+        print(f"🔍 Sales Order Payment Calc START:")
+        print(f"  - grand_total = {grand_total}")
+        print(f"  - net_total_after_wht (before) = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+        print(f"  - custom_payment_amount (before) = {getattr(doc, 'custom_payment_amount', 'NOT_SET')}")
+        
         # Get deduction amounts - use correct field name: custom_withholding_tax_amount (not estimated_wht_amount)
         wht_amount = flt(getattr(doc, 'custom_withholding_tax_amount', 0))
         retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
         
+        print(f"  - custom_withholding_tax_amount = {wht_amount}")
+        print(f"  - custom_retention_amount = {retention_amount}")
+        
         # Calculate net_total_after_wht: Only if not already set (preserve copied values from Quotation)
         if not doc.get('net_total_after_wht'):
             doc.net_total_after_wht = flt(grand_total - wht_amount, 2)
+            print(f"  - CALCULATED net_total_after_wht = {doc.net_total_after_wht} (grand_total {grand_total} - wht_amount {wht_amount})")
             frappe.logger().info(f"Sales Order Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
         else:
+            print(f"  - PRESERVED net_total_after_wht = {doc.net_total_after_wht} (copied from Quotation)")
             frappe.logger().info(f"Sales Order Calc: Preserved copied net_total_after_wht = {doc.net_total_after_wht}")
         
         # Calculate payment amount based on retention status
+        print(f"  - custom_subject_to_retention = {doc.get('custom_subject_to_retention')}")
+        
         if doc.get('custom_subject_to_retention') and retention_amount > 0:
             # custom_net_total_after_wht_retention = grand_total - custom_withholding_tax_amount - custom_retention_amount
             doc.custom_net_total_after_wht_retention = flt(grand_total - wht_amount - retention_amount, 2)
+            print(f"  - RETENTION ACTIVE: custom_net_total_after_wht_retention = {doc.custom_net_total_after_wht_retention} (grand_total {grand_total} - wht {wht_amount} - retention {retention_amount})")
             
             # custom_payment_amount = custom_net_total_after_wht_retention
             doc.custom_payment_amount = doc.custom_net_total_after_wht_retention
+            print(f"  - custom_payment_amount = {doc.custom_payment_amount} (with retention)")
         else:
             # No retention: custom_payment_amount = net_total_after_wht
             doc.custom_net_total_after_wht_retention = 0
             doc.custom_payment_amount = doc.net_total_after_wht
+            print(f"  - NO RETENTION: custom_payment_amount = {doc.custom_payment_amount} (equals net_total_after_wht)")
         
         # Ensure payment amount is not negative
         if doc.custom_payment_amount < 0:
+            print(f"  - WARNING: Payment amount was negative ({doc.custom_payment_amount}), setting to 0")
             doc.custom_payment_amount = 0
             frappe.msgprint(
                 _("Warning: Total deductions exceed sales order amount. Payment amount set to zero."),
@@ -175,6 +198,13 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         
         # Convert amounts to words (Thai language support)
         convert_amounts_to_words_for_sales_order(doc)
+        
+        # DEBUG: Print final summary
+        print(f"🔍 Sales Order Payment Calc END:")
+        print(f"  - FINAL net_total_after_wht = {doc.net_total_after_wht}")
+        print(f"  - FINAL custom_payment_amount = {doc.custom_payment_amount}")
+        print(f"  - FINAL custom_net_total_after_wht_retention = {getattr(doc, 'custom_net_total_after_wht_retention', 0)}")
+        print("=" * 50)
             
     except Exception as e:
         frappe.log_error(f"Error calculating final payment amounts for Sales Order {doc.name}: {str(e)}")
@@ -204,26 +234,26 @@ def convert_amounts_to_words_for_sales_order(doc):
         # Convert custom_net_total_after_wht_retention to words (if retention applies)
         if (doc.get('custom_subject_to_retention') and 
             doc.get('custom_net_total_after_wht_retention') and 
-            hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words')):
+            hasattr(doc, 'custom_net_total_after_wht_retention_in_words')):
             try:
-                doc.custom_net_total_after_wht_and_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
-                print(f"🔍 Sales Order Calc: custom_net_total_after_wht_and_retention_in_words = {doc.custom_net_total_after_wht_and_retention_in_words}")
+                doc.custom_net_total_after_wht_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
+                print(f"🔍 Sales Order Calc: custom_net_total_after_wht_retention_in_words = {doc.custom_net_total_after_wht_retention_in_words}")
             except Exception as e:
-                doc.custom_net_total_after_wht_and_retention_in_words = ""
+                doc.custom_net_total_after_wht_retention_in_words = ""
                 print(f"🔍 Sales Order Calc: Error converting custom_net_total_after_wht_retention to words: {str(e)}")
         else:
             # Clear retention in_words field if not applicable
-            if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
-                doc.custom_net_total_after_wht_and_retention_in_words = ""
-                print(f"🔍 Sales Order Calc: Cleared custom_net_total_after_wht_and_retention_in_words (no retention)")
+            if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
+                doc.custom_net_total_after_wht_retention_in_words = ""
+                print(f"🔍 Sales Order Calc: Cleared custom_net_total_after_wht_retention_in_words (no retention)")
                 
     except Exception as e:
         frappe.log_error(f"Error converting amounts to words for Sales Order {doc.name}: {str(e)}")
         # Clear the in_words fields on error
         if hasattr(doc, 'net_total_after_wht_in_words'):
             doc.net_total_after_wht_in_words = ""
-        if hasattr(doc, 'custom_net_total_after_wht_and_retention_in_words'):
-            doc.custom_net_total_after_wht_and_retention_in_words = ""
+        if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
+            doc.custom_net_total_after_wht_retention_in_words = ""
         print(f"🔍 Sales Order Calc: Error in convert_amounts_to_words_for_sales_order: {str(e)}")
 
 

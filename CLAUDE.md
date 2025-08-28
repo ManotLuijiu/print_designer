@@ -6,332 +6,238 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Print Designer is a Frappe application for creating professional print formats using an interactive visual designer. It provides a drag-and-drop interface for designing complex layouts without coding, with particular strength in Thai language support, digital signatures, and advanced PDF generation.
 
-## Development Setup
+## Core Architecture
 
-### Prerequisites
-- Frappe Framework V15 or develop branch
-- Node.js for frontend build
-- Python 3.10+ with required dependencies
-- Chrome/Chromium browser for PDF generation
-- Required system packages for Chrome CDP functionality
+### High-Level System Design
+Print Designer operates as a comprehensive print format creation system with:
 
-### Local Development Commands
+- **Visual Designer**: Vue.js-based drag-and-drop interface for creating print layouts
+- **Template Engine**: JSON-based format definitions with Jinja2 rendering
+- **Multi-PDF Generator Support**: wkhtmltopdf, WeasyPrint, and Chrome CDP generators
+- **Thai Business Features**: Specialized support for Thai tax forms, signatures, and language
+- **Extensible Hook System**: Template installation and custom field management
+
+### Key Component Relationships
+
+```
+Frontend (Vue.js) → JSON Format Definition → Python Template Renderer → PDF Generator
+     ↑                     ↓                          ↓                    ↓
+Print Designer UI → print_designer_body → Jinja2 Templates → PDF Output
+```
+
+### Core File Structure
+```
+print_designer/
+├── print_designer/
+│   ├── page/print_designer/          # Vue.js frontend application
+│   ├── doctype/                      # Custom DocTypes (signatures, stamps, etc.)
+│   └── overrides/                    # DocType extensions
+├── default_templates/                # Auto-installed print templates 
+├── api/                             # REST API endpoints
+├── commands/                        # Bench command implementations
+├── custom/                          # Document event handlers
+├── pdf_generator/                   # Multi-engine PDF generation
+├── utils/                          # Utilities (Thai language, signatures)
+└── public/                         # Frontend assets and fonts
+```
+
+## Development Commands
+
+### Essential Development Workflow
 ```bash
-# Initial setup in frappe-bench
-bench get-app print_designer
-bench new-site print-designer.localhost --install-app print_designer
-bench browse print-designer.localhost --user Administrator
+# Start development environment
+bench start
 
-# Development workflow
-bench start                    # Start development server
-bench watch                    # Watch and build frontend assets
-bench build                    # Build all assets
-bench migrate                  # Run database migrations
+# Build frontend assets (Vue.js components)
+bench build --app print_designer
+bench watch  # Auto-rebuild on changes
 
-# Testing and debugging
-bench execute print_designer.commands.test_pdf_generators.test_all_generators
+# Development debugging
+bench --site [site-name] console
 bench execute print_designer.utils.test_pdf_generation.test_pdf_generation
-bench --site [site-name] console  # Interactive Python console for debugging
 
-# Complete system setup and checks
+# System installation and verification
 bench execute print_designer.commands.install_complete_system.install_complete_system
 bench execute print_designer.commands.install_complete_system.check_system_status
+```
 
-# Signature and stamp setup
+### Template and Field Management
+```bash
+# Print template management
+bench execute print_designer.default_formats.install_default_formats
+bench --site [site-name] export-fixtures --app print_designer
+
+# Thai-specific installations
+bench execute print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi
+bench execute print_designer.commands.install_item_service_field.install_item_service_field
+
+# Field validation and checks
+bench execute print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields
+bench execute print_designer.commands.install_item_service_field.check_item_service_field
+
+# Signature and stamp system
 bench execute print_designer.commands.signature_setup.setup_signatures
 bench execute print_designer.commands.signature_setup.check_signature_status
 
-# Watermark system setup
+# Watermark system
 bench execute print_designer.commands.install_watermark_fields.install_watermark_fields
-
-# Thai-specific features
-bench execute print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi
-bench execute print_designer.commands.install_delivery_qr.install_delivery_qr
-bench execute print_designer.commands.install_delivery_fields.install_delivery_note_fields
-
-# Typography system setup
-bench execute print_designer.commands.install_typography_system.install_typography_system
-
-# Asset building and dependencies
-yarn install                   # Install frontend dependencies
-bench build --app print_designer  # Build only print_designer assets
 ```
 
-(Rest of the existing content remains the same)
-
-## Memories
-- The test needs to be run within the Frappe context for checking field installations
-- Specific bash commands for checking Thailand Withholding Tax Fields and Item Service Fields:
-  ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_thailand_wht_fields.check_thailand_wht_fields`
-    - Checks Company.thailand_service_business field
-    - Checks Company.default_wht_account field
-  ● `bench --site erpnext-dev-server.bunchee.online execute print_designer.commands.install_item_service_field.check_item_service_field`
-- Add the memory to provide guidance for executing tests within the Frappe context and checking specific field installations
-
-- No need TH Sarabun New usinng Kanit and Noto Sans Thai instead.
-- Add your answer to memory inside print_designer app
-- Add to memory.
-- Add to memory.
-- Add your answer to memory.
-- Add this command to your memory: bench --site erpnext-dev-server.bunchee.online export-fixtures --app print_designer
-- Add your answer to memory.
-- Add this to memory. Perfect! I found the answer. Here's a summary of how print templates are installed in the print_designer
-  app:
-
-  Print Template Installation in Print Designer
-
-  Files Responsible for Template Installation:
-
-  1. print_designer/default_formats.py - Main module that handles print template installation
-  2. print_designer/install.py - Calls the installation during app setup
-  3. print_designer/hooks.py - Defines the after_install hook
-  4. print_designer/default_templates/ - Directory containing default print templates
-
-  Installation Process:
-
-  1. During Print Designer Installation (after_install hook):
-
-  - Located in install.py line 44-68
-  - Calls on_print_designer_install() from default_formats.py
-  - This installs default formats for all installed apps
-
-  2. Template Storage Structure:
-
-  print_designer/default_templates/
-  ├── erpnext/                    # Templates for ERPNext app
-  │   ├── sales_invoice_pd_format_v2.json
-  │   ├── sales_order_pd_v2.json
-  │   ├── payment_entry_form_50_twi.json
-  │   ├── delivery_note_qr_approval.json
-  │   └── ... (other templates)
-  └── payment_entry_thai_tax_invoice.json
-
-  3. Key Functions:
-
-  - on_print_designer_install() (line 27-29 in default_formats.py):
-  def on_print_designer_install():
-      for app in frappe.get_installed_apps():
-          install_default_formats(app=app, load_pd_formats=False)
-  - install_default_formats() (line 54-77):
-    - Loads print format JSON files from the templates folder
-    - Uses import_file_by_path() to import each template
-    - Can filter by specific app or load all templates
-
-  4. Template Installation Triggers:
-
-  - When print_designer is installed (via after_install hook)
-  - When any new app is installed (if it has print_designer templates)
-  - Templates can be provided by any app using the pd_standard_format_folder hook
-
-  5. Hook Configuration:
-
-  - Apps can specify their template folder via pd_standard_format_folder hook
-  - Default folder is default_templates if not specified
-
-  How to Add New Templates:
-
-  1. Create JSON files for print formats in print_designer/default_templates/[app_name]/
-  2. Templates will be automatically installed when:
-    - Print Designer is installed
-    - The target app is installed (if print_designer is already installed)
-
-  The system is designed to be flexible - any Frappe app can provide print designer templates that will be
-  automatically installed when appropriate.
-
-# Add your answer to memory.
-  ⎿  Noted.
-
-> Use your knowledge to create new print template like this 
-  "https://www.rd.go.th/fileadmin/tax_pdf/withhold/approve_wh3_081156.pdf"
-
-● I'll create a new print template based on the Thai Withholding Tax Certificate (หนังสือรับรองการหักภาษี ณ
-  ที่จ่าย) format from the Revenue Department. Let me use the TodoWrite tool to track this task and then
-  create the template.
-
-● Update Todos
-  ⎿  ☐ Analyze the Thai WHT certificate format requirements
-     ☐ Create JSON print template structure
-     ☐ Add Thai language labels and formatting
-     ☐ Configure tax calculation fields
-     ☐ Test and save the template
-
-● Now, let me create a new Thai Withholding Tax Certificate print template based on the Revenue Department
-  format. First, let me examine an existing Thai tax template for reference:
-
-● Read(apps/print_designer/print_designer/default_templates/erpnext/payment_entry_form_50_twi.json)
-  ⎿  Read 35 lines (ctrl+r to expand)
-
-● Now let me create a new Thai Withholding Tax Certificate template based on the standard format. I'll
-  create it as "payment_entry_wht_certificate.json":
-
-● Update Todos
-  ⎿  ☒ Analyze the Thai WHT certificate format requirements
-     ☐ Create JSON print template structure
-     ☐ Add Thai language labels and formatting
-     ☐ Configure tax calculation fields
-     ☐ Test and save the template
-
-● Write(apps/print_designer/print_designer/default_templates/erpnext/payment_entry_wht_certificate.json)
-  ⎿  Wrote 35 lines to                                                                              
-     apps/print_designer/print_designer/default_templates/erpnext/payment_entry_wht_certificate.json
-     {
-       "doctype": "Print Format",
-       "name": "Payment Entry WHT Certificate - หนังสือรับรองการหักภาษี ณ ที่จ่าย",
-       "doc_type": "Payment Entry",
-       "module": "Print Designer",
-       "print_designer": 1,
-       "standard": "No",
-       "disabled": 0,
-       "font": "Kanit",
-       "font_size": 12,
-     … +25 lines (ctrl+r to expand)
-
-> ensure it will get install once print_designer install or migrate
-
-● Update Todos
-  ⎿  ☒ Analyze the Thai WHT certificate format requirements
-     ☒ Create JSON print template structure
-     ☒ Add Thai language labels and formatting
-     ☒ Configure tax calculation fields
-     ☐ Test and save the template
-
-● Good point! The template is now created in the correct location (default_templates/erpnext/), which means
-   it will automatically be installed when:
-
-  1. Print Designer is installed - via the on_print_designer_install() function
-  2. After migration - if the template is new
-
-  However, let me verify and ensure the installation process will pick it up. Let me check if there's a
-  specific hook configuration needed:
-
-● Read(apps/print_designer/print_designer/hooks.py)
-  ⎿  Read 30 lines (ctrl+r to expand)
-
-● Good! Now let me also check the pd_standard_format_folder hook to ensure it's properly configured:
-
-● Search(pattern: "pd_standard_format_folder", path: "apps/print_designer/print_designer/hooks.py",
-        output_mode: "content")
-  ⎿  Found 5 lines (ctrl+r to expand)
-
-● Perfect! The hook is configured correctly. Now let me test the installation to make sure our new template
-   will be picked up:
-
-● Bash(bench --site erpnext-dev-server.bunchee.online console << 'EOF'
-      import frappe…)
-  ⎿ Apps in this namespace:                                                                                
-    frappe, erpnext, hrms, payments, translation_tools, thai_business_suite, print_designer, lending, digis
-    oft_erp, m_capital, employee_self_service
-    … +53 lines (ctrl+r to expand)
-
-
-● Excellent! Now let's manually install the template to test it immediately:
-
-● Bash(bench --site erpnext-dev-server.bunchee.online execute
-      print_designer.default_formats.install_default_formats --kwargs "{'app':'print_designer',
-      'filter_by':'er…)
-  ⎿  (No content)
-
-● Let's verify the template was installed:
-
-● Bash(bench --site erpnext-dev-server.bunchee.online console << 'EOF'
-      import frappe…)
-  ⎿ Apps in this namespace:                                                                                
-    frappe, erpnext, hrms, payments, translation_tools, thai_business_suite, print_designer, lending, digis
-    oft_erp, m_capital, employee_self_service
-    … +28 lines (ctrl+r to expand)
-
-
-● Perfect! Let me now update the todo list to complete:
-
-● Update Todos
-  ⎿  ☒ Analyze the Thai WHT certificate format requirements
-     ☒ Create JSON print template structure
-     ☒ Add Thai language labels and formatting
-     ☒ Configure tax calculation fields
-     ☒ Test and save the template
-
-
-● Claude Opus limit reached, now using Sonnet 4
-
-● ✅ Thai Withholding Tax Certificate Template Successfully Created!
-
-  I've created a new print template based on the standard Thai Revenue Department WHT certificate format.
-  Here's what was accomplished:
-
-  🎯 Template Features:
-
-  1. Official Format Compliance: Matches the structure of the standard Thai Revenue Department withholding
-  tax certificate (หนังสือรับรองการหักภาษี ณ ที่จ่าย)
-  2. Thai Language Support:
-    - Uses Kanit font for optimal Thai text rendering
-    - Bilingual labels (Thai/English)
-    - Proper Thai formatting and layout
-  3. Complete Information Sections:
-    - Header: Document title, number, and copy designation
-    - Payer Information: Company name, tax ID, branch, address
-    - Payee Information: Name, tax ID/citizen ID, address
-    - Income Types: Checkboxes for different income categories (service fee pre-selected)
-    - Tax Details: Payment date, tax rate (3%), calculation section
-    - Signature Section: Official certification and signature area
-  4. Dynamic Fields: Connected to Payment Entry fields:
-    - company, company_tax_id, company_address_display
-    - party_name, tax_id, party_address
-    - posting_date, paid_amount, total_taxes_and_charges
-
-  🚀 Installation Status:
-
-  ✅ Automatically Installed: The template is now located in /default_templates/erpnext/ and will be
-  automatically installed when:
-  - Print Designer is freshly installed (via after_install hook)
-  - App is migrated/updated
-  - Manual installation via default formats function
-
-  ✅ Currently Available: Template is already installed and ready to use:
-  - Name: "Payment Entry WHT Certificate - หนังสือรับรองการหักภาษี ณ ที่จ่าย"
-  - DocType: Payment Entry
-  - Access: Print Designer enabled, active and ready
-
-  📝 Usage:
-
-  Users can now:
-  1. Go to any Payment Entry document
-  2. Click Print → Select this WHT certificate template
-  3. Generate official Thai withholding tax certificates
-  4. Print or save as PDF for tax compliance
-
-  The template follows Thai tax regulations and provides all required information for proper withholding
-  tax documentation.
-
-## Net Total After WHT Calculation in Quotation
-
-Now I have a clear understanding! Let me analyze how the calculation works and create a similar system for the
-`net_total_after_wht` field in **Quotation**. Here's what I learned:
-
-### Update Todos
-- ☒ Analyze how `grand_total` calculation works in ERPNext/Frappe        
-- ☒ Study existing WHT calculation patterns in `print_designer`
-- ☒ Identify the calculation logic for `net_total_after_wht` field
-- ☐ Apply similar calculation approach to Quotation `net_total_after_wht`
-
----
-
-### Key Learning
-
-Perfect! Now I understand how the calculation works. Let me implement the `net_total_after_wht` calculation for
-**Quotation** following the same pattern as `grand_total`.
-
-#### 🎯 How `grand_total` Gets Its Value
-1. **Server-Side Calculation** – Calculated in `validate()` method during document save  
-2. **Document Events** – Uses `hooks.py` `doc_events` to trigger calculations  
-3. **Automatic Updates** – Recalculates when underlying values change  
-4. **Formula:**  
-
-
----
-
-#### 🔧 Current WHT Calculation Pattern
-For `net_total_after_wht`, the calculation is:  
-
-
-This happens in **thai_wht_events.py** inside the function:  
-`calculate_wht_preview_on_validate()`.
+### PDF Generation Testing
+```bash
+# Test different PDF generators
+bench execute print_designer.commands.test_pdf_generators.test_all_generators
+
+# Chrome CDP setup (required for advanced PDF features)
+bench execute print_designer.install.setup_chromium
+```
+
+## Architecture Patterns
+
+### Print Template Installation System
+Print Designer uses a sophisticated template installation system:
+
+1. **Template Discovery**: `default_formats.py` scans all installed apps for templates
+2. **Hook-Based Loading**: Apps declare templates via `pd_standard_format_folder` hook
+3. **Automatic Installation**: Templates auto-install during app installation/migration
+4. **JSON Format**: Templates stored as JSON files in `default_templates/[app_name]/`
+
+**Key Functions:**
+- `on_print_designer_install()`: Installs templates for all apps during Print Designer setup
+- `install_default_formats()`: Core template installation logic
+- `get_filtered_formats_by_app()`: Template discovery and filtering
+
+### Custom Field Management
+Print Designer extensively uses custom fields across DocTypes:
+
+1. **Fixture-Based**: Core fields defined in `fixtures/custom_field.json`
+2. **Programmatic**: Complex fields installed via command modules
+3. **Safe Migration**: Fields installed safely during app updates
+4. **Dependency Handling**: Fields with proper `depends_on` conditions
+
+**Installation Hooks:**
+- `after_install`: Fresh installations
+- `after_migrate`: Updates and migrations
+- Emergency fallback functions for critical fields
+
+### PDF Generation Architecture
+Multi-engine PDF generation system supporting:
+
+1. **wkhtmltopdf**: Default, reliable for most use cases
+2. **WeasyPrint**: Better CSS support, good for complex layouts  
+3. **Chrome CDP**: Advanced features, headless Chrome via CDP protocol
+
+**Key Components:**
+- `pdf_generator/`: Engine abstraction layer
+- `pdf.py`: Template rendering and language handling
+- Chromium auto-download and management system
+
+### Thai Language & Business Support
+Specialized features for Thai business requirements:
+
+1. **Font System**: Kanit, Noto Sans Thai, Sarabun fonts included
+2. **Language Detection**: URL parameter → Print Format → Fallback priority
+3. **Amount Conversion**: Thai money-to-words conversion
+4. **Tax Forms**: Form 50TWI, WHT certificates, VAT compliance
+5. **Signatures**: Digital signatures with company stamps
+
+## Code Quality Standards
+
+### Frontend Standards
+- Vue.js 3 Composition API
+- ESBuild for bundling
+- Bundle suffix naming: `.bundle.css`, `.bundle.js` (mandatory)
+- SCSS for styling
+
+### Python Standards
+- Type hints preferred
+- Error logging via `frappe.log_error()`
+- Defensive programming for missing fields/documents
+- Import isolation (try/except for optional dependencies)
+
+### Testing Approach
+- Console-based testing via `bench execute` 
+- PDF generation testing across all engines
+- Field installation verification
+- Template rendering validation
+
+## Key Integration Points
+
+### Hook System Integration
+Print Designer integrates deeply with Frappe's hook system:
+
+```python
+# Document events for calculations
+doc_events = {
+    "Sales Invoice": {
+        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts"
+    }
+}
+
+# Override core Frappe methods  
+override_whitelisted_methods = {
+    "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp"
+}
+```
+
+### Template Discovery System
+Apps can provide Print Designer templates:
+
+```python
+# In app's hooks.py
+pd_standard_format_folder = "my_templates"  # Directory containing templates
+```
+
+### Custom Field Dependencies
+Complex field relationships using `depends_on`:
+
+```python
+"depends_on": "eval:doc.subject_to_wht"  # Field visibility logic
+"insert_after": "net_total"             # Field positioning
+```
+
+## Development Best Practices
+
+### Template Development
+1. Create templates in `default_templates/[app_name]/`
+2. Use descriptive naming: `doctype_purpose_version.json`
+3. Test template installation via `install_default_formats()`
+4. Include bilingual labels for Thai business
+
+### Custom Field Development  
+1. Define in fixtures for version control
+2. Use programmatic installation for complex fields
+3. Always provide fallback/migration functions
+4. Test field installation across different ERPNext versions
+
+### PDF Generation
+1. Test across all three PDF generators
+2. Handle Chrome CDP errors gracefully (pipe errors)
+3. Use appropriate fonts for Thai text
+4. Implement proper language detection
+
+### Error Handling
+1. Use `frappe.log_error()` for persistent logging
+2. Graceful degradation when optional features fail
+3. Defensive checks for missing custom fields
+4. Clear error messages for users
+
+## Thai Business Specializations
+
+### Withholding Tax System
+- Custom fields: `subject_to_wht`, `wht_income_type`, `net_total_after_wht`  
+- Calculation hooks in document validation
+- Thai revenue department form compliance
+- Multi-document WHT calculation (Quotation → Sales Order → Sales Invoice)
+
+### Signature & Stamp System  
+- Company signatures and official seals
+- Digital signature DocTypes
+- Integration with print templates via Jinja methods
+- Signature usage tracking and analytics
+
+### Thai Language Features
+- Font loading: Kanit, Noto Sans Thai, Sarabun
+- Amount to words conversion in Thai
+- Language detection: URL params → format language → system default
+- Proper RTL/LTR handling for mixed content
