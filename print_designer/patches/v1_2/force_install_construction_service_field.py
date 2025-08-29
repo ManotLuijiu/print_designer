@@ -63,8 +63,10 @@ def execute():
             ]
         }
         
-        # Install the custom fields
+        # Install the custom fields with version tracking disabled to avoid formatting errors
+        frappe.flags.ignore_version = True
         create_custom_fields(custom_fields, update=True)
+        frappe.flags.ignore_version = False
         
         print("✅ Construction service fields installed successfully!")
         print("   - Company: construction_service (checkbox)")  
