@@ -29,5 +29,6 @@ print_designer.patches.v1_0.enhance_signature_basic_information
 print_designer.patches.v1_0.install_watermark_fields
 print_designer.patches.v1_0.fix_target_signature_field_options
 print_designer.patches.v1_0.install_sales_invoice_wht_net_total_fields
+print_designer.patches.v1_0.fix_sales_invoice_field_order
 print_designer.patches.v1_1.install_complete_watermark_fields
 print_designer.patches.v1_2.ensure_watermark_fields_complete
