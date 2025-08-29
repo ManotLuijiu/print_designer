@@ -118,7 +118,7 @@ def get_sales_invoice_custom_fields_definition():
                 "description": "Type of income for WHT calculation",
                 "depends_on": "eval:doc.subject_to_wht",
                 "options": "\nprofessional_services\nrental\nservice_fees\nconstruction\nadvertising\nother_services",
-                "no_copy": 1,
+                "no_copy": 0,
                 "read_only": 1,
             },
             {
@@ -128,7 +128,7 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "wht_income_type",
                 "description": "Thai description of WHT income type",
                 "depends_on": "eval:doc.subject_to_wht",
-                "no_copy": 1,
+                "no_copy": 0,
                 "read_only": 1,
             },
             {
