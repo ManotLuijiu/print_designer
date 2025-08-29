@@ -79,34 +79,18 @@ def apply_company_defaults_for_sales_invoice(doc):
 def calculate_wht_preview_for_sales_invoice(doc):
     """
     Calculate WHT preview for Sales Invoice documents
-    Consolidated from thai_wht_events.py system
+    Uses existing custom_withholding_tax_amount field (no longer using estimated_wht_amount)
     """
     try:
-        # Import preview calculation from thai_wht_preview module
-        from .thai_wht_preview import calculate_thai_wht_preview
-        
-        # Calculate WHT preview
-        wht_preview = calculate_thai_wht_preview(doc)
-        
-        # Update document fields with preview values
-        for field, value in wht_preview.items():
-            if hasattr(doc, field):
-                old_value = getattr(doc, field, None)
-                setattr(doc, field, value)
-                
-                # Log important changes
-                if field == 'subject_to_wht' and old_value != value:
-                    frappe.logger().info(f"Sales Invoice WHT Preview: {field} changed from {old_value} to {value}")
-        
-        # Add informational message if WHT applies
-        if wht_preview.get('subject_to_wht'):
-            wht_amount = wht_preview.get('estimated_wht_amount', 0)
-            net_amount = wht_preview.get('net_total_after_wht', 0)
+        # Add informational message if WHT applies (using existing calculated amount)
+        if doc.get('subject_to_wht') and doc.get('custom_withholding_tax_amount'):
+            wht_amount = flt(doc.custom_withholding_tax_amount, 2)
+            net_amount = flt(doc.net_total_after_wht, 2)
             
             if wht_amount > 0:
                 frappe.msgprint(
-                    _(f"WHT Preview: ฿{flt(wht_amount, 2):,.2f} withholding tax estimated. "
-                      f"Net payment: ฿{flt(net_amount, 2):,.2f}"),
+                    _(f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. "
+                      f"Net payment: ฿{net_amount:,.2f}"),
                     title=_("Withholding Tax Preview"),
                     indicator="blue"
                 )
@@ -114,7 +98,7 @@ def calculate_wht_preview_for_sales_invoice(doc):
     except Exception as e:
         # Log error but don't fail validation
         frappe.log_error(
-            f"Error calculating WHT preview for Sales Invoice {doc.name}: {str(e)}",
+            f"Error displaying WHT preview for Sales Invoice {doc.name}: {str(e)}",
             "Sales Invoice WHT Preview Error"
         )
 
@@ -272,22 +256,21 @@ def sales_invoice_comprehensive_wht_handler(doc, method=None):
         elif method == 'on_submit':
             # Add submission note about WHT
             if getattr(doc, 'subject_to_wht', False):
-                wht_amount = getattr(doc, 'estimated_wht_amount', 0)
+                wht_amount = getattr(doc, 'custom_withholding_tax_amount', 0)
                 if wht_amount > 0:
                     frappe.msgprint(
-                        _(f"Sales Invoice submitted with WHT preview: ฿{flt(wht_amount, 2):,.2f}. "
-                          f"Actual WHT will be calculated during payment processing."),
-                        title=_("WHT Preview Information"),
+                        _(f"Sales Invoice submitted with WHT amount: ฿{flt(wht_amount, 2):,.2f}. "
+                          f"Actual WHT will be processed during payment."),
+                        title=_("WHT Information"),
                         indicator="blue"
                     )
         
         elif method == 'on_cancel':
-            # Clear WHT preview fields on cancellation
+            # Clear WHT fields on cancellation
             if hasattr(doc, 'subject_to_wht'):
                 doc.subject_to_wht = 0
-                doc.estimated_wht_rate = 0
-                doc.estimated_wht_amount = 0
-                doc.wht_base_amount = 0
+                if hasattr(doc, 'custom_withholding_tax_amount'):
+                    doc.custom_withholding_tax_amount = 0
                 doc.net_total_after_wht = flt(doc.grand_total, 2)
         
     except Exception as e:
@@ -397,7 +380,7 @@ def refresh_wht_preview_for_sales_invoice(docname):
         return {
             "success": True,
             "net_total_after_wht": doc.net_total_after_wht,
-            "estimated_wht_amount": getattr(doc, 'estimated_wht_amount', 0),
+            "custom_withholding_tax_amount": getattr(doc, 'custom_withholding_tax_amount', 0),
             "custom_payment_amount": getattr(doc, 'custom_payment_amount', 0)
         }
         
@@ -409,42 +392,36 @@ def refresh_wht_preview_for_sales_invoice(docname):
 def preview_wht_calculation_for_sales_invoice(customer, grand_total, net_total=None, income_type=None):
     """
     API endpoint for previewing WHT calculation for Sales Invoice
-    Consolidated from thai_wht_events.py
+    Simplified version without thai_wht_preview module dependency
     """
     try:
-        # Create temporary document for calculation
-        temp_doc = frappe._dict({
-            'doctype': 'Sales Invoice',
-            'customer': customer,
-            'grand_total': flt(grand_total),
-            'net_total': flt(net_total) if net_total else flt(grand_total),
-            'company': frappe.defaults.get_user_default('Company') or frappe.get_all("Company", limit=1)[0].name
-        })
-        
-        # Calculate WHT preview
-        from .thai_wht_preview import calculate_thai_wht_preview
-        wht_preview = calculate_thai_wht_preview(temp_doc)
-        
-        # Override income type if provided
-        if income_type and wht_preview.get('subject_to_wht'):
-            from .thai_wht_preview import get_applicable_wht_rate, get_customer_wht_config, get_wht_description
+        if not customer:
+            return {"error": "Customer is required"}
             
-            customer_config = get_customer_wht_config(customer)
-            customer_config['income_type'] = income_type
-            
-            wht_rate = get_applicable_wht_rate(temp_doc, customer_config)
-            base_amount = wht_preview.get('wht_base_amount', 0)
-            wht_amount = (base_amount * wht_rate) / 100
-            
-            wht_preview.update({
-                'wht_income_type': income_type,
-                'wht_description': get_wht_description(income_type),
-                'estimated_wht_rate': wht_rate,
-                'estimated_wht_amount': flt(wht_amount, 2),
-                'net_total_after_wht': flt(grand_total - wht_amount, 2)
-            })
+        # Get customer WHT info
+        customer_doc = frappe.get_cached_doc("Customer", customer)
         
-        return wht_preview
+        # Basic preview calculation
+        preview_result = {
+            'subject_to_wht': getattr(customer_doc, 'subject_to_wht', False),
+            'custom_withholding_tax_amount': 0,
+            'net_total_after_wht': flt(grand_total, 2)
+        }
+        
+        # If customer is subject to WHT, calculate basic amount
+        if preview_result['subject_to_wht']:
+            wht_rate = getattr(customer_doc, 'custom_wht_rate', 0)
+            if wht_rate > 0:
+                base_amount = flt(net_total) if net_total else flt(grand_total)
+                wht_amount = flt((base_amount * wht_rate) / 100, 2)
+                
+                preview_result.update({
+                    'custom_withholding_tax_amount': wht_amount,
+                    'net_total_after_wht': flt(grand_total - wht_amount, 2),
+                    'wht_income_type': getattr(customer_doc, 'wht_income_type', 'service_fees')
+                })
+        
+        return preview_result
         
     except Exception as e:
         frappe.log_error(f"Error in Sales Invoice WHT preview API: {str(e)}")

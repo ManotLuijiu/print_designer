@@ -85,34 +85,18 @@ def apply_company_defaults_for_sales_order(doc):
 def calculate_wht_preview_for_sales_order(doc):
     """
     Calculate WHT preview for Sales Order documents
-    Consolidated from thai_wht_events.py system
+    Uses existing custom_withholding_tax_amount field (no longer using estimated_wht_amount)
     """
     try:
-        # Import preview calculation from thai_wht_preview module
-        from .thai_wht_preview import calculate_thai_wht_preview
-        
-        # Calculate WHT preview
-        wht_preview = calculate_thai_wht_preview(doc)
-        
-        # Update document fields with preview values
-        for field, value in wht_preview.items():
-            if hasattr(doc, field):
-                old_value = getattr(doc, field, None)
-                setattr(doc, field, value)
-                
-                # Log important changes
-                if field == 'subject_to_wht' and old_value != value:
-                    frappe.logger().info(f"Sales Order WHT Preview: {field} changed from {old_value} to {value}")
-        
-        # Add informational message if WHT applies
-        if wht_preview.get('subject_to_wht'):
-            wht_amount = wht_preview.get('estimated_wht_amount', 0)
-            net_amount = wht_preview.get('net_total_after_wht', 0)
+        # Add informational message if WHT applies (using existing calculated amount)
+        if doc.get('subject_to_wht') and doc.get('custom_withholding_tax_amount'):
+            wht_amount = flt(doc.custom_withholding_tax_amount, 2)
+            net_amount = flt(doc.net_total_after_wht, 2)
             
             if wht_amount > 0:
                 frappe.msgprint(
-                    _(f"WHT Preview: ฿{flt(wht_amount, 2):,.2f} withholding tax estimated. "
-                      f"Net payment: ฿{flt(net_amount, 2):,.2f}"),
+                    _(f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. "
+                      f"Net payment: ฿{net_amount:,.2f}"),
                     title=_("Withholding Tax Preview"),
                     indicator="blue"
                 )
@@ -120,7 +104,7 @@ def calculate_wht_preview_for_sales_order(doc):
     except Exception as e:
         # Log error but don't fail validation
         frappe.log_error(
-            f"Error calculating WHT preview for Sales Order {doc.name}: {str(e)}",
+            f"Error displaying WHT preview for Sales Order {doc.name}: {str(e)}",
             "Sales Order WHT Preview Error"
         )
 

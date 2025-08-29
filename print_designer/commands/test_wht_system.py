@@ -83,7 +83,7 @@ def test_wht_system():
                 continue
             
             actual_rate = result.get('estimated_wht_rate', 0)
-            wht_amount = result.get('estimated_wht_amount', 0)
+            wht_amount = result.get('custom_withholding_tax_amount', 0)
             net_amount = result.get('net_total_after_wht', 0)
             
             print(f"    ✅ Actual Rate: {actual_rate}%")

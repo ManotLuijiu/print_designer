@@ -32,7 +32,7 @@ def fix_sales_order_insertion_points():
                 "insert_after", 
                 "wht_description"
             )
-            fixes_applied.append("net_total_after_wht: estimated_wht_amount → wht_description")
+            fixes_applied.append("net_total_after_wht: Fixed field reference")
         except Exception as e:
             print(f"⚠️ Failed to fix net_total_after_wht: {e}")
             

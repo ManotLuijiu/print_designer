@@ -25,7 +25,7 @@ def test_wht_service_system():
     print(f"{status} Item.is_service_item: {'Found' if item_field_exists else 'Missing'}")
     
     # Sales Invoice fields
-    si_fields = ['subject_to_wht', 'estimated_wht_amount', 'wht_certificate_required']
+    si_fields = ['subject_to_wht', 'custom_withholding_tax_amount', 'wht_certificate_required']
     for field in si_fields:
         exists = frappe.db.exists("Custom Field", {"dt": "Sales Invoice", "fieldname": field})
         status = "✅" if exists else "❌"

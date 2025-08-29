@@ -54,7 +54,7 @@ The system follows the **no section break** pattern established in the main syst
 - `wht_description` (Data) - Thai income type description
 - `wht_base_amount` (Currency) - Base amount for calculation
 - `estimated_wht_rate` (Percent) - Calculated WHT rate
-- `estimated_wht_amount` (Currency) - Calculated WHT amount
+- `custom_withholding_tax_amount` (Currency) - Calculated WHT amount
 - `net_payment_amount` (Currency) - Expected payment after WHT
 - `net_total_after_wht` (Currency) - Legacy field for compatibility
 - `net_total_after_wht_in_words` (Small Text) - Amount in Thai words
