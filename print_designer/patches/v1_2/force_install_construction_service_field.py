@@ -63,10 +63,55 @@ def execute():
             ]
         }
         
-        # Install the custom fields with version tracking disabled to avoid formatting errors
-        frappe.flags.ignore_version = True
-        create_custom_fields(custom_fields, update=True)
-        frappe.flags.ignore_version = False
+        # Install the custom fields with version tracking completely disabled to avoid formatting errors
+        original_flags = {}
+        flags_to_set = {
+            'ignore_version': True,
+            'ignore_validate': True,
+            'ignore_permissions': True,
+            'ignore_links': True
+        }
+        
+        # Save original flag values and set new ones
+        for flag, value in flags_to_set.items():
+            original_flags[flag] = getattr(frappe.flags, flag, False)
+            setattr(frappe.flags, flag, value)
+        
+        try:
+            # Create fields one by one to better handle errors
+            for doctype, fields in custom_fields.items():
+                for field_config in fields:
+                    # Check if field already exists
+                    existing_field = frappe.get_value("Custom Field", 
+                        {"dt": doctype, "fieldname": field_config["fieldname"]})
+                    
+                    if existing_field:
+                        print(f"   Field {field_config['fieldname']} already exists - skipping")
+                        continue
+                    
+                    # Create the custom field document
+                    custom_field = frappe.new_doc("Custom Field")
+                    custom_field.dt = doctype
+                    
+                    # Set field properties, ensuring all values are proper types
+                    for key, value in field_config.items():
+                        if key == 'default' and isinstance(value, (int, float)):
+                            # Ensure numeric defaults are properly handled
+                            custom_field.set(key, value)
+                        elif isinstance(value, str) and value.strip() == '':
+                            # Handle empty strings
+                            custom_field.set(key, None)
+                        else:
+                            custom_field.set(key, value)
+                    
+                    # Save without version tracking
+                    custom_field.insert(ignore_permissions=True)
+                    print(f"   Created field: {field_config['fieldname']}")
+        
+        finally:
+            # Restore original flag values
+            for flag, original_value in original_flags.items():
+                setattr(frappe.flags, flag, original_value)
         
         print("✅ Construction service fields installed successfully!")
         print("   - Company: construction_service (checkbox)")  
