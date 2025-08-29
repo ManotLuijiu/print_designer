@@ -33,3 +33,4 @@ print_designer.patches.v1_0.fix_sales_invoice_field_order
 print_designer.patches.v1_0.fix_field_index_ordering
 print_designer.patches.v1_1.install_complete_watermark_fields
 print_designer.patches.v1_2.ensure_watermark_fields_complete
+print_designer.patches.v1_2.force_install_construction_service_field

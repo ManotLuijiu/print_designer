@@ -207,6 +207,42 @@ def _find_or_create_retention_account(company):
         return None
 
 
+def emergency_fallback_install_enhanced_retention_fields():
+    """Emergency fallback to install enhanced retention fields if they don't exist."""
+    
+    print("🚨 Running Emergency Fallback: Enhanced Retention Fields Installation...")
+    
+    try:
+        # Check if construction_service field exists
+        company_meta = frappe.get_meta("Company")
+        construction_service_field = company_meta.get_field("construction_service")
+        
+        if not construction_service_field:
+            print("❌ construction_service field missing - installing now...")
+            install_enhanced_retention_fields()
+        else:
+            print("✅ construction_service field already exists")
+            
+            # Check other fields too
+            if not company_meta.get_field("default_retention_rate"):
+                print("❌ default_retention_rate field missing - installing all fields...")
+                install_enhanced_retention_fields()
+            elif not company_meta.get_field("default_retention_account"):
+                print("❌ default_retention_account field missing - installing all fields...")
+                install_enhanced_retention_fields()
+            else:
+                print("✅ All Company enhanced retention fields exist")
+                
+    except Exception as e:
+        print(f"🚨 Emergency fallback error: {str(e)}")
+        print("   Attempting full installation...")
+        try:
+            install_enhanced_retention_fields()
+        except Exception as install_error:
+            print(f"❌ Failed to install enhanced retention fields: {str(install_error)}")
+            raise
+
+
 def check_enhanced_retention_fields():
     """Check if enhanced retention fields are properly installed."""
     

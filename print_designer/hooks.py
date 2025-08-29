@@ -35,6 +35,13 @@ commands = [
     "print_designer.commands.emergency_fix_watermark.emergency_fix_watermark",
     "print_designer.commands.install_retention_client_script.install_retention_client_script",
     "print_designer.commands.install_retention_client_script.check_retention_client_script",
+    # Field validation commands
+    "print_designer.commands.validate_construction_service_field.validate_construction_service_field",
+    "print_designer.commands.validate_construction_service_field.check_construction_service_dependencies",
+    "print_designer.commands.validate_construction_service_field.test_construction_service_functionality",
+    "print_designer.commands.test_print_designer_installation.test_complete_print_designer_installation",
+    # Production fix commands
+    "print_designer.commands.force_install_construction_service.force_install_construction_service",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
