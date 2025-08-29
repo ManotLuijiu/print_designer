@@ -94,11 +94,14 @@ def calculate_wht_preview_for_sales_order(doc):
             net_amount = flt(doc.net_total_after_wht, 2)
             
             if wht_amount > 0:
-                frappe.msgprint(
-                    _(f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. "
-                      f"Net payment: ฿{net_amount:,.2f}"),
-                    title=_("Withholding Tax Preview"),
-                    indicator="blue"
+                # Use realtime notification (bottom-right corner) instead of modal popup
+                frappe.publish_realtime(
+                    event="show_alert",
+                    message={
+                        "message": _(f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. Net payment: ฿{net_amount:,.2f}"),
+                        "indicator": "blue"
+                    },
+                    user=frappe.session.user
                 )
         
     except Exception as e:
