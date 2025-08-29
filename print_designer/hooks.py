@@ -190,13 +190,7 @@ fixtures = [
                     "Sales Invoice-watermark_text",
                     # Sales Invoice - Digisoft ERP Tab
                     "Sales Invoice-digisoft_erp_tab",
-                    # Sales Invoice - Thai Tax Information Fields
-                    "Sales Invoice-thai_tax_information_section",
-                    "Sales Invoice-thai_invoice_type",
-                    "Sales Invoice-thai_tax_invoice_number",
-                    "Sales Invoice-thai_tax_invoice_date",
-                    "Sales Invoice-thai_customer_tax_id",
-                    # "Sales Invoice-thai_customer_branch_code",
+                    # Removed redundant Thai Tax Information Fields - using thai_wht_preview_section instead
                     # Sales Invoice - Thai Compliance Fields
                     "Sales Invoice-thai_compliance_section",
                     "Sales Invoice-thai_vat_eligible",
