@@ -211,7 +211,6 @@ def get_sales_order_custom_fields_definition():
                 "fieldtype": "Column Break",
                 "label": None,
                 "insert_after": "wht_note",
-                "no_copy": 1,
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
