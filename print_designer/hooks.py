@@ -42,6 +42,9 @@ commands = [
     "print_designer.commands.test_print_designer_installation.test_complete_print_designer_installation",
     # Production fix commands
     "print_designer.commands.force_install_construction_service.force_install_construction_service",
+    # Payment Entry retention system
+    "print_designer.commands.install_payment_entry_retention_fields.install_payment_entry_retention_fields",
+    "print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
@@ -544,11 +547,15 @@ doc_events = {
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
     # Thai Withholding Tax events - DISABLED: Missing custom fields cause save/submit issues
-    # "Payment Entry": {
-    #     "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
-    #     "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
-    #     "on_submit": "print_designer.accounting.thailand_wht_integration.process_payment_entry_wht",
-    # },
+    "Payment Entry": {
+        "before_print": "print_designer.pdf.before_print",
+        "validate": [
+            "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
+            "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
+        ],
+        "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_create_retention_entries",
+        "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
+    },
     # Company DocType - Sync retention data to Company Retention Settings
     "Company": {
         "validate": "print_designer.overrides.company.sync_company_retention_settings",

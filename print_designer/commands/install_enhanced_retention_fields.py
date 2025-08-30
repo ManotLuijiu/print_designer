@@ -21,7 +21,7 @@ def install_enhanced_retention_fields():
                 "fieldname": "construction_service",
                 "label": "Enable Construction Service",
                 "fieldtype": "Check",
-                "insert_after": "country",
+                "insert_after": "default_output_vat_account",
                 "description": "Enable construction service features including retention calculations",
                 "default": 0,
             },
@@ -91,7 +91,7 @@ def install_enhanced_retention_fields():
         _set_default_retention_rates()
         
         # Setup default retention accounts
-        _setup_default_retention_accounts()
+        # _setup_default_retention_accounts()  # Commented out - Chart of Accounts is dynamic per user
         
         frappe.db.commit()
         print("✅ Enhanced retention fields installation completed!")
@@ -126,7 +126,7 @@ def _set_default_retention_rates():
         print(f"   ⚠️  Warning: Could not set default retention rates: {str(e)}")
 
 
-def _setup_default_retention_accounts():
+def _setup_default_retention_accounts():  # Commented out - Chart of Accounts is dynamic per user
     """Setup default retention accounts for companies with construction service enabled."""
     
     try:
@@ -154,7 +154,7 @@ def _setup_default_retention_accounts():
         print(f"   ⚠️  Warning: Could not setup default retention accounts: {str(e)}")
 
 
-def _find_or_create_retention_account(company):
+def _find_or_create_retention_account(company):  # Commented out - Chart of Accounts is dynamic per user
     """Find existing or suggest retention account for a company."""
     
     try:

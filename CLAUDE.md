@@ -161,6 +161,50 @@ Specialized features for Thai business requirements:
 - Field installation verification
 - Template rendering validation
 
+#### Test Structure Example
+```python
+# print_designer/print_designer/tests/test_pdf_generation.py
+import frappe
+import unittest
+from frappe.tests.utils import FrappeTestCase
+
+class TestPDFGeneration(unittest.TestCase):  # or FrappeTestCase
+    def setUp(self):
+        # Test setup for PDF generation
+        self.test_invoice = frappe.get_doc("Sales Invoice", "TEST-SINV-001")
+        pass
+    
+    def test_pdf_generation_all_engines(self):
+        """Test PDF generation across all three engines"""
+        engines = ["wkhtmltopdf", "weasyprint", "chrome_cdp"]
+        
+        for engine in engines:
+            with self.subTest(engine=engine):
+                pdf_data = self.generate_pdf_with_engine(engine)
+                self.assertIsNotNone(pdf_data)
+                self.assertTrue(len(pdf_data) > 1000)  # Valid PDF should be >1KB
+    
+    def test_thai_language_rendering(self):
+        """Test Thai language font rendering in PDF"""
+        thai_invoice = frappe.get_doc({
+            "doctype": "Sales Invoice",
+            "customer": "ลูกค้าทดสอบ",
+            "language": "th"
+        })
+        pdf_data = self.generate_pdf_with_thai_fonts(thai_invoice)
+        self.assertIsNotNone(pdf_data)
+    
+    def test_digital_signature_integration(self):
+        """Test digital signature embedding in PDF"""
+        signature = frappe.get_doc("Digital Signature", "Company Seal")
+        pdf_with_signature = self.generate_pdf_with_signature(signature)
+        self.assertIsNotNone(pdf_with_signature)
+    
+    def tearDown(self):
+        # Clean up test data
+        pass
+```
+
 ## Key Integration Points
 
 ### Hook System Integration
@@ -195,6 +239,77 @@ Complex field relationships using `depends_on`:
 "depends_on": "eval:doc.subject_to_wht"  # Field visibility logic
 "insert_after": "net_total"             # Field positioning
 ```
+
+## Development Standards
+
+### Custom Field Management (MANDATORY)
+
+#### Naming Convention
+All custom fields created by print_designer MUST follow this naming pattern:
+- **App Name**: print_designer  
+- **Prefix**: `pd_custom_`
+- **Pattern**: `pd_custom_{descriptive_field_name}`
+- **Label**: Can be human-readable without prefix
+
+```python
+# CORRECT - Following naming convention
+"Sales Invoice": [
+    {
+        "fieldname": "pd_custom_watermark_per_page",
+        "label": "Watermark per Page",
+        "fieldtype": "Check",
+        "default": 0,
+        "insert_after": "print_language"
+    }
+]
+
+# INCORRECT - Missing prefix (legacy fields, to be migrated)
+"Sales Invoice": [
+    {
+        "fieldname": "watermark_per_page",  # Missing pd_custom_ prefix
+        "label": "Watermark per Page",
+        "fieldtype": "Check",
+        "default": 0,
+        "insert_after": "print_language"
+    }
+]
+```
+
+**Note**: Some legacy fields may not follow this convention yet. New fields MUST use the `pd_custom_` prefix, and existing fields should be migrated when modified.
+
+### Test Folder Structure (MANDATORY)
+All test files MUST be placed in the designated tests folder following ERPNext standards:
+
+```
+print_designer/
+├── print_designer/
+│   └── tests/                    # MANDATORY test folder location
+│       ├── __init__.py          # Required for Python module
+│       ├── test_print_format.py          # Print format creation tests
+│       ├── test_pdf_generation.py        # PDF generation engine tests
+│       ├── test_signature_stamp.py       # Digital signature tests
+│       └── test_thai_language.py         # Thai language support tests
+├── api/
+│   └── tests/                    # API-specific tests (if needed)
+│       ├── __init__.py
+│       └── test_print_api.py     # Print API endpoint tests
+├── commands/
+│   └── tests/                    # Command installation tests (if needed)
+│       ├── __init__.py
+│       └── test_field_installation.py
+└── utils/
+    └── tests/                    # Utility function tests (if needed)
+        ├── __init__.py
+        └── test_pdf_utils.py
+```
+
+**Reference Standard**: Follow `apps/erpnext/erpnext/tests` structure as documented in Documentation/rules.md
+
+**Rules**:
+1. **All test files** MUST be in `app_name/app_name/tests/` folder
+2. **Test files** MUST start with `test_` prefix
+3. **Each module** can have its own tests subfolder if complex
+4. **Import pattern**: `from print_designer.tests.test_module import TestClass`
 
 ## Development Best Practices
 
@@ -241,3 +356,61 @@ Complex field relationships using `depends_on`:
 - Amount to words conversion in Thai
 - Language detection: URL params → format language → system default
 - Proper RTL/LTR handling for mixed content
+
+---
+
+## Development Rules & Standards
+
+### Custom Field Naming Convention (MANDATORY)
+Following [Documentation/rules.md](/home/frappe/frappe-bench/Documentation/rules.md):
+
+- **App Name**: print_designer
+- **Prefix**: `pd_custom_` (suggested print-designer prefix)
+- **Pattern**: `pd_custom_{descriptive_field_name}`
+
+#### Examples
+```python
+# ✅ CORRECT - Following naming convention
+custom_field = {
+    "fieldname": "pd_custom_subject_to_wht",
+    "fieldtype": "Check",
+    "label": "Subject to WHT"
+}
+
+# ❌ INCORRECT - Missing app-specific prefix (current usage)
+custom_field = {
+    "fieldname": "subject_to_wht",  # Should be pd_custom_subject_to_wht
+    "fieldtype": "Check",
+    "label": "Subject to WHT"
+}
+```
+
+### Current Custom Fields Requiring Updates
+Based on the Thai business specializations mentioned:
+- `subject_to_wht` → `pd_custom_subject_to_wht`
+- `wht_income_type` → `pd_custom_wht_income_type`
+- `net_total_after_wht` → `pd_custom_net_total_after_wht`
+
+### Testing Standards
+- **Test Location**: `print_designer/print_designer/tests/`
+- **Reference**: Follow `apps/erpnext/erpnext/tests` structure
+- **Docs**: https://docs.frappe.io/framework/user/en/testing
+
+### Uninstall Compliance
+- **Requirement**: All custom fields MUST be removed during app uninstallation
+- **Implementation**: Add `before_uninstall` hook in `hooks.py`
+- **Reference Issue**: https://github.com/frappe/frappe/issues/24108
+
+#### Current Status
+⚠️ **Action Required**: print_designer custom fields need to be updated with proper `pd_custom_` prefix for namespace isolation.
+
+### File Creation Guidelines
+- Scan relevant files before creating new ones to prevent redundancy
+- Check hooks.py regularly for duplicated functions or redundancy
+- Follow ERPNext Custom Field Guidelines consistently
+
+### Priority Compliance Items
+1. **Update custom field naming** to use `pd_custom_` prefix
+2. **Add uninstall functionality** to clean up all custom fields
+3. **Update test structure** to follow ERPNext standards
+4. **Review hooks.py** for any redundancy
