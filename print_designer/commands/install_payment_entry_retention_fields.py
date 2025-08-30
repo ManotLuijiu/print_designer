@@ -20,12 +20,60 @@ import click
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
+def _cleanup_legacy_fields():
+    """Clean up legacy retention fields without pd_custom_ prefix."""
+    click.echo("🧹 Cleaning up legacy retention fields...")
+    
+    legacy_fields = {
+        "Payment Entry": [
+            "retention_summary_section", "has_retention", "retention_column_break", 
+            "total_retention_amount", "net_payment_after_retention", "retention_account", 
+            "retention_details_section", "retention_details_column_break", "retention_note",
+            "thai_tax_section", "has_thai_taxes", "total_wht_amount", "total_vat_undue_amount",
+            "thai_tax_accounts_section", "wht_account", "output_vat_undue_account",
+            "thai_tax_column_break", "output_vat_account", "retention_liability_account"
+        ],
+        "Payment Entry Reference": [
+            "has_retention", "retention_amount", "retention_percentage",
+            "wht_amount", "wht_percentage", "vat_undue_amount", "net_payable_amount"
+        ]
+    }
+    
+    total_cleaned = 0
+    for doctype, fieldnames in legacy_fields.items():
+        for fieldname in fieldnames:
+            try:
+                custom_fields = frappe.get_all("Custom Field",
+                    filters={"dt": doctype, "fieldname": fieldname},
+                    fields=["name"]
+                )
+                
+                for field in custom_fields:
+                    frappe.delete_doc("Custom Field", field.name, ignore_permissions=True)
+                    total_cleaned += 1
+                    click.echo(f"   🗑️ Removed legacy field: {doctype}.{fieldname}")
+                    
+            except Exception as e:
+                # Continue cleanup even if some fields fail
+                pass
+    
+    if total_cleaned > 0:
+        click.echo(f"✅ Cleaned up {total_cleaned} legacy retention fields")
+        frappe.clear_cache()
+    else:
+        click.echo("ℹ️ No legacy retention fields found to clean up")
+
+
 @click.command()
 def install_payment_entry_retention_fields():
     """Install custom fields for Payment Entry retention system."""
     click.echo("🏗️ Installing Payment Entry Retention Fields...")
     
     try:
+        # Clean up legacy fields first to prevent conflicts
+        _cleanup_legacy_fields()
+        
+        # Then install the new pd_custom_ prefixed fields
         # Define custom fields for Payment Entry
         custom_fields = {
             "Payment Entry": [
@@ -450,8 +498,8 @@ def uninstall_payment_entry_thai_tax_fields():
                 "pd_custom_has_thai_taxes", "pd_custom_total_wht_amount", "pd_custom_total_vat_undue_amount", 
                 "pd_custom_thai_tax_accounts_section", "pd_custom_wht_account", "pd_custom_output_vat_undue_account",
                 "pd_custom_thai_tax_column_break", "pd_custom_output_vat_account",
-                # Legacy fields (for cleanup)
-                "retention_summary_section", "has_retention", "total_retention_amount",
+                # Legacy fields (for cleanup) - missing retention_column_break added
+                "retention_summary_section", "has_retention", "retention_column_break", "total_retention_amount",
                 "net_payment_after_retention", "retention_account", "retention_details_section",
                 "retention_details_column_break", "retention_note", "thai_tax_section",
                 "has_thai_taxes", "total_wht_amount", "total_vat_undue_amount", 
@@ -506,6 +554,31 @@ def uninstall_payment_entry_thai_tax_fields():
 def uninstall_payment_entry_thai_tax_fields_direct():
     """Direct function call version for bench execute."""
     return uninstall_payment_entry_thai_tax_fields.callback()
+
+
+@click.command()
+def cleanup_legacy_retention_fields():
+    """Standalone command to clean up legacy retention fields without pd_custom_ prefix."""
+    click.echo("🧹 Cleaning up legacy Payment Entry retention fields...")
+    
+    try:
+        _cleanup_legacy_fields()
+        frappe.db.commit()
+        click.echo("✅ Legacy field cleanup completed successfully!")
+        
+    except Exception as e:
+        click.echo(f"❌ Legacy field cleanup failed: {str(e)}")
+        frappe.log_error(
+            message=f"Failed to cleanup legacy retention fields: {str(e)}",
+            title="Legacy Field Cleanup Failed"
+        )
+        frappe.db.rollback()
+        raise
+
+
+def cleanup_legacy_retention_fields_direct():
+    """Direct function call version for bench execute."""
+    return cleanup_legacy_retention_fields.callback()
 
 
 if __name__ == "__main__":

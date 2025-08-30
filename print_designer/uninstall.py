@@ -71,6 +71,37 @@ def delete_all_print_designer_custom_fields():
 			"enable_thai_font_support", "custom_font_stack", "custom_typography_css",
 		]
 		
+		# Payment Entry fields SPECIFICALLY created by print_designer install_payment_entry_retention_fields.py
+		print_designer_payment_entry_fields = [
+			# Payment Entry retention system fields (both pd_custom_ and legacy)
+			"pd_custom_retention_summary_section", "retention_summary_section",
+			"pd_custom_has_retention", "has_retention", 
+			"pd_custom_retention_column_break", "retention_column_break",
+			"pd_custom_total_retention_amount", "total_retention_amount",
+			"pd_custom_net_payment_after_retention", "net_payment_after_retention",
+			"pd_custom_retention_account", "retention_account",
+			"pd_custom_retention_details_section", "retention_details_section",
+			"pd_custom_retention_details_column_break", "retention_details_column_break",
+			"pd_custom_retention_note", "retention_note",
+			"pd_custom_thai_tax_section", "thai_tax_section",
+			"pd_custom_has_thai_taxes", "has_thai_taxes",
+			"pd_custom_total_wht_amount", "total_wht_amount",
+			"pd_custom_total_vat_undue_amount", "total_vat_undue_amount",
+			"pd_custom_thai_tax_accounts_section", "thai_tax_accounts_section",
+			"pd_custom_wht_account", "wht_account",
+			"pd_custom_output_vat_undue_account", "output_vat_undue_account",
+			"pd_custom_thai_tax_column_break", "thai_tax_column_break",
+			"pd_custom_output_vat_account", "output_vat_account",
+			"retention_liability_account",  # Legacy field name
+			# Payment Entry Reference fields
+			"pd_custom_retention_amount", "retention_amount",
+			"pd_custom_retention_percentage", "retention_percentage",
+			"pd_custom_wht_amount", "wht_amount",
+			"pd_custom_wht_percentage", "wht_percentage",
+			"pd_custom_vat_undue_amount", "vat_undue_amount",
+			"pd_custom_net_payable_amount", "net_payable_amount",
+		]
+		
 		# Sales Invoice fields SPECIFICALLY created by print_designer install_sales_invoice_fields.py
 		print_designer_sales_invoice_fields = [
 			# Watermark field
@@ -101,6 +132,7 @@ def delete_all_print_designer_custom_fields():
 		# Combine all print_designer specific field lists
 		all_print_designer_fields = (
 			print_designer_specific_patterns + 
+			print_designer_payment_entry_fields +
 			print_designer_sales_invoice_fields
 		)
 		

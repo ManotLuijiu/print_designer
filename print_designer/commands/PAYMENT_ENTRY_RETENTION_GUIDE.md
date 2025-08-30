@@ -24,12 +24,42 @@ The Payment Entry Retention System automatically handles retention amounts when 
 ## Installation
 
 ```bash
-# Install Payment Entry retention fields
+# Install Payment Entry retention fields (includes legacy cleanup)
 bench execute print_designer.commands.install_payment_entry_retention_fields.install_payment_entry_retention_fields
 
 # Verify installation
 bench execute print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields
 ```
+
+## Field Naming Convention & Migration
+
+All new custom fields use the `pd_custom_` prefix for namespace isolation:
+
+### Current Fields (with pd_custom_ prefix)
+- `pd_custom_retention_summary_section` - Section break for retention display
+- `pd_custom_has_retention` - Flag indicating retention presence
+- `pd_custom_retention_column_break` - Column break for layout
+- `pd_custom_total_retention_amount` - Sum of retention across invoices
+
+### Legacy Fields (automatically cleaned up)
+- `retention_summary_section` → `pd_custom_retention_summary_section`
+- `has_retention` → `pd_custom_has_retention` 
+- `retention_column_break` → `pd_custom_retention_column_break`
+- `total_retention_amount` → `pd_custom_total_retention_amount`
+
+### Migration Commands
+
+```bash
+# Clean up legacy fields without pd_custom_ prefix
+bench execute print_designer.commands.install_payment_entry_retention_fields.cleanup_legacy_retention_fields
+
+# Uninstall all retention fields (both new and legacy)
+bench execute print_designer.commands.install_payment_entry_retention_fields.uninstall_payment_entry_thai_tax_fields
+```
+
+### Automatic Migration
+- Legacy field cleanup occurs automatically during `bench migrate` via `after_migrate` hook
+- All fields are automatically removed during app uninstallation via `before_uninstall` hook
 
 ## How It Works
 
@@ -141,7 +171,14 @@ payment_entry_calculate_retention_amounts(payment_entry_doc)
 
 **1. Retention fields not showing**
 ```bash
+# Check current installation status
 bench execute print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields
+
+# If legacy fields are interfering, clean them up first
+bench execute print_designer.commands.install_payment_entry_retention_fields.cleanup_legacy_retention_fields
+
+# Then reinstall with proper naming
+bench execute print_designer.commands.install_payment_entry_retention_fields.install_payment_entry_retention_fields
 ```
 
 **2. Retention amounts not calculating**

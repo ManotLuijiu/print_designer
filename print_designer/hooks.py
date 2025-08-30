@@ -45,6 +45,8 @@ commands = [
     # Payment Entry retention system
     "print_designer.commands.install_payment_entry_retention_fields.install_payment_entry_retention_fields",
     "print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields",
+    "print_designer.commands.install_payment_entry_retention_fields.cleanup_legacy_retention_fields",
+    "print_designer.commands.install_payment_entry_retention_fields.uninstall_payment_entry_thai_tax_fields",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
@@ -462,6 +464,7 @@ after_migrate = [
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
+    "print_designer.commands.install_payment_entry_retention_fields._cleanup_legacy_fields",  # Clean up legacy Payment Entry retention fields during migration
     # "print_designer.api.global_typography.setup_default_typography",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
