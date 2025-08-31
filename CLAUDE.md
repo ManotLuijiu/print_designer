@@ -414,3 +414,141 @@ Based on the Thai business specializations mentioned:
 2. **Add uninstall functionality** to clean up all custom fields
 3. **Update test structure** to follow ERPNext standards
 4. **Review hooks.py** for any redundancy
+
+## Payment Entry References Architecture
+
+### Overview
+The Payment Entry `references` field is a sophisticated system for linking payments to outstanding invoices, providing real-time tracking of payment allocation across multiple invoices.
+
+### Core Components
+
+#### 1. Frontend Structure (`references` field)
+- **Field Type**: Table field linking to `Payment Entry Reference` DocType
+- **Purpose**: Track which invoices are being paid and allocation amounts
+- **Location**: Payment Entry → References section
+
+#### 2. Payment Entry Reference DocType Fields
+```python
+# Key fields in Payment Entry Reference
+- reference_doctype     # Link to DocType (Sales Invoice, Purchase Invoice)  
+- reference_name        # Dynamic Link to actual invoice
+- total_amount         # Full invoice amount
+- outstanding_amount   # Remaining unpaid amount  
+- allocated_amount     # Amount being allocated in this payment
+- due_date            # Invoice due date
+- account             # Receivable/Payable account
+- payment_term        # Payment terms if applicable
+```
+
+#### 3. Data Fetching Flow
+
+**Frontend Trigger (JavaScript)**:
+```javascript
+// User clicks "Get Outstanding Invoices" button
+get_outstanding_invoices: function (frm) {
+    frm.events.get_outstanding_invoices_or_orders(frm, true, false);
+}
+
+// Makes server call to fetch outstanding invoices
+frappe.call({
+    method: "erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents",
+    args: { args: filters },
+    callback: function (r, rt) {
+        // Populates references table with returned data
+    }
+});
+```
+
+**Backend Processing**:
+```python
+# Server method calls get_outstanding_invoices()
+outstanding_invoices = get_outstanding_invoices(
+    party_type,              # Customer/Supplier
+    party,                   # Specific party
+    [party_account],         # Receivable/Payable account  
+    common_filter=filters,   # Company, date filters
+    vouchers=specific_vouchers  # Optional voucher filtering
+)
+```
+
+#### 4. Payment Ledger Integration
+
+**Core Data Source**: `Payment Ledger Entry` table tracks:
+- **Invoice Creation**: Records full invoice amounts when invoices are submitted
+- **Payment Processing**: Records payment amounts when payments are made
+- **Outstanding Calculation**: Real-time calculation (invoice_amount - payments_made)
+- **Multi-Currency Support**: Handles different currencies with exchange rates
+
+**Query Architecture**:
+```python
+# Uses QueryPaymentLedger class for complex CTE queries
+# Combines voucher amounts with outstanding calculations
+query_voucher_amount = qb.from_(ple).select(
+    ple.voucher_type, ple.voucher_no, ple.outstanding_amount,
+    ple.invoice_amount, ple.due_date, ple.currency
+).where(outstanding_conditions)
+```
+
+### 5. Thai Business Integration
+
+**Custom Fields Added by Print Designer**:
+```python
+# Payment Entry Reference custom fields (pd_custom_ prefixed)
+pd_custom_has_retention         # Thai retention flag
+pd_custom_retention_amount      # Retention amount for construction
+pd_custom_retention_percentage  # Retention rate
+pd_custom_wht_amount           # Withholding tax amount
+pd_custom_wht_percentage       # WHT rate
+pd_custom_vat_undue_amount     # VAT undue conversion amount
+pd_custom_net_payable_amount   # Final amount after deductions
+```
+
+**Business Logic Integration**:
+- **Construction Retention**: Automatically calculated based on invoice service type
+- **Thai WHT**: Withholding tax calculations per invoice reference
+- **VAT Processing**: Handles Output VAT Undue to VAT Due conversion
+- **Multi-Tax Summary**: Aggregates all tax components at Payment Entry level
+
+### 6. Reference Population Process
+
+1. **User Interaction**: User selects party and clicks "Get Outstanding Invoices"
+2. **Server Query**: System queries Payment Ledger for unpaid invoices  
+3. **Data Processing**: Filters, sorts, and calculates outstanding amounts
+4. **Table Population**: JavaScript populates references table with:
+   ```javascript
+   c.reference_doctype = d.voucher_type;    // "Sales Invoice"
+   c.reference_name = d.voucher_no;         // "SINV-001"
+   c.outstanding_amount = d.outstanding_amount;  // Remaining unpaid
+   c.total_amount = d.invoice_amount;       // Full invoice amount
+   c.allocated_amount = d.allocated_amount; // Amount to allocate
+   ```
+5. **User Allocation**: User can modify allocated amounts per invoice
+6. **Validation**: System ensures allocations don't exceed outstanding amounts
+
+### 7. Real-Time Balance Tracking
+
+**Payment Ledger Entry Workflow**:
+- **Invoice Submission**: Creates positive PLE entries (amounts owed)
+- **Payment Submission**: Creates negative PLE entries (amounts paid)  
+- **Outstanding Calculation**: Sum of all PLE entries per invoice
+- **Multi-Payment Support**: Single invoice can have multiple partial payments
+- **Cancellation Handling**: Reverses PLE entries when documents are cancelled
+
+### 8. Advanced Features
+
+**Payment Terms Integration**:
+- Splits invoices by payment terms when applicable
+- Tracks outstanding per payment term
+- Enables term-based payment allocation
+
+**Multi-Currency Handling**:
+- Exchange rate tracking per transaction date
+- Currency conversion for outstanding calculations
+- Party account currency vs company currency reconciliation
+
+**Performance Optimizations**:
+- Uses Common Table Expressions (CTE) for complex queries
+- Indexes on Payment Ledger Entry for fast lookups
+- Caching of frequently accessed data
+
+This architecture provides a robust foundation for payment processing, ensuring accurate tracking of invoice payments while supporting complex business requirements like Thai tax compliance and construction retention handling.

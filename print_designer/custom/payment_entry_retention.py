@@ -22,7 +22,19 @@ from frappe.utils import flt, getdate, nowdate
 def payment_entry_calculate_retention_amounts(doc, method=None):
     """Calculate Thai tax amounts (VAT + WHT + Retention) when Payment Entry references are updated."""
     
+    # DEBUG: Log function entry
+    print(f"🚀 RETENTION VALIDATION STARTED - Payment Entry: {getattr(doc, 'name', 'New')} with {len(doc.references) if doc.references else 0} references")
+    
+    # DEBUG: Detailed references check
+    print(f"🔍 DETAILED references check:")
+    print(f"   hasattr(doc, 'references'): {hasattr(doc, 'references')}")
+    print(f"   doc.references: {getattr(doc, 'references', 'MISSING')}")
+    print(f"   type(doc.references): {type(getattr(doc, 'references', None))}")
+    print(f"   bool(doc.references): {bool(getattr(doc, 'references', None))}")
+    print(f"   len(doc.references): {len(doc.references) if doc.references else 'Cannot get len'}")
+    
     if not doc.references:
+        print("❌ No references found - exiting retention validation")
         return
         
     # Check if any referenced invoices have Thai tax components
@@ -32,8 +44,47 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
     has_thai_taxes = False
     thai_tax_details = []
     
+    # DEBUG: Check doc.references before loop
+    print(f"🔍 doc.references check: exists={hasattr(doc, 'references')}, type={type(getattr(doc, 'references', None))}, length={len(doc.references) if doc.references else 'None'}")
+    if doc.references:
+        for i, ref in enumerate(doc.references):
+            print(f"  Reference {i}: {ref.reference_doctype} - {ref.reference_name}")
+    
     for ref in doc.references:
+        # DEBUG: Log each reference being processed
+        print(f"🔄 Processing reference: {ref.reference_doctype} - {ref.reference_name}")
+        
+        # DEBUG: Print ALL reference properties to understand the data structure
+        print(f"📋 REFERENCE OBJECT DEBUG:")
+        print(f"   ref type: {type(ref)}")
+        print(f"   ref.__dict__: {getattr(ref, '__dict__', 'No __dict__')}")
+        
+        # Print specific known attributes
+        known_attrs = ['reference_doctype', 'reference_name', 'allocated_amount', 'outstanding_amount', 
+                      'total_amount', 'due_date', 'exchange_rate', 'account']
+        for attr in known_attrs:
+            value = getattr(ref, attr, 'NOT_FOUND')
+            print(f"   ref.{attr}: {value}")
+        
+        # Print custom fields if they exist
+        custom_attrs = ['pd_custom_has_retention', 'pd_custom_retention_amount', 'pd_custom_retention_percentage',
+                       'pd_custom_wht_amount', 'pd_custom_vat_undue_amount', 'pd_custom_net_payable_amount']
+        print(f"📋 CUSTOM FIELDS IN REFERENCE:")
+        for attr in custom_attrs:
+            value = getattr(ref, attr, 'NOT_FOUND')
+            print(f"   ref.{attr}: {value}")
+        
+        # Try to see all available attributes
+        try:
+            all_attrs = [attr for attr in dir(ref) if not attr.startswith('_')]
+            print(f"📋 ALL AVAILABLE ATTRIBUTES: {all_attrs[:20]}...")  # Show first 20 to avoid too much output
+        except Exception as e:
+            print(f"   Could not get attributes: {e}")
+        
         thai_tax_info = _get_invoice_thai_tax_info(ref.reference_doctype, ref.reference_name)
+        
+        # DEBUG: Log thai_tax_info result
+        print(f"📊 thai_tax_info result: {thai_tax_info}")
         
         if thai_tax_info and thai_tax_info.get("has_thai_taxes"):
             has_thai_taxes = True
@@ -55,14 +106,94 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
             else:
                 ref_retention_amount = ref_wht_amount = ref_vat_undue_amount = 0.0
             
-            # Update reference fields
+            # Update reference fields (existing)
             ref.pd_custom_has_retention = 1 if ref_retention_amount > 0 else 0
             ref.pd_custom_retention_amount = ref_retention_amount
             ref.pd_custom_retention_percentage = thai_tax_info.get("retention_percentage", 0)
+            
+            # Update WHT reference fields (existing + enhanced)
             ref.pd_custom_wht_amount = ref_wht_amount
             ref.pd_custom_wht_percentage = thai_tax_info.get("wht_percentage", 0)
             ref.pd_custom_vat_undue_amount = ref_vat_undue_amount
             ref.pd_custom_net_payable_amount = flt(allocated_amount - ref_retention_amount - ref_wht_amount, 2)
+            
+            # ENHANCED: Map EXACT Sales Invoice fields to Payment Entry Reference
+            if hasattr(ref, 'pd_custom_wht_certificate_required'):
+                ref.pd_custom_wht_certificate_required = thai_tax_info.get("wht_certificate_required", 0)
+            if hasattr(ref, 'pd_custom_subject_to_wht'):
+                ref.pd_custom_subject_to_wht = thai_tax_info.get("subject_to_wht", 0)
+            if hasattr(ref, 'pd_custom_net_total_after_wht'):
+                ref.pd_custom_net_total_after_wht = thai_tax_info.get("net_total_after_wht", 0)
+            
+            # EXACT Sales Invoice retention field mappings
+            if hasattr(ref, 'pd_custom_custom_subject_to_retention'):
+                ref.pd_custom_custom_subject_to_retention = thai_tax_info.get("custom_subject_to_retention", 0)
+            if hasattr(ref, 'pd_custom_custom_retention'):
+                ref.pd_custom_custom_retention = thai_tax_info.get("custom_retention", 0)
+            if hasattr(ref, 'pd_custom_custom_retention_amount'):
+                ref.pd_custom_custom_retention_amount = thai_tax_info.get("custom_retention_amount", 0)
+            if hasattr(ref, 'pd_custom_custom_net_total_after_wht_retention'):
+                ref.pd_custom_custom_net_total_after_wht_retention = thai_tax_info.get("custom_net_total_after_wht_retention", 0)
+            if hasattr(ref, 'pd_custom_custom_net_total_after_wht_retention_in_words'):
+                ref.pd_custom_custom_net_total_after_wht_retention_in_words = thai_tax_info.get("custom_net_total_after_wht_retention_in_words", "")
+            
+            # Backward compatibility mappings
+            if hasattr(ref, 'pd_custom_subject_to_retention'):
+                ref.pd_custom_subject_to_retention = thai_tax_info.get("custom_subject_to_retention", 0)
+            
+            # ENHANCED: Company Thai tax account mappings
+            if hasattr(ref, 'pd_custom_company_wht_account'):
+                ref.pd_custom_company_wht_account = thai_tax_info.get("default_wht_account", None)
+            if hasattr(ref, 'pd_custom_company_retention_account'):
+                ref.pd_custom_company_retention_account = thai_tax_info.get("default_retention_account", None)
+            if hasattr(ref, 'pd_custom_company_output_vat_undue_account'):
+                ref.pd_custom_company_output_vat_undue_account = thai_tax_info.get("default_output_vat_undue_account", None)
+            if hasattr(ref, 'pd_custom_company_output_vat_account'):
+                ref.pd_custom_company_output_vat_account = thai_tax_info.get("default_output_vat_account", None)
+            
+            # DEBUG: Enhanced reference field update logging
+            print(f"🔧 ENHANCED REFERENCE UPDATE - {ref.reference_name}:")
+            print(f"   pd_custom_has_retention: {ref.pd_custom_has_retention}")
+            print(f"   pd_custom_retention_amount: {ref.pd_custom_retention_amount}")
+            print(f"   pd_custom_wht_amount: {ref.pd_custom_wht_amount}")
+            print(f"   pd_custom_vat_undue_amount: {ref.pd_custom_vat_undue_amount}")
+            print(f"   pd_custom_net_payable_amount: {ref.pd_custom_net_payable_amount}")
+            
+            # DEBUG: EXACT Sales Invoice fields (if they exist in Payment Entry Reference)
+            print("   📋 EXACT Sales Invoice Field Mappings:")
+            if hasattr(ref, 'pd_custom_wht_certificate_required'):
+                print(f"      pd_custom_wht_certificate_required: {getattr(ref, 'pd_custom_wht_certificate_required', 'N/A')}")
+            if hasattr(ref, 'pd_custom_subject_to_wht'):
+                print(f"      pd_custom_subject_to_wht: {getattr(ref, 'pd_custom_subject_to_wht', 'N/A')}")
+            if hasattr(ref, 'pd_custom_net_total_after_wht'):
+                print(f"      pd_custom_net_total_after_wht: {getattr(ref, 'pd_custom_net_total_after_wht', 'N/A')}")
+            
+            # EXACT retention field debugging
+            if hasattr(ref, 'pd_custom_custom_subject_to_retention'):
+                print(f"      pd_custom_custom_subject_to_retention: {getattr(ref, 'pd_custom_custom_subject_to_retention', 'N/A')}")
+            if hasattr(ref, 'pd_custom_custom_retention'):
+                print(f"      pd_custom_custom_retention: {getattr(ref, 'pd_custom_custom_retention', 'N/A')}")
+            if hasattr(ref, 'pd_custom_custom_retention_amount'):
+                print(f"      pd_custom_custom_retention_amount: {getattr(ref, 'pd_custom_custom_retention_amount', 'N/A')}")
+            if hasattr(ref, 'pd_custom_custom_net_total_after_wht_retention'):
+                print(f"      pd_custom_custom_net_total_after_wht_retention: {getattr(ref, 'pd_custom_custom_net_total_after_wht_retention', 'N/A')}")
+            if hasattr(ref, 'pd_custom_custom_net_total_after_wht_retention_in_words'):
+                print(f"      pd_custom_custom_net_total_after_wht_retention_in_words: {getattr(ref, 'pd_custom_custom_net_total_after_wht_retention_in_words', 'N/A')}")
+            
+            # Backward compatibility fields
+            if hasattr(ref, 'pd_custom_subject_to_retention'):
+                print(f"      pd_custom_subject_to_retention (compatibility): {getattr(ref, 'pd_custom_subject_to_retention', 'N/A')}")
+            
+            # Company account mappings
+            print("   🏢 COMPANY ACCOUNT MAPPINGS:")
+            if hasattr(ref, 'pd_custom_company_wht_account'):
+                print(f"      pd_custom_company_wht_account: {getattr(ref, 'pd_custom_company_wht_account', 'N/A')}")
+            if hasattr(ref, 'pd_custom_company_retention_account'):
+                print(f"      pd_custom_company_retention_account: {getattr(ref, 'pd_custom_company_retention_account', 'N/A')}")
+            if hasattr(ref, 'pd_custom_company_output_vat_undue_account'):
+                print(f"      pd_custom_company_output_vat_undue_account: {getattr(ref, 'pd_custom_company_output_vat_undue_account', 'N/A')}")
+            if hasattr(ref, 'pd_custom_company_output_vat_account'):
+                print(f"      pd_custom_company_output_vat_account: {getattr(ref, 'pd_custom_company_output_vat_account', 'N/A')}")
             
             total_retention += ref_retention_amount
             total_wht += ref_wht_amount
@@ -89,6 +220,9 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
     # Update Payment Entry header fields
     doc.pd_custom_has_retention = 1 if total_retention > 0 else 0
     doc.pd_custom_has_thai_taxes = 1 if has_thai_taxes else 0
+    
+    # DEBUG: Log header field updates
+    print(f"📋 HEADER UPDATE - Payment Entry: pd_custom_has_retention={doc.pd_custom_has_retention}, total_retention={total_retention}, has_thai_taxes={has_thai_taxes}")
     doc.pd_custom_total_retention_amount = flt(total_retention, 2)
     doc.pd_custom_total_wht_amount = flt(total_wht, 2)
     doc.pd_custom_total_vat_undue_amount = flt(total_vat_undue, 2)
@@ -112,57 +246,257 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
 
 
 def _get_invoice_thai_tax_info(reference_doctype, reference_name):
-    """Get comprehensive Thai tax information (VAT + WHT + Retention) from the referenced invoice."""
+    """Get comprehensive Thai tax information (VAT + WHT + Retention) from the referenced invoice with enhanced field fetching."""
+    
+    # DEBUG: Log function entry
+    print(f"🔍 _get_invoice_thai_tax_info called: {reference_doctype} - {reference_name}")
     
     if reference_doctype not in ["Sales Invoice", "Purchase Invoice"]:
+        print(f"❌ Unsupported reference_doctype: {reference_doctype}")
         return None
     
     try:
         invoice = frappe.get_doc(reference_doctype, reference_name)
         
-        # Initialize tax info structure
+        # DEBUG: Log successful invoice fetch
+        print(f"✅ Successfully fetched {reference_doctype}: {reference_name}")
+        
+        # DEBUG: Log basic invoice info
+        print(f"📋 INVOICE BASIC INFO:")
+        print(f"   Invoice Name: {reference_name}")
+        print(f"   Customer: {getattr(invoice, 'customer', 'N/A')}")
+        print(f"   Grand Total: {getattr(invoice, 'grand_total', 0)}")
+        print(f"   Net Total: {getattr(invoice, 'net_total', 0)}")
+        print(f"   Outstanding Amount: {getattr(invoice, 'outstanding_amount', 0)}")
+        
+        # Initialize enhanced tax info structure with EXACT Sales Invoice & Company fields
         tax_info = {
             "has_thai_taxes": False,
             "retention_amount": 0,
             "wht_amount": 0,
             "vat_undue_amount": 0,
             "retention_percentage": 0,
-            "wht_percentage": 0
+            "wht_percentage": 0,
+            # Enhanced WHT fields
+            "wht_certificate_required": 0,
+            "net_total_after_wht": 0,
+            "subject_to_wht": 0,
+            # EXACT Sales Invoice retention fields 
+            "subject_to_retention": 0,
+            "custom_subject_to_retention": 0,
+            "custom_retention": 0,
+            "custom_retention_amount": 0,
+            "custom_net_total_after_wht_retention": 0,
+            "custom_net_total_after_wht_retention_in_words": "",
+            # Combined fields
+            "net_total_after_wht_retention": 0,
+            "net_total_after_wht_retention_in_words": "",
+            # Company Thai tax account configuration
+            "default_wht_account": None,
+            "default_retention_account": None,
+            "default_output_vat_undue_account": None,
+            "default_output_vat_account": None,
+            "company_name": None
         }
         
-        # Check for retention (existing system)
+        # ENHANCED: Comprehensive field discovery and fetching
+        print(f"🔍 COMPREHENSIVE FIELD DISCOVERY:")
+        
+        # List all potential retention/WHT related fields to check
+        potential_fields = [
+            # Retention fields
+            'custom_subject_to_retention', 'subject_to_retention',
+            'custom_retention_amount', 'retention_amount', 
+            'custom_retention', 'custom_retention_percentage', 'retention_percentage',
+            # WHT fields  
+            'subject_to_wht', 'custom_subject_to_wht',
+            'custom_withholding_tax_amount', 'withholding_tax_amount', 'wht_amount',
+            'custom_wht_amount', 'custom_wht_percentage', 'wht_percentage',
+            'wht_certificate_required', 'custom_wht_certificate_required',
+            # Calculated fields
+            'net_total_after_wht', 'custom_net_total_after_wht',
+            'net_total_after_retention', 'custom_net_total_after_retention',
+            # Thai tax specific
+            'thai_tax_amount', 'custom_thai_tax_amount'
+        ]
+        
+        found_fields = {}
+        for field in potential_fields:
+            if hasattr(invoice, field):
+                value = getattr(invoice, field, None)
+                found_fields[field] = value
+                print(f"   ✅ {field}: {value}")
+            else:
+                print(f"   ❌ {field}: NOT FOUND")
+        
+        print(f"📊 FOUND {len(found_fields)} RELEVANT FIELDS")
+        
+        # CORRECTED: Enhanced retention processing using EXACT Sales Invoice field names
         if reference_doctype == "Sales Invoice":
+            # EXACT Sales Invoice field names (from install_sales_invoice_fields.py)
             subject_to_retention = getattr(invoice, 'custom_subject_to_retention', 0)
             retention_amount = flt(getattr(invoice, 'custom_retention_amount', 0))
             retention_percentage = flt(getattr(invoice, 'custom_retention', 0))
+            net_total_after_wht_retention = flt(getattr(invoice, 'custom_net_total_after_wht_retention', 0))
+            net_total_after_wht_retention_in_words = getattr(invoice, 'custom_net_total_after_wht_retention_in_words', '')
+            
+            print(f"🔍 CORRECTED RETENTION ANALYSIS (EXACT FIELD NAMES):")
+            print(f"   custom_subject_to_retention: {subject_to_retention}")
+            print(f"   custom_retention_amount: {retention_amount}")
+            print(f"   custom_retention: {retention_percentage}")
+            print(f"   custom_net_total_after_wht_retention: {net_total_after_wht_retention}")
+            print(f"   custom_net_total_after_wht_retention_in_words: {net_total_after_wht_retention_in_words}")
             
             if subject_to_retention and retention_amount > 0:
                 tax_info["has_thai_taxes"] = True
                 tax_info["retention_amount"] = retention_amount
                 tax_info["retention_percentage"] = retention_percentage
+                tax_info["subject_to_retention"] = subject_to_retention
+                tax_info["net_total_after_wht_retention"] = net_total_after_wht_retention
+                tax_info["net_total_after_wht_retention_in_words"] = net_total_after_wht_retention_in_words
+                print(f"   ✅ RETENTION DETECTED: {retention_amount} ({retention_percentage}%)")
+                print(f"   ✅ Net Total After WHT+Retention: {net_total_after_wht_retention}")
         
-        # Check for WHT (existing system)
-        subject_to_wht = getattr(invoice, 'subject_to_wht', 0)
-        wht_amount = flt(getattr(invoice, 'custom_withholding_tax_amount', 0))
+        # Enhanced WHT processing (existing + new)
+        subject_to_wht = getattr(invoice, 'subject_to_wht', 0) or getattr(invoice, 'custom_subject_to_wht', 0)
+        wht_amount = flt(getattr(invoice, 'custom_withholding_tax_amount', 0) or getattr(invoice, 'withholding_tax_amount', 0) or getattr(invoice, 'wht_amount', 0) or getattr(invoice, 'custom_wht_amount', 0))
+        wht_certificate_required = getattr(invoice, 'wht_certificate_required', 0) or getattr(invoice, 'custom_wht_certificate_required', 0)
+        net_total_after_wht = flt(getattr(invoice, 'net_total_after_wht', 0) or getattr(invoice, 'custom_net_total_after_wht', 0))
+        
+        print(f"🔍 ENHANCED WHT ANALYSIS:")
+        print(f"   Subject to WHT: {subject_to_wht}")
+        print(f"   WHT Amount: {wht_amount}")
+        print(f"   WHT Certificate Required: {wht_certificate_required}")
+        print(f"   Net Total After WHT: {net_total_after_wht}")
         
         if subject_to_wht and wht_amount > 0:
             tax_info["has_thai_taxes"] = True
             tax_info["wht_amount"] = wht_amount
+            tax_info["subject_to_wht"] = subject_to_wht
+            tax_info["wht_certificate_required"] = wht_certificate_required
+            tax_info["net_total_after_wht"] = net_total_after_wht
+            
             # Calculate WHT percentage from amount
             if invoice.net_total > 0:
                 tax_info["wht_percentage"] = flt((wht_amount / invoice.net_total) * 100, 2)
+                print(f"   📊 Calculated WHT %: {tax_info['wht_percentage']}%")
+            
+            print(f"   ✅ WHT DETECTED: {wht_amount} (Certificate Required: {wht_certificate_required})")
         
-        # Check for Output VAT - Undue (from Sales Taxes and Charges)
+        # Enhanced VAT processing (existing)
         vat_undue_amount = _get_output_vat_undue_amount(invoice)
         if vat_undue_amount > 0:
             tax_info["has_thai_taxes"] = True
             tax_info["vat_undue_amount"] = vat_undue_amount
+            print(f"   ✅ VAT UNDUE DETECTED: {vat_undue_amount}")
+        
+        # ENHANCED: Fetch Company Thai tax account configuration
+        company_tax_accounts = _get_company_thai_tax_accounts(invoice.company)
+        if company_tax_accounts:
+            tax_info.update(company_tax_accounts)
+            print(f"📋 COMPANY TAX ACCOUNTS FETCHED:")
+            print(f"   default_wht_account: {company_tax_accounts.get('default_wht_account', 'Not set')}")
+            print(f"   default_retention_account: {company_tax_accounts.get('default_retention_account', 'Not set')}")
+            print(f"   default_output_vat_undue_account: {company_tax_accounts.get('default_output_vat_undue_account', 'Not set')}")
+            print(f"   default_output_vat_account: {company_tax_accounts.get('default_output_vat_account', 'Not set')}")
+        
+        # DEBUG: Final tax_info summary with EXACT Sales Invoice & Company fields
+        print(f"📋 FINAL TAX INFO RESPONSE (CORRECTED WITH COMPANY ACCOUNTS):")
+        print(f"   has_thai_taxes: {tax_info['has_thai_taxes']}")
+        
+        # Company Information
+        print(f"🏢 COMPANY CONFIGURATION:")
+        print(f"   company_name: {tax_info['company_name']}")
+        print(f"   default_wht_account: {tax_info['default_wht_account']}")
+        print(f"   default_retention_account: {tax_info['default_retention_account']}")
+        print(f"   default_output_vat_undue_account: {tax_info['default_output_vat_undue_account']}")
+        print(f"   default_output_vat_account: {tax_info['default_output_vat_account']}")
+        
+        # Sales Invoice WHT Fields
+        print(f"💰 SALES INVOICE WHT:")
+        print(f"   subject_to_wht: {tax_info['subject_to_wht']}")
+        print(f"   wht_amount: {tax_info['wht_amount']}")
+        print(f"   wht_certificate_required: {tax_info['wht_certificate_required']}")
+        print(f"   net_total_after_wht: {tax_info['net_total_after_wht']}")
+        
+        # EXACT Sales Invoice Retention Fields
+        print(f"🏗️ SALES INVOICE RETENTION:")
+        print(f"   custom_subject_to_retention: {tax_info['custom_subject_to_retention']}")
+        print(f"   custom_retention: {tax_info['custom_retention']}")
+        print(f"   custom_retention_amount: {tax_info['custom_retention_amount']}")
+        print(f"   custom_net_total_after_wht_retention: {tax_info['custom_net_total_after_wht_retention']}")
+        print(f"   custom_net_total_after_wht_retention_in_words: {tax_info['custom_net_total_after_wht_retention_in_words']}")
+        
+        # Combined fields (for compatibility)
+        print(f"🔗 COMPATIBILITY MAPPINGS:")
+        print(f"   retention_amount: {tax_info['retention_amount']} (mapped from custom_retention_amount)")
+        print(f"   retention_percentage: {tax_info['retention_percentage']} (mapped from custom_retention)")
+        print(f"   vat_undue_amount: {tax_info['vat_undue_amount']}")
         
         return tax_info
         
     except Exception as e:
+        print(f"❌ ERROR in _get_invoice_thai_tax_info: {str(e)}")
         frappe.log_error(f"Error getting Thai tax info for {reference_name}: {str(e)}")
         return {"has_thai_taxes": False}
+
+
+def _get_company_thai_tax_accounts(company):
+    """
+    Fetch Thai tax account configuration from Company doctype.
+    
+    Returns dict with Company's default Thai tax accounts:
+    - default_wht_account: Withholding tax account
+    - default_retention_account: Construction retention account  
+    - default_output_vat_undue_account: Output VAT Undue account
+    - default_output_vat_account: Output VAT account
+    """
+    
+    print(f"🏢 FETCHING COMPANY THAI TAX ACCOUNTS: {company}")
+    
+    try:
+        # Get Company document
+        company_doc = frappe.get_cached_doc("Company", company)
+        
+        # Extract Thai tax account fields
+        company_accounts = {
+            "company_name": company,
+            "default_wht_account": getattr(company_doc, 'default_wht_account', None),
+            "default_retention_account": getattr(company_doc, 'default_retention_account', None),
+            "default_output_vat_undue_account": getattr(company_doc, 'default_output_vat_undue_account', None),
+            "default_output_vat_account": getattr(company_doc, 'default_output_vat_account', None)
+        }
+        
+        # DEBUG: Show what Company fields were found
+        print(f"📋 COMPANY FIELD DISCOVERY:")
+        company_thai_fields = ['default_wht_account', 'default_retention_account', 
+                              'default_output_vat_undue_account', 'default_output_vat_account']
+        
+        for field in company_thai_fields:
+            if hasattr(company_doc, field):
+                value = getattr(company_doc, field, None)
+                print(f"   ✅ {field}: {value}")
+                company_accounts[field] = value
+            else:
+                print(f"   ❌ {field}: NOT FOUND")
+                company_accounts[field] = None
+        
+        # Count configured accounts
+        configured_accounts = sum(1 for v in company_accounts.values() if v and v != company)
+        print(f"📊 CONFIGURED THAI TAX ACCOUNTS: {configured_accounts}/4")
+        
+        return company_accounts
+        
+    except Exception as e:
+        print(f"❌ ERROR fetching Company Thai tax accounts: {str(e)}")
+        frappe.log_error(f"Error fetching Company Thai tax accounts for {company}: {str(e)}")
+        return {
+            "company_name": company,
+            "default_wht_account": None,
+            "default_retention_account": None,
+            "default_output_vat_undue_account": None,
+            "default_output_vat_account": None
+        }
 
 
 def _get_output_vat_undue_amount(invoice):

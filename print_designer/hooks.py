@@ -47,6 +47,9 @@ commands = [
     "print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields",
     "print_designer.commands.install_payment_entry_retention_fields.cleanup_legacy_retention_fields",
     "print_designer.commands.install_payment_entry_retention_fields.uninstall_payment_entry_thai_tax_fields",
+    # Company Thai Tax Fields
+    "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",
+    "print_designer.commands.install_company_thai_tax_fields.check_company_thai_tax_fields",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
@@ -156,6 +159,8 @@ fixtures = [
                     "Company-thailand_service_business",
                     "Company-default_wht_account",
                     "Company-default_wht_rate",
+                    "Company-default_output_vat_undue_account",
+                    "Company-default_output_vat_account",
                     "Company-construction_service",
                     "Company-default_retention_rate",
                     "Company-default_retention_account",
@@ -426,6 +431,7 @@ after_install = [
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
+    "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     # DISABLED: Conflicts with fixture-based retention fields - using fixtures instead
     # The retention system (custom_retention, custom_retention_amount, etc.) is now managed
     # exclusively through fixtures in print_designer/fixtures/custom_field.json to prevent
@@ -462,6 +468,7 @@ after_migrate = [
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
+    "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_payment_entry_retention_fields._cleanup_legacy_fields",  # Clean up legacy Payment Entry retention fields during migration

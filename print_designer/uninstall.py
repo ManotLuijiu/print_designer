@@ -122,6 +122,15 @@ def delete_all_print_designer_custom_fields():
 			"prepared_by_signature", "approved_by_signature",
 		]
 		
+		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py
+		print_designer_company_tax_fields = [
+			# Company Thai tax system fields 
+			"thailand_service_business", "default_wht_rate", "default_wht_account",
+			"default_output_vat_undue_account", "default_output_vat_account",
+			# Construction service retention fields
+			"construction_service", "default_retention_rate", "default_retention_account",
+		]
+		
 		# Fields in hooks.py (fixtures) - these are definitely print_designer fields
 		fixtures_fields = get_fixtures_field_names()
 		
@@ -133,7 +142,8 @@ def delete_all_print_designer_custom_fields():
 		all_print_designer_fields = (
 			print_designer_specific_patterns + 
 			print_designer_payment_entry_fields +
-			print_designer_sales_invoice_fields
+			print_designer_sales_invoice_fields +
+			print_designer_company_tax_fields
 		)
 		
 		for field in all_custom_fields:

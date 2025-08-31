@@ -83,9 +83,8 @@ def install_payment_entry_retention_fields():
                     "label": "Retention Summary",
                     "fieldtype": "Section Break",
                     "insert_after": "total_allocated_amount",
-                    "depends_on": "eval:doc.pd_custom_has_retention",
                     "collapsible": 0,
-                    "description": "Summary of retention amounts for construction service invoices"
+                    "description": "Summary of Thai tax amounts (retention, WHT, VAT) for invoices"
                 },
                 {
                     "fieldname": "pd_custom_has_retention",
@@ -117,7 +116,6 @@ def install_payment_entry_retention_fields():
                     "label": "Retention Details",
                     "fieldtype": "Section Break", 
                     "insert_after": "pd_custom_total_retention_amount",
-                    "depends_on": "eval:doc.pd_custom_has_retention",
                     "collapsible": 1
                 },
                 {
@@ -136,7 +134,6 @@ def install_payment_entry_retention_fields():
                     "fieldtype": "Link",
                     "options": "Account",
                     "insert_after": "pd_custom_net_payment_after_retention",
-                    "depends_on": "eval:doc.pd_custom_has_retention",
                     "description": "Asset account for booking retention amounts held (Dr. Construction Retention)"
                 },
                 {
@@ -158,7 +155,6 @@ def install_payment_entry_retention_fields():
                     "label": "Thai Tax System",
                     "fieldtype": "Section Break",
                     "insert_after": "pd_custom_retention_note",
-                    "depends_on": "eval:doc.pd_custom_has_thai_taxes",
                     "collapsible": 1,
                     "description": "Thai tax processing (VAT + WHT + Retention)"
                 },
@@ -196,7 +192,6 @@ def install_payment_entry_retention_fields():
                     "label": "Thai Tax Accounts",
                     "fieldtype": "Section Break",
                     "insert_after": "pd_custom_total_vat_undue_amount",
-                    "depends_on": "eval:doc.pd_custom_has_thai_taxes",
                     "collapsible": 1
                 },
                 {
