@@ -107,6 +107,7 @@ doctype_js = {
     "Payment Entry": [
         "public/js/delivery_approval.js",
         "public/js/thailand_wht/thailand_wht_payment_entry.js",
+        "public/js/payment_entry_thai_tax.js",
     ],
     "Sales Invoice": [
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
@@ -414,6 +415,8 @@ override_whitelisted_methods = {
     "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
     # Override Quotation make_sales_order to include WHT field mapping
     "erpnext.selling.doctype.quotation.quotation.make_sales_order": "print_designer.overrides.quotation_mapper.make_sales_order_with_wht",
+    # Override Payment Entry creation to populate Thai tax fields from Sales Invoice
+    "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry": "print_designer.custom.payment_entry_creation_hook.get_payment_entry_with_thai_tax",
 }
 
 # Installation

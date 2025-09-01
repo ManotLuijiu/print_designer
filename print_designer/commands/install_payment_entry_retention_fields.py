@@ -237,6 +237,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "allocated_amount",
                     "read_only": 1,
                     "default": 0,
+                    "in_list_view": 1,
+                    "columns": 1,
                     "description": "This invoice has retention amount"
                 },
                 {
@@ -246,6 +248,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_has_retention",
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 2,
                     "description": "Retention amount for this specific invoice"
                 },
                 {
@@ -255,6 +259,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_retention_amount", 
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 1,
                     "description": "Retention percentage from original invoice"
                 },
                 {
@@ -264,6 +270,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_retention_percentage",
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 2,
                     "description": "Withholding tax amount for this specific invoice"
                 },
                 {
@@ -273,6 +281,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_wht_amount",
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 1,
                     "description": "Withholding tax percentage from original invoice"
                 },
                 {
@@ -282,6 +292,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_wht_percentage",
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 2,
                     "description": "Output VAT Undue amount for this specific invoice"
                 },
                 {
@@ -291,6 +303,8 @@ def install_payment_entry_retention_fields():
                     "insert_after": "pd_custom_vat_undue_amount",
                     "read_only": 1,
                     "precision": 2,
+                    "in_list_view": 1,
+                    "columns": 2,
                     "description": "Amount payable after deducting retention and WHT"
                 }
             ]

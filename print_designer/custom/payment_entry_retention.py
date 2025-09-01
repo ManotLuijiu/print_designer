@@ -36,6 +36,9 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
     if not doc.references:
         print("❌ No references found - exiting retention validation")
         return
+    
+    # First populate Thai tax fields from invoices if they're missing
+    _populate_thai_tax_fields_from_invoices(doc)
         
     # Check if any referenced invoices have Thai tax components
     total_retention = 0.0
@@ -243,6 +246,55 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
     # Generate comprehensive Thai tax note
     if thai_tax_details:
         doc.pd_custom_retention_note = _generate_thai_tax_note(thai_tax_details)
+
+
+def _populate_thai_tax_fields_from_invoices(doc):
+    """
+    Populate Thai tax fields in Payment Entry References from their source invoices.
+    This ensures the Thai tax data is available when "Get Outstanding Invoices" is clicked.
+    """
+    if not doc.references:
+        return
+    
+    for ref in doc.references:
+        # Only process if Thai tax fields are empty
+        if ref.reference_doctype == "Sales Invoice" and ref.reference_name:
+            # Check if Thai tax fields are already populated
+            has_data = (
+                hasattr(ref, 'pd_custom_has_retention') and ref.pd_custom_has_retention or
+                hasattr(ref, 'pd_custom_wht_amount') and ref.pd_custom_wht_amount or
+                hasattr(ref, 'pd_custom_vat_undue_amount') and ref.pd_custom_vat_undue_amount
+            )
+            
+            if not has_data:
+                # Fetch Thai tax data from the invoice
+                thai_tax_info = _get_invoice_thai_tax_info("Sales Invoice", ref.reference_name)
+                
+                if thai_tax_info:
+                    # Populate retention fields
+                    if hasattr(ref, 'pd_custom_has_retention'):
+                        ref.pd_custom_has_retention = thai_tax_info.get("has_retention", 0)
+                    if hasattr(ref, 'pd_custom_retention_amount'):
+                        ref.pd_custom_retention_amount = thai_tax_info.get("retention_amount", 0)
+                    if hasattr(ref, 'pd_custom_retention_percentage'):
+                        ref.pd_custom_retention_percentage = thai_tax_info.get("retention_percentage", 0)
+                    
+                    # Populate WHT fields
+                    if hasattr(ref, 'pd_custom_wht_amount'):
+                        ref.pd_custom_wht_amount = thai_tax_info.get("wht_amount", 0)
+                    if hasattr(ref, 'pd_custom_wht_percentage'):
+                        ref.pd_custom_wht_percentage = thai_tax_info.get("wht_percentage", 0)
+                    
+                    # Populate VAT fields
+                    if hasattr(ref, 'pd_custom_vat_undue_amount'):
+                        ref.pd_custom_vat_undue_amount = thai_tax_info.get("vat_undue_amount", 0)
+                    
+                    # Calculate net payable
+                    if hasattr(ref, 'pd_custom_net_payable_amount'):
+                        net_payable = ref.allocated_amount or 0
+                        net_payable -= thai_tax_info.get("retention_amount", 0)
+                        net_payable -= thai_tax_info.get("wht_amount", 0)
+                        ref.pd_custom_net_payable_amount = net_payable
 
 
 def _get_invoice_thai_tax_info(reference_doctype, reference_name):
@@ -637,35 +689,35 @@ def _validate_thai_tax_accounts(doc):
     
     validations = []
     
-    # Retention account should be Asset/Receivable
+    # Retention account can be Asset, Receivable, or Liability types (depends on business perspective)
     if getattr(doc, 'pd_custom_retention_account', None):
         validations.append({
             "account": doc.pd_custom_retention_account,
             "name": "Retention Account",
-            "allowed_types": ["Asset", "Receivable"]
+            "allowed_types": ["Current Asset", "Fixed Asset", "Receivable", "Current Liability", "Payable"]
         })
     
-    # WHT account should be Asset
+    # WHT account should be Asset or Tax type
     if getattr(doc, 'pd_custom_wht_account', None):
         validations.append({
             "account": doc.pd_custom_wht_account,
             "name": "WHT Account", 
-            "allowed_types": ["Asset"]
+            "allowed_types": ["Current Asset", "Fixed Asset", "Tax"]
         })
     
-    # VAT accounts should be Liability
+    # VAT accounts can be various types depending on setup
     if getattr(doc, 'pd_custom_output_vat_undue_account', None):
         validations.append({
             "account": doc.pd_custom_output_vat_undue_account,
             "name": "Output VAT Undue Account",
-            "allowed_types": ["Liability"]
+            "allowed_types": ["Current Liability", "Tax", "Temporary"]
         })
     
     if getattr(doc, 'pd_custom_output_vat_account', None):
         validations.append({
             "account": doc.pd_custom_output_vat_account,
             "name": "Output VAT Account",
-            "allowed_types": ["Liability"]
+            "allowed_types": ["Current Liability", "Tax", "Temporary"]
         })
     
     # Perform validations
@@ -673,16 +725,27 @@ def _validate_thai_tax_accounts(doc):
         try:
             account = frappe.get_doc("Account", validation["account"])
             
+            # Debug logging
+            print(f"🔍 Validating {validation['name']}: {validation['account']}")
+            print(f"   Account Type: {account.account_type}")
+            print(f"   Allowed Types: {validation['allowed_types']}")
+            print(f"   Company: {account.company} (Payment Company: {doc.company})")
+            
             if account.company != doc.company:
+                print(f"   ❌ FAIL: Company mismatch")
                 frappe.throw(_("{0} must belong to the same company as the payment").format(validation["name"]))
             
             if account.account_type not in validation["allowed_types"]:
+                print(f"   ❌ FAIL: Account type '{account.account_type}' not in allowed types")
                 frappe.throw(_("{0} must be of type: {1}").format(
                     validation["name"], 
                     " or ".join(validation["allowed_types"])
                 ))
+            
+            print(f"   ✅ PASS: Validation successful")
         
         except frappe.DoesNotExistError:
+            print(f"   ❌ FAIL: Account '{validation['account']}' does not exist")
             frappe.throw(_("{0} does not exist: {1}").format(validation["name"], validation["account"]))
 
 
