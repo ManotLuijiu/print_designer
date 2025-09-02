@@ -109,8 +109,11 @@ frappe.ui.form.on('Sales Invoice', {
             trackFieldChanges(frm, "REFRESH");
         }
         
-        // ADDED: Populate Company fields on form load if company is set but fields are empty
-        if (frm.doc.company && !frm.doc.thailand_service_business && !frm.doc.construction_service) {
+        // ADDED: Populate Company fields on form load if company is set but fields are undefined
+        // Check for undefined specifically, not falsy values (0 is valid)
+        if (frm.doc.company && 
+            frm.doc.thailand_service_business === undefined && 
+            frm.doc.construction_service === undefined) {
             // Trigger company event to populate fields
             frm.events.company(frm);
         }

@@ -60,27 +60,40 @@ def _get_sales_invoice_thai_tax_data(invoice_name):
                 "grand_total",
                 "net_total_after_wht",
                 "custom_withholding_tax",
+                "custom_withholding_tax_amount",
                 "taxes_and_charges",
                 "vat_treatment"
             ],
             as_dict=True
         )
         
+        print(f"DEBUG: Raw Sales Invoice data for {invoice_name}:")
+        print(f"  - custom_withholding_tax (percentage): {invoice_data.get('custom_withholding_tax')}")
+        print(f"  - custom_withholding_tax_amount (amount): {invoice_data.get('custom_withholding_tax_amount')}")
+        print(f"  - grand_total: {invoice_data.get('grand_total')}")
+        print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
+        
         if not invoice_data:
             return None
         
-        # Get WHT percentage directly from custom_withholding_tax field (already a percentage)
-        wht_percentage = invoice_data.get("custom_withholding_tax", 0)
+        # Check if custom_withholding_tax_amount exists and use it directly
+        stored_wht_amount = invoice_data.get("custom_withholding_tax_amount", 0)
         
-        # Calculate WHT amount from percentage and net_total_after_wht
-        net_total_after_wht = invoice_data.get("net_total_after_wht", 0)
-        wht_amount = 0
-        if wht_percentage > 0 and net_total_after_wht > 0:
-            # WHT amount = net_total_after_wht * (wht_percentage / 100)
-            wht_amount = net_total_after_wht * (wht_percentage / 100)
-            print(f"DEBUG WHT Calculation: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}, Calculated WHT Amount = {wht_amount}")
+        if stored_wht_amount and stored_wht_amount > 0:
+            # Use the stored amount directly
+            wht_amount = stored_wht_amount
+            wht_percentage = invoice_data.get("custom_withholding_tax", 0)
+            print(f"DEBUG WHT Direct: Invoice {invoice_name}, Using stored WHT amount = {wht_amount}, WHT% = {wht_percentage}")
         else:
-            print(f"DEBUG WHT Skip: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}")
+            # Fallback: Calculate from percentage
+            wht_percentage = invoice_data.get("custom_withholding_tax", 0)
+            net_total_after_wht = invoice_data.get("net_total_after_wht", 0)
+            wht_amount = 0
+            if wht_percentage > 0 and net_total_after_wht > 0:
+                wht_amount = net_total_after_wht * (wht_percentage / 100)
+                print(f"DEBUG WHT Calculated: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}, Calculated WHT Amount = {wht_amount}")
+            else:
+                print(f"DEBUG WHT Skip: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}")
         
         # Calculate VAT Undue amount from taxes_and_charges with VAT treatment context
         vat_undue_amount = _calculate_vat_undue_amount(invoice_name, invoice_data.get("taxes_and_charges", ""), invoice_data.get("vat_treatment", ""))

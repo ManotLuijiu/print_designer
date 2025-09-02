@@ -34,7 +34,11 @@ frappe.ui.form.on('Sales Order', {
     
     // Also populate on form load if company is already set
     refresh: function(frm) {
-        if (frm.doc.company && !frm.doc.thailand_service_business && !frm.doc.construction_service) {
+        // Only populate if fields haven't been fetched yet (undefined)
+        // Check for undefined specifically, not falsy values (0 is valid)
+        if (frm.doc.company && 
+            frm.doc.thailand_service_business === undefined && 
+            frm.doc.construction_service === undefined) {
             // Trigger company event to populate fields
             frm.events.company(frm);
         }
