@@ -28,7 +28,7 @@ def export_print_format(print_format_name):
     if not print_format.print_designer:
         frappe.throw(_("This is not a Print Designer format"))
     
-    # Prepare export data
+    # Prepare export data with safe attribute access for PDPrintFormat compatibility
     export_data = {
         "export_date": datetime.now().isoformat(),
         "frappe_version": frappe.__version__,
@@ -36,35 +36,35 @@ def export_print_format(print_format_name):
         "print_format": {
             "name": print_format.name,
             "doc_type": print_format.doc_type,
-            "module": print_format.module,
-            "standard": print_format.standard,
-            "custom": print_format.custom,
-            "disabled": print_format.disabled,
-            "print_format_type": print_format.print_format_type,
-            "raw_printing": print_format.raw_printing,
-            "raw_commands": print_format.raw_commands,
-            "margin_top": print_format.margin_top,
-            "margin_right": print_format.margin_right,
-            "margin_bottom": print_format.margin_bottom,
-            "margin_left": print_format.margin_left,
-            "default_print_language": print_format.default_print_language,
-            "font": print_format.font,
-            "font_size": print_format.font_size,
-            "page_number": print_format.page_number,
-            "align_labels_right": print_format.align_labels_right,
-            "show_section_headings": print_format.show_section_headings,
-            "line_breaks": print_format.line_breaks,
-            "absolute_value": print_format.absolute_value,
+            "module": getattr(print_format, "module", None),
+            "standard": getattr(print_format, "standard", 0),
+            "custom": getattr(print_format, "custom", 0),
+            "disabled": getattr(print_format, "disabled", 0),
+            "print_format_type": getattr(print_format, "print_format_type", "Standard"),
+            "raw_printing": getattr(print_format, "raw_printing", 0),
+            "raw_commands": getattr(print_format, "raw_commands", None),
+            "margin_top": getattr(print_format, "margin_top", None),
+            "margin_right": getattr(print_format, "margin_right", None),
+            "margin_bottom": getattr(print_format, "margin_bottom", None),
+            "margin_left": getattr(print_format, "margin_left", None),
+            "default_print_language": getattr(print_format, "default_print_language", None),
+            "font": getattr(print_format, "font", None),
+            "font_size": getattr(print_format, "font_size", None),
+            "page_number": getattr(print_format, "page_number", None),
+            "align_labels_right": getattr(print_format, "align_labels_right", 0),
+            "show_section_headings": getattr(print_format, "show_section_headings", 0),
+            "line_breaks": getattr(print_format, "line_breaks", 0),
+            "absolute_value": getattr(print_format, "absolute_value", 0),
             # Print Designer specific fields
-            "print_designer": print_format.print_designer,
-            "print_designer_header": print_format.print_designer_header,
-            "print_designer_body": print_format.print_designer_body,
-            "print_designer_footer": print_format.print_designer_footer,
-            "print_designer_after_table": print_format.print_designer_after_table,
-            "print_designer_settings": print_format.print_designer_settings,
-            "print_designer_print_format": print_format.print_designer_print_format,
-            "css": print_format.css,
-            "custom_css": print_format.custom_css,
+            "print_designer": getattr(print_format, "print_designer", 0),
+            "print_designer_header": getattr(print_format, "print_designer_header", None),
+            "print_designer_body": getattr(print_format, "print_designer_body", None),
+            "print_designer_footer": getattr(print_format, "print_designer_footer", None),
+            "print_designer_after_table": getattr(print_format, "print_designer_after_table", None),
+            "print_designer_settings": getattr(print_format, "print_designer_settings", None),
+            "print_designer_print_format": getattr(print_format, "print_designer_print_format", None),
+            "css": getattr(print_format, "css", None),
+            "custom_css": getattr(print_format, "custom_css", None),
         }
     }
     
@@ -132,7 +132,7 @@ def import_print_format(export_data, new_name=None, overwrite=False):
     # Create new Print Format document
     new_format = frappe.new_doc("Print Format")
     
-    # Copy all fields from export data
+    # Copy all fields from export data with safe assignment
     fields_to_copy = [
         "doc_type", "module", "standard", "custom", "disabled",
         "print_format_type", "raw_printing", "raw_commands",
@@ -147,7 +147,12 @@ def import_print_format(export_data, new_name=None, overwrite=False):
     
     for field in fields_to_copy:
         if field in format_data and format_data[field] is not None:
-            setattr(new_format, field, format_data[field])
+            # Safe attribute setting for PDPrintFormat compatibility
+            try:
+                setattr(new_format, field, format_data[field])
+            except AttributeError:
+                # Skip fields that don't exist in PDPrintFormat class
+                frappe.log_error(f"Field '{field}' not available in Print Format class, skipping", "Print Format Import Warning")
     
     # Set the name
     new_format.name = format_name
