@@ -23,30 +23,58 @@ def get_effective_language(print_format_name=None):
     Returns:
         str: The effective language code/name to use
     """
+    print(f"[DEBUG] get_effective_language called with print_format_name: {print_format_name}")
+    
     # Priority 1: Check _lang parameter from URL
     url_lang = frappe.form_dict.get("_lang")
+    print(f"[DEBUG] URL _lang parameter: {url_lang}")
     if url_lang and str(url_lang).strip():
-        print(f"Using language from URL parameter: {url_lang}")
+        print(f"[LANGUAGE] Using language from URL parameter: {url_lang}")
         return url_lang
 
-    # Priority 2: Check Print Format language field
+    # Priority 2: Check Print Format default_print_language field
     if print_format_name:
         try:
+            print(f"[DEBUG] Fetching Print Format doc: {print_format_name}")
             print_format_doc = frappe.get_doc("Print Format", print_format_name)
+            
+            # Try default_print_language field first (standard field)
             format_lang = (
-                print_format_doc.get("language")
+                print_format_doc.get("default_print_language")
                 if hasattr(print_format_doc, "get")
-                else getattr(print_format_doc, "language", None)
+                else getattr(print_format_doc, "default_print_language", None)
             )
+            print(f"[DEBUG] Print Format default_print_language field: {format_lang}")
+            
+            # Fallback to language field if default_print_language is not set
+            if not format_lang:
+                format_lang = (
+                    print_format_doc.get("language")
+                    if hasattr(print_format_doc, "get")
+                    else getattr(print_format_doc, "language", None)
+                )
+                print(f"[DEBUG] Print Format language field (fallback): {format_lang}")
+                
             if format_lang and str(format_lang).strip():
-                print(f"Using language from Print Format: {format_lang}")
+                print(f"[LANGUAGE] Using language from Print Format: {format_lang}")
                 return format_lang
+            else:
+                print(f"[DEBUG] No valid language found in Print Format fields")
         except Exception as e:
-            print(f"Error getting Print Format language: {str(e)}")
+            print(f"[ERROR] Error getting Print Format language: {str(e)}")
 
     # Priority 3: Fallback to local language
     local_lang = frappe.local.lang
-    print(f"Using fallback language: {local_lang}")
+    print(f"[DEBUG] frappe.local.lang: {local_lang}")
+    
+    # Priority 4: If no language is set anywhere, default to Thai ('th')
+    # This is specific to this implementation where Thai is the primary language
+    if not local_lang or local_lang == "en":
+        local_lang = "th"
+        print(f"[LANGUAGE] Using Thai as default language (overriding '{frappe.local.lang}')")
+    else:
+        print(f"[LANGUAGE] Using fallback language: {local_lang}")
+    
     return local_lang
 
 
@@ -60,26 +88,48 @@ def is_thai_language(language):
     Returns:
         bool: True if the language is Thai
     """
+    print(f"[DEBUG] is_thai_language called with: '{language}' (type: {type(language)})")
+    
     if not language:
+        print(f"[DEBUG] is_thai_language: Empty language, returning False")
         return False
 
-    language_lower = str(language).lower().strip()
-    thai_indicators = ["ไทย", "thai", "th", "th-th", "thai-th"]
-
-    return language_lower in thai_indicators
+    language_str = str(language).strip()
+    language_lower = language_str.lower()
+    
+    print(f"[DEBUG] is_thai_language: language_str='{language_str}', language_lower='{language_lower}'")
+    
+    # Check for Thai language indicators
+    # Note: "ไทย" should be checked as-is, not lowercased
+    thai_indicators_exact = ["ไทย", "th", "th-th"]
+    thai_indicators_lower = ["thai", "thai-th", "th", "th-th"]
+    
+    is_thai = language_str in thai_indicators_exact or language_lower in thai_indicators_lower
+    print(f"[DEBUG] is_thai_language result: {is_thai}")
+    
+    return is_thai
 
 
 def pdf_header_footer_html(soup, head, content, styles, html_id, css):
+    print(f"[DEBUG] pdf_header_footer_html called with html_id: {html_id}")
+    
     if soup.find(id="__print_designer"):
-        if frappe.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
+        pdf_generator = frappe.form_dict.get("pdf_generator", "wkhtmltopdf")
+        print(f"[DEBUG] PDF generator: {pdf_generator}")
+        
+        if pdf_generator == "chrome":
             path = "print_designer/page/print_designer/jinja/header_footer.html"
         else:
             path = "print_designer/page/print_designer/jinja/header_footer_old.html"
+        
+        print(f"[DEBUG] Using template path: {path}")
+        
         try:
             # Get effective language using centralized function
             print_format_name = frappe.form_dict.get("format")
+            print(f"[DEBUG] Print format name from form_dict: {print_format_name}")
             effective_lang = get_effective_language(print_format_name)
-            print(f"Effective language for PDF header/footer: {effective_lang}")
+            print(f"[PDF] Effective language for PDF header/footer: {effective_lang}")
 
             return frappe.render_template(
                 path,
@@ -134,11 +184,15 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 
 
 def pdf_body_html(print_format, jenv, args, template):
+    print(f"[DEBUG] pdf_body_html called for print_format: {print_format.name if print_format else 'None'}")
+    
     if (
         print_format
         and print_format.print_designer
         and print_format.print_designer_body
     ):
+        print(f"[DEBUG] Processing Print Designer format: {print_format.name}")
+        
         print_format_name = hashlib.md5(
             print_format.name.encode(), usedforsecurity=False
         ).hexdigest()
@@ -146,10 +200,17 @@ def pdf_body_html(print_format, jenv, args, template):
             print_designer=print_format_name, print_designer_action="download_pdf"
         )
 
-        settings = json.loads(print_format.print_designer_settings)
+        # Handle None or empty print_designer_settings
+        if print_format.print_designer_settings:
+            settings = json.loads(print_format.print_designer_settings)
+            print(f"[DEBUG] Settings loaded with schema_version: {settings.get('schema_version', 'not set')}")
+        else:
+            settings = {}
+            print(f"[DEBUG] No settings found, using empty dict")
 
         # Get effective language for this print format
         effective_lang = get_effective_language(print_format.name)
+        print(f"[PDF BODY] Using language: {effective_lang}")
 
         args.update(
             {
@@ -225,22 +286,31 @@ def is_older_schema(settings, current_version):
 
 
 def get_print_format_template(jenv, print_format):
-    print(f"get_print_format_template {print_format}")
+    print(f"[DEBUG] get_print_format_template called with print_format: {print_format}")
     # if print format is created using print designer, then use print designer template
     if (
         print_format
         and print_format.print_designer
         and print_format.print_designer_body
     ):
-        settings = json.loads(print_format.print_designer_settings)
-        if is_older_schema(settings, "1.1.0"):
-            return jenv.loader.get_source(
-                jenv, "print_designer/page/print_designer/jinja/old_print_format.html"
-            )[0]
+        print(f"[DEBUG] Print format '{print_format.name}' is using Print Designer")
+        
+        # Handle None or empty print_designer_settings
+        if print_format.print_designer_settings:
+            settings = json.loads(print_format.print_designer_settings)
+            print(f"[DEBUG] Loaded settings: schema_version = {settings.get('schema_version', 'not set')}")
         else:
-            return jenv.loader.get_source(
-                jenv, "print_designer/page/print_designer/jinja/print_format.html"
-            )[0]
+            settings = {}
+            print(f"[DEBUG] No settings found, using empty dict")
+        
+        if is_older_schema(settings, "1.1.0"):
+            template_path = "print_designer/page/print_designer/jinja/old_print_format.html"
+            print(f"[DEBUG] Using old template: {template_path}")
+            return jenv.loader.get_source(jenv, template_path)[0]
+        else:
+            template_path = "print_designer/page/print_designer/jinja/print_format.html"
+            print(f"[DEBUG] Using new template: {template_path}")
+            return jenv.loader.get_source(jenv, template_path)[0]
 
 
 def measure_time(func):
@@ -265,6 +335,8 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
         print_settings: Print settings (when called as doc method)
         **kwargs: Additional arguments including 'args' for template context
     """
+    print(f"[DEBUG] before_print called with doc={doc}, method={method}")
+    
     try:
         # Get the print format from form_dict if not provided
         print_format = kwargs.get("print_format")
@@ -272,11 +344,14 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
             print_format_name = frappe.form_dict.get("format") or frappe.form_dict.get(
                 "print_format"
             )
+            print(f"[DEBUG] Print format name from form_dict: {print_format_name}")
+            
             if print_format_name:
                 try:
                     print_format = frappe.get_doc("Print Format", print_format_name)
+                    print(f"[DEBUG] Successfully loaded Print Format: {print_format_name}")
                 except Exception as e:
-                    print(f"Could not get print format '{print_format_name}': {str(e)}")
+                    print(f"[ERROR] Could not get print format '{print_format_name}': {str(e)}")
                     print_format = None
 
         # Prepare the args dict if it's not passed
@@ -321,13 +396,17 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
     Handle Thai amount enhancement for documents with amount fields.
     This replaces the old thai_amount_to_word.enhance_in_words_field function.
     """
+    print(f"[DEBUG] _handle_thai_amount_enhancement called for doc: {doc.name if doc else 'None'}")
+    
     try:
         # Check if document has amount fields that need Thai enhancement
         if not (hasattr(doc, "in_words") and hasattr(doc, "grand_total")):
+            print(f"[DEBUG] Document doesn't have in_words/grand_total fields, skipping Thai enhancement")
             return
 
         # Get effective language
         effective_lang = get_effective_language(print_format.name)
+        print(f"[THAI ENHANCEMENT] Effective language: {effective_lang}")
 
         # Apply Thai enhancement ONLY if effective language is Thai
         if is_thai_language(effective_lang):
