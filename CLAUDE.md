@@ -244,30 +244,30 @@ Complex field relationships using `depends_on`:
 
 ### Custom Field Management (MANDATORY)
 
-#### Naming Convention
-All custom fields created by print_designer MUST follow this naming pattern:
+#### Naming Convention (ENFORCED FROM 2024-09-03)
+**All NEW custom fields** created by print_designer MUST follow this naming pattern:
 - **App Name**: print_designer  
 - **Prefix**: `pd_custom_`
 - **Pattern**: `pd_custom_{descriptive_field_name}`
 - **Label**: Can be human-readable without prefix
 
 ```python
-# CORRECT - Following naming convention
+# ✅ CORRECT - Following naming convention (REQUIRED for new fields)
 "Sales Invoice": [
     {
-        "fieldname": "pd_custom_watermark_per_page",
-        "label": "Watermark per Page",
+        "fieldname": "pd_custom_new_feature_field",
+        "label": "New Feature Field",
         "fieldtype": "Check",
         "default": 0,
         "insert_after": "print_language"
     }
 ]
 
-# INCORRECT - Missing prefix (legacy fields, to be migrated)
+# ❌ INCORRECT - Missing prefix (NOT ALLOWED for new fields)
 "Sales Invoice": [
     {
-        "fieldname": "watermark_per_page",  # Missing pd_custom_ prefix
-        "label": "Watermark per Page",
+        "fieldname": "new_feature_field",  # Missing pd_custom_ prefix
+        "label": "New Feature Field", 
         "fieldtype": "Check",
         "default": 0,
         "insert_after": "print_language"
@@ -275,7 +275,16 @@ All custom fields created by print_designer MUST follow this naming pattern:
 ]
 ```
 
-**Note**: Some legacy fields may not follow this convention yet. New fields MUST use the `pd_custom_` prefix, and existing fields should be migrated when modified.
+#### Legacy Fields Status
+**Existing Legacy Fields (NOT migrated, left as-is):**
+- `subject_to_wht` (should be `pd_custom_subject_to_wht`)
+- `wht_income_type` (should be `pd_custom_wht_income_type`)
+- `net_total_after_wht` (should be `pd_custom_net_total_after_wht`)
+- `watermark_text` (should be `pd_custom_watermark_text`)
+- `prepared_by_signature` (should be `pd_custom_prepared_by_signature`)
+- And many more legacy fields...
+
+**Important**: Legacy fields are left unchanged to avoid breaking existing Print Designer formats. The `pd_custom_` prefix rule applies ONLY to new fields created from 2024-09-03 onwards.
 
 ### Test Folder Structure (MANDATORY)
 All test files MUST be placed in the designated tests folder following ERPNext standards:

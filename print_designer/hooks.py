@@ -60,18 +60,12 @@ commands = [
 # include js, css files in header of desk.html
 app_include_js = [
     "print_watermark.bundle.js",
-    # It is not bundled it is doctype_js
-    # "delivery_approval.bundle.js",
-    # "typography_injection.bundle.js",
+    # Other JS files are loaded via doctype_js for specific DocTypes
 ]
 
 app_include_css = [
     "thai_fonts.bundle.css",
-    # "signature_stamp.bundle.css",
-    # "signature_preview.bundle.css",
-    # "delivery_approval.bundle.css",
-    # "global_typography_override.bundle.css",
-    # "company_preview.bundle.css",
+    # Additional CSS files are included via doctype_js or conditionally loaded
 ]
 
 
@@ -97,7 +91,7 @@ page_js = {
 
 # include js in doctype views
 doctype_js = {
-    # "Print Format": "print_designer/client_scripts/print_format.js",
+    "Print Format": "public/js/print_format/print_format.js",
     # "Print Settings": "print_designer/client_scripts/print_settings.js",
     "Client Script": "print_designer/client_scripts/client_script.js",
     # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
@@ -113,7 +107,6 @@ doctype_js = {
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
     ],
     "Sales Order": "public/js/thailand_wht/thailand_wht_sales_order.js",
-    "Print Format": "public/js/print_format/print_format.js",
     "Print Settings": "public/js/print_format/print_settings.js",
     "Signature Basic Information": "public/js/stamps_signatures/signature_basic_information.js",
     "Delivery Note": "public/js/delivery_note/delivery_approval.js",
@@ -425,7 +418,7 @@ override_whitelisted_methods = {
 before_install = "print_designer.install.before_install"
 after_install = [
     "print_designer.install.after_install",
-    "print_designer.install.after_app_install",  # Legacy function - kept for compatibility
+    # REMOVED: after_app_install is legacy and redundant
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.install.handle_erpnext_override",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
@@ -444,10 +437,8 @@ after_install = [
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
-# Boot session enhancements
+# Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
 boot_session = "print_designer.utils.signature_stamp.boot_session"
-# Extend bootinfo hook (Frappe v15+ replacement for boot_session)
-# --------------------------------------------------
 extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
 
 # Initialize protection against third-party app conflicts
@@ -511,18 +502,11 @@ override_doctype_class = {
 pd_standard_format_folder = "default_templates"
 
 doc_events = {
-    # Global Defaults - Auto-apply typography changes
-    # "Global Defaults": {
-    #     "on_update": "print_designer.api.global_typography.on_global_defaults_update",
-    # },
     # Watermark
     "Watermark Settings": {
         "validate": "print_designer.api.watermark.validate_watermark_settings",
         "on_update": "print_designer.api.watermark.clear_watermark_cache",
     },
-    # "Print Format": {
-    #     "on_update": "print_designer.api.watermark.clear_format_watermark_cache"
-    # },
     "Print Format": {
         "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
         "on_update": "print_designer.api.watermark.clear_format_watermark_cache",

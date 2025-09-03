@@ -126,8 +126,13 @@ frappe.ui.form.on("Print Format", {
 		}
 	},
 	add_export_import_buttons: function (frm) {
+		console.log("add_export_import_buttons called", frm.doc.name, frm.doc.print_designer);
 		// Only add these buttons for Print Designer formats
 		if (!frm.is_new() && frm.doc.print_designer) {
+			console.log("Adding Export/Import buttons for Print Designer format:", frm.doc.name);
+			
+			// Add buttons with a slight delay to ensure proper ordering
+			setTimeout(() => {
 			// Add Duplicate button first (in Actions group)
 			frm.add_custom_button(__("Duplicate"), function () {
 				frappe.prompt({
@@ -274,6 +279,8 @@ frappe.ui.form.on("Print Format", {
 				});
 				dialog.show();
 			}, __("Actions"));
+			
+			}, 100); // 100ms delay to ensure proper button ordering
 		}
 	}
 });
