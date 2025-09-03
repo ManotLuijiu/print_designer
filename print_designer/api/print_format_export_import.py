@@ -8,6 +8,17 @@ from frappe import _
 from datetime import datetime
 
 
+def safe_get_attr(obj, attr_name, default=None):
+    """Safe attribute getter that handles missing attributes gracefully"""
+    try:
+        if hasattr(obj, attr_name):
+            return getattr(obj, attr_name, default)
+        else:
+            return default
+    except (AttributeError, TypeError):
+        return default
+
+
 @frappe.whitelist()
 def export_print_format(print_format_name):
     """
@@ -36,35 +47,35 @@ def export_print_format(print_format_name):
         "print_format": {
             "name": print_format.name,
             "doc_type": print_format.doc_type,
-            "module": getattr(print_format, "module", None),
-            "standard": getattr(print_format, "standard", 0),
-            "custom": getattr(print_format, "custom", 0),
-            "disabled": getattr(print_format, "disabled", 0),
-            "print_format_type": getattr(print_format, "print_format_type", "Standard"),
-            "raw_printing": getattr(print_format, "raw_printing", 0),
-            "raw_commands": getattr(print_format, "raw_commands", None),
-            "margin_top": getattr(print_format, "margin_top", None),
-            "margin_right": getattr(print_format, "margin_right", None),
-            "margin_bottom": getattr(print_format, "margin_bottom", None),
-            "margin_left": getattr(print_format, "margin_left", None),
-            "default_print_language": getattr(print_format, "default_print_language", None),
-            "font": getattr(print_format, "font", None),
-            "font_size": getattr(print_format, "font_size", None),
-            "page_number": getattr(print_format, "page_number", None),
-            "align_labels_right": getattr(print_format, "align_labels_right", 0),
-            "show_section_headings": getattr(print_format, "show_section_headings", 0),
-            "line_breaks": getattr(print_format, "line_breaks", 0),
-            "absolute_value": getattr(print_format, "absolute_value", 0),
+            "module": safe_get_attr(print_format, "module", None),
+            "standard": safe_get_attr(print_format, "standard", 0),
+            "custom": safe_get_attr(print_format, "custom", 0),
+            "disabled": safe_get_attr(print_format, "disabled", 0),
+            "print_format_type": safe_get_attr(print_format, "print_format_type", "Standard"),
+            "raw_printing": safe_get_attr(print_format, "raw_printing", 0),
+            "raw_commands": safe_get_attr(print_format, "raw_commands", None),
+            "margin_top": safe_get_attr(print_format, "margin_top", None),
+            "margin_right": safe_get_attr(print_format, "margin_right", None),
+            "margin_bottom": safe_get_attr(print_format, "margin_bottom", None),
+            "margin_left": safe_get_attr(print_format, "margin_left", None),
+            "default_print_language": safe_get_attr(print_format, "default_print_language", None),
+            "font": safe_get_attr(print_format, "font", None),
+            "font_size": safe_get_attr(print_format, "font_size", None),
+            "page_number": safe_get_attr(print_format, "page_number", None),
+            "align_labels_right": safe_get_attr(print_format, "align_labels_right", 0),
+            "show_section_headings": safe_get_attr(print_format, "show_section_headings", 0),
+            "line_breaks": safe_get_attr(print_format, "line_breaks", 0),
+            "absolute_value": safe_get_attr(print_format, "absolute_value", 0),
             # Print Designer specific fields
-            "print_designer": getattr(print_format, "print_designer", 0),
-            "print_designer_header": getattr(print_format, "print_designer_header", None),
-            "print_designer_body": getattr(print_format, "print_designer_body", None),
-            "print_designer_footer": getattr(print_format, "print_designer_footer", None),
-            "print_designer_after_table": getattr(print_format, "print_designer_after_table", None),
-            "print_designer_settings": getattr(print_format, "print_designer_settings", None),
-            "print_designer_print_format": getattr(print_format, "print_designer_print_format", None),
-            "css": getattr(print_format, "css", None),
-            "custom_css": getattr(print_format, "custom_css", None),
+            "print_designer": safe_get_attr(print_format, "print_designer", 0),
+            "print_designer_header": safe_get_attr(print_format, "print_designer_header", None),
+            "print_designer_body": safe_get_attr(print_format, "print_designer_body", None),
+            "print_designer_footer": safe_get_attr(print_format, "print_designer_footer", None),
+            "print_designer_after_table": safe_get_attr(print_format, "print_designer_after_table", None),
+            "print_designer_settings": safe_get_attr(print_format, "print_designer_settings", None),
+            "print_designer_print_format": safe_get_attr(print_format, "print_designer_print_format", None),
+            "css": safe_get_attr(print_format, "css", None),
+            "custom_css": safe_get_attr(print_format, "custom_css", None),
         }
     }
     
