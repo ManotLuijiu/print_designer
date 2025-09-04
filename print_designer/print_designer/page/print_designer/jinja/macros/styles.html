@@ -59,9 +59,33 @@
             counter-reset: page;
         }
         
-        /* Ensure proper page breaks */
+        /* Enhanced page break controls */
         .page-break {
-            page-break-before: always;
+            page-break-before: always !important;
+            break-before: page !important;
+        }
+        
+        .page-break-after {
+            page-break-after: always !important;
+            break-after: page !important;
+        }
+        
+        .no-page-break {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        /* Enhanced table page breaking */
+        table {
+            break-inside: auto !important;
+        }
+        
+        table thead {
+            break-after: avoid !important;
+        }
+        
+        table tbody tr {
+            break-inside: avoid !important;
         }
         
         /* Fix header/footer positioning for browser print */

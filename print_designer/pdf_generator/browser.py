@@ -293,11 +293,14 @@ class Browser:
             "marginLeft": 0,
             "marginRight": 0,
             "landscape": options.get("orientation", "Portrait") == "Landscape",
-            "preferCSSPageSize": False,
+            "preferCSSPageSize": True,  # Enhanced: Let CSS control page sizing
             "pageRanges": options.get("page-ranges", ""),
-            # Experimental
-            "generateTaggedPDF": options.get("generate-tagged-pdf", False),
-            "generateOutline": options.get("generate-outline", False),
+            # Enhanced page break and accessibility features
+            "generateTaggedPDF": options.get("generate-tagged-pdf", True),  # Better accessibility
+            "generateOutline": options.get("generate-outline", True),  # Better navigation
+            "omitBackground": False,  # Ensure backgrounds are rendered
+            # Enhanced: Better page break handling
+            "displayHeaderFooter": False,  # We handle headers/footers manually for better control
         }
 
         # bad implicit setting of margin #backwards-compatibility
@@ -491,7 +494,42 @@ class Browser:
         self.footer_content = footer_content
 
     def close(self):
-        self.session.disconnect()
+        """Enhanced cleanup with better resource management"""
+        try:
+            # Enhanced: Close pages explicitly before disconnecting
+            if hasattr(self, 'header_page') and self.header_page:
+                try:
+                    self.header_page.close()
+                except Exception as e:
+                    frappe.log_error(f"Error closing header page: {str(e)}", "Print Designer Cleanup")
+                    
+            if hasattr(self, 'footer_page') and self.footer_page:
+                try:
+                    self.footer_page.close()
+                except Exception as e:
+                    frappe.log_error(f"Error closing footer page: {str(e)}", "Print Designer Cleanup")
+                    
+            if hasattr(self, 'body_page') and self.body_page:
+                try:
+                    self.body_page.close()
+                except Exception as e:
+                    frappe.log_error(f"Error closing body page: {str(e)}", "Print Designer Cleanup")
+                    
+            # Enhanced: Dispose browser context before disconnecting
+            if hasattr(self, 'browser_context_id') and hasattr(self, 'session'):
+                try:
+                    self.session.send("Target.disposeBrowserContext", 
+                        {"browserContextId": self.browser_context_id})
+                except Exception as e:
+                    frappe.log_error(f"Error disposing browser context: {str(e)}", "Print Designer Cleanup")
+                    
+            # Finally disconnect session
+            if hasattr(self, 'session'):
+                self.session.disconnect()
+                
+        except Exception as e:
+            frappe.log_error(f"Error during browser cleanup: {str(e)}", "Print Designer Cleanup")
+            # Don't re-raise as this is cleanup code
 
 
 class PageSize:

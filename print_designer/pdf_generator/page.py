@@ -261,7 +261,7 @@ class Page:
 		return height
 
 	def add_page_size_css(self):
-
+		"""Enhanced page size CSS with better page break controls"""
 		width = str(self.options["paperWidth"]) + "in"
 		height = str(self.options["paperHeight"]) + "in"
 		marginLeft = str(self.options["marginLeft"]) + "in"
@@ -269,53 +269,145 @@ class Page:
 		marginTop = str(self.options["marginTop"]) + "in"
 		marginBottom = str(self.options["marginBottom"]) + "in"
 
-		# Enable DOM and CSS agents
+		# Enable DOM and CSS agents with error handling
 		result, error = self.send("DOM.enable")
 		if error:
+			frappe.log_error(f"Error enabling DOM: {error}", "Print Designer PDF Generation")
 			raise RuntimeError(f"Error enabling DOM: {error}")
 
 		result, error = self.send("CSS.enable")
 		if error:
+			frappe.log_error(f"Error enabling CSS: {error}", "Print Designer PDF Generation")
 			raise RuntimeError(f"Error enabling CSS: {error}")
 
-		# Create a new stylesheet
-		result, error = self.send("CSS.createStyleSheet", {"frameId": self._ensure_frame_id()})
-		if error:
-			raise RuntimeError(f"Error creating stylesheet: {error}")
+		# Create a new stylesheet with retry logic
+		for attempt in range(3):
+			result, error = self.send("CSS.createStyleSheet", {"frameId": self._ensure_frame_id()})
+			if not error:
+				break
+			if attempt == 2:
+				frappe.log_error(f"Error creating stylesheet after 3 attempts: {error}", "Print Designer PDF Generation")
+				raise RuntimeError(f"Error creating stylesheet: {error}")
+			time.sleep(0.1)  # Brief delay before retry
 
 		style_sheet_id = result["styleSheetId"]
 
-		# Define the CSS rule for the page size
+		# Enhanced CSS rule with improved page break controls
 		css_rule = f"""
 			@page {{
 				size: {width} {height};
 				margin: {marginTop} {marginRight} {marginBottom} {marginLeft};
 			}}
+			
+			/* Enhanced page break controls for Print Designer */
+			.page-break {{
+				page-break-before: always !important;
+				break-before: page !important;
+			}}
+			
+			.page-break-after {{
+				page-break-after: always !important;
+				break-after: page !important;
+			}}
+			
+			.no-page-break {{
+				page-break-inside: avoid !important;
+				break-inside: avoid !important;
+			}}
+			
+			/* Enhanced signature and critical section protection */
+			.signature-section,
+			.approval-section,
+			.qr-approval-section,
+			.section-box {{
+				page-break-inside: avoid !important;
+				break-inside: avoid !important;
+			}}
+			
+			/* Thai business form enhancements */
+			.thai-form-section {{
+				page-break-inside: avoid !important;
+				break-inside: avoid !important;
+			}}
+			
+			/* Table enhancements for better page breaking */
+			table {{
+				break-inside: auto !important;
+			}}
+			
+			table thead {{
+				break-after: avoid !important;
+			}}
+			
+			table tbody tr {{
+				break-inside: avoid !important;
+			}}
 		"""
 
-		# Apply the CSS rule to the created stylesheet
+		# Apply the CSS rule to the created stylesheet with error handling
 		result, error = self.send(
 			"CSS.setStyleSheetText", {"styleSheetId": style_sheet_id, "text": css_rule}
 		)
 
 		if error:
+			frappe.log_error(f"Error setting stylesheet text: {error}", "Print Designer PDF Generation")
 			raise RuntimeError(f"Error setting stylesheet text: {error}")
 
-		self.send("CSS.disable")
-		self.send("DOM.disable")
+		# Clean up with error handling
+		try:
+			self.send("CSS.disable")
+			self.send("DOM.disable")
+		except Exception as e:
+			frappe.log_error(f"Error during CSS/DOM cleanup: {str(e)}", "Print Designer PDF Generation")
+			# Don't raise here as the main functionality is complete
 
 	def generate_pdf(self, wait_for_pdf=True, raw=False):
-		self.add_page_size_css()
-		if not wait_for_pdf:
-			self.wait_for_pdf = self.send("Page.printToPDF", self.options, return_future=True)
-			return
+		"""Enhanced PDF generation with improved error handling and performance"""
+		try:
+			self.add_page_size_css()
+			
+			if not wait_for_pdf:
+				self.wait_for_pdf = self.send("Page.printToPDF", self.options, return_future=True)
+				return
 
-		result, error = self.send("Page.printToPDF", self.options)
-		if error:
-			raise RuntimeError(f"Error generating PDF: {error}")
-		if "stream" not in result:
-			raise ValueError("Stream handle not returned from Page.printToPDF")
-		return self.get_pdf_from_stream(result["stream"], raw)
+			# Enhanced: Add timeout and retry logic for PDF generation
+			max_retries = 3
+			for attempt in range(max_retries):
+				try:
+					result, error = self.send("Page.printToPDF", self.options)
+					if not error:
+						break
+					if attempt == max_retries - 1:
+						frappe.log_error(f"Error generating PDF after {max_retries} attempts: {error}", 
+							"Print Designer PDF Generation")
+						raise RuntimeError(f"Error generating PDF: {error}")
+					time.sleep(0.5)  # Brief delay before retry
+				except Exception as e:
+					if attempt == max_retries - 1:
+						frappe.log_error(f"PDF generation exception after {max_retries} attempts: {str(e)}", 
+							"Print Designer PDF Generation")
+						raise
+					time.sleep(0.5)
+
+			if "stream" not in result:
+				error_msg = f"Stream handle not returned from Page.printToPDF. Result keys: {list(result.keys()) if result else 'None'}"
+				frappe.log_error(error_msg, "Print Designer PDF Generation")
+				raise ValueError(error_msg)
+			
+			return self.get_pdf_from_stream(result["stream"], raw)
+			
+		except Exception as e:
+			# Enhanced error logging with context
+			error_context = {
+				"page_type": getattr(self, 'type', 'unknown'),
+				"options": self.options,
+				"is_print_designer": getattr(self, 'is_print_designer', False)
+			}
+			frappe.log_error(
+				f"PDF generation failed: {str(e)}\nContext: {error_context}", 
+				"Print Designer PDF Generation"
+			)
+			raise
 
 	def get_pdf_stream_id(self):
 		# wait for task to complete
