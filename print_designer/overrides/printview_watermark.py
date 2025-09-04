@@ -13,8 +13,13 @@ def get_print_designer_html_for_browser(
     is_print_mode=False,
 ):
     """
-    Generate HTML for Print Designer formats optimized for browser printing.
-    This includes proper page numbering and header/footer handling.
+    DEPRECATED: This function is no longer used after Print button fix.
+    
+    The fix was to let standard Frappe rendering handle Print Designer formats for browser printing,
+    as the original frappe/print_designer only handles PDF generation, not browser printing.
+    
+    This function attempted to use Print Designer's PDF rendering system for browser printing,
+    which caused conflicts. Now we use standard rendering + watermarks only.
     """
     try:
         # Use the standard Frappe rendering system but with Print Designer enhancements
@@ -414,68 +419,26 @@ def get_html_and_style_with_watermark(
         except Exception:
             pass
 
-    # For Print Designer formats, we need special handling to ensure proper rendering
-    if (
-        print_format_doc
-        and hasattr(print_format_doc, "print_designer")
-        and print_format_doc.print_designer
-        and hasattr(print_format_doc, "print_designer_body")
-        and print_format_doc.print_designer_body
-    ):
-        log_to_print_designer(
-            f"Print Designer format detected for browser printing: {print_format}"
-        )
-
-        # For Print Designer formats, ALWAYS use the Print Designer rendering system
-        # This ensures proper header/footer handling and page numbering for both preview and print
-
-        log_to_print_designer(
-            f"Using Print Designer rendering for format: {print_format}"
-        )
-
-        if trigger_print:
-            # Add a flag to indicate this is for browser printing, not PDF
-            frappe.local.form_dict["for_browser_print"] = "1"
-
-        try:
-            # Always use Print Designer rendering for Print Designer formats
-            result = get_print_designer_html_for_browser(
-                doc=doc,
-                print_format_doc=print_format_doc,
-                no_letterhead=no_letterhead,
-                letterhead=letterhead,
-                settings=settings,
-                is_print_mode=trigger_print,
-            )
-            log_to_print_designer(
-                f"Print Designer rendering successful: {len(result.get('html', '')) if result else 0} chars"
-            )
-        except Exception as e:
-            log_to_print_designer(f"Print Designer rendering failed: {str(e)}")
-            frappe.log_error(f"Print Designer rendering failed for {print_format}: {str(e)}")
-            # Fallback to standard method
-            result = original_get_html_and_style(
-                doc=doc,
-                name=name,
-                print_format=print_format,
-                no_letterhead=no_letterhead,
-                letterhead=letterhead,
-                trigger_print=trigger_print,
-                style=style,
-                settings=settings,
-            )
-    else:
-        # Not a Print Designer format, use standard method
-        result = original_get_html_and_style(
-            doc=doc,
-            name=name,
-            print_format=print_format,
-            no_letterhead=no_letterhead,
-            letterhead=letterhead,
-            trigger_print=trigger_print,
-            style=style,
-            settings=settings,
-        )
+    # FIXED: Always use standard Frappe rendering for browser printing
+    # Print Designer formats work fine with standard rendering for browser printing
+    # Only PDF generation needs special Print Designer hooks (which are handled separately)
+    
+    result = original_get_html_and_style(
+        doc=doc,
+        name=name,
+        print_format=print_format,
+        no_letterhead=no_letterhead,
+        letterhead=letterhead,
+        trigger_print=trigger_print,
+        style=style,
+        settings=settings,
+    )
+    
+    # Log successful rendering
+    log_to_print_designer(
+        f"Standard rendering used: format={print_format}, trigger_print={trigger_print}, "
+        f"html_length={len(result.get('html', '')) if result else 0}"
+    )
 
     # Parse settings to check for watermark configuration
     settings_dict = frappe.parse_json(settings) if settings else {}
