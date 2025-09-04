@@ -693,7 +693,7 @@ function extendPrintView() {
     }
 
     // 9. Final fallback to user's GUI language
-    const fallbackLang = this.lang_code || 'en';
+    const fallbackLang = this.lang_code || 'th';
     console.log('Using fallback language (user GUI):', fallbackLang);
     return fallbackLang;
   }
@@ -2157,12 +2157,73 @@ function extendPrintView() {
   }
 
   set_default_print_language() {
-    super.set_default_print_language();
-    this.toolbar_language_selector.$input.val(this.lang_code);
+    // FIX: Properly load Print Format data before reading default_print_language
+    let print_format_name = this.selected_format();
+    
+    if (print_format_name) {
+      // Check if Print Format data is already loaded
+      if (!locals["Print Format"] || !locals["Print Format"][print_format_name]) {
+        // Load the Print Format document synchronously to get default_print_language
+        frappe.call({
+          method: "frappe.client.get",
+          args: {
+            doctype: "Print Format",
+            name: print_format_name
+          },
+          async: false, // Synchronous to ensure data is loaded before proceeding
+          callback: (r) => {
+            if (r.message) {
+              // Store in locals for future use
+              if (!locals["Print Format"]) {
+                locals["Print Format"] = {};
+              }
+              locals["Print Format"][print_format_name] = r.message;
+            }
+          }
+        });
+      }
+      
+      // Now get the print format with loaded data
+      let print_format = this.get_print_format(print_format_name);
+      
+      // Set language with proper priority (respects user GUI preference):
+      // 1. Print Format's default_print_language (if explicitly set)
+      // 2. Document's language field (if set)
+      // 3. User's GUI language preference (frappe.boot.lang)
+      // 4. Thai as fallback for Thai business users
+      if (print_format && print_format.default_print_language) {
+        this.lang_code = print_format.default_print_language;
+      } else if (this.frm.doc.language) {
+        this.lang_code = this.frm.doc.language;
+      } else if (frappe.boot.lang) {
+        // Respect user's GUI language preference (e.g., 'en' for English GUI users)
+        this.lang_code = frappe.boot.lang;
+      } else {
+        // Final fallback to Thai for unset preferences in Thai business context
+        this.lang_code = 'th';
+      }
+    } else {
+      // No print format selected, use document language, user preference, or Thai fallback
+      if (this.frm.doc.language) {
+        this.lang_code = this.frm.doc.language;
+      } else if (frappe.boot.lang) {
+        this.lang_code = frappe.boot.lang;
+      } else {
+        this.lang_code = 'th';
+      }
+    }
+    
+    // Set the language in the selector
+    this.language_selector.val(this.lang_code);
+    
+    // Also update toolbar language selector if it exists
+    if (this.toolbar_language_selector && this.toolbar_language_selector.$input) {
+      this.toolbar_language_selector.$input.val(this.lang_code);
+    }
   }
   set_user_lang() {
-    // Update lang_code when language is changed
-    this.lang_code = this.language_item.value || 'en';
+    // Update lang_code when language is changed (default to Thai for Thai users)
+    this.lang_code = this.language_item.value || 'th';
     // Store user's language preference in localStorage
     localStorage.setItem('print_designer_language', this.lang_code);
     super.set_user_lang();

@@ -280,6 +280,18 @@ def get_print_designer_style(print_format_doc):
             font-family: Arial, sans-serif;
             line-height: 1.4;
         }
+        
+        /* Fix whitespace preservation for Print Designer text elements */
+        .printDesignerElement[data-element-type="text"],
+        .printDesignerElement .editable,
+        #firstPageFooter,
+        #otherPageFooter,
+        #firstPageHeader,
+        #otherPageHeader,
+        .print-designer-text {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+        }
         """
 
         return css + pd_css
@@ -419,20 +431,42 @@ def get_html_and_style_with_watermark(
         except Exception:
             pass
 
-    # FIXED: Always use standard Frappe rendering for browser printing
-    # Print Designer formats work fine with standard rendering for browser printing
-    # Only PDF generation needs special Print Designer hooks (which are handled separately)
-    
-    result = original_get_html_and_style(
-        doc=doc,
-        name=name,
-        print_format=print_format,
-        no_letterhead=no_letterhead,
-        letterhead=letterhead,
-        trigger_print=trigger_print,
-        style=style,
-        settings=settings,
+    # Check if this is a Print Designer format and preserve its original rendering
+    is_print_designer_format = (
+        print_format_doc and 
+        print_format_doc.get("print_designer") == 1
     )
+    
+    if is_print_designer_format:
+        # For Print Designer formats, we need to preserve the exact CSS and HTML structure
+        # to maintain whitespace, fonts, and other styling that works in the designer
+        result = original_get_html_and_style(
+            doc=doc,
+            name=name,
+            print_format=print_format,
+            no_letterhead=no_letterhead,
+            letterhead=letterhead,
+            trigger_print=trigger_print,
+            style=style,
+            settings=settings,
+        )
+        
+        # Ensure Print Designer CSS is preserved in the result
+        if result.get("style") and print_format_doc.css:
+            # Preserve original Print Designer CSS which includes whitespace rules
+            result["style"] = print_format_doc.css + "\n" + result.get("style", "")
+    else:
+        # For standard formats, use normal rendering
+        result = original_get_html_and_style(
+            doc=doc,
+            name=name,
+            print_format=print_format,
+            no_letterhead=no_letterhead,
+            letterhead=letterhead,
+            trigger_print=trigger_print,
+            style=style,
+            settings=settings,
+        )
     
     # Log successful rendering
     log_to_print_designer(

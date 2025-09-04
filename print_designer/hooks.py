@@ -50,6 +50,10 @@ commands = [
     # Company Thai Tax Fields
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",
     "print_designer.commands.install_company_thai_tax_fields.check_company_thai_tax_fields",
+    # Thai Language Setup Commands
+    "print_designer.install.thai_defaults.setup_thai_language_defaults",
+    "print_designer.install.thai_defaults.check_thai_language_setup",
+    "print_designer.install.thai_defaults.setup_thai_print_format_defaults",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
 ]
@@ -435,6 +439,7 @@ after_install = [
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
+    "print_designer.install.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
