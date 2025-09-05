@@ -513,7 +513,6 @@ doc_events = {
         "on_update": "print_designer.api.watermark.clear_watermark_cache",
     },
     "Print Format": {
-        "before_save": "print_designer.install.set_wkhtmltopdf_for_print_designer_format",
         "on_update": "print_designer.api.watermark.clear_format_watermark_cache",
     },
     # Sales Invoice events - consolidated in doc_events section below
