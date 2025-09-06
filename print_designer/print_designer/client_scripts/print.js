@@ -1853,9 +1853,10 @@ function extendPrintView() {
       // Load traditional Print Settings for copy configuration
       new Promise((resolve) => {
         frappe.call({
-          method: 'frappe.client.get_single',
+          method: 'frappe.client.get',
           args: {
-            doctype: 'Print Settings'
+            doctype: 'Print Settings',
+            name: 'Print Settings'  // For SingleDocType, name is same as doctype
           },
           callback: (r) => {
             if (r.message) {
