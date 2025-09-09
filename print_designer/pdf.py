@@ -214,9 +214,9 @@ def pdf_body_html(print_format, jenv, args, template):
 
         args.update(
             {
-                "headerElement": json.loads(print_format.print_designer_header),
-                "bodyElement": json.loads(print_format.print_designer_body),
-                "footerElement": json.loads(print_format.print_designer_footer),
+                "headerElement": json.loads(print_format.print_designer_header or "[]"),
+                "bodyElement": json.loads(print_format.print_designer_body or "[]"),
+                "footerElement": json.loads(print_format.print_designer_footer or "[]"),
                 "settings": settings,
                 "pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
                 "effective_lang": effective_lang,
@@ -225,15 +225,45 @@ def pdf_body_html(print_format, jenv, args, template):
         )
 
         if not is_older_schema(settings=settings, current_version="1.1.0"):
-            args.update(
-                {"pd_format": json.loads(print_format.print_designer_print_format)}
-            )
+            # Check if print_designer_print_format has valid data
+            # For Thai WHT certificates, only apply if payment has withholding tax
+            if print_format.print_designer_print_format:
+                args.update(
+                    {"pd_format": json.loads(print_format.print_designer_print_format)}
+                )
+            else:
+                # For Payment Entry WHT forms without designer format, check if WHT applies
+                # Parse doc from args if it's a string (as it comes from printview)
+                doc_data = args.get("doc", {})
+                if isinstance(doc_data, str):
+                    try:
+                        doc_data = json.loads(doc_data)
+                    except (json.JSONDecodeError, TypeError):
+                        doc_data = {}
+                
+                if doc_data.get("doctype") == "Payment Entry":
+                    # In Thailand, WHT only applies to services, not goods
+                    # Check if this payment entry has withholding tax fields
+                    has_wht = (
+                        doc_data.get("pd_custom_has_thai_taxes") or
+                        doc_data.get("pd_custom_total_wht_amount", 0) > 0 or
+                        doc_data.get("apply_tax_withholding_amount", 0) > 0
+                    )
+                    
+                    if has_wht:
+                        # If WHT applies but no designer format, use a basic template
+                        args.update({"pd_format": {"elements": [], "sections": []}})
+                    else:
+                        # No WHT, use empty format (will fall back to standard template)
+                        args.update({"pd_format": {}})
+                else:
+                    args.update({"pd_format": {}})
         else:
+            # Handle older schema with null checks
+            after_table_data = print_format.print_designer_after_table or "[]"
             args.update(
                 {
-                    "afterTableElement": json.loads(
-                        print_format.print_designer_after_table or "[]"
-                    )
+                    "afterTableElement": json.loads(after_table_data)
                 }
             )
 
@@ -464,7 +494,11 @@ def _prepare_print_designer_context(print_format, args):
             )
             return
 
-        settings = json.loads(print_format.print_designer_settings)
+        # Handle None or empty print_designer_settings
+        if print_format.print_designer_settings:
+            settings = json.loads(print_format.print_designer_settings)
+        else:
+            settings = {}
 
         # Get effective language for this print format
         effective_lang = get_effective_language(print_format.name)
