@@ -216,6 +216,12 @@
             const urlParts = window.location.pathname.split('/');
             deliveryNoteId = urlParts[urlParts.length - 1];
             
+            // Check if we have a valid delivery note ID
+            if (!deliveryNoteId || deliveryNoteId === 'delivery-approval') {
+                showNoDeliveryNote();
+                return;
+            }
+            
             // Initialize signature pad
             initSignaturePad();
             
@@ -508,6 +514,51 @@
                 document.getElementById('approve-btn').disabled = false;
                 document.getElementById('reject-btn').disabled = false;
             }
+        }
+
+        function showNoDeliveryNote() {
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = `
+                <div class="card approval-card">
+                    <div class="card-header card-header-custom text-white text-center py-4">
+                        <h2 class="mb-0">
+                            <i class="fas fa-truck-loading me-2"></i>
+                            Delivery Approval System
+                        </h2>
+                        <p class="mb-0 mt-2 opacity-75">QR Code Delivery Approval</p>
+                    </div>
+                    
+                    <div class="card-body p-4 text-center">
+                        <div class="alert alert-warning">
+                            <h4 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No Delivery Note Specified
+                            </h4>
+                            <p class="mb-3">This page requires a delivery note ID to function properly.</p>
+                            <hr>
+                            <p class="mb-0">
+                                <strong>To use this system:</strong><br>
+                                1. Scan the QR code from your delivery note<br>
+                                2. Or use the full URL format: <code>/delivery-approval/{delivery-note-id}</code>
+                            </p>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <p class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                This delivery approval system is currently disabled for maintenance.
+                            </p>
+                            <a href="/app/delivery-note" class="btn btn-primary">
+                                <i class="fas fa-list me-1"></i>
+                                View Delivery Notes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function showAlert(type, message) {

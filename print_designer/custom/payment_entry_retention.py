@@ -489,7 +489,7 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
         
     except Exception as e:
         print(f"❌ ERROR in _get_invoice_thai_tax_info: {str(e)}")
-        frappe.log_error(f"Error getting Thai tax info for {reference_name}: {str(e)}")
+        frappe.log_error(f"Thai tax info error for {reference_name}: {str(e)}", "Thai Tax Info Error")
         return {"has_thai_taxes": False}
 
 
@@ -541,7 +541,7 @@ def _get_company_thai_tax_accounts(company):
         
     except Exception as e:
         print(f"❌ ERROR fetching Company Thai tax accounts: {str(e)}")
-        frappe.log_error(f"Error fetching Company Thai tax accounts for {company}: {str(e)}")
+        frappe.log_error(f"Company Thai tax accounts error for {company}: {str(e)}", "Thai Tax Accounts Error")
         return {
             "company_name": company,
             "default_wht_account": None,
@@ -570,7 +570,7 @@ def _get_output_vat_undue_amount(invoice):
                     vat_undue_amount += tax_amount
         
     except Exception as e:
-        frappe.log_error(f"Error getting Output VAT Undue amount: {str(e)}")
+        frappe.log_error(f"Output VAT Undue amount error: {str(e)}", "Output VAT Error")
     
     return flt(vat_undue_amount, 2)
 
@@ -594,7 +594,7 @@ def _get_company_retention_account(company):
         return None
         
     except Exception as e:
-        frappe.log_error(f"Error getting retention account for {company}: {str(e)}")
+        frappe.log_error(f"Retention account error for {company}: {str(e)}", "Retention Account Error")
         return None
 
 
@@ -620,7 +620,7 @@ def _set_thai_tax_accounts(doc):
             doc.pd_custom_output_vat_account = getattr(company_doc, 'default_output_vat_account', None)
             
     except Exception as e:
-        frappe.log_error(f"Error setting Thai tax accounts: {str(e)}")
+        frappe.log_error(f"Thai tax accounts setup error: {str(e)}", "Thai Tax Setup Error")
 
 
 def _generate_thai_tax_note(thai_tax_details):
@@ -812,7 +812,10 @@ def payment_entry_on_submit_create_retention_entries(doc, method=None):
         _show_thai_tax_summary(doc)
         
     except Exception as e:
-        frappe.log_error(f"Error creating Thai tax GL entries for {doc.name}: {str(e)}")
+        # Use very short title to avoid 140 character limit in Error Log
+        # Truncate the error message to prevent cascading truncation issues
+        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
+        frappe.log_error(f"Thai tax GL: {doc.name}: {error_msg}", "Thai Tax GL Error")
         frappe.throw(_("Failed to create Thai tax GL entries: {0}").format(str(e)))
 
 
@@ -833,8 +836,8 @@ def _create_retention_gl_entry(doc):
         gl_entry.posting_date = doc.posting_date
         gl_entry.transaction_date = doc.posting_date
         gl_entry.account = doc.pd_custom_retention_account
-        gl_entry.party_type = doc.party_type
-        gl_entry.party = doc.party
+        # Don't set party_type and party for non-receivable/payable accounts
+        # Retention account is typically a Current Liability, not Receivable/Payable
         gl_entry.debit = retention_amount  # ✅ DEBIT - Retention is an asset we hold
         gl_entry.debit_in_account_currency = retention_amount
         gl_entry.credit = 0
@@ -845,7 +848,11 @@ def _create_retention_gl_entry(doc):
         gl_entry.remarks = f"Construction retention held for {doc.name}"
         gl_entry.is_opening = "No"
         gl_entry.company = doc.company
-        gl_entry.finance_book = doc.finance_book
+        
+        # Set finance_book only if the document has this field
+        if hasattr(doc, 'finance_book') and doc.finance_book:
+            gl_entry.finance_book = doc.finance_book
+        # Leave finance_book empty if not available
         
         gl_entry.insert(ignore_permissions=True)
         
@@ -854,7 +861,9 @@ def _create_retention_gl_entry(doc):
         ))
         
     except Exception as e:
-        frappe.log_error(f"Error creating retention GL entry for {doc.name}: {str(e)}")
+        # Shorten error message to avoid truncation
+        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
+        frappe.log_error(f"Retention GL: {doc.name}: {error_msg}", "Retention GL Error")
         frappe.throw(_("Failed to create retention asset entry: {0}").format(str(e)))
 
 
@@ -875,8 +884,8 @@ def _create_wht_gl_entry(doc):
         gl_entry.posting_date = doc.posting_date
         gl_entry.transaction_date = doc.posting_date
         gl_entry.account = doc.pd_custom_wht_account
-        gl_entry.party_type = doc.party_type
-        gl_entry.party = doc.party
+        # Don't set party_type and party for non-receivable/payable accounts
+        # WHT account is typically a Tax Asset, not Receivable/Payable
         gl_entry.debit = wht_amount  # ✅ DEBIT - WHT is a tax credit asset
         gl_entry.debit_in_account_currency = wht_amount
         gl_entry.credit = 0
@@ -887,7 +896,11 @@ def _create_wht_gl_entry(doc):
         gl_entry.remarks = f"Thai WHT tax credit for {doc.name}"
         gl_entry.is_opening = "No"
         gl_entry.company = doc.company
-        gl_entry.finance_book = doc.finance_book
+        
+        # Set finance_book only if the document has this field
+        if hasattr(doc, 'finance_book') and doc.finance_book:
+            gl_entry.finance_book = doc.finance_book
+        # Leave finance_book empty if not available
         
         gl_entry.insert(ignore_permissions=True)
         
@@ -896,7 +909,9 @@ def _create_wht_gl_entry(doc):
         ))
         
     except Exception as e:
-        frappe.log_error(f"Error creating WHT GL entry for {doc.name}: {str(e)}")
+        # Shorten error message to avoid truncation
+        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
+        frappe.log_error(f"WHT GL: {doc.name}: {error_msg}", "WHT GL Error")
         frappe.throw(_("Failed to create WHT tax credit entry: {0}").format(str(e)))
 
 
@@ -916,8 +931,8 @@ def _create_vat_gl_entries(doc):
         gl_entry_undue.posting_date = doc.posting_date
         gl_entry_undue.transaction_date = doc.posting_date
         gl_entry_undue.account = doc.pd_custom_output_vat_undue_account
-        gl_entry_undue.party_type = doc.party_type
-        gl_entry_undue.party = doc.party
+        # Don't set party_type and party for non-receivable/payable accounts
+        # VAT accounts are typically Tax Liability accounts
         gl_entry_undue.debit = vat_amount  # ✅ DEBIT - Clear undue VAT
         gl_entry_undue.debit_in_account_currency = vat_amount
         gl_entry_undue.credit = 0
@@ -928,7 +943,11 @@ def _create_vat_gl_entries(doc):
         gl_entry_undue.remarks = f"Thai VAT Undue clearance for {doc.name}"
         gl_entry_undue.is_opening = "No"
         gl_entry_undue.company = doc.company
-        gl_entry_undue.finance_book = doc.finance_book
+        
+        # Set finance_book only if the document has this field
+        if hasattr(doc, 'finance_book') and doc.finance_book:
+            gl_entry_undue.finance_book = doc.finance_book
+        # Leave finance_book empty if not available
         
         gl_entry_undue.insert(ignore_permissions=True)
         
@@ -937,8 +956,8 @@ def _create_vat_gl_entries(doc):
         gl_entry_due.posting_date = doc.posting_date
         gl_entry_due.transaction_date = doc.posting_date
         gl_entry_due.account = doc.pd_custom_output_vat_account
-        gl_entry_due.party_type = doc.party_type
-        gl_entry_due.party = doc.party
+        # Don't set party_type and party for non-receivable/payable accounts
+        # VAT accounts are typically Tax Liability accounts
         gl_entry_due.debit = 0
         gl_entry_due.debit_in_account_currency = 0
         gl_entry_due.credit = vat_amount  # ✅ CREDIT - Register due VAT
@@ -949,7 +968,11 @@ def _create_vat_gl_entries(doc):
         gl_entry_due.remarks = f"Thai VAT Due registration for {doc.name}"
         gl_entry_due.is_opening = "No"
         gl_entry_due.company = doc.company
-        gl_entry_due.finance_book = doc.finance_book
+        
+        # Set finance_book only if the document has this field
+        if hasattr(doc, 'finance_book') and doc.finance_book:
+            gl_entry_due.finance_book = doc.finance_book
+        # Leave finance_book empty if not available
         
         gl_entry_due.insert(ignore_permissions=True)
         
@@ -959,7 +982,9 @@ def _create_vat_gl_entries(doc):
         ))
         
     except Exception as e:
-        frappe.log_error(f"Error creating VAT GL entries for {doc.name}: {str(e)}")
+        # Shorten error message to avoid truncation
+        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
+        frappe.log_error(f"VAT GL: {doc.name}: {error_msg}", "VAT GL Error")
         frappe.throw(_("Failed to create VAT processing entries: {0}").format(str(e)))
 
 
@@ -1015,7 +1040,7 @@ def _create_retention_tracking_record(doc):
         # TODO: Create actual Retention Tracking DocType and insert record
         
     except Exception as e:
-        frappe.log_error(f"Error creating retention tracking record for {doc.name}: {str(e)}")
+        frappe.log_error(f"Retention tracking error for {doc.name}: {str(e)}", "Retention Tracking Error")
 
 
 def payment_entry_on_cancel_reverse_retention_entries(doc, method=None):
@@ -1063,5 +1088,5 @@ def payment_entry_on_cancel_reverse_retention_entries(doc, method=None):
             frappe.msgprint(_("Thai tax GL entries reversed: {0} entries").format(total_reversed))
         
     except Exception as e:
-        frappe.log_error(f"Error reversing Thai tax GL entries for {doc.name}: {str(e)}")
+        frappe.log_error(f"Thai tax GL reversal error for {doc.name}: {str(e)}", "Thai Tax GL Reversal Error")
         frappe.throw(_("Failed to reverse Thai tax entries: {0}").format(str(e)))

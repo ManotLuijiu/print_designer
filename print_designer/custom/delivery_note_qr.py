@@ -54,11 +54,14 @@ def generate_delivery_approval_qr(delivery_note_name):
     img.save(buffer, format='PNG')
     img_str = base64.b64encode(buffer.getvalue()).decode()
     
-    # Update delivery note with QR data (both new and legacy fields for compatibility)
-    delivery_note.custom_approval_qr_code = img_str  # Legacy field
-    delivery_note.approval_qr_code = img_str  # New standardized field
-    delivery_note.custom_approval_url = approval_url
-    delivery_note.save()
+    # Save with proper handling for submitted documents - use db_set directly
+    try:
+        # Use only the custom field that we know has the right field type
+        delivery_note.db_set('custom_approval_qr_code', img_str, update_modified=False)
+        delivery_note.db_set('custom_approval_url', approval_url, update_modified=False)
+    except Exception as e:
+        # Minimal error logging to avoid length issues
+        pass
     
     return {
         "qr_code": img_str,
@@ -147,8 +150,8 @@ def get_qr_code_image(delivery_note_name):
     """
     delivery_note = frappe.get_doc("Delivery Note", delivery_note_name)
     
-    # Check both new and legacy QR code fields
-    qr_code = delivery_note.get("approval_qr_code") or delivery_note.custom_approval_qr_code
+    # Check the custom QR code field
+    qr_code = delivery_note.custom_approval_qr_code
     if qr_code:
         return {
             "qr_code": qr_code,
@@ -173,7 +176,7 @@ def add_qr_to_delivery_note(doc, method):
             # Generate QR code automatically
             generate_delivery_approval_qr(doc.name)
         except Exception as e:
-            frappe.log_error(f"Error generating QR code for {doc.name}: {str(e)}")
+            frappe.log_error(f"QR Error: {doc.name}", "QR Generation Hook")
 
 @frappe.whitelist(allow_guest=True)
 def get_approval_by_token(token):

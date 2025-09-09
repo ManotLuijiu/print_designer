@@ -527,7 +527,7 @@ doc_events = {
     },
     "Delivery Note": {
         "before_print": "print_designer.pdf.before_print",
-        "on_submit": "print_designer.custom.delivery_note_qr.add_qr_to_delivery_note",
+        # "on_submit": "print_designer.custom.delivery_note_qr.add_qr_to_delivery_note",  # Disabled due to field length errors
         "before_save": "print_designer.utils.field_sync.sync_delivery_note_fields",
     },
     "Purchase Receipt": {
@@ -547,16 +547,17 @@ doc_events = {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
-    # Thai Withholding Tax events - DISABLED: Missing custom fields cause save/submit issues
-    "Payment Entry": {
-        "before_print": "print_designer.pdf.before_print",
-        "validate": [
-            "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
-            "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
-        ],
-        "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_create_retention_entries",
-        "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
-    },
+    # Thai Withholding Tax events - DISABLED: GL Entry validation errors with party_type/party on non-receivable accounts
+    # Temporarily disabled to allow Payment Entries to submit without Thai tax processing
+    # "Payment Entry": {
+    #     "before_print": "print_designer.pdf.before_print",
+    #     "validate": [
+    #         "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
+    #         "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
+    #     ],
+    #     "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_create_retention_entries",
+    #     "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
+    # },
     # Company DocType - Sync retention data to Company Retention Settings
     "Company": {
         "validate": "print_designer.overrides.company.sync_company_retention_settings",

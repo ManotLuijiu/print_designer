@@ -31,8 +31,16 @@ frappe.ui.form.on("Delivery Note", {
 });
 
 function add_delivery_note_buttons(frm) {
+	// Debug logging for button availability
+	console.log("🔍 Checking button availability for:", frm.doc.name);
+	console.log("Document Status:", frm.doc.docstatus, "(1=submitted)");
+	console.log("Has QR Code:", !!frm.doc.custom_approval_qr_code);
+	console.log("Has Approval URL:", !!frm.doc.custom_approval_url);
+	console.log("Goods Status:", frm.doc.custom_goods_received_status);
+	
 	// Add QR generation button for submitted delivery notes without QR
 	if (frm.doc.docstatus === 1 && !frm.doc.custom_approval_qr_code) {
+		console.log("✅ Adding 'Generate QR Code' button");
 		frm.add_custom_button(
 			__("Generate QR Code"),
 			function () {
@@ -40,35 +48,122 @@ function add_delivery_note_buttons(frm) {
 			},
 			__("Actions"),
 		);
+	} else {
+		console.log("❌ 'Generate QR Code' button not added:", {
+			submitted: frm.doc.docstatus === 1,
+			hasQR: !!frm.doc.custom_approval_qr_code
+		});
 	}
 
 	// Add approval page viewing button
 	if (frm.doc.custom_approval_url) {
+		console.log("✅ Adding 'View Approval Page' button");
 		frm.add_custom_button(
 			__("View Approval Page"),
 			function () {
-				window.open(frm.doc.custom_approval_url, "_blank");
+				// Enhanced debugging for approval page viewing
+				console.log("🔗 Opening Approval Page");
+				console.log("Delivery Note:", frm.doc.name);
+				console.log("Status:", frm.doc.docstatus);
+				console.log("Approval URL:", frm.doc.custom_approval_url);
+				console.log("QR Code Available:", !!frm.doc.custom_approval_qr_code);
+				console.log("Current Status:", frm.doc.custom_goods_received_status);
+				
+				// Validate URL before opening
+				try {
+					const url = frm.doc.custom_approval_url;
+					
+					// Check if URL is valid
+					if (!url || url.trim() === '') {
+						frappe.msgprint({
+							title: __("Error"),
+							message: __("No approval URL found. Please generate a QR code first."),
+							indicator: "red"
+						});
+						return;
+					}
+					
+					// Parse URL to validate format
+					const urlObj = new URL(url);
+					console.log("URL Analysis:", {
+						protocol: urlObj.protocol,
+						host: urlObj.host,
+						pathname: urlObj.pathname,
+						searchParams: Object.fromEntries(urlObj.searchParams)
+					});
+					
+					// Show confirmation dialog with URL details
+					frappe.confirm(
+						__("Open the delivery approval page in a new tab?") + 
+						"<br><br><strong>URL:</strong> " + url.substring(0, 80) + 
+						(url.length > 80 ? "..." : "") +
+						"<br><strong>Delivery Note:</strong> " + frm.doc.name +
+						"<br><strong>Status:</strong> " + (frm.doc.custom_goods_received_status || 'Pending'),
+						function() {
+							console.log("✅ User confirmed - opening approval page");
+							const newWindow = window.open(url, "_blank");
+							
+							// Check if popup was blocked
+							setTimeout(function() {
+								if (!newWindow || newWindow.closed) {
+									console.log("❌ Popup blocked or failed to open");
+									frappe.msgprint({
+										title: __("Popup Blocked"),
+										message: __("Please allow popups for this site and try again. Alternatively, copy this URL: ") + 
+											"<br><br><input type='text' class='form-control' value='" + url + "' readonly onclick='this.select()'>",
+										indicator: "yellow"
+									});
+								} else {
+									console.log("✅ Approval page opened successfully");
+									frappe.show_alert({
+										message: __("Approval page opened in new tab"),
+										indicator: "green"
+									}, 3);
+								}
+							}, 1000);
+						},
+						function() {
+							console.log("❌ User cancelled approval page opening");
+						}
+					);
+					
+				} catch (error) {
+					console.error("❌ Error opening approval page:", error);
+					frappe.msgprint({
+						title: __("Error"),
+						message: __("Invalid approval URL format. Error: ") + error.message,
+						indicator: "red"
+					});
+				}
 			},
 			__("Actions"),
 		);
+	} else {
+		console.log("❌ 'View Approval Page' button not added - no approval URL");
 	}
 
 	// Add QR code display button
 	if (frm.doc.custom_approval_qr_code) {
+		console.log("✅ Adding 'Show QR Code' button");
 		frm.add_custom_button(
 			__("Show QR Code"),
 			function () {
+				console.log("📱 Showing QR Code dialog for:", frm.doc.name);
 				show_qr_code_dialog(frm);
 			},
 			__("Actions"),
 		);
+	} else {
+		console.log("❌ 'Show QR Code' button not added - no QR code available");
 	}
 
 	// Add print with QR button
 	if (frm.doc.custom_approval_qr_code) {
+		console.log("✅ Adding 'Print with QR' button");
 		frm.add_custom_button(
 			__("Print with QR"),
 			function () {
+				console.log("🖨️ Printing delivery note with QR for:", frm.doc.name);
 				print_delivery_note_with_qr(frm);
 			},
 			__("Print"),
@@ -77,6 +172,11 @@ function add_delivery_note_buttons(frm) {
 }
 
 function generate_qr_code(frm) {
+	console.log("🔄 Starting QR code generation for:", frm.doc.name);
+	console.log("Document status:", frm.doc.docstatus);
+	console.log("Current QR code:", frm.doc.custom_approval_qr_code ? "exists" : "none");
+	console.log("Current URL:", frm.doc.custom_approval_url || "none");
+	
 	frappe.show_progress(__("Generating QR Code"), 30, 100, __("Please wait..."));
 
 	frappe.call({
@@ -86,9 +186,15 @@ function generate_qr_code(frm) {
 			delivery_note_name: frm.doc.name,
 		},
 		callback: function (r) {
+			console.log("📡 QR generation API response:", r);
 			frappe.hide_progress();
 
 			if (r.message?.qr_code) {
+				console.log("✅ QR code generated successfully");
+				console.log("QR code length:", r.message.qr_code.length);
+				console.log("Approval URL:", r.message.approval_url);
+				console.log("Approval token:", r.message.approval_token ? "present" : "missing");
+				
 				// Update the document with QR code data
 				frappe.model.set_value(
 					frm.doctype,
@@ -103,7 +209,9 @@ function generate_qr_code(frm) {
 					r.message.approval_url,
 				);
 
+				console.log("💾 Saving document with QR data");
 				frm.save().then(() => {
+					console.log("✅ Document saved successfully");
 					frappe.msgprint({
 						title: __("QR Code Generated Successfully"),
 						message: __(
@@ -113,23 +221,37 @@ function generate_qr_code(frm) {
 					});
 
 					// Show QR code dialog immediately
+					console.log("📱 Opening QR code dialog");
 					setTimeout(() => show_qr_code_dialog(frm), 500);
+				}).catch((error) => {
+					console.error("❌ Error saving document:", error);
+					frappe.msgprint({
+						title: __("Save Error"),
+						message: __("QR code generated but failed to save. Error: ") + error.message,
+						indicator: "orange"
+					});
 				});
 			} else {
+				console.log("❌ QR code generation failed - no QR code in response");
 				frappe.msgprint({
 					title: __("Error"),
-					message: __("Failed to generate QR code. Please try again."),
+					message: __("Failed to generate QR code. Please try again.") + 
+						(r.message ? " Response: " + JSON.stringify(r.message) : ""),
 					indicator: "red",
 				});
 			}
 		},
 		error: function (r) {
+			console.error("❌ QR generation API error:", r);
+			console.error("Error message:", r.message);
+			console.error("Full error object:", JSON.stringify(r, null, 2));
 			frappe.hide_progress();
 			frappe.msgprint({
 				title: __("QR Generation Error"),
 				message:
 					__("An error occurred while generating the QR code: ") +
-					(r.message || "Unknown error"),
+					(r.message || "Unknown error") + 
+					"<br><br><small>Check browser console for detailed error information.</small>",
 				indicator: "red",
 			});
 		},
@@ -239,14 +361,26 @@ function show_qr_code_if_available(frm) {
 }
 
 function update_approval_status_indicator(frm) {
-	// Clear existing indicators
-	frm.dashboard.clear_indicator();
+	// Clear existing indicators (check if method exists)
+	if (frm.dashboard && frm.dashboard.clear_indicator) {
+		frm.dashboard.clear_indicator();
+	} else if (frm.dashboard && frm.dashboard.indicators) {
+		// Alternative method for clearing indicators
+		frm.dashboard.indicators = [];
+		frm.dashboard.refresh();
+	}
 
 	const status = frm.doc.custom_goods_received_status;
 
+	// Safety check for dashboard methods
+	if (!frm.dashboard || !frm.dashboard.add_indicator) {
+		console.warn("Dashboard methods not available");
+		return;
+	}
+
 	if (status === "Approved") {
 		frm.dashboard.add_indicator(__("Goods Received: Approved"), "green");
-		if (frm.doc.custom_customer_approval_date) {
+		if (frm.doc.custom_customer_approval_date && frm.dashboard.add_comment) {
 			frm.dashboard.add_comment(
 				__("Approved on: ") +
 					frappe.datetime.str_to_user(frm.doc.custom_customer_approval_date),
@@ -255,7 +389,7 @@ function update_approval_status_indicator(frm) {
 		}
 	} else if (status === "Rejected") {
 		frm.dashboard.add_indicator(__("Goods Received: Rejected"), "red");
-		if (frm.doc.custom_rejection_reason) {
+		if (frm.doc.custom_rejection_reason && frm.dashboard.add_comment) {
 			frm.dashboard.add_comment(
 				__("Reason: ") + frm.doc.custom_rejection_reason,
 				"red",
@@ -263,7 +397,7 @@ function update_approval_status_indicator(frm) {
 		}
 	} else {
 		frm.dashboard.add_indicator(__("Goods Received: Pending"), "orange");
-		if (frm.doc.custom_approval_url) {
+		if (frm.doc.custom_approval_url && frm.dashboard.add_comment) {
 			frm.dashboard.add_comment(
 				__("Waiting for customer approval via QR code"),
 				"orange",
@@ -457,6 +591,12 @@ function generate_certificate_number(frm) {
 }
 
 function update_wht_status_indicator(frm) {
+	// Safety check for dashboard methods
+	if (!frm.dashboard || !frm.dashboard.add_indicator) {
+		console.warn("Dashboard methods not available");
+		return;
+	}
+
 	if (frm.doc.custom_is_withholding_tax) {
 		if (frm.doc.custom_wht_certificate_generated) {
 			frm.dashboard.add_indicator(__("WHT Certificate: Generated"), "green");
@@ -464,7 +604,7 @@ function update_wht_status_indicator(frm) {
 			frm.dashboard.add_indicator(__("WHT Certificate: Pending"), "orange");
 		}
 
-		if (frm.doc.custom_withholding_tax_amount) {
+		if (frm.doc.custom_withholding_tax_amount && frm.dashboard.add_comment) {
 			frm.dashboard.add_comment(
 				__("WHT Amount: ") +
 					format_currency(frm.doc.custom_withholding_tax_amount),
