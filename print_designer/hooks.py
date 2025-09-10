@@ -20,8 +20,9 @@ commands = [
     "print_designer.commands.install_complete_system.check_system_status",
     "print_designer.commands.install_delivery_fields.install_delivery_note_fields",
     "print_designer.commands.install_typography_system.install_typography_system",
-    "print_designer.commands.install_retention_fields.install_retention_fields",
-    "print_designer.commands.install_retention_fields.check_retention_fields",
+    # DISABLED: Old retention installer - replaced by enhanced retention installer (file renamed to .backup)
+    # "print_designer.commands.install_retention_fields.install_retention_fields",
+    # "print_designer.commands.install_retention_fields.check_retention_fields",
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",
     "print_designer.commands.install_enhanced_retention_fields.check_enhanced_retention_fields",
     # REMOVED: install_thailand_wht_fields commands - Now handled by separate quotation module
@@ -432,10 +433,8 @@ after_install = [
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
-    # DISABLED: Conflicts with fixture-based retention fields - using fixtures instead
-    # The retention system (custom_retention, custom_retention_amount, etc.) is now managed
-    # exclusively through fixtures in print_designer/fixtures/custom_field.json to prevent
-    # conflicts and ensure consistent conditional visibility with depends_on expressions
+    "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
+    # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
@@ -464,6 +463,7 @@ after_migrate = [
     
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
+    "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_payment_entry_retention_fields._cleanup_legacy_fields",  # Clean up legacy Payment Entry retention fields during migration
