@@ -339,6 +339,20 @@ GLOBAL_DEFAULTS_CUSTOM_FIELDS = {
             "read_only": 1,
             "description": "Generated CSS for typography override - managed automatically"
         }
+    ],
+    "Supplier": [
+        {
+            "fieldname": "pd_custom_branch_code",
+            "fieldtype": "Data",
+            "label": "Branch Code",
+            "insert_after": "tax_id",
+            "print_hide": 0,
+            "allow_on_submit": 1,
+            "translatable": 1,
+            "default": "00000",
+            "description": "Branch code for supplier tax documentation",
+            "length": 20,
+        }
     ]
 }
 
