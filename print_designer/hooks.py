@@ -448,31 +448,25 @@ extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
+    # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
+    "print_designer.install.ensure_custom_fields",
+    
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
     "print_designer.hooks.override_erpnext_install",  # Apply ERPNext overrides
     "print_designer.api.safe_install.safe_install_signature_enhancements",
-    # "print_designer.install.ensure_custom_fields",
-    "print_designer.install.setup_enhanced_print_settings",  # Direct call for existing users
-    # "print_designer.install.ensure_signature_fields",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
-    "print_designer.api.install_typography_ui.setup_typography_on_install",  # Ensure typography fields installation
-    # REMOVED: thailand_wht_fields.py - Now handled by separate quotation module
-    # DISABLED: Using fixture-based retention fields instead of programmatic installation
-    # Retention fields (custom_retention, custom_retention_amount, custom_withholding_tax,
-    # custom_withholding_tax_amount, custom_payment_amount) are now managed exclusively
-    # through fixtures to prevent conflicts and ensure proper conditional visibility
-    # "print_designer.install.after_migrate",  # Ensure all fields including retention fields after migration
-    "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed after migration
-    "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
+    # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
+    
+    # REMOVED DUPLICATE: "print_designer.install.ensure_watermark_fields_installed" - already in after_install
+    # REMOVED DUPLICATE: "print_designer.install.emergency_watermark_fix_fallback" - already in after_install
+    
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_payment_entry_retention_fields._cleanup_legacy_fields",  # Clean up legacy Payment Entry retention fields during migration
-    # "print_designer.api.global_typography.setup_default_typography",
-    # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
 ]
 
 # Uninstallation

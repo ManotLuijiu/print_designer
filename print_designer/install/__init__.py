@@ -9,6 +9,7 @@ try:
         ensure_watermark_fields_installed,
         emergency_watermark_fix_fallback,
         handle_erpnext_override,
+        ensure_custom_fields,  # Add this for migration hooks
     )
 except ImportError as e:
     # Handle the case where the main install module can't be imported
@@ -32,4 +33,7 @@ except ImportError as e:
         pass
         
     def handle_erpnext_override():
+        pass
+        
+    def ensure_custom_fields():
         pass
