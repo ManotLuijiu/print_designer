@@ -32,7 +32,7 @@ def install_enhanced_retention_fields():
                 "insert_after": "construction_service",
                 "depends_on": "eval:doc.construction_service",
                 "description": "Default retention rate for construction projects (e.g., 5% for most projects)",
-                "default": 5.0,
+                "default": "5",
                 "precision": 2,
             },
             {
