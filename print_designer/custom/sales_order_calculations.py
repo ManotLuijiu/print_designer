@@ -70,6 +70,10 @@ def apply_company_defaults_for_sales_order(doc):
         doc.thailand_service_business = company_doc.get('thailand_service_business', 0)
         doc.construction_service = company_doc.get('construction_service', 0)
         
+        # Apply default WHT rate if custom_withholding_tax is not specified
+        if not doc.get('custom_withholding_tax') and company_doc.get('default_wht_rate'):
+            doc.custom_withholding_tax = flt(company_doc.default_wht_rate)
+        
         # Apply default retention rate if custom_retention is not specified  
         if not doc.get('custom_retention') and company_doc.get('default_retention_rate'):
             doc.custom_retention = flt(company_doc.default_retention_rate)
