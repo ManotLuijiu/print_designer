@@ -42,6 +42,9 @@ def sales_order_calculate_thailand_amounts(doc, method=None):
     # Apply Company defaults if Sales Order fields are not specified
     apply_company_defaults_for_sales_order(doc)
     
+    # Calculate withholding tax amounts
+    calculate_withholding_tax_amounts_for_sales_order(doc)
+    
     # Calculate WHT preview (using preview system)
     calculate_wht_preview_for_sales_order(doc)
     
@@ -84,6 +87,46 @@ def apply_company_defaults_for_sales_order(doc):
                 
     except Exception as e:
         frappe.log_error(f"Error applying Company defaults to Sales Order {doc.name}: {str(e)}")
+
+
+def calculate_withholding_tax_amounts_for_sales_order(doc):
+    """Calculate withholding tax amounts based on custom_withholding_tax percentage"""
+    try:
+        # Only calculate WHT if user has enabled subject_to_wht
+        if doc.get('subject_to_wht') and doc.custom_withholding_tax and doc.net_total:
+            wht_rate = flt(doc.custom_withholding_tax)  # Already in percentage
+            current_net_total = flt(doc.net_total)
+            
+            # Calculate what the WHT amount SHOULD be based on current net_total
+            expected_wht_amount = flt((current_net_total * wht_rate) / 100, 2)
+            current_wht_amount = flt(doc.get('custom_withholding_tax_amount', 0))
+            
+            # Check if current amount is significantly different from expected (more than 0.01 difference)
+            amount_mismatch = abs(current_wht_amount - expected_wht_amount) > 0.01
+            
+            # Calculate if:
+            # 1. No amount is set yet (new document), OR
+            # 2. Current amount doesn't match what it should be based on net_total (after refresh/item changes)
+            if not current_wht_amount or amount_mismatch:
+                doc.custom_withholding_tax_amount = expected_wht_amount
+                
+                if amount_mismatch and current_wht_amount > 0:
+                    print(f"  - RECALCULATED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (was {current_wht_amount}, expected {expected_wht_amount} for net_total {current_net_total})")
+                    frappe.logger().info(f"Sales Order Calc: Recalculated WHT due to mismatch - was {current_wht_amount}, now {expected_wht_amount}")
+                else:
+                    print(f"  - CALCULATED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (net_total {current_net_total} * rate {wht_rate}%)")
+                    frappe.logger().info(f"Sales Order Calc: Calculated custom_withholding_tax_amount = {doc.custom_withholding_tax_amount}")
+            else:
+                print(f"  - PRESERVED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (matches expected {expected_wht_amount})")
+                frappe.logger().info(f"Sales Order Calc: Preserved WHT amount = {doc.custom_withholding_tax_amount} (correct for net_total {current_net_total})")
+        else:
+            # Clear amount if conditions not met
+            doc.custom_withholding_tax_amount = 0
+            
+    except Exception as e:
+        frappe.log_error(f"Error calculating withholding tax amounts for Sales Order {doc.name}: {str(e)}")
+        # Don't fail validation, just clear WHT fields
+        doc.custom_withholding_tax_amount = 0
 
 
 def calculate_wht_preview_for_sales_order(doc):
@@ -152,14 +195,28 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         print(f"  - custom_withholding_tax_amount = {wht_amount}")
         print(f"  - custom_retention_amount = {retention_amount}")
         
-        # Calculate net_total_after_wht: Only if not already set (preserve copied values from Quotation)
-        if not doc.get('net_total_after_wht'):
-            doc.net_total_after_wht = flt(grand_total - wht_amount, 2)
-            print(f"  - CALCULATED net_total_after_wht = {doc.net_total_after_wht} (grand_total {grand_total} - wht_amount {wht_amount})")
-            frappe.logger().info(f"Sales Order Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
+        # Calculate what net_total_after_wht SHOULD be based on current grand_total and wht_amount
+        expected_net_total_after_wht = flt(grand_total - wht_amount, 2)
+        current_net_total_after_wht = flt(doc.get('net_total_after_wht', 0))
+        
+        # Check if current amount is significantly different from expected
+        amount_mismatch = abs(current_net_total_after_wht - expected_net_total_after_wht) > 0.01
+        
+        # Calculate if:
+        # 1. No amount is set yet (new document), OR
+        # 2. Current amount doesn't match what it should be based on grand_total and wht_amount
+        if not current_net_total_after_wht or amount_mismatch:
+            doc.net_total_after_wht = expected_net_total_after_wht
+            
+            if amount_mismatch and current_net_total_after_wht > 0:
+                print(f"  - RECALCULATED net_total_after_wht = {doc.net_total_after_wht} (was {current_net_total_after_wht}, expected {expected_net_total_after_wht})")
+                frappe.logger().info(f"Sales Order Calc: Recalculated net_total_after_wht due to mismatch - was {current_net_total_after_wht}, now {expected_net_total_after_wht}")
+            else:
+                print(f"  - CALCULATED net_total_after_wht = {doc.net_total_after_wht} (grand_total {grand_total} - wht_amount {wht_amount})")
+                frappe.logger().info(f"Sales Order Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
         else:
-            print(f"  - PRESERVED net_total_after_wht = {doc.net_total_after_wht} (copied from Quotation)")
-            frappe.logger().info(f"Sales Order Calc: Preserved copied net_total_after_wht = {doc.net_total_after_wht}")
+            print(f"  - PRESERVED net_total_after_wht = {doc.net_total_after_wht} (matches expected {expected_net_total_after_wht})")
+            frappe.logger().info(f"Sales Order Calc: Preserved net_total_after_wht = {doc.net_total_after_wht} (correct for grand_total {grand_total})")
         
         # Calculate payment amount based on retention status
         print(f"  - custom_subject_to_retention = {doc.get('custom_subject_to_retention')}")

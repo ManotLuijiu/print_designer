@@ -118,6 +118,12 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
             ref.pd_custom_wht_amount = ref_wht_amount
             ref.pd_custom_wht_percentage = thai_tax_info.get("wht_percentage", 0)
             ref.pd_custom_vat_undue_amount = ref_vat_undue_amount
+            # Store VAT treatment information in reference for GL entry logic
+            if hasattr(ref, 'pd_custom_vat_treatment'):
+                ref.pd_custom_vat_treatment = thai_tax_info.get("vat_treatment", None)
+            if hasattr(ref, 'pd_custom_has_vat_undue'):
+                ref.pd_custom_has_vat_undue = thai_tax_info.get("has_vat_undue", False)
+            # Net payable excludes VAT Undue as it doesn't reduce cash payment per Thai compliance
             ref.pd_custom_net_payable_amount = flt(allocated_amount - ref_retention_amount - ref_wht_amount, 2)
             
             # ENHANCED: Map EXACT Sales Invoice fields to Payment Entry Reference
@@ -343,6 +349,9 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
             # Combined fields
             "net_total_after_wht_retention": 0,
             "net_total_after_wht_retention_in_words": "",
+            # VAT treatment field for Thai compliance
+            "vat_treatment": None,
+            "has_vat_undue": False,
             # Company Thai tax account configuration
             "default_wht_account": None,
             "default_retention_account": None,
@@ -435,12 +444,28 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
             
             print(f"   ✅ WHT DETECTED: {wht_amount} (Certificate Required: {wht_certificate_required})")
         
-        # Enhanced VAT processing (existing)
-        vat_undue_amount = _get_output_vat_undue_amount(invoice)
-        if vat_undue_amount > 0:
-            tax_info["has_thai_taxes"] = True
-            tax_info["vat_undue_amount"] = vat_undue_amount
-            print(f"   ✅ VAT UNDUE DETECTED: {vat_undue_amount}")
+        # Enhanced VAT processing with VAT treatment detection
+        vat_treatment = getattr(invoice, 'vat_treatment', None)
+        print(f"🔍 VAT TREATMENT ANALYSIS:")
+        print(f"   vat_treatment field: {vat_treatment}")
+        
+        # Check if this is VAT Undue treatment
+        has_vat_undue = vat_treatment == "VAT Undue (7%)"
+        tax_info["vat_treatment"] = vat_treatment
+        tax_info["has_vat_undue"] = has_vat_undue
+        
+        if has_vat_undue:
+            print(f"   ✅ VAT UNDUE TREATMENT DETECTED")
+            # For VAT Undue, get the VAT amount from Sales Taxes and Charges
+            vat_undue_amount = _get_output_vat_undue_amount(invoice)
+            if vat_undue_amount > 0:
+                tax_info["has_thai_taxes"] = True
+                tax_info["vat_undue_amount"] = vat_undue_amount
+                print(f"   ✅ VAT UNDUE AMOUNT: {vat_undue_amount}")
+            else:
+                print(f"   ⚠️ VAT Undue treatment but no VAT amount found in taxes")
+        else:
+            print(f"   ✅ Standard VAT treatment: {vat_treatment}")
         
         # ENHANCED: Fetch Company Thai tax account configuration
         company_tax_accounts = _get_company_thai_tax_accounts(invoice.company)
@@ -786,24 +811,33 @@ def _validate_thai_tax_amounts(doc):
             ))
 
 
-def payment_entry_on_submit_create_retention_entries(doc, method=None):
-    """Create comprehensive Thai tax GL entries on Payment Entry submission."""
+def payment_entry_validate_thai_compliance(doc, method=None):
+    """Adjust Payment Entry amounts for Thai tax compliance BEFORE submission."""
     
     if not getattr(doc, 'pd_custom_has_thai_taxes', 0):
         return
     
     try:
-        # Create retention GL entry (if applicable)
-        if getattr(doc, 'pd_custom_total_retention_amount', 0) > 0:
-            _create_retention_gl_entry(doc)
+        # Adjust payment amounts for Thai tax compliance
+        # This must happen in validate (before GL entries are created)
+        _adjust_payment_amounts_for_thai_compliance(doc)
         
-        # Create WHT GL entry (if applicable)
-        if getattr(doc, 'pd_custom_total_wht_amount', 0) > 0:
-            _create_wht_gl_entry(doc)
-        
-        # Create VAT processing GL entries (if applicable)
-        if getattr(doc, 'pd_custom_total_vat_undue_amount', 0) > 0:
-            _create_vat_gl_entries(doc)
+    except Exception as e:
+        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
+        frappe.log_error(f"Thai validation: {doc.name}: {error_msg}", "Thai Validation Error")
+        frappe.throw(_("Failed to validate Thai tax compliance: {0}").format(str(e)))
+
+
+def payment_entry_on_submit_thai_compliance(doc, method=None):
+    """Process Thai tax compliance during Payment Entry submission."""
+    
+    if not getattr(doc, 'pd_custom_has_thai_taxes', 0):
+        return
+    
+    try:
+        # Create additional GL entries for Thai tax compliance
+        # (Payment amounts already adjusted in validate hook)
+        _create_thai_tax_gl_entries(doc)
         
         # Create comprehensive tracking record
         _create_retention_tracking_record(doc)
@@ -813,10 +847,82 @@ def payment_entry_on_submit_create_retention_entries(doc, method=None):
         
     except Exception as e:
         # Use very short title to avoid 140 character limit in Error Log
-        # Truncate the error message to prevent cascading truncation issues
         error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
         frappe.log_error(f"Thai tax GL: {doc.name}: {error_msg}", "Thai Tax GL Error")
         frappe.throw(_("Failed to create Thai tax GL entries: {0}").format(str(e)))
+
+
+def _adjust_payment_amounts_for_thai_compliance(doc):
+    """
+    Adjust Payment Entry amounts to follow Thai tax compliance patterns.
+    
+    This modifies the core payment amounts so ERPNext creates the correct GL entries:
+    - Reduces the paid_amount/received_amount by Thai tax deductions
+    - This causes ERPNext to naturally create the reduced cash entry
+    """
+    
+    # Get Thai tax amounts
+    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
+    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
+    vat_undue_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
+    
+    if wht_amount <= 0 and retention_amount <= 0 and vat_undue_amount <= 0:
+        return
+    
+    # Calculate total deductions (VAT doesn't reduce cash amount)
+    total_deductions = wht_amount + retention_amount
+    
+    # Store original amounts for reference
+    if not hasattr(doc, '_thai_original_amounts'):
+        doc._thai_original_amounts = {
+            'paid_amount': doc.paid_amount if doc.payment_type == "Pay" else 0,
+            'received_amount': doc.received_amount if doc.payment_type == "Receive" else 0,
+            'base_paid_amount': doc.base_paid_amount if doc.payment_type == "Pay" else 0,
+            'base_received_amount': doc.base_received_amount if doc.payment_type == "Receive" else 0
+        }
+    
+    # Adjust payment amounts based on payment type
+    if doc.payment_type == "Pay":
+        # For payments (to suppliers), reduce the paid amount
+        doc.paid_amount = flt(doc.paid_amount - total_deductions, 2)
+        doc.base_paid_amount = flt(doc.base_paid_amount - total_deductions, 2)
+    else:
+        # For receipts (from customers), reduce the received amount  
+        doc.received_amount = flt(doc.received_amount - total_deductions, 2)
+        doc.base_received_amount = flt(doc.base_received_amount - total_deductions, 2)
+    
+    frappe.msgprint(
+        _("Payment amounts adjusted for Thai tax compliance:\n"
+          "• Total deductions: ฿{0:,.2f} (WHT: ฿{1:,.2f} + Retention: ฿{2:,.2f})\n"
+          "• Adjusted payment amount: ฿{3:,.2f}").format(
+              total_deductions, wht_amount, retention_amount, 
+              doc.paid_amount if doc.payment_type == "Pay" else doc.received_amount
+          ),
+        title="Thai Payment Adjustment",
+        indicator="blue"
+    )
+
+
+def _create_thai_tax_gl_entries(doc):
+    """Create additional GL entries for Thai tax compliance after ERPNext creates base entries."""
+    
+    # Get Thai tax amounts
+    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
+    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
+    vat_undue_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
+    
+    if wht_amount <= 0 and retention_amount <= 0 and vat_undue_amount <= 0:
+        return
+    
+    # Create individual GL entries for each Thai tax component
+    if wht_amount > 0:
+        _create_wht_gl_entry(doc)
+    
+    if retention_amount > 0:
+        _create_retention_gl_entry(doc)
+    
+    if vat_undue_amount > 0:
+        _create_vat_gl_entries(doc)
 
 
 def _create_retention_gl_entry(doc):

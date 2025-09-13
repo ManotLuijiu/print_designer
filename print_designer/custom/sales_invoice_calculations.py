@@ -36,6 +36,9 @@ def sales_invoice_calculate_thailand_amounts(doc, method=None):
     # Apply Company defaults if Sales Invoice fields are not specified
     apply_company_defaults_for_sales_invoice(doc)
     
+    # Calculate withholding tax amounts
+    calculate_withholding_tax_amounts_for_sales_invoice(doc)
+    
     # Calculate WHT preview (using preview system)
     calculate_wht_preview_for_sales_invoice(doc)
     
@@ -78,6 +81,46 @@ def apply_company_defaults_for_sales_invoice(doc):
                 
     except Exception as e:
         frappe.log_error(f"Error applying Company defaults to Sales Invoice {doc.name}: {str(e)}")
+
+
+def calculate_withholding_tax_amounts_for_sales_invoice(doc):
+    """Calculate withholding tax amounts based on custom_withholding_tax percentage"""
+    try:
+        # Only calculate WHT if user has enabled subject_to_wht
+        if doc.get('subject_to_wht') and doc.custom_withholding_tax and doc.net_total:
+            wht_rate = flt(doc.custom_withholding_tax)  # Already in percentage
+            current_net_total = flt(doc.net_total)
+            
+            # Calculate what the WHT amount SHOULD be based on current net_total
+            expected_wht_amount = flt((current_net_total * wht_rate) / 100, 2)
+            current_wht_amount = flt(doc.get('custom_withholding_tax_amount', 0))
+            
+            # Check if current amount is significantly different from expected (more than 0.01 difference)
+            amount_mismatch = abs(current_wht_amount - expected_wht_amount) > 0.01
+            
+            # Calculate if:
+            # 1. No amount is set yet (new document), OR
+            # 2. Current amount doesn't match what it should be based on net_total (after refresh/item changes)
+            if not current_wht_amount or amount_mismatch:
+                doc.custom_withholding_tax_amount = expected_wht_amount
+                
+                if amount_mismatch and current_wht_amount > 0:
+                    print(f"  - RECALCULATED custom_withholding_tax_amount = {expected_wht_amount} (expected {expected_wht_amount} vs current {current_wht_amount})")
+                    frappe.logger().info(f"Sales Invoice Calc: Recalculated due to amount mismatch: expected {expected_wht_amount} vs current {current_wht_amount}")
+                else:
+                    print(f"  - CALCULATED custom_withholding_tax_amount = {expected_wht_amount} (net_total {current_net_total} * rate {wht_rate}%)")
+                    frappe.logger().info(f"Sales Invoice Calc: Calculated custom_withholding_tax_amount = {expected_wht_amount}")
+            else:
+                print(f"  - PRESERVED custom_withholding_tax_amount = {current_wht_amount} (already correct value)")
+                frappe.logger().info(f"Sales Invoice Calc: Preserved custom_withholding_tax_amount = {current_wht_amount}")
+        else:
+            # Clear amount if conditions not met
+            doc.custom_withholding_tax_amount = 0
+            
+    except Exception as e:
+        frappe.log_error(f"Error calculating withholding tax amounts for Sales Invoice {doc.name}: {str(e)}")
+        # Don't fail validation, just clear WHT fields
+        doc.custom_withholding_tax_amount = 0
 
 
 def calculate_wht_preview_for_sales_invoice(doc):
@@ -137,12 +180,25 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
         wht_amount = flt(getattr(doc, 'custom_withholding_tax_amount', 0))
         retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
         
-        # Calculate net_total_after_wht: Only if not already set (preserve copied values from Sales Order/Quotation)
-        if not doc.get('net_total_after_wht'):
-            doc.net_total_after_wht = flt(grand_total - wht_amount, 2)
-            frappe.logger().info(f"Sales Invoice Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
+        # Calculate what net_total_after_wht SHOULD be based on current grand_total and wht_amount
+        expected_net_total_after_wht = flt(grand_total - wht_amount, 2)
+        current_net_total_after_wht = flt(doc.get('net_total_after_wht', 0))
+        
+        # Check if current amount is significantly different from expected
+        amount_mismatch = abs(current_net_total_after_wht - expected_net_total_after_wht) > 0.01
+        
+        # Calculate if:
+        # 1. No amount is set yet (new document), OR  
+        # 2. Current amount doesn't match what it should be based on grand_total and wht_amount
+        if not current_net_total_after_wht or amount_mismatch:
+            doc.net_total_after_wht = expected_net_total_after_wht
+            
+            if amount_mismatch and current_net_total_after_wht > 0:
+                frappe.logger().info(f"Sales Invoice Calc: Recalculated net_total_after_wht due to amount mismatch: expected {expected_net_total_after_wht} vs current {current_net_total_after_wht}")
+            else:
+                frappe.logger().info(f"Sales Invoice Calc: Calculated net_total_after_wht = {expected_net_total_after_wht}")
         else:
-            frappe.logger().info(f"Sales Invoice Calc: Preserved copied net_total_after_wht = {doc.net_total_after_wht}")
+            frappe.logger().info(f"Sales Invoice Calc: Preserved net_total_after_wht = {current_net_total_after_wht}")
         
         # Calculate payment amount based on retention status
         if doc.get('custom_subject_to_retention') and retention_amount > 0:

@@ -242,7 +242,7 @@ def get_quotation_custom_fields_definition():
                 "fieldtype": "Select",
                 "insert_after": "wht_amounts_column_break",
                 "default": "Standard VAT (7%)",
-                "options": "\nStandard VAT (7%)\nExempt from VAT\nZero-rated for Export (0%)",
+                "options": "\nStandard VAT (7%)\nVAT Undue (7%)\nExempt from VAT\nZero-rated for Export (0%)",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,

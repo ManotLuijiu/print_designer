@@ -43,11 +43,6 @@ commands = [
     "print_designer.commands.test_print_designer_installation.test_complete_print_designer_installation",
     # Production fix commands
     "print_designer.commands.force_install_construction_service.force_install_construction_service",
-    # Payment Entry retention system
-    "print_designer.commands.install_payment_entry_retention_fields.install_payment_entry_retention_fields",
-    "print_designer.commands.install_payment_entry_retention_fields.check_payment_entry_retention_fields",
-    "print_designer.commands.install_payment_entry_retention_fields.cleanup_legacy_retention_fields",
-    "print_designer.commands.install_payment_entry_retention_fields.uninstall_payment_entry_thai_tax_fields",
     # Company Thai Tax Fields
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",
     "print_designer.commands.install_company_thai_tax_fields.check_company_thai_tax_fields",
@@ -57,6 +52,8 @@ commands = [
     "print_designer.install.thai_defaults.setup_thai_print_format_defaults",
     # Thai WHT System Commands (DocType-specific installers)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
+    # Payment Entry Thai Tax Preview Fields (Sales Invoice-style preview section)
+    "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",
 ]
 
 # Includes in <head>
@@ -434,6 +431,7 @@ after_install = [
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
+    "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -466,7 +464,7 @@ after_migrate = [
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
-    "print_designer.commands.install_payment_entry_retention_fields._cleanup_legacy_fields",  # Clean up legacy Payment Entry retention fields during migration
+    "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Ensure Payment Entry Thai tax preview fields are installed during migration
 ]
 
 # Uninstallation
@@ -475,6 +473,7 @@ after_migrate = [
 before_uninstall = [
     "print_designer.uninstall.before_uninstall",
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
+    "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -541,17 +540,17 @@ doc_events = {
         "after_insert": "print_designer.utils.signature_integration.handle_signature_save",
         "on_update": "print_designer.utils.signature_integration.handle_signature_save",
     },
-    # Thai Withholding Tax events - DISABLED: GL Entry validation errors with party_type/party on non-receivable accounts
-    # Temporarily disabled to allow Payment Entries to submit without Thai tax processing
-    # "Payment Entry": {
-    #     "before_print": "print_designer.pdf.before_print",
-    #     "validate": [
-    #         "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
-    #         "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
-    #     ],
-    #     "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_create_retention_entries",
-    #     "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
-    # },
+    # Thai Withholding Tax events - Updated for GL entry modification approach
+    "Payment Entry": {
+        "before_print": "print_designer.pdf.before_print",
+        "validate": [
+            "print_designer.custom.payment_entry_retention.payment_entry_validate_thai_compliance",
+            "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
+            "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
+        ],
+        "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_thai_compliance",
+        "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
+    },
     # Company DocType - Sync retention data to Company Retention Settings
     "Company": {
         "validate": "print_designer.overrides.company.sync_company_retention_settings",
@@ -620,6 +619,13 @@ scheduler_events = {"daily": ["print_designer.api.watermark.cleanup_watermark_ca
 # Permission query conditions
 permission_query_conditions = {
     "Watermark Template": "print_designer.api.watermark.get_permission_query_conditions"
+}
+
+# Regional overrides for Thai compliance
+regional_overrides = {
+    "Thailand": {
+        "erpnext.accounts.doctype.payment_entry.payment_entry.add_regional_gl_entries": "print_designer.regional.payment_entry.add_regional_gl_entries"
+    }
 }
 
 

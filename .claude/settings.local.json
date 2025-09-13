@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/manotlj/frappe-bench/apps/erpnext/erpnext/accounts/doctype/payment_entry/**)",
+      "Read(//Users/manotlj/frappe-bench/apps/erpnext/erpnext/regional/united_states/**)",
+      "Read(//Users/manotlj/frappe-bench/apps/erpnext/erpnext/regional/italy/**)",
+      "Read(//Users/manotlj/frappe-bench/apps/erpnext/erpnext/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
