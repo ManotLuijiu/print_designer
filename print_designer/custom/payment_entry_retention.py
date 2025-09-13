@@ -226,12 +226,12 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
             ref.pd_custom_vat_undue_amount = 0.0
             ref.pd_custom_net_payable_amount = flt(ref.allocated_amount, 2)
     
-    # Update Payment Entry header fields
+    # Update Payment Entry header fields (using updated dgs_custom_ field names)
     doc.pd_custom_has_retention = 1 if total_retention > 0 else 0
     doc.pd_custom_has_thai_taxes = 1 if has_thai_taxes else 0
-    
+
     # DEBUG: Log header field updates
-    print(f"📋 HEADER UPDATE - Payment Entry: pd_custom_has_retention={doc.pd_custom_has_retention}, total_retention={total_retention}, has_thai_taxes={has_thai_taxes}")
+    print(f"📋 HEADER UPDATE - Payment Entry: dgs_custom_has_retention={doc.pd_custom_has_retention}, total_retention={total_retention}, has_thai_taxes={has_thai_taxes}")
     doc.pd_custom_total_retention_amount = flt(total_retention, 2)
     doc.pd_custom_total_wht_amount = flt(total_wht, 2)
     doc.pd_custom_total_vat_undue_amount = flt(total_vat_undue, 2)
@@ -242,7 +242,7 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
         # For payments (to suppliers)
         doc.pd_custom_net_payment_after_retention = flt(doc.paid_amount - total_deductions, 2)
     else:
-        # For receipts (from customers)  
+        # For receipts (from customers)
         doc.pd_custom_net_payment_after_retention = flt(doc.received_amount - total_deductions, 2)
     
     # Set Thai tax accounts if not set

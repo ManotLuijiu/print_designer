@@ -72,8 +72,15 @@ def _get_sales_invoice_thai_tax_data(invoice_name):
         print(f"  - custom_withholding_tax_amount (amount): {invoice_data.get('custom_withholding_tax_amount')}")
         print(f"  - grand_total: {invoice_data.get('grand_total')}")
         print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
-        
+        print(f"  - subject_to_wht: {invoice_data.get('subject_to_wht')}")
+        print(f"  - vat_treatment: {invoice_data.get('vat_treatment')}")
+        print(f"  - taxes_and_charges: {invoice_data.get('taxes_and_charges')}")
+        print(f"  - custom_subject_to_retention: {invoice_data.get('custom_subject_to_retention')}")
+        print(f"  - custom_retention_amount: {invoice_data.get('custom_retention_amount')}")
+        print(f"  - custom_retention: {invoice_data.get('custom_retention')}")
+
         if not invoice_data:
+            print(f"ERROR: No invoice data found for {invoice_name}")
             return None
         
         # Check if custom_withholding_tax_amount exists and use it directly
@@ -109,7 +116,15 @@ def _get_sales_invoice_thai_tax_data(invoice_name):
             "vat_undue_amount": vat_undue_amount,
             "vat_treatment": invoice_data.get("vat_treatment", "")  # Include VAT treatment info
         }
-        
+
+        print(f"DEBUG: Final thai_tax_data being returned for {invoice_name}:")
+        print(f"  - has_retention: {thai_tax_data['has_retention']}")
+        print(f"  - retention_amount: {thai_tax_data['retention_amount']}")
+        print(f"  - has_wht: {thai_tax_data['has_wht']}")
+        print(f"  - wht_amount: {thai_tax_data['wht_amount']}")
+        print(f"  - wht_percentage: {thai_tax_data['wht_percentage']}")
+        print(f"  - vat_undue_amount: {thai_tax_data['vat_undue_amount']}")
+
         return thai_tax_data
         
     except Exception as e:
@@ -139,14 +154,21 @@ def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_tr
     if not taxes_and_charges_template:
         return 0
     
+    print(f"DEBUG VAT UNDUE: Processing invoice {invoice_name}")
+    print(f"  - taxes_and_charges_template: '{taxes_and_charges_template}'")
+    print(f"  - vat_treatment: '{vat_treatment}'")
+
     # Thai VAT Undue keywords
     vat_undue_keywords = ['undue', 'ภาษีขายตั้งพัก', 'ภาษีขายที่ไม่ถึงกำหนด']
     template_lower = taxes_and_charges_template.lower()
-    
+
     # Check if template contains VAT Undue keywords
     is_vat_undue_template = any(keyword.lower() in template_lower for keyword in vat_undue_keywords)
-    
+
+    print(f"  - is_vat_undue_template: {is_vat_undue_template}")
+
     if not is_vat_undue_template:
+        print(f"  - Template doesn't contain VAT Undue keywords, returning 0")
         return 0
     
     # Additional validation: Check VAT treatment status

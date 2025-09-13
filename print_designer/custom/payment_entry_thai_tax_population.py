@@ -7,6 +7,74 @@ for populating Payment Entry references with retention, WHT, and VAT information
 
 import frappe
 
+def _calculate_vat_undue_from_taxes(invoice_doc):
+    """
+    Calculate VAT Undue amount from Sales Invoice taxes.
+
+    Based on Thai service business rules where VAT occurs when payment is made.
+    """
+    try:
+        taxes_and_charges_template = invoice_doc.get("taxes_and_charges", "")
+        vat_treatment = invoice_doc.get("vat_treatment", "")
+
+        print(f"DEBUG VAT: Calculating VAT Undue for {invoice_doc.name}")
+        print(f"  - taxes_and_charges: '{taxes_and_charges_template}'")
+        print(f"  - vat_treatment: '{vat_treatment}'")
+
+        if not taxes_and_charges_template:
+            print("  - No taxes template, returning 0")
+            return 0
+
+        # Thai VAT Undue keywords
+        vat_undue_keywords = ['undue', 'ภาษีขายตั้งพัก', 'ภาษีขายที่ไม่ถึงกำหนด']
+        template_lower = taxes_and_charges_template.lower()
+
+        # Check if template contains VAT Undue keywords
+        is_vat_undue_template = any(keyword.lower() in template_lower for keyword in vat_undue_keywords)
+
+        print(f"  - is_vat_undue_template: {is_vat_undue_template}")
+
+        if not is_vat_undue_template:
+            print("  - Not VAT Undue template, returning 0")
+            return 0
+
+        # Additional validation: Check VAT treatment status
+        if vat_treatment:
+            vat_treatment_lower = vat_treatment.lower()
+            if "exempt" in vat_treatment_lower or "zero-rated" in vat_treatment_lower:
+                print("  - VAT Exempt or Zero-rated, returning 0")
+                return 0
+
+        # Get all tax rows from the Sales Invoice
+        total_vat_undue = 0
+
+        if hasattr(invoice_doc, 'taxes') and invoice_doc.taxes:
+            print(f"  - Processing {len(invoice_doc.taxes)} tax rows")
+
+            for tax in invoice_doc.taxes:
+                # Check if this tax row is VAT
+                account_head = (tax.get("account_head") or "").lower()
+                description = (tax.get("description") or "").lower()
+
+                # VAT indicators
+                vat_indicators = ['vat', 'ภาษีขาย', 'ภาพ']
+
+                is_vat_row = any(indicator in account_head or indicator in description
+                               for indicator in vat_indicators)
+
+                if is_vat_row and tax.get("tax_amount"):
+                    vat_amount = float(tax.get("tax_amount", 0))
+                    total_vat_undue += vat_amount
+                    print(f"  - Found VAT row: {account_head} = ฿{vat_amount}")
+
+        print(f"  - Total VAT Undue calculated: ฿{total_vat_undue}")
+        return total_vat_undue
+
+    except Exception as e:
+        frappe.log_error(f"Error calculating VAT Undue for {invoice_doc.name}: {str(e)}")
+        print(f"  - Error calculating VAT Undue: {str(e)}")
+        return 0
+
 @frappe.whitelist()
 def get_invoice_thai_tax_details(invoice_type, invoice_name):
     """
@@ -26,20 +94,35 @@ def get_invoice_thai_tax_details(invoice_type, invoice_name):
         # Get the Sales Invoice document
         invoice_doc = frappe.get_doc('Sales Invoice', invoice_name)
         
-        # Extract Thai tax fields from the invoice
+        print(f"DEBUG API: Fetching Thai tax data for {invoice_name}")
+
+        # Extract Thai tax fields from the invoice using correct field names
         thai_tax_details = {
-            'pd_custom_has_retention': invoice_doc.get('pd_custom_has_retention', 0),
-            'pd_custom_retention_amount': invoice_doc.get('pd_custom_retention_amount', 0),
-            'pd_custom_retention_percentage': invoice_doc.get('pd_custom_retention_percentage', 0),
-            'pd_custom_wht_amount': invoice_doc.get('pd_custom_wht_amount', 0),
-            'pd_custom_wht_percentage': invoice_doc.get('pd_custom_wht_percentage', 0),
-            'pd_custom_vat_undue_amount': invoice_doc.get('pd_custom_vat_undue_amount', 0),
-            
-            # Additional fields that might be useful
-            'pd_custom_has_thai_taxes': invoice_doc.get('pd_custom_has_thai_taxes', 0),
-            'pd_custom_wht_certificate_number': invoice_doc.get('pd_custom_wht_certificate_number', ''),
-            'pd_custom_wht_certificate_date': invoice_doc.get('pd_custom_wht_certificate_date', ''),
+            # Retention fields (map to correct Sales Invoice field names)
+            'retention': invoice_doc.get('custom_retention', 0),  # percentage
+            'retention_amount': invoice_doc.get('custom_retention_amount', 0),
+            'has_retention': 1 if invoice_doc.get('custom_subject_to_retention', 0) else 0,
+
+            # WHT fields (map to correct Sales Invoice field names)
+            'wht': invoice_doc.get('custom_withholding_tax', 0),  # percentage
+            'wht_amount': invoice_doc.get('custom_withholding_tax_amount', 0),
+            'has_wht': 1 if invoice_doc.get('subject_to_wht', 0) else 0,
+
+            # VAT fields
+            'vat_undue': _calculate_vat_undue_from_taxes(invoice_doc),
+            'vat_treatment': invoice_doc.get('vat_treatment', ''),
+
+            # Net amounts
+            'net_total_after_wht': invoice_doc.get('net_total_after_wht', 0),
+            'grand_total': invoice_doc.get('grand_total', 0),
         }
+
+        print(f"DEBUG API: Thai tax data extracted for {invoice_name}:")
+        print(f"  - has_retention: {thai_tax_details['has_retention']}")
+        print(f"  - retention_amount: {thai_tax_details['retention_amount']}")
+        print(f"  - has_wht: {thai_tax_details['has_wht']}")
+        print(f"  - wht_amount: {thai_tax_details['wht_amount']}")
+        print(f"  - vat_undue: {thai_tax_details['vat_undue']}")
         
         return thai_tax_details
         
@@ -72,9 +155,9 @@ def get_invoice_net_payable_amount(invoice_type, invoice_name, allocated_amount)
         # Convert allocated_amount to float
         allocated_amount = float(allocated_amount or 0)
         
-        # Calculate deductions
-        retention_amount = float(thai_tax_details.get('pd_custom_retention_amount', 0))
-        wht_amount = float(thai_tax_details.get('pd_custom_wht_amount', 0))
+        # Calculate deductions using corrected field names
+        retention_amount = float(thai_tax_details.get('retention_amount', 0))
+        wht_amount = float(thai_tax_details.get('wht_amount', 0))
         
         # Calculate net payable
         net_payable = allocated_amount - retention_amount - wht_amount
@@ -110,10 +193,10 @@ def validate_thai_tax_amounts(invoice_type, invoice_name):
         invoice_doc = frappe.get_doc('Sales Invoice', invoice_name)
         warnings = []
         
-        # Get amounts
+        # Get amounts using correct field names
         grand_total = float(invoice_doc.get('grand_total', 0))
-        retention_amount = float(invoice_doc.get('pd_custom_retention_amount', 0))
-        wht_amount = float(invoice_doc.get('pd_custom_wht_amount', 0))
+        retention_amount = float(invoice_doc.get('custom_retention_amount', 0))
+        wht_amount = float(invoice_doc.get('custom_withholding_tax_amount', 0))
         
         # Validate retention amount doesn't exceed grand total
         if retention_amount > grand_total:
