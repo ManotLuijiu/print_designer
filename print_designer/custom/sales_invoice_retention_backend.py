@@ -41,7 +41,7 @@ frappe.ui.form.on('Sales Invoice', {
         // Simple field visibility based on company field only
         // All calculations handled on server-side
         const has_company = frm.doc.company ? true : false;
-        frm.toggle_display(['retention_section', 'custom_retention', 'custom_retention_amount'], has_company);
+        frm.toggle_display(['custom_retention', 'custom_retention_amount'], has_company);
         
         if (has_company && frm.doc.custom_retention_amount) {
             // Show retention info in dashboard (read-only display)
@@ -52,7 +52,7 @@ frappe.ui.form.on('Sales Invoice', {
     company: function(frm) {
         // Just toggle field visibility - backend handles all logic
         const has_company = frm.doc.company ? true : false;
-        frm.toggle_display(['retention_section', 'custom_retention', 'custom_retention_amount'], has_company);
+        frm.toggle_display(['custom_retention', 'custom_retention_amount'], has_company);
     }
     
     // NOTE: No onchange events for custom_retention or base_net_total

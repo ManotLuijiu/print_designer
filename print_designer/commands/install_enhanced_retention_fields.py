@@ -47,18 +47,10 @@ def install_enhanced_retention_fields():
         ],
         "Sales Invoice": [
             {
-                "fieldname": "retention_section",
-                "label": "Retention Details",
-                "fieldtype": "Section Break",
-                "insert_after": "taxes_and_charges",
-                "depends_on": "eval:doc.company && doc.construction_service",
-                "collapsible": 1,
-            },
-            {
                 "fieldname": "custom_retention",
                 "label": "Retention %",
                 "fieldtype": "Percent",
-                "insert_after": "retention_section",
+                "insert_after": "base_in_words",
                 "description": "Retention percentage to be withheld from payment",
                 "depends_on": "eval:doc.company && doc.construction_service",
                 "precision": 2,

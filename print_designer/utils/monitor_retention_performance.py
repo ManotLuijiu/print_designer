@@ -35,7 +35,7 @@ def check_custom_field_health():
     retention_fields = frappe.get_all('Custom Field', 
         filters={
             'dt': 'Sales Invoice',
-            'fieldname': ['in', ['retention_section', 'custom_retention', 'custom_retention_amount']]
+            'fieldname': ['in', ['custom_retention', 'custom_retention_amount']]
         },
         fields=['name', 'fieldname', 'depends_on']
     )

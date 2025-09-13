@@ -20,9 +20,9 @@ def test_wht_service_system():
         print(f"{status} Company.{field}: {'Found' if exists else 'Missing'}")
     
     # Item field
-    item_field_exists = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "is_service_item"})
+    item_field_exists = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "pd_custom_is_service_item"})
     status = "✅" if item_field_exists else "❌"
-    print(f"{status} Item.is_service_item: {'Found' if item_field_exists else 'Missing'}")
+    print(f"{status} Item.pd_custom_is_service_item: {'Found' if item_field_exists else 'Missing'}")
     
     # Sales Invoice fields
     si_fields = ['subject_to_wht', 'custom_withholding_tax_amount', 'wht_certificate_required']
@@ -75,10 +75,10 @@ def test_wht_service_system():
     print("\n4. Checking Sample Items:")
     print("-" * 30)
     
-    items = frappe.get_all("Item", fields=["name", "is_service_item"], limit=5)
+    items = frappe.get_all("Item", fields=["name", "pd_custom_is_service_item"], limit=5)
     if items:
         for item in items:
-            service_status = "Service" if item.get('is_service_item') else "Product"
+            service_status = "Service" if item.get('pd_custom_is_service_item') else "Product"
             print(f"📦 {item.name}: {service_status}")
     else:
         print("❌ No items found!")

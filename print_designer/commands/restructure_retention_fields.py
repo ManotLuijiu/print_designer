@@ -27,8 +27,8 @@ def restructure_retention_fields():
         'withholding_tax_details_column',
         'subjects_to_withholding_tax',
         
-        # Retention Details section  
-        'retention_section',
+        # Retention Details section (already removed)
+        # 'retention_section',  # Field already deleted
         'custom_retention',
         'custom_retention_amount'
     ]
@@ -152,7 +152,7 @@ def check_restructure_status():
     # Check for old problematic fields
     problematic_fields = [
         'withholding_tax_details_section',
-        'retention_section', 
+        # 'retention_section',  # Field already deleted
         'custom_retention'
     ]
     

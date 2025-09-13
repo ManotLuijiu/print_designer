@@ -14,7 +14,7 @@ def install_item_service_field():
     item_service_field = {
         "Item": [
             {
-                "fieldname": "is_service_item",
+                "fieldname": "pd_custom_is_service_item",
                 "label": "Is Service",
                 "fieldtype": "Check",
                 "insert_after": "is_fixed_asset",
@@ -25,10 +25,15 @@ def install_item_service_field():
     }
     
     try:
-        # Check if field already exists
-        if frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "is_service_item"}):
+        # Check if field already exists (check both old and new field names)
+        if frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "pd_custom_is_service_item"}):
             click.echo("✅ 'Is Service' field already exists")
             return True
+        elif frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "is_service_item"}):
+            click.echo("⚠️ Found old 'is_service_item' field - migrating to proper naming convention...")
+            # Remove old field
+            frappe.db.delete("Custom Field", {"dt": "Item", "fieldname": "is_service_item"})
+            frappe.db.commit()
             
         # Create the field
         create_custom_fields(item_service_field, update=False)
@@ -47,14 +52,21 @@ def check_item_service_field():
     """Check if the Is Service field exists"""
     
     try:
-        field_exists = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "is_service_item"})
+        # Check for new field name first
+        field_exists = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "pd_custom_is_service_item"})
         
         if field_exists:
-            click.echo("✅ 'Is Service' field found in Item DocType")
+            click.echo("✅ 'Is Service' field found in Item DocType (pd_custom_is_service_item)")
             return True
-        else:
-            click.echo("❌ 'Is Service' field not found in Item DocType")
+        
+        # Check for old field name
+        old_field_exists = frappe.db.exists("Custom Field", {"dt": "Item", "fieldname": "is_service_item"})
+        if old_field_exists:
+            click.echo("⚠️ Old 'Is Service' field found (is_service_item) - needs migration")
             return False
+        
+        click.echo("❌ 'Is Service' field not found in Item DocType")
+        return False
             
     except Exception as e:
         click.echo(f"❌ Error checking 'Is Service' field: {str(e)}")

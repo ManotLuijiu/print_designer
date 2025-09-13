@@ -7,13 +7,13 @@ frappe.ui.form.on('Item', {
     add_service_classification_help(frm);
     
     // Show service-related warnings
-    if (frm.doc.is_service_item) {
+    if (frm.doc.pd_custom_is_service_item) {
       show_wht_service_info(frm);
     }
   },
   
-  is_service_item: function(frm) {
-    if (frm.doc.is_service_item) {
+  pd_custom_is_service_item: function(frm) {
+    if (frm.doc.pd_custom_is_service_item) {
       show_wht_service_info(frm);
     } else {
       hide_wht_service_info(frm);
@@ -27,8 +27,8 @@ frappe.ui.form.on('Item', {
 });
 
 function add_service_classification_help(frm) {
-  if (!frm.get_field('is_service_item').$wrapper.find('.service-help').length) {
-    frm.get_field('is_service_item').$wrapper.append(`
+  if (!frm.get_field('pd_custom_is_service_item').$wrapper.find('.service-help').length) {
+    frm.get_field('pd_custom_is_service_item').$wrapper.append(`
       <div class="service-help alert alert-info" style="margin-top: 10px;">
         <strong>Service Items:</strong> Check this for consulting, software development, maintenance, 
         training, and other service-based items that are subject to 3% withholding tax in Thailand.
@@ -39,8 +39,8 @@ function add_service_classification_help(frm) {
 }
 
 function show_wht_service_info(frm) {
-  if (!frm.get_field('is_service_item').$wrapper.find('.wht-service-info').length) {
-    frm.get_field('is_service_item').$wrapper.append(`
+  if (!frm.get_field('pd_custom_is_service_item').$wrapper.find('.wht-service-info').length) {
+    frm.get_field('pd_custom_is_service_item').$wrapper.append(`
       <div class="wht-service-info alert alert-warning" style="margin-top: 10px;">
         <strong>⚠️ Service Item:</strong> This item will automatically trigger 3% withholding tax 
         calculation in Sales Invoices for companies with Thailand Service Business enabled.
@@ -50,7 +50,7 @@ function show_wht_service_info(frm) {
 }
 
 function hide_wht_service_info(frm) {
-  frm.get_field('is_service_item').$wrapper.find('.wht-service-info').remove();
+  frm.get_field('pd_custom_is_service_item').$wrapper.find('.wht-service-info').remove();
 }
 
 function suggest_service_classification(frm) {
@@ -68,7 +68,7 @@ function suggest_service_classification(frm) {
     item_group_lower.includes(keyword)
   );
   
-  if (is_likely_service && !frm.doc.is_service_item) {
+  if (is_likely_service && !frm.doc.pd_custom_is_service_item) {
     frappe.msgprint({
       title: __('Service Item Suggestion'),
       message: __('Based on the Item Group "{0}", this might be a service item. Consider checking "Is Service" if this item represents a service subject to withholding tax.', [frm.doc.item_group]),

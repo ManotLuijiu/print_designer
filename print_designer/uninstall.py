@@ -131,6 +131,12 @@ def delete_all_print_designer_custom_fields():
 			"construction_service", "default_retention_rate", "default_retention_account",
 		]
 		
+		# Item service field SPECIFICALLY created by print_designer install_item_service_field.py
+		print_designer_item_fields = [
+			# Item service field (both old and new naming)
+			"is_service_item", "pd_custom_is_service_item",
+		]
+		
 		# Fields in hooks.py (fixtures) - these are definitely print_designer fields
 		fixtures_fields = get_fixtures_field_names()
 		
@@ -143,7 +149,8 @@ def delete_all_print_designer_custom_fields():
 			print_designer_specific_patterns + 
 			print_designer_payment_entry_fields +
 			print_designer_sales_invoice_fields +
-			print_designer_company_tax_fields
+			print_designer_company_tax_fields +
+			print_designer_item_fields
 		)
 		
 		for field in all_custom_fields:
