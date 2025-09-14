@@ -253,6 +253,10 @@ def payment_entry_calculate_retention_amounts(doc, method=None):
     if thai_tax_details:
         doc.pd_custom_retention_note = _generate_thai_tax_note(thai_tax_details)
 
+    # Populate main Payment Entry thai_wht_preview_section fields from aggregated data
+    if has_thai_taxes:
+        _populate_main_payment_entry_thai_preview_fields(doc, thai_tax_details)
+
 
 def _populate_thai_tax_fields_from_invoices(doc):
     """
@@ -1196,3 +1200,127 @@ def payment_entry_on_cancel_reverse_retention_entries(doc, method=None):
     except Exception as e:
         frappe.log_error(f"Thai tax GL reversal error for {doc.name}: {str(e)}", "Thai Tax GL Reversal Error")
         frappe.throw(_("Failed to reverse Thai tax entries: {0}").format(str(e)))
+
+
+def _populate_main_payment_entry_thai_preview_fields(doc, thai_tax_details):
+    """
+    Populate main Payment Entry thai_wht_preview_section fields from aggregated reference data.
+
+    This function aggregates data from Payment Entry References to populate the main Payment Entry
+    thai_wht_preview_section fields (vat_treatment, subject_to_wht, net_total_after_wht, etc.)
+    so users can see the summary in the main form.
+
+    Args:
+        doc: Payment Entry document
+        thai_tax_details: List of Thai tax details from references
+    """
+    try:
+        print(f"🔄 Populating main Payment Entry thai_wht_preview_section fields for {doc.name}")
+
+        # Initialize aggregation variables
+        has_wht = False
+        has_vat_undue = False
+        vat_treatments = set()
+        wht_income_types = set()
+        wht_descriptions = set()
+        total_net_after_wht = 0.0
+
+        # Aggregate data from references
+        for ref in doc.references:
+            if ref.reference_doctype == "Sales Invoice" and ref.reference_name:
+                # Get detailed Thai tax info from the invoice
+                thai_tax_info = _get_invoice_thai_tax_info(ref.reference_doctype, ref.reference_name)
+
+                if thai_tax_info and thai_tax_info.get("has_thai_taxes"):
+                    # Check for WHT
+                    if thai_tax_info.get("subject_to_wht"):
+                        has_wht = True
+
+                    # Collect VAT treatment
+                    vat_treatment = thai_tax_info.get("vat_treatment")
+                    if vat_treatment:
+                        vat_treatments.add(vat_treatment)
+                        if "Undue" in vat_treatment:
+                            has_vat_undue = True
+
+                    # Collect WHT income types and descriptions
+                    wht_income_type = thai_tax_info.get("wht_income_type")
+                    if wht_income_type:
+                        wht_income_types.add(wht_income_type)
+
+                    wht_description = thai_tax_info.get("wht_description")
+                    if wht_description:
+                        wht_descriptions.add(wht_description)
+
+                    # Calculate proportional net total after WHT
+                    outstanding_amount = flt(ref.outstanding_amount, 2)
+                    allocated_amount = flt(ref.allocated_amount, 2)
+                    invoice_net_after_wht = flt(thai_tax_info.get("net_total_after_wht", 0))
+
+                    if outstanding_amount > 0 and invoice_net_after_wht > 0:
+                        proportion = allocated_amount / outstanding_amount
+                        proportional_net_after_wht = flt(invoice_net_after_wht * proportion, 2)
+                        total_net_after_wht += proportional_net_after_wht
+
+        # Set aggregated values in main Payment Entry fields
+
+        # VAT Treatment - use the most common or first found
+        if vat_treatments:
+            primary_vat_treatment = list(vat_treatments)[0]  # Use first found
+            if len(vat_treatments) > 1:
+                primary_vat_treatment = "Mixed VAT Treatments"  # Indicate mixed treatments
+
+            if hasattr(doc, 'vat_treatment'):
+                doc.vat_treatment = primary_vat_treatment
+                print(f"   ✅ Set vat_treatment: {primary_vat_treatment}")
+
+        # Subject to WHT
+        if hasattr(doc, 'subject_to_wht'):
+            doc.subject_to_wht = 1 if has_wht else 0
+            print(f"   ✅ Set subject_to_wht: {doc.subject_to_wht}")
+
+        # WHT Income Type - use most common or combine
+        if wht_income_types and hasattr(doc, 'wht_income_type'):
+            if len(wht_income_types) == 1:
+                doc.wht_income_type = list(wht_income_types)[0]
+            else:
+                doc.wht_income_type = "mixed_services"  # Multiple types
+            print(f"   ✅ Set wht_income_type: {doc.wht_income_type}")
+
+        # WHT Description - combine descriptions
+        if wht_descriptions and hasattr(doc, 'wht_description'):
+            if len(wht_descriptions) == 1:
+                doc.wht_description = list(wht_descriptions)[0]
+            else:
+                doc.wht_description = "Multiple service types"
+            print(f"   ✅ Set wht_description: {doc.wht_description}")
+
+        # WHT Certificate Required - default to True if has WHT
+        if hasattr(doc, 'wht_certificate_required'):
+            doc.wht_certificate_required = 1 if has_wht else 0
+            print(f"   ✅ Set wht_certificate_required: {doc.wht_certificate_required}")
+
+        # Net Total After WHT - aggregated amount
+        if hasattr(doc, 'net_total_after_wht'):
+            doc.net_total_after_wht = total_net_after_wht
+            print(f"   ✅ Set net_total_after_wht: {doc.net_total_after_wht}")
+
+        # Net Total After WHT in Words - generate Thai words
+        if hasattr(doc, 'net_total_after_wht_in_words') and total_net_after_wht > 0:
+            try:
+                # Import Thai number to words function if available
+                from frappe.utils import money_in_words
+                doc.net_total_after_wht_in_words = money_in_words(total_net_after_wht, "THB")
+                print(f"   ✅ Set net_total_after_wht_in_words: {doc.net_total_after_wht_in_words}")
+            except Exception as e:
+                print(f"   ⚠️ Could not generate words for net_total_after_wht: {e}")
+                doc.net_total_after_wht_in_words = f"{total_net_after_wht:,.2f} บาท"
+
+        print(f"   ✅ Successfully populated thai_wht_preview_section fields")
+
+    except Exception as e:
+        print(f"   ❌ Error populating thai_wht_preview_section fields: {e}")
+        frappe.log_error(
+            message=f"Error populating thai_wht_preview_section fields for {doc.name}: {str(e)}",
+            title="Thai Preview Fields Population Error"
+        )

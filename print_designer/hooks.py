@@ -54,6 +54,9 @@ commands = [
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
     # Payment Entry Thai Tax Preview Fields (Sales Invoice-style preview section)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",
+    # Payment Entry Thai Tax Compliance Fields
+    "print_designer.commands.install_payment_entry_thai_fields.execute",
+    "print_designer.commands.install_payment_entry_thai_fields.check_fields_exist",
 ]
 
 # Includes in <head>
@@ -303,6 +306,24 @@ fixtures = [
                     "Customer-custom_wht_rate",
                     "Customer-print_designer_wht_column_2",
                     "Customer-is_juristic_person",
+                    # Payment Entry - Thai Tax Compliance Fields
+                    "Payment Entry-pd_custom_thai_compliance_tab",
+                    "Payment Entry-pd_custom_thai_tax_column_1",
+                    "Payment Entry-pd_custom_company_tax_address",
+                    "Payment Entry-pd_custom_tax_base_amount",
+                    "Payment Entry-pd_custom_tax_invoice_number",
+                    "Payment Entry-pd_custom_supplier",
+                    "Payment Entry-pd_custom_tax_invoice_date",
+                    "Payment Entry-pd_custom_supplier_name",
+                    "Payment Entry-pd_custom_income_type",
+                    "Payment Entry-pd_custom_thai_tax_column_2",
+                    "Payment Entry-pd_custom_wht_certificate_no",
+                    "Payment Entry-pd_custom_wht_certificate_date",
+                    "Payment Entry-pd_custom_withholding_tax_amount",
+                    "Payment Entry-pd_custom_withholding_tax_rate",
+                    "Payment Entry-pd_custom_net_payment_amount",
+                    "Payment Entry-pd_custom_apply_withholding_tax",
+                    "Payment Entry-pd_custom_get_invoices_from_purchase_billing",
                 ],
             ]
         ],
@@ -432,6 +453,7 @@ after_install = [
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
+    "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -465,6 +487,7 @@ after_migrate = [
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Ensure Payment Entry Thai tax preview fields are installed during migration
+    "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
 ]
 
 # Uninstallation
@@ -474,6 +497,7 @@ before_uninstall = [
     "print_designer.uninstall.before_uninstall",
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
+    "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
