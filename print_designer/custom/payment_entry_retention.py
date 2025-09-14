@@ -1058,6 +1058,11 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
         print(f"📋 Found {len(references)} references for {doc.name}")
 
         # Aggregate data from Sales Invoices using CORRECT field names
+        wht_descriptions = set()
+        net_total_after_wht_in_words_values = set()
+        wht_rates = set()  # Collect WHT rates from Sales Invoices
+        total_net_total = 0  # For proper tax base calculation
+
         for ref in references:
             if ref.reference_doctype == "Sales Invoice":
                 try:
@@ -1068,9 +1073,30 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
                     # Get thai tax fields from Sales Invoice using CORRECT field names
                     retention_amount = getattr(sales_invoice, 'custom_retention_amount', 0) or 0
                     withholding_amount = getattr(sales_invoice, 'custom_withholding_tax_amount', 0) or 0
+                    withholding_tax_rate = getattr(sales_invoice, 'custom_withholding_tax', 0) or 0  # Get WHT rate
                     vat_treatment = getattr(sales_invoice, 'vat_treatment', '')
                     subject_to_wht = getattr(sales_invoice, 'subject_to_wht', 0)
                     wht_income_type = getattr(sales_invoice, 'wht_income_type', '')
+
+                    # Collect WHT rate if present
+                    if withholding_tax_rate > 0:
+                        wht_rates.add(withholding_tax_rate)
+                        print(f"💸 Sales Invoice {ref.reference_name}: WHT rate = {withholding_tax_rate}%")
+
+                    # Get net_total for proper tax base calculation (excluding VAT)
+                    net_total = getattr(sales_invoice, 'net_total', 0) or 0
+                    total_net_total += net_total
+                    print(f"📊 Sales Invoice {ref.reference_name}: net_total = ฿{net_total}")
+
+                    # Get additional fields for Payment Entry population
+                    wht_description = getattr(sales_invoice, 'wht_description', '')
+                    net_total_after_wht_in_words = getattr(sales_invoice, 'net_total_after_wht_in_words', '')
+
+                    # Collect unique values for aggregation
+                    if wht_description:
+                        wht_descriptions.add(wht_description)
+                    if net_total_after_wht_in_words:
+                        net_total_after_wht_in_words_values.add(net_total_after_wht_in_words)
 
                     # VAT Undue amount - get from Sales Taxes and Charges
                     vat_undue_amount = 0
@@ -1102,6 +1128,7 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
                     continue
 
         print(f"📊 Total aggregated - Retention: {total_retention_amount}, WHT: {total_withholding_amount}, VAT Undue: {total_vat_undue_amount}")
+        print(f"💰 Tax Base Amount (net_total): ฿{total_net_total} (excluding VAT)")
 
         # Direct database update to bypass validation issues
         update_fields = {}
@@ -1110,7 +1137,9 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
         thai_ecosystem_fields = {
             'subject_to_wht': 1 if apply_wht else 0,
             'wht_income_type': list(wht_income_types)[0] if wht_income_types else None,
+            'wht_description': list(wht_descriptions)[0] if wht_descriptions else None,
             'net_total_after_wht': sum(ref.allocated_amount for ref in references) - total_withholding_amount,
+            'net_total_after_wht_in_words': list(net_total_after_wht_in_words_values)[0] if net_total_after_wht_in_words_values else None,
             'wht_certificate_required': 1 if apply_wht else 0
         }
 
@@ -1139,7 +1168,8 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
         pd_fields = {
             'pd_custom_apply_withholding_tax': 1 if apply_wht else 0,
             'pd_custom_withholding_tax_amount': total_withholding_amount,
-            'pd_custom_tax_base_amount': sum(ref.allocated_amount for ref in references),
+            'pd_custom_withholding_tax_rate': list(wht_rates)[0] if wht_rates else 0,  # Populate WHT rate from Sales Invoice
+            'pd_custom_tax_base_amount': total_net_total,  # Use net_total (excluding VAT) as tax base
             'pd_custom_net_payment_amount': sum(ref.allocated_amount for ref in references) - total_withholding_amount - total_retention_amount
         }
 

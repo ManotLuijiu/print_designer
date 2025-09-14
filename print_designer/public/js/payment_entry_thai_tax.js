@@ -410,6 +410,46 @@ function calculate_thai_tax_totals(frm) {
             console.log('❌ subject_to_wht field not found in form');
         }
 
+        // Populate wht_description and net_total_after_wht_in_words from references
+        if (frm.doc.references && frm.doc.references.length > 0) {
+            // Collect wht_description values from all references
+            let wht_descriptions = [];
+            let net_totals_in_words = [];
+
+            frm.doc.references.forEach(function(ref) {
+                if (ref.reference_doctype === 'Sales Invoice' && ref.reference_name) {
+                    // Get wht_description and net_total_after_wht_in_words from Sales Invoice
+                    frappe.call({
+                        method: 'print_designer.custom.payment_entry_thai_tax_population.get_invoice_thai_tax_details',
+                        args: {
+                            invoice_type: ref.reference_doctype,
+                            invoice_name: ref.reference_name
+                        },
+                        callback: function(r) {
+                            if (r.message) {
+                                if (r.message.wht_description && wht_descriptions.indexOf(r.message.wht_description) === -1) {
+                                    wht_descriptions.push(r.message.wht_description);
+                                }
+                                if (r.message.net_total_after_wht_in_words && net_totals_in_words.indexOf(r.message.net_total_after_wht_in_words) === -1) {
+                                    net_totals_in_words.push(r.message.net_total_after_wht_in_words);
+                                }
+
+                                // Update the form fields with the first unique value
+                                if (frm.fields_dict.wht_description && wht_descriptions.length > 0) {
+                                    frm.set_value('wht_description', wht_descriptions[0]);
+                                    console.log('📝 Setting wht_description:', wht_descriptions[0]);
+                                }
+                                if (frm.fields_dict.net_total_after_wht_in_words && net_totals_in_words.length > 0) {
+                                    frm.set_value('net_total_after_wht_in_words', net_totals_in_words[0]);
+                                    console.log('📝 Setting net_total_after_wht_in_words:', net_totals_in_words[0]);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
         if (frm.fields_dict.custom_subject_to_retention) {
             const new_value = total_retention > 0 ? 1 : 0;
             console.log('📝 Setting custom_subject_to_retention:', new_value, '(current:', frm.doc.custom_subject_to_retention, ')');

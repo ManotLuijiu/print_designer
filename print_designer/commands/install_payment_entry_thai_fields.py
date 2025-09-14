@@ -37,7 +37,7 @@ def create_payment_entry_thai_fields():
                 "no_copy": 0,
                 "print_hide": 0,
             },
-            # Column 1 - Button first in fixtures order
+            # Column 1 - Removed button and redundant fields
             {
                 "fieldname": "pd_custom_thai_tax_column_1",
                 "fieldtype": "Column Break",
@@ -46,23 +46,15 @@ def create_payment_entry_thai_fields():
                 "width": "50%",
             },
             {
-                "fieldname": "pd_custom_get_invoices_from_purchase_billing",
-                "fieldtype": "Button",
-                "label": "Get Invoices from Purchase Billing",
-                "insert_after": "pd_custom_thai_tax_column_1",
-                "hidden": 0,
-                "no_copy": 1,
-                "print_hide": 1,
-            },
-            {
                 "fieldname": "pd_custom_tax_invoice_number",
                 "fieldtype": "Data",
                 "label": "Tax Invoice Number",
-                "insert_after": "pd_custom_get_invoices_from_purchase_billing",
+                "insert_after": "pd_custom_thai_tax_column_1",
                 "translatable": 0,
                 "hidden": 0,
                 "no_copy": 0,
                 "print_hide": 0,
+                "read_only": 0,  # Ensure it's editable
             },
             {
                 "fieldname": "pd_custom_tax_invoice_date",
@@ -72,34 +64,14 @@ def create_payment_entry_thai_fields():
                 "hidden": 0,
                 "no_copy": 0,
                 "print_hide": 0,
+                "read_only": 0,  # Ensure it's editable
             },
-            {
-                "fieldname": "pd_custom_supplier",
-                "fieldtype": "Link",
-                "label": "Supplier",
-                "options": "Supplier",
-                "insert_after": "pd_custom_tax_invoice_date",
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
-            {
-                "fieldname": "pd_custom_supplier_name",
-                "fieldtype": "Data",
-                "label": "Supplier Name",
-                "insert_after": "pd_custom_supplier",
-                "fetch_from": "pd_custom_supplier.supplier_name",
-                "read_only": 1,
-                "translatable": 0,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
+            # Removed pd_custom_supplier and pd_custom_supplier_name - using standard party fields
             {
                 "fieldname": "pd_custom_income_type",
                 "fieldtype": "Select",
                 "label": "Income Type",
-                "insert_after": "pd_custom_supplier_name",
+                "insert_after": "pd_custom_tax_invoice_date",
                 "options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1)\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2)\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3)\n4. ดอกเบี้ย ฯลฯ 40(4)ก\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส\n6. ค่าบริการ/ค่าสินค้าภาครัฐ",
                 "translatable": 0,
                 "hidden": 0,
@@ -123,7 +95,7 @@ def create_payment_entry_thai_fields():
                 "fieldtype": "Small Text",
                 "label": "Company Tax Address",
                 "insert_after": "pd_custom_tax_base_amount",
-                "read_only": 1,
+                "read_only": 0,  # Changed to editable per requirements
                 "translatable": 0,
                 "hidden": 0,
                 "no_copy": 0,
@@ -302,9 +274,9 @@ def check_fields_exist():
         "pd_custom_company_tax_address",
         "pd_custom_tax_base_amount",
         "pd_custom_tax_invoice_number",
-        "pd_custom_supplier",
+        # Removed pd_custom_supplier - using standard party field
         "pd_custom_tax_invoice_date",
-        "pd_custom_supplier_name",
+        # Removed pd_custom_supplier_name - using standard party_name field
         "pd_custom_income_type",
         "pd_custom_wht_certificate_no",
         "pd_custom_wht_certificate_date",
@@ -312,7 +284,7 @@ def check_fields_exist():
         "pd_custom_withholding_tax_rate",
         "pd_custom_net_payment_amount",
         "pd_custom_apply_withholding_tax",
-        "pd_custom_get_invoices_from_purchase_billing",
+        # Removed pd_custom_get_invoices_from_purchase_billing - not needed
         # CRITICAL: Mirror fields that regional GL function expects
         "withholding_tax_amount",
         "tax_base_amount",
@@ -354,9 +326,9 @@ def remove_thai_fields():
         "pd_custom_company_tax_address",
         "pd_custom_tax_base_amount",
         "pd_custom_tax_invoice_number",
-        "pd_custom_supplier",
+        # Removed pd_custom_supplier - will be removed from DB
         "pd_custom_tax_invoice_date",
-        "pd_custom_supplier_name",
+        # Removed pd_custom_supplier_name - will be removed from DB
         "pd_custom_income_type",
         "pd_custom_wht_certificate_no",
         "pd_custom_wht_certificate_date",
@@ -364,7 +336,7 @@ def remove_thai_fields():
         "pd_custom_withholding_tax_rate",
         "pd_custom_net_payment_amount",
         "pd_custom_apply_withholding_tax",
-        "pd_custom_get_invoices_from_purchase_billing",
+        # Removed pd_custom_get_invoices_from_purchase_billing - will be removed from DB
         # CRITICAL: Mirror fields that regional GL function expects
         "withholding_tax_amount",
         "tax_base_amount",

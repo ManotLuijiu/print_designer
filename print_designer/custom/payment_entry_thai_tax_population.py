@@ -108,12 +108,17 @@ def get_invoice_thai_tax_details(invoice_type, invoice_name):
             'wht_amount': invoice_doc.get('custom_withholding_tax_amount', 0),
             'has_wht': 1 if invoice_doc.get('subject_to_wht', 0) else 0,
 
+            # Additional WHT fields for Payment Entry population
+            'wht_description': invoice_doc.get('wht_description', ''),
+            'wht_income_type': invoice_doc.get('wht_income_type', ''),
+
             # VAT fields
             'vat_undue': _calculate_vat_undue_from_taxes(invoice_doc),
             'vat_treatment': invoice_doc.get('vat_treatment', ''),
 
             # Net amounts
             'net_total_after_wht': invoice_doc.get('net_total_after_wht', 0),
+            'net_total_after_wht_in_words': invoice_doc.get('net_total_after_wht_in_words', ''),
             'grand_total': invoice_doc.get('grand_total', 0),
         }
 
@@ -122,6 +127,10 @@ def get_invoice_thai_tax_details(invoice_type, invoice_name):
         print(f"  - retention_amount: {thai_tax_details['retention_amount']}")
         print(f"  - has_wht: {thai_tax_details['has_wht']}")
         print(f"  - wht_amount: {thai_tax_details['wht_amount']}")
+        print(f"  - wht_description: {thai_tax_details['wht_description']}")
+        print(f"  - wht_income_type: {thai_tax_details['wht_income_type']}")
+        print(f"  - net_total_after_wht: {thai_tax_details['net_total_after_wht']}")
+        print(f"  - net_total_after_wht_in_words: {thai_tax_details['net_total_after_wht_in_words']}")
         print(f"  - vat_undue: {thai_tax_details['vat_undue']}")
         
         return thai_tax_details
