@@ -57,6 +57,11 @@ commands = [
     # Payment Entry Thai Tax Compliance Fields
     "print_designer.commands.install_payment_entry_thai_fields.execute",
     "print_designer.commands.install_payment_entry_thai_fields.check_fields_exist",
+    # Console Utilities for Development and Debugging
+    "print_designer.commands.console_utils.execute_sql_query",
+    "print_designer.commands.console_utils.check_custom_field",
+    "print_designer.commands.console_utils.fix_fetch_from_field",
+    "print_designer.commands.console_utils.check_thai_tax_fields_status",
 ]
 
 # Includes in <head>

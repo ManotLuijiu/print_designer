@@ -125,13 +125,13 @@ function populate_thai_tax_fields_after_fetch(frm) {
                 .then(data => {
                     console.log(`📊 Thai tax data received for ${ref.reference_name}:`, data);
                     if (data) {
-                        // Populate the fields
-                        ref.pd_custom_has_retention = data.pd_custom_has_retention || 0;
-                        ref.pd_custom_retention_amount = data.pd_custom_retention_amount || 0;
-                        ref.pd_custom_retention_percentage = data.pd_custom_retention_percentage || 0;
-                        ref.pd_custom_wht_amount = data.pd_custom_wht_amount || 0;
-                        ref.pd_custom_wht_percentage = data.pd_custom_wht_percentage || 0;
-                        ref.pd_custom_vat_undue_amount = data.pd_custom_vat_undue_amount || 0;
+                        // Map API response fields to Payment Entry Reference fields (corrected mapping)
+                        ref.pd_custom_has_retention = data.has_retention || 0;
+                        ref.pd_custom_retention_amount = data.retention_amount || 0;
+                        ref.pd_custom_retention_percentage = data.retention || 0;
+                        ref.pd_custom_wht_amount = data.wht_amount || 0;
+                        ref.pd_custom_wht_percentage = data.wht || 0;
+                        ref.pd_custom_vat_undue_amount = data.vat_undue || 0;
 
                         console.log(`✅ Thai tax fields populated for ${ref.reference_name}:`, {
                             retention: ref.pd_custom_retention_amount,
@@ -232,12 +232,13 @@ function fetch_and_populate_thai_tax_fields(frm, row) {
         fetch_thai_tax_fields(row.reference_doctype, row.reference_name)
             .then(data => {
                 if (data) {
-                    row.pd_custom_has_retention = data.pd_custom_has_retention || 0;
-                    row.pd_custom_retention_amount = data.pd_custom_retention_amount || 0;
-                    row.pd_custom_retention_percentage = data.pd_custom_retention_percentage || 0;
-                    row.pd_custom_wht_amount = data.pd_custom_wht_amount || 0;
-                    row.pd_custom_wht_percentage = data.pd_custom_wht_percentage || 0;
-                    row.pd_custom_vat_undue_amount = data.pd_custom_vat_undue_amount || 0;
+                    // Map API response fields to Payment Entry Reference fields (corrected mapping)
+                    row.pd_custom_has_retention = data.has_retention || 0;
+                    row.pd_custom_retention_amount = data.retention_amount || 0;
+                    row.pd_custom_retention_percentage = data.retention || 0;
+                    row.pd_custom_wht_amount = data.wht_amount || 0;
+                    row.pd_custom_wht_percentage = data.wht || 0;
+                    row.pd_custom_vat_undue_amount = data.vat_undue || 0;
                     
                     calculate_net_payable_for_row(row);
                     frm.refresh_field('references');
@@ -344,38 +345,46 @@ function calculate_thai_tax_totals(frm) {
         console.log('⚠️ No references found for totals calculation');
     }
     
-    // Update summary fields if they exist
+    // Update summary fields if they exist (using correct field names)
     console.log('🔄 Updating Payment Entry summary fields');
 
-    if (frm.fields_dict.pd_custom_has_thai_taxes) {
-        console.log('✅ Setting has_thai_taxes:', has_thai_taxes ? 1 : 0);
-        frm.set_value('pd_custom_has_thai_taxes', has_thai_taxes ? 1 : 0);
+    // Update Thai Tax Compliance tab fields
+    if (frm.fields_dict.pd_custom_apply_withholding_tax) {
+        console.log('✅ Setting apply_withholding_tax:', total_wht > 0 ? 1 : 0);
+        frm.set_value('pd_custom_apply_withholding_tax', total_wht > 0 ? 1 : 0);
     }
 
-    if (frm.fields_dict.pd_custom_total_retention_amount) {
-        console.log('💰 Setting total_retention_amount:', total_retention);
-        frm.set_value('pd_custom_total_retention_amount', total_retention);
+    if (frm.fields_dict.pd_custom_withholding_tax_amount) {
+        console.log('🏛️ Setting withholding_tax_amount:', total_wht);
+        frm.set_value('pd_custom_withholding_tax_amount', total_wht);
     }
 
-    if (frm.fields_dict.pd_custom_total_wht_amount) {
-        console.log('🏛️ Setting total_wht_amount:', total_wht);
-        frm.set_value('pd_custom_total_wht_amount', total_wht);
+    if (frm.fields_dict.pd_custom_tax_base_amount) {
+        console.log('💰 Setting tax_base_amount:', frm.doc.total_allocated_amount || 0);
+        frm.set_value('pd_custom_tax_base_amount', frm.doc.total_allocated_amount || 0);
     }
 
-    if (frm.fields_dict.pd_custom_total_vat_undue_amount) {
-        console.log('📋 Setting total_vat_undue_amount:', total_vat_undue);
-        frm.set_value('pd_custom_total_vat_undue_amount', total_vat_undue);
+    if (frm.fields_dict.pd_custom_net_payment_amount) {
+        const net_payment = (frm.doc.total_allocated_amount || 0) - total_wht - total_retention;
+        console.log('💵 Setting net_payment_amount:', net_payment);
+        frm.set_value('pd_custom_net_payment_amount', net_payment);
     }
 
-    if (frm.fields_dict.pd_custom_has_retention) {
-        console.log('📝 Setting has_retention:', total_retention > 0 ? 1 : 0);
-        frm.set_value('pd_custom_has_retention', total_retention > 0 ? 1 : 0);
+    // Update Thai Ecosystem Preview fields
+    if (frm.fields_dict.subject_to_wht) {
+        console.log('🏛️ Setting subject_to_wht:', total_wht > 0 ? 1 : 0);
+        frm.set_value('subject_to_wht', total_wht > 0 ? 1 : 0);
     }
 
-    if (frm.fields_dict.pd_custom_net_payment_after_retention) {
-        const net_payment = (frm.doc.total_allocated_amount || 0) - total_retention;
-        console.log('💵 Setting net_payment_after_retention:', net_payment);
-        frm.set_value('pd_custom_net_payment_after_retention', net_payment);
+    if (frm.fields_dict.custom_subject_to_retention) {
+        console.log('📝 Setting custom_subject_to_retention:', total_retention > 0 ? 1 : 0);
+        frm.set_value('custom_subject_to_retention', total_retention > 0 ? 1 : 0);
+    }
+
+    if (frm.fields_dict.net_total_after_wht) {
+        const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
+        console.log('💵 Setting net_total_after_wht:', net_total_after_wht);
+        frm.set_value('net_total_after_wht', net_total_after_wht);
     }
 
     console.log('✅ Thai tax totals calculation completed');
