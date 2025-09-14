@@ -31,6 +31,9 @@ def install_payment_entry_custom_fields():
         # Install fields using Frappe's standard method
         create_custom_fields(custom_fields, update=True)
 
+        # Force remove depends_on conditions that might not be updated by create_custom_fields
+        force_remove_depends_on_conditions()
+
         # Validate installation
         validation_result = validate_payment_entry_fields_installation()
 
@@ -284,6 +287,63 @@ def get_payment_entry_custom_fields_definition():
     }
 
 
+def force_remove_depends_on_conditions():
+    """
+    Force remove depends_on conditions from specific Payment Entry custom fields.
+
+    This function ensures that fields remain visible even if create_custom_fields()
+    doesn't properly update existing depends_on conditions.
+    """
+    try:
+        print("🔧 Force removing depends_on conditions for field visibility...")
+
+        # Fields that should NOT have depends_on conditions
+        fields_to_fix = [
+            'wht_income_type',
+            'wht_description',
+            'wht_certificate_required',
+            'net_total_after_wht',
+            'net_total_after_wht_in_words',
+            'wht_note'
+        ]
+
+        updated_count = 0
+        for fieldname in fields_to_fix:
+            try:
+                # Get the Custom Field record
+                custom_field_name = frappe.db.get_value(
+                    'Custom Field',
+                    {'dt': 'Payment Entry', 'fieldname': fieldname},
+                    'name'
+                )
+
+                if custom_field_name:
+                    # Check if it has a depends_on condition
+                    current_depends_on = frappe.db.get_value('Custom Field', custom_field_name, 'depends_on')
+
+                    if current_depends_on:
+                        # Force remove the depends_on condition
+                        frappe.db.set_value('Custom Field', custom_field_name, 'depends_on', '')
+                        updated_count += 1
+                        print(f"   ✅ Cleared depends_on for {fieldname}")
+                    else:
+                        print(f"   ✓ {fieldname} already clear")
+                else:
+                    print(f"   ⚠️ {fieldname} custom field not found")
+
+            except Exception as e:
+                print(f"   ❌ Error processing {fieldname}: {str(e)}")
+
+        if updated_count > 0:
+            frappe.db.commit()
+            print(f"✅ Cleared depends_on conditions for {updated_count} fields")
+        else:
+            print("✓ No depends_on conditions needed clearing")
+
+    except Exception as e:
+        print(f"❌ Error in force_remove_depends_on_conditions: {str(e)}")
+
+
 def validate_payment_entry_fields_installation():
     """
     Validate that all Payment Entry custom fields are properly installed
@@ -503,6 +563,89 @@ def uninstall_payment_entry_custom_fields():
 
     except Exception as e:
         error_msg = f"Error removing Payment Entry Thai tax preview fields: {str(e)}"
+        print(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+def check_and_fix_depends_on_issues():
+    """
+    Check and fix depends_on conditions that might be causing field visibility issues
+
+    Returns:
+        dict: Results of the check and fix operation
+    """
+    try:
+        print("=== Checking Payment Entry Fields depends_on Issues ===")
+
+        # Fields that should NOT have depends_on conditions
+        problem_fields = [
+            'wht_income_type',
+            'wht_description',
+            'wht_certificate_required',
+            'net_total_after_wht',
+            'net_total_after_wht_in_words',
+            'wht_note'
+        ]
+
+        print('🔍 Checking Payment Entry custom fields depends_on in DATABASE:')
+
+        # Get all Payment Entry custom fields
+        custom_fields = frappe.get_all(
+            'Custom Field',
+            filters={'dt': 'Payment Entry'},
+            fields=['fieldname', 'depends_on', 'name'],
+            order_by='idx asc'
+        )
+
+        issues_found = []
+
+        for field in custom_fields:
+            fieldname = field.fieldname
+            depends_on = field.depends_on or ''
+
+            if fieldname in problem_fields:
+                if depends_on:
+                    print(f'   ❌ {fieldname}: depends_on = "{depends_on}" (SHOULD BE EMPTY)')
+                    issues_found.append({
+                        'fieldname': fieldname,
+                        'depends_on': depends_on,
+                        'name': field.name
+                    })
+                else:
+                    print(f'   ✅ {fieldname}: depends_on = "" (CORRECT)')
+
+        if issues_found:
+            print(f'\n❌ Found {len(issues_found)} fields with problematic depends_on conditions')
+            print('🔧 Fixing these fields...')
+
+            for issue in issues_found:
+                try:
+                    # Update the Custom Field to remove depends_on
+                    frappe.db.set_value('Custom Field', issue['name'], 'depends_on', '')
+                    print(f'   ✅ Fixed {issue["fieldname"]} - removed depends_on condition')
+                except Exception as e:
+                    print(f'   ❌ Error fixing {issue["fieldname"]}: {str(e)}')
+
+            frappe.db.commit()
+            print('✅ Database changes committed')
+
+            return {
+                "success": True,
+                "issues_found": len(issues_found),
+                "issues_fixed": len(issues_found),
+                "fixed_fields": [issue['fieldname'] for issue in issues_found]
+            }
+        else:
+            print('\n✅ All fields have correct depends_on conditions')
+            return {
+                "success": True,
+                "issues_found": 0,
+                "issues_fixed": 0,
+                "fixed_fields": []
+            }
+
+    except Exception as e:
+        error_msg = f"Error checking depends_on issues: {str(e)}"
         print(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}
 

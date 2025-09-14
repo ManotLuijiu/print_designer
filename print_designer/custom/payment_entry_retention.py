@@ -816,47 +816,52 @@ def _validate_thai_tax_amounts(doc):
 
 
 def payment_entry_validate_thai_compliance(doc, method=None):
-    """Adjust Payment Entry amounts for Thai tax compliance BEFORE submission."""
-    
+    """Generate complete Thai tax GL entries during Save for user preview and review."""
+
     if not getattr(doc, 'pd_custom_has_thai_taxes', 0):
         return
-    
-    try:
-        # Adjust payment amounts for Thai tax compliance
-        # This must happen in validate (before GL entries are created)
-        _adjust_payment_amounts_for_thai_compliance(doc)
-        
-    except Exception as e:
-        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
-        frappe.log_error(f"Thai validation: {doc.name}: {error_msg}", "Thai Validation Error")
-        frappe.throw(_("Failed to validate Thai tax compliance: {0}").format(str(e)))
+
+    # Note: GL entries are now created during Submit via regional/payment_entry.py
+    # This follows ERPNext's standard architecture where GL entries are only
+    # created during on_submit(), but the Preview button allows users to see
+    # the complete GL entries that would be created upon submission.
 
 
 def payment_entry_on_submit_thai_compliance(doc, method=None):
-    """Process Thai tax compliance during Payment Entry submission."""
-    
-    if not getattr(doc, 'pd_custom_has_thai_taxes', 0):
+    """Process Thai tax compliance tracking during Payment Entry submission.
+
+    NOTE: GL entries are now created via regional/payment_entry.py to avoid duplicates.
+    This function only handles tracking and user notifications.
+    """
+
+    # Check if Thai taxes are properly configured and enabled
+    has_thai_taxes = getattr(doc, 'pd_custom_has_thai_taxes', 0)
+    total_wht = flt(getattr(doc, 'pd_custom_total_wht_amount', 0))
+    total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
+    total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))
+
+    # Only proceed if Thai taxes flag is set AND there are actual amounts
+    if not has_thai_taxes or (total_wht <= 0 and total_retention <= 0 and total_vat_undue <= 0):
+        print(f"⏭️ No Thai taxes to track: has_thai_taxes={has_thai_taxes}, WHT={total_wht}, Retention={total_retention}, VAT Undue={total_vat_undue}")
         return
-    
+
     try:
-        # Create additional GL entries for Thai tax compliance
-        # (Payment amounts already adjusted in validate hook)
-        _create_thai_tax_gl_entries(doc)
-        
+        # GL entries are now created via regional/payment_entry.py
+        # This function only handles tracking and notifications
+
         # Create comprehensive tracking record
         _create_retention_tracking_record(doc)
-        
+
         # Show summary to user
         _show_thai_tax_summary(doc)
-        
+
     except Exception as e:
         # Use very short title to avoid 140 character limit in Error Log
         error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
-        frappe.log_error(f"Thai tax GL: {doc.name}: {error_msg}", "Thai Tax GL Error")
-        frappe.throw(_("Failed to create Thai tax GL entries: {0}").format(str(e)))
+        frappe.log_error(f"Thai tax tracking: {doc.name}: {error_msg}", "Thai Tax Tracking Error")
 
 
-def _adjust_payment_amounts_for_thai_compliance(doc):
+def _adjust_payment_amounts_for_thai_compliance_legacy(doc):
     """
     Adjust Payment Entry amounts to follow Thai tax compliance patterns.
     
@@ -907,195 +912,14 @@ def _adjust_payment_amounts_for_thai_compliance(doc):
     )
 
 
-def _create_thai_tax_gl_entries(doc):
-    """Create additional GL entries for Thai tax compliance after ERPNext creates base entries."""
-    
-    # Get Thai tax amounts
-    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
-    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
-    vat_undue_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
-    
-    if wht_amount <= 0 and retention_amount <= 0 and vat_undue_amount <= 0:
-        return
-    
-    # Create individual GL entries for each Thai tax component
-    if wht_amount > 0:
-        _create_wht_gl_entry(doc)
-    
-    if retention_amount > 0:
-        _create_retention_gl_entry(doc)
-    
-    if vat_undue_amount > 0:
-        _create_vat_gl_entries(doc)
+# Removed _create_complete_thai_gl_entries_during_save function -
+# GL entries are now properly created during Submit via regional/payment_entry.py
 
 
-def _create_retention_gl_entry(doc):
-    """Create GL entry for retention as asset (debit entry)."""
-    
-    from frappe.utils import get_link_to_form
-    
-    try:
-        retention_amount = flt(doc.pd_custom_total_retention_amount, 2)
-        
-        if retention_amount <= 0:
-            return
-        
-        # Create GL Entry for retention as asset (DEBIT side)
-        # This matches: Dr. Construction Retention 5000, Cr. Accounts Receivable 100000
-        gl_entry = frappe.new_doc("GL Entry")
-        gl_entry.posting_date = doc.posting_date
-        gl_entry.transaction_date = doc.posting_date
-        gl_entry.account = doc.pd_custom_retention_account
-        # Don't set party_type and party for non-receivable/payable accounts
-        # Retention account is typically a Current Liability, not Receivable/Payable
-        gl_entry.debit = retention_amount  # ✅ DEBIT - Retention is an asset we hold
-        gl_entry.debit_in_account_currency = retention_amount
-        gl_entry.credit = 0
-        gl_entry.credit_in_account_currency = 0
-        gl_entry.against = doc.paid_from if doc.payment_type == "Pay" else doc.paid_to
-        gl_entry.voucher_type = doc.doctype
-        gl_entry.voucher_no = doc.name
-        gl_entry.remarks = f"Construction retention held for {doc.name}"
-        gl_entry.is_opening = "No"
-        gl_entry.company = doc.company
-        
-        # Set finance_book only if the document has this field
-        if hasattr(doc, 'finance_book') and doc.finance_book:
-            gl_entry.finance_book = doc.finance_book
-        # Leave finance_book empty if not available
-        
-        gl_entry.insert(ignore_permissions=True)
-        
-        frappe.msgprint(_("Retention asset GL entry created: {0}").format(
-            get_link_to_form("GL Entry", gl_entry.name)
-        ))
-        
-    except Exception as e:
-        # Shorten error message to avoid truncation
-        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
-        frappe.log_error(f"Retention GL: {doc.name}: {error_msg}", "Retention GL Error")
-        frappe.throw(_("Failed to create retention asset entry: {0}").format(str(e)))
 
 
-def _create_wht_gl_entry(doc):
-    """Create GL entry for WHT as asset (tax credit)."""
-    
-    from frappe.utils import get_link_to_form
-    
-    try:
-        wht_amount = flt(doc.pd_custom_total_wht_amount, 2)
-        
-        if wht_amount <= 0:
-            return
-        
-        # Create GL Entry for WHT as asset (DEBIT side)
-        # Dr. WHT - Assets (tax credit we can claim from Revenue Department)
-        gl_entry = frappe.new_doc("GL Entry")
-        gl_entry.posting_date = doc.posting_date
-        gl_entry.transaction_date = doc.posting_date
-        gl_entry.account = doc.pd_custom_wht_account
-        # Don't set party_type and party for non-receivable/payable accounts
-        # WHT account is typically a Tax Asset, not Receivable/Payable
-        gl_entry.debit = wht_amount  # ✅ DEBIT - WHT is a tax credit asset
-        gl_entry.debit_in_account_currency = wht_amount
-        gl_entry.credit = 0
-        gl_entry.credit_in_account_currency = 0
-        gl_entry.against = doc.paid_from if doc.payment_type == "Pay" else doc.paid_to
-        gl_entry.voucher_type = doc.doctype
-        gl_entry.voucher_no = doc.name
-        gl_entry.remarks = f"Thai WHT tax credit for {doc.name}"
-        gl_entry.is_opening = "No"
-        gl_entry.company = doc.company
-        
-        # Set finance_book only if the document has this field
-        if hasattr(doc, 'finance_book') and doc.finance_book:
-            gl_entry.finance_book = doc.finance_book
-        # Leave finance_book empty if not available
-        
-        gl_entry.insert(ignore_permissions=True)
-        
-        frappe.msgprint(_("WHT tax credit GL entry created: {0}").format(
-            get_link_to_form("GL Entry", gl_entry.name)
-        ))
-        
-    except Exception as e:
-        # Shorten error message to avoid truncation
-        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
-        frappe.log_error(f"WHT GL: {doc.name}: {error_msg}", "WHT GL Error")
-        frappe.throw(_("Failed to create WHT tax credit entry: {0}").format(str(e)))
 
 
-def _create_vat_gl_entries(doc):
-    """Create GL entries for VAT processing (Undue → Due conversion)."""
-    
-    from frappe.utils import get_link_to_form
-    
-    try:
-        vat_amount = flt(doc.pd_custom_total_vat_undue_amount, 2)
-        
-        if vat_amount <= 0:
-            return
-        
-        # Entry 1: Dr. Output VAT - Undue (clear the undue amount)
-        gl_entry_undue = frappe.new_doc("GL Entry")
-        gl_entry_undue.posting_date = doc.posting_date
-        gl_entry_undue.transaction_date = doc.posting_date
-        gl_entry_undue.account = doc.pd_custom_output_vat_undue_account
-        # Don't set party_type and party for non-receivable/payable accounts
-        # VAT accounts are typically Tax Liability accounts
-        gl_entry_undue.debit = vat_amount  # ✅ DEBIT - Clear undue VAT
-        gl_entry_undue.debit_in_account_currency = vat_amount
-        gl_entry_undue.credit = 0
-        gl_entry_undue.credit_in_account_currency = 0
-        gl_entry_undue.against = doc.pd_custom_output_vat_account
-        gl_entry_undue.voucher_type = doc.doctype
-        gl_entry_undue.voucher_no = doc.name
-        gl_entry_undue.remarks = f"Thai VAT Undue clearance for {doc.name}"
-        gl_entry_undue.is_opening = "No"
-        gl_entry_undue.company = doc.company
-        
-        # Set finance_book only if the document has this field
-        if hasattr(doc, 'finance_book') and doc.finance_book:
-            gl_entry_undue.finance_book = doc.finance_book
-        # Leave finance_book empty if not available
-        
-        gl_entry_undue.insert(ignore_permissions=True)
-        
-        # Entry 2: Cr. Output VAT (register due VAT)
-        gl_entry_due = frappe.new_doc("GL Entry")
-        gl_entry_due.posting_date = doc.posting_date
-        gl_entry_due.transaction_date = doc.posting_date
-        gl_entry_due.account = doc.pd_custom_output_vat_account
-        # Don't set party_type and party for non-receivable/payable accounts
-        # VAT accounts are typically Tax Liability accounts
-        gl_entry_due.debit = 0
-        gl_entry_due.debit_in_account_currency = 0
-        gl_entry_due.credit = vat_amount  # ✅ CREDIT - Register due VAT
-        gl_entry_due.credit_in_account_currency = vat_amount
-        gl_entry_due.against = doc.pd_custom_output_vat_undue_account
-        gl_entry_due.voucher_type = doc.doctype
-        gl_entry_due.voucher_no = doc.name
-        gl_entry_due.remarks = f"Thai VAT Due registration for {doc.name}"
-        gl_entry_due.is_opening = "No"
-        gl_entry_due.company = doc.company
-        
-        # Set finance_book only if the document has this field
-        if hasattr(doc, 'finance_book') and doc.finance_book:
-            gl_entry_due.finance_book = doc.finance_book
-        # Leave finance_book empty if not available
-        
-        gl_entry_due.insert(ignore_permissions=True)
-        
-        frappe.msgprint(_("VAT processing GL entries created: {0} and {1}").format(
-            get_link_to_form("GL Entry", gl_entry_undue.name),
-            get_link_to_form("GL Entry", gl_entry_due.name)
-        ))
-        
-    except Exception as e:
-        # Shorten error message to avoid truncation
-        error_msg = str(e)[:50] if len(str(e)) > 50 else str(e)
-        frappe.log_error(f"VAT GL: {doc.name}: {error_msg}", "VAT GL Error")
-        frappe.throw(_("Failed to create VAT processing entries: {0}").format(str(e)))
 
 
 def _show_thai_tax_summary(doc):

@@ -30,8 +30,13 @@ frappe.ui.form.on('Payment Entry', {
     
     validate: function(frm) {
         console.log('✅ Payment Entry validate - calculating Thai tax totals');
-        // Calculate totals before saving
-        calculate_thai_tax_totals(frm);
+        try {
+            // Calculate totals before saving
+            calculate_thai_tax_totals(frm);
+        } catch(e) {
+            console.error('Error in Payment Entry validation:', e);
+            // Don't block save on calculation errors
+        }
     },
     
     references_add: function(frm, cdt, cdn) {
@@ -305,6 +310,31 @@ function calculate_thai_tax_totals(frm) {
      * Calculate total Thai tax amounts across all references
      */
     console.log('🧮 Calculating Thai tax totals for form:', frm.doc.name || 'New');
+
+    try {
+        // DEBUG: Check field visibility status
+        console.log('🔍 Checking thai_wht_preview_section field visibility:');
+        const thai_section_fields = [
+            'vat_treatment', 'subject_to_wht', 'wht_income_type', 'wht_description',
+            'wht_certificate_required', 'net_total_after_wht', 'net_total_after_wht_in_words',
+            'wht_note', 'custom_subject_to_retention', 'custom_net_total_after_wht_retention',
+            'custom_net_total_after_wht_retention_in_words', 'custom_retention_note'
+        ];
+
+        thai_section_fields.forEach(fieldname => {
+            const field = frm.fields_dict[fieldname];
+            if (field) {
+                const is_visible = !field.df.hidden && !field.df.depends_on ||
+                                  (field.df.depends_on && frappe.ui.form.is_eval_true(field.df.depends_on, frm.doc));
+                console.log(`   📋 ${fieldname}: ${is_visible ? '✅ VISIBLE' : '❌ HIDDEN'} (depends_on: ${field.df.depends_on || 'none'})`);
+            } else {
+                console.log(`   ❓ ${fieldname}: FIELD NOT FOUND`);
+            }
+        });
+    } catch(e) {
+        console.error('Error checking field visibility:', e);
+    }
+
     let total_retention = 0;
     let total_wht = 0;
     let total_vat_undue = 0;
@@ -348,43 +378,73 @@ function calculate_thai_tax_totals(frm) {
     // Update summary fields if they exist (using correct field names)
     console.log('🔄 Updating Payment Entry summary fields');
 
-    // Update Thai Tax Compliance tab fields
-    if (frm.fields_dict.pd_custom_apply_withholding_tax) {
-        console.log('✅ Setting apply_withholding_tax:', total_wht > 0 ? 1 : 0);
-        frm.set_value('pd_custom_apply_withholding_tax', total_wht > 0 ? 1 : 0);
+    try {
+        // Update Thai Tax Compliance tab fields
+        if (frm.fields_dict.pd_custom_apply_withholding_tax) {
+            console.log('✅ Setting apply_withholding_tax:', total_wht > 0 ? 1 : 0);
+            frm.set_value('pd_custom_apply_withholding_tax', total_wht > 0 ? 1 : 0);
+        }
+
+        if (frm.fields_dict.pd_custom_withholding_tax_amount) {
+            console.log('🏛️ Setting withholding_tax_amount:', total_wht);
+            frm.set_value('pd_custom_withholding_tax_amount', total_wht);
+        }
+
+        if (frm.fields_dict.pd_custom_tax_base_amount) {
+            console.log('💰 Setting tax_base_amount:', frm.doc.total_allocated_amount || 0);
+            frm.set_value('pd_custom_tax_base_amount', frm.doc.total_allocated_amount || 0);
+        }
+
+        if (frm.fields_dict.pd_custom_net_payment_amount) {
+            const net_payment = (frm.doc.total_allocated_amount || 0) - total_wht - total_retention;
+            console.log('💵 Setting net_payment_amount:', net_payment);
+            frm.set_value('pd_custom_net_payment_amount', net_payment);
+        }
+
+        // Update Thai Ecosystem Preview fields
+        if (frm.fields_dict.subject_to_wht) {
+            const new_value = total_wht > 0 ? 1 : 0;
+            console.log('🏛️ Setting subject_to_wht:', new_value, '(current:', frm.doc.subject_to_wht, ')');
+            frm.set_value('subject_to_wht', new_value);
+        } else {
+            console.log('❌ subject_to_wht field not found in form');
+        }
+
+        if (frm.fields_dict.custom_subject_to_retention) {
+            const new_value = total_retention > 0 ? 1 : 0;
+            console.log('📝 Setting custom_subject_to_retention:', new_value, '(current:', frm.doc.custom_subject_to_retention, ')');
+            frm.set_value('custom_subject_to_retention', new_value);
+        } else {
+            console.log('❌ custom_subject_to_retention field not found in form');
+        }
+
+        if (frm.fields_dict.net_total_after_wht) {
+            const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
+            console.log('💵 Setting net_total_after_wht:', net_total_after_wht, '(current:', frm.doc.net_total_after_wht, ')');
+            frm.set_value('net_total_after_wht', net_total_after_wht);
+        } else {
+            console.log('❌ net_total_after_wht field not found in form');
+        }
+    } catch(e) {
+        console.error('Error updating Payment Entry summary fields:', e);
     }
 
-    if (frm.fields_dict.pd_custom_withholding_tax_amount) {
-        console.log('🏛️ Setting withholding_tax_amount:', total_wht);
-        frm.set_value('pd_custom_withholding_tax_amount', total_wht);
-    }
-
-    if (frm.fields_dict.pd_custom_tax_base_amount) {
-        console.log('💰 Setting tax_base_amount:', frm.doc.total_allocated_amount || 0);
-        frm.set_value('pd_custom_tax_base_amount', frm.doc.total_allocated_amount || 0);
-    }
-
-    if (frm.fields_dict.pd_custom_net_payment_amount) {
-        const net_payment = (frm.doc.total_allocated_amount || 0) - total_wht - total_retention;
-        console.log('💵 Setting net_payment_amount:', net_payment);
-        frm.set_value('pd_custom_net_payment_amount', net_payment);
-    }
-
-    // Update Thai Ecosystem Preview fields
-    if (frm.fields_dict.subject_to_wht) {
-        console.log('🏛️ Setting subject_to_wht:', total_wht > 0 ? 1 : 0);
-        frm.set_value('subject_to_wht', total_wht > 0 ? 1 : 0);
-    }
-
-    if (frm.fields_dict.custom_subject_to_retention) {
-        console.log('📝 Setting custom_subject_to_retention:', total_retention > 0 ? 1 : 0);
-        frm.set_value('custom_subject_to_retention', total_retention > 0 ? 1 : 0);
-    }
-
-    if (frm.fields_dict.net_total_after_wht) {
-        const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
-        console.log('💵 Setting net_total_after_wht:', net_total_after_wht);
-        frm.set_value('net_total_after_wht', net_total_after_wht);
+    // Additional debugging: Show all current field values in thai_wht_preview_section
+    try {
+        console.log('📊 Current thai_wht_preview_section field values:');
+        const debug_fields = [
+            'vat_treatment', 'subject_to_wht', 'wht_income_type', 'wht_description',
+            'wht_certificate_required', 'net_total_after_wht', 'net_total_after_wht_in_words',
+            'wht_note', 'custom_subject_to_retention', 'custom_net_total_after_wht_retention',
+            'custom_net_total_after_wht_retention_in_words', 'custom_retention_note'
+        ];
+        debug_fields.forEach(fieldname => {
+            if (frm.fields_dict[fieldname]) {
+                console.log(`   📋 ${fieldname}: "${frm.doc[fieldname]}" (type: ${typeof frm.doc[fieldname]})`);
+            }
+        });
+    } catch(e) {
+        console.error('Error in debug logging:', e);
     }
 
     console.log('✅ Thai tax totals calculation completed');
