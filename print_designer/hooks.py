@@ -62,6 +62,9 @@ commands = [
     "print_designer.commands.console_utils.check_custom_field",
     "print_designer.commands.console_utils.fix_fetch_from_field",
     "print_designer.commands.console_utils.check_thai_tax_fields_status",
+    # Purchase Invoice Thai Tax Compliance Fields
+    "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",
+    "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",
 ]
 
 # Includes in <head>
@@ -459,6 +462,7 @@ after_install = [
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
+    "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Install Purchase Invoice Thai tax compliance fields
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -493,6 +497,7 @@ after_migrate = [
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Ensure Payment Entry Thai tax preview fields are installed during migration
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
+    "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
 ]
 
 # Uninstallation
@@ -503,6 +508,7 @@ before_uninstall = [
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
     "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
+    "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",  # Remove Purchase Invoice Thai tax compliance fields
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
