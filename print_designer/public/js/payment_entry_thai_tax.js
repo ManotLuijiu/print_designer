@@ -137,6 +137,7 @@ function populate_thai_tax_fields_after_fetch(frm) {
                         ref.pd_custom_wht_amount = data.wht_amount || 0;
                         ref.pd_custom_wht_percentage = data.wht || 0;
                         ref.pd_custom_vat_undue_amount = data.vat_undue || 0;
+                        ref.pd_custom_base_net_total = data.base_net_total || 0;  // Store base amount
 
                         console.log(`✅ Thai tax fields populated for ${ref.reference_name}:`, {
                             retention: ref.pd_custom_retention_amount,
@@ -324,8 +325,8 @@ function calculate_thai_tax_totals(frm) {
         thai_section_fields.forEach(fieldname => {
             const field = frm.fields_dict[fieldname];
             if (field) {
-                const is_visible = !field.df.hidden && !field.df.depends_on ||
-                                  (field.df.depends_on && frappe.ui.form.is_eval_true(field.df.depends_on, frm.doc));
+                // Simple visibility check without eval
+                const is_visible = !field.df.hidden;
                 console.log(`   📋 ${fieldname}: ${is_visible ? '✅ VISIBLE' : '❌ HIDDEN'} (depends_on: ${field.df.depends_on || 'none'})`);
             } else {
                 console.log(`   ❓ ${fieldname}: FIELD NOT FOUND`);
@@ -338,15 +339,17 @@ function calculate_thai_tax_totals(frm) {
     let total_retention = 0;
     let total_wht = 0;
     let total_vat_undue = 0;
+    let total_base_net = 0;  // Track total base amount (excluding VAT)
     let has_thai_taxes = false;
-    
+
     if (frm.doc.references) {
         console.log('📋 Processing', frm.doc.references.length, 'references for totals');
         frm.doc.references.forEach(function(ref, idx) {
             console.log(`📄 Reference ${idx + 1} (${ref.reference_name}):`, {
                 retention: ref.pd_custom_retention_amount,
                 wht: ref.pd_custom_wht_amount,
-                vat_undue: ref.pd_custom_vat_undue_amount
+                vat_undue: ref.pd_custom_vat_undue_amount,
+                base_net_total: ref.pd_custom_base_net_total
             });
 
             if (ref.pd_custom_retention_amount) {
@@ -362,6 +365,11 @@ function calculate_thai_tax_totals(frm) {
             if (ref.pd_custom_vat_undue_amount) {
                 total_vat_undue += ref.pd_custom_vat_undue_amount;
                 has_thai_taxes = true;
+            }
+
+            // Sum up base amounts for accurate tax base
+            if (ref.pd_custom_base_net_total) {
+                total_base_net += ref.pd_custom_base_net_total;
             }
         });
 
@@ -390,9 +398,20 @@ function calculate_thai_tax_totals(frm) {
             frm.set_value('pd_custom_withholding_tax_amount', total_wht);
         }
 
+        // Calculate tax base amount from base_net_total (amount before VAT)
         if (frm.fields_dict.pd_custom_tax_base_amount) {
-            console.log('💰 Setting tax_base_amount:', frm.doc.total_allocated_amount || 0);
-            frm.set_value('pd_custom_tax_base_amount', frm.doc.total_allocated_amount || 0);
+            // Use the sum of base_net_total from all references if available
+            // Otherwise fallback to allocated amount minus VAT
+            let tax_base = 0;
+            if (total_base_net > 0) {
+                // Use accurate base amount from invoice
+                tax_base = total_base_net;
+            } else if (frm.doc.total_allocated_amount > 0) {
+                // Fallback: calculate from allocated amount
+                tax_base = frm.doc.total_allocated_amount - total_vat_undue;
+            }
+            console.log('💰 Setting tax_base_amount:', tax_base, '(base_net:', total_base_net, ', allocated:', frm.doc.total_allocated_amount, ', VAT:', total_vat_undue, ')');
+            frm.set_value('pd_custom_tax_base_amount', tax_base);
         }
 
         if (frm.fields_dict.pd_custom_net_payment_amount) {

@@ -120,6 +120,7 @@ def get_invoice_thai_tax_details(invoice_type, invoice_name):
             'net_total_after_wht': invoice_doc.get('net_total_after_wht', 0),
             'net_total_after_wht_in_words': invoice_doc.get('net_total_after_wht_in_words', ''),
             'grand_total': invoice_doc.get('grand_total', 0),
+            'base_net_total': invoice_doc.get('base_net_total', 0),  # Amount excluding taxes
         }
 
         print(f"DEBUG API: Thai tax data extracted for {invoice_name}:")
@@ -132,6 +133,7 @@ def get_invoice_thai_tax_details(invoice_type, invoice_name):
         print(f"  - net_total_after_wht: {thai_tax_details['net_total_after_wht']}")
         print(f"  - net_total_after_wht_in_words: {thai_tax_details['net_total_after_wht_in_words']}")
         print(f"  - vat_undue: {thai_tax_details['vat_undue']}")
+        print(f"  - base_net_total: {thai_tax_details['base_net_total']}")
         
         return thai_tax_details
         
