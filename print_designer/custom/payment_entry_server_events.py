@@ -27,15 +27,13 @@ def after_insert(doc, method):
         print(f"DEBUG: Skipping - Payment type is {doc.payment_type}, not Pay")
         return
 
-    # Check if this Payment Entry has Thai taxes that require a WHT Certificate
-    has_thai_taxes = getattr(doc, 'pd_custom_has_thai_taxes', 0)
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+    # Check if user enabled WHT certificate generation
+    apply_wht = getattr(doc, 'pd_custom_apply_withholding_tax', 0)
 
-    print(f"DEBUG: pd_custom_has_thai_taxes = {has_thai_taxes}")
-    print(f"DEBUG: pd_custom_withholding_tax_amount = {wht_amount}")
+    print(f"DEBUG: pd_custom_apply_withholding_tax = {apply_wht}")
 
-    if not has_thai_taxes or wht_amount <= 0:
-        print("DEBUG: Skipping - No Thai taxes or WHT amount")
+    if not apply_wht:
+        print("DEBUG: Skipping - WHT not enabled by user")
         return
 
     print(f"DEBUG: Creating WHT Certificate for Payment Entry {doc.name}")

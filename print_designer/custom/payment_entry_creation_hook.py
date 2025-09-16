@@ -320,16 +320,11 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
 
     # Mark for WHT certificate creation if WHT amount exists
     if thai_tax_data.get("wht_amount", 0) > 0:
-        pe.pd_custom_needs_wht_certificate = 1
-        print(f"  - Set pe.pd_custom_needs_wht_certificate = 1 (WHT amount = {thai_tax_data.get('wht_amount')})")
-
-        # Also set pd_custom_has_thai_taxes for the certificate generator
-        if hasattr(pe, 'pd_custom_has_thai_taxes'):
-            pe.pd_custom_has_thai_taxes = 1
-            print(f"  - Set pe.pd_custom_has_thai_taxes = 1")
+        # WHT certificate will be created based on pd_custom_apply_withholding_tax field
+        print(f"  - WHT certificate will be created (WHT amount = {thai_tax_data.get('wht_amount')})")
     else:
-        pe.pd_custom_needs_wht_certificate = 0
-        print(f"  - Set pe.pd_custom_needs_wht_certificate = 0 (no WHT amount)")
+        # No WHT certificate needed since no WHT amount
+        print(f"  - No WHT certificate needed (no WHT amount)")
 
 
 def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_treatment=""):

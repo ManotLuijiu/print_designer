@@ -10,12 +10,12 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
     """
     print(f"DEBUG wht_certificate_generator: Starting for Payment Entry {payment_entry_doc.name}")
 
-    # Only process Payment Entry documents with Thai taxes
-    has_thai_taxes = getattr(payment_entry_doc, 'pd_custom_has_thai_taxes', 0)
-    print(f"DEBUG: pd_custom_has_thai_taxes = {has_thai_taxes}")
+    # Only process Payment Entry documents where user enabled WHT
+    apply_wht = getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 0)
+    print(f"DEBUG: pd_custom_apply_withholding_tax = {apply_wht}")
 
-    if not has_thai_taxes:
-        print("DEBUG: Skipping - No Thai taxes")
+    if not apply_wht:
+        print("DEBUG: Skipping - WHT not enabled by user")
         return
 
     # Check if WHT amount exists
@@ -61,14 +61,15 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         posting_date = getdate(payment_entry_doc.posting_date)
         buddhist_year = posting_date.year + 543
         buddhist_year_short = str(buddhist_year)[-2:]
-        month = str(posting_date.month).zfill(2)
+        month_num = posting_date.month
+        month = str(month_num).zfill(2)
 
         # Generate certificate number
         naming_pattern = f"WHTC-{buddhist_year_short}{month}-.#####"
         wht_cert.certificate_number = make_autoname(naming_pattern)
         wht_cert.certificate_date = payment_entry_doc.posting_date
         wht_cert.tax_year = f"{buddhist_year}"
-        wht_cert.tax_month = f"{month:02d} - {_get_thai_month_name(posting_date.month)}"
+        wht_cert.tax_month = f"{month} - {_get_thai_month_name(month_num)}"
 
         # Supplier Information
         wht_cert.supplier = payment_entry_doc.party
@@ -279,8 +280,9 @@ def get_wht_certificate_preview(payment_entry_name):
     payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
 
     # Check if eligible for WHT certificate
-    if not hasattr(payment_entry_doc, 'pd_custom_has_thai_taxes') or not payment_entry_doc.pd_custom_has_thai_taxes:
-        return {"eligible": False, "message": "No Thai taxes found"}
+    apply_wht = getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 0)
+    if not apply_wht:
+        return {"eligible": False, "message": "WHT not enabled"}
 
     wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 0))
     if wht_amount <= 0:

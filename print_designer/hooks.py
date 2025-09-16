@@ -70,9 +70,9 @@ commands = [
     "print_designer.regional.purchase_order_wht_override.test_thai_wht_automation",
     # Purchase Invoice Thai WHT Testing
     "print_designer.regional.purchase_invoice_wht_override.test_thai_wht_automation",
-    # WHT Certificate Link Field Management
-    "print_designer.commands.install_wht_certificate_link_field.install_wht_certificate_link_field",
-    "print_designer.commands.install_wht_certificate_link_field.check_wht_certificate_link_field",
+    # WHT Certificate Link Field Management - REDUNDANT: Fields now handled by install_payment_entry_thai_fields.py
+    # "print_designer.commands.install_wht_certificate_link_field.install_wht_certificate_link_field",
+    # "print_designer.commands.install_wht_certificate_link_field.check_wht_certificate_link_field",
 ]
 
 # Includes in <head>
