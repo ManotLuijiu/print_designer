@@ -431,12 +431,13 @@ function calculate_thai_tax_totals(frm) {
             frm.set_value('pd_custom_apply_withholding_tax', total_wht > 0 ? 1 : 0);
         }
 
-        // Handle both field naming patterns (legacy pd_custom_ and new custom_)
+        // Handle both field naming patterns - populate BOTH if they exist (mirror fields)
         if (frm.fields_dict.pd_custom_withholding_tax_amount) {
             console.log('🏛️ Setting pd_custom_withholding_tax_amount:', total_wht);
             frm.set_value('pd_custom_withholding_tax_amount', total_wht);
-        } else if (frm.fields_dict.custom_withholding_tax_amount) {
-            console.log('🏛️ Setting custom_withholding_tax_amount:', total_wht);
+        }
+        if (frm.fields_dict.custom_withholding_tax_amount) {
+            console.log('🏛️ Setting custom_withholding_tax_amount (mirror field):', total_wht);
             frm.set_value('custom_withholding_tax_amount', total_wht);
         }
 

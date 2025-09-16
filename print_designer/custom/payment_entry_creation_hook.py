@@ -276,26 +276,15 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
         pe.pd_custom_tax_base_amount = thai_tax_data.get("net_total", 0)
         print(f"  - Set pe.pd_custom_tax_base_amount = {pe.pd_custom_tax_base_amount} (net_total before VAT)")
 
-    # WHT Certificate Number - Auto-generate for Payment Entry (Pay)
-    if hasattr(pe, 'pd_custom_wht_certificate_no') and pe.payment_type == "Pay":
-        # Generate certificate number using Buddhist Era (พุทธศักราช) with monthly reset
-        # Format: WHTC-BBMM-##### where BB = Buddhist year (last 2 digits), MM = month
-        # Example: WHTC-6809-00001 for September 2025 (2568 BE)
-        from datetime import datetime
-        from frappe.model.naming import make_autoname
+    # WHT Certificate Number - Now only for Payment Entry (Receive) manual input
+    # Note: pd_custom_wht_certificate_no is used for Payment Entry (Receive) - customer issued certificates
+    # Payment Entry (Pay) uses pd_custom_wht_certificate (Link field) for our issued certificates
+    # Skip auto-generation for pd_custom_wht_certificate_no field
 
-        # Get Buddhist Era year (add 543 to Gregorian year)
-        # Ensure posting_date is properly parsed as date object
-        from frappe.utils import getdate
-        posting_date = getdate(pe.posting_date) if pe.posting_date else datetime.now().date()
-        buddhist_year = posting_date.year + 543
-        buddhist_year_short = str(buddhist_year)[-2:]  # Last 2 digits (68 for 2568)
-        month = str(posting_date.month).zfill(2)  # Zero-padded month (09 for September)
-
-        # Create naming pattern: WHTC-6809-#####
-        naming_pattern = f"WHTC-{buddhist_year_short}{month}-.#####"
-        pe.pd_custom_wht_certificate_no = make_autoname(naming_pattern)
-        print(f"  - Generated pe.pd_custom_wht_certificate_no = {pe.pd_custom_wht_certificate_no} (Buddhist Era {buddhist_year}, monthly series)")
+    # Keep Buddhist Era year logic for when actual WHT Certificate is created
+    # This will be used in the certificate creation process, not here
+    # Format: WHTC-BBMM-##### where BB = Buddhist year (last 2 digits), MM = month
+    # Example: WHTC-6809-00001 for September 2025 (2568 BE)
 
     # WHT Certificate Date - Use posting_date
     if hasattr(pe, 'pd_custom_wht_certificate_date'):
@@ -333,8 +322,14 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     if thai_tax_data.get("wht_amount", 0) > 0:
         pe.pd_custom_needs_wht_certificate = 1
         print(f"  - Set pe.pd_custom_needs_wht_certificate = 1 (WHT amount = {thai_tax_data.get('wht_amount')})")
+
+        # Also set pd_custom_has_thai_taxes for the certificate generator
+        if hasattr(pe, 'pd_custom_has_thai_taxes'):
+            pe.pd_custom_has_thai_taxes = 1
+            print(f"  - Set pe.pd_custom_has_thai_taxes = 1")
     else:
         pe.pd_custom_needs_wht_certificate = 0
+        print(f"  - Set pe.pd_custom_needs_wht_certificate = 0 (no WHT amount)")
 
 
 def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_treatment=""):

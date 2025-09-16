@@ -268,7 +268,7 @@ def _populate_thai_tax_fields_from_invoices(doc):
     
     for ref in doc.references:
         # Only process if Thai tax fields are empty
-        if ref.reference_doctype == "Sales Invoice" and ref.reference_name:
+        if ref.reference_doctype in ["Sales Invoice", "Purchase Invoice"] and ref.reference_name:
             # Check if Thai tax fields are already populated
             has_data = (
                 hasattr(ref, 'pd_custom_has_retention') and ref.pd_custom_has_retention or
@@ -278,7 +278,7 @@ def _populate_thai_tax_fields_from_invoices(doc):
             
             if not has_data:
                 # Fetch Thai tax data from the invoice
-                thai_tax_info = _get_invoice_thai_tax_info("Sales Invoice", ref.reference_name)
+                thai_tax_info = _get_invoice_thai_tax_info(ref.reference_doctype, ref.reference_name)
                 
                 if thai_tax_info:
                     # Populate retention fields
@@ -1158,6 +1158,69 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
 
                 except Exception as e:
                     print(f"❌ Error processing Sales Invoice {ref.reference_name}: {str(e)}")
+                    continue
+
+            elif ref.reference_doctype == "Purchase Invoice":
+                try:
+                    # Get the Purchase Invoice document
+                    purchase_invoice = frappe.get_doc("Purchase Invoice", ref.reference_name)
+                    print(f"📄 Processing Purchase Invoice: {ref.reference_name}")
+
+                    # Get thai tax fields from Purchase Invoice using same field names as Sales Invoice
+                    retention_amount = getattr(purchase_invoice, 'custom_retention_amount', 0) or 0
+                    withholding_amount = getattr(purchase_invoice, 'custom_withholding_tax_amount', 0) or 0
+                    withholding_tax_rate = getattr(purchase_invoice, 'custom_withholding_tax', 0) or 0  # Get WHT rate
+                    vat_treatment = getattr(purchase_invoice, 'vat_treatment', '')
+                    subject_to_wht = getattr(purchase_invoice, 'subject_to_wht', 0)
+                    wht_income_type = getattr(purchase_invoice, 'wht_income_type', '')
+
+                    # Collect WHT rate if present
+                    if withholding_tax_rate > 0:
+                        wht_rates.add(withholding_tax_rate)
+                        print(f"💸 Purchase Invoice {ref.reference_name}: WHT rate = {withholding_tax_rate}%")
+
+                    # Get net_total for proper tax base calculation (excluding VAT)
+                    net_total = getattr(purchase_invoice, 'net_total', 0) or 0
+                    total_net_total += net_total
+                    print(f"📊 Purchase Invoice {ref.reference_name}: net_total = ฿{net_total}")
+
+                    # Get additional fields for Payment Entry population
+                    wht_description = getattr(purchase_invoice, 'wht_description', '')
+                    net_total_after_wht_in_words = getattr(purchase_invoice, 'net_total_after_wht_in_words', '')
+
+                    # Collect unique values for aggregation
+                    if wht_description:
+                        wht_descriptions.add(wht_description)
+                    if net_total_after_wht_in_words:
+                        net_total_after_wht_in_words_values.add(net_total_after_wht_in_words)
+
+                    # VAT Undue amount - get from Purchase Taxes and Charges
+                    vat_undue_amount = 0
+                    if vat_treatment == "VAT Undue (7%)" and hasattr(purchase_invoice, 'taxes'):
+                        has_vat_undue = True
+                        for tax in purchase_invoice.taxes:
+                            if 'vat' in str(tax.account_head).lower() and 'undue' in str(tax.account_head).lower():
+                                vat_undue_amount += tax.tax_amount or 0
+
+                    print(f"💰 PI amounts - Retention: {retention_amount}, WHT: {withholding_amount}, VAT Undue: {vat_undue_amount}")
+
+                    # Add to totals (proportional to allocated amount)
+                    if ref.outstanding_amount and ref.outstanding_amount > 0:
+                        proportion = ref.allocated_amount / ref.outstanding_amount
+                        total_retention_amount += retention_amount * proportion
+                        total_withholding_amount += withholding_amount * proportion
+                        total_vat_undue_amount += vat_undue_amount * proportion
+
+                    # Collect aggregation data
+                    if withholding_amount > 0 or subject_to_wht:
+                        apply_wht = True
+                    if vat_treatment:
+                        vat_treatments.add(vat_treatment)
+                    if wht_income_type:
+                        wht_income_types.add(wht_income_type)
+
+                except Exception as e:
+                    print(f"❌ Error processing Purchase Invoice {ref.reference_name}: {str(e)}")
                     continue
 
         print(f"📊 Total aggregated - Retention: {total_retention_amount}, WHT: {total_withholding_amount}, VAT Undue: {total_vat_undue_amount}")

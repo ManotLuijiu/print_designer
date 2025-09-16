@@ -17,6 +17,9 @@ frappe.ui.form.on("Payment Entry", {
 
         // Setup field watchers for real-time calculations
         setup_wht_certificate_watchers(frm);
+
+        // Make WHT Certificate No clickable
+        setup_wht_certificate_link(frm);
     },
 
     onload: function(frm) {
@@ -121,7 +124,10 @@ function create_wht_certificate(frm) {
                         });
 
                         // Refresh the form to show the new certificate link
-                        frm.reload_doc();
+                        frm.reload_doc().then(() => {
+                            // Setup the clickable link after reload
+                            setup_wht_certificate_link(frm);
+                        });
                     } else {
                         frappe.msgprint({
                             title: __("Creation Failed"),
@@ -257,18 +263,22 @@ function calculate_wht_amount(frm) {
 
 function setup_wht_certificate_watchers(frm) {
     // Watch for changes that might affect WHT certificate eligibility
-    frm.fields_dict.pd_custom_withholding_tax_amount.$input.on('change', function() {
-        setTimeout(() => {
-            add_wht_certificate_buttons(frm);
-        }, 500);
-    });
+    if (frm.fields_dict.pd_custom_withholding_tax_amount && frm.fields_dict.pd_custom_withholding_tax_amount.$input) {
+        frm.fields_dict.pd_custom_withholding_tax_amount.$input.on('change', function() {
+            setTimeout(() => {
+                add_wht_certificate_buttons(frm);
+            }, 500);
+        });
+    }
 
-    frm.fields_dict.pd_custom_has_thai_taxes.$input.on('change', function() {
-        setTimeout(() => {
-            add_wht_certificate_buttons(frm);
-            toggle_wht_certificate_section(frm);
-        }, 500);
-    });
+    if (frm.fields_dict.pd_custom_has_thai_taxes && frm.fields_dict.pd_custom_has_thai_taxes.$input) {
+        frm.fields_dict.pd_custom_has_thai_taxes.$input.on('change', function() {
+            setTimeout(() => {
+                add_wht_certificate_buttons(frm);
+                toggle_wht_certificate_section(frm);
+            }, 500);
+        });
+    }
 }
 
 function toggle_wht_certificate_section(frm) {
@@ -304,4 +314,29 @@ function load_wht_certificate_info(frm) {
 
 function format_currency(amount) {
     return frappe.format(amount, {fieldtype: "Currency"});
+}
+
+function setup_wht_certificate_link(frm) {
+    /**
+     * Setup WHT Certificate field behaviors based on payment type:
+     * - Payment Entry (Pay): pd_custom_wht_certificate (Link field) - auto-generated certificates
+     * - Payment Entry (Receive): pd_custom_wht_certificate_no (Data field) - manual input
+     *
+     * Link field automatically provides:
+     * - Draft status: Shows "x" and "→" icons
+     * - Submitted status: Shows as clickable hyperlink
+     */
+
+    // For Payment Entry (Pay) - Link field for our issued certificates
+    if (frm.doc.payment_type === "Pay") {
+        const linkField = frm.fields_dict.pd_custom_wht_certificate;
+        if (linkField && frm.doc.pd_custom_wht_certificate) {
+            // Link field already has proper behavior built-in
+            // Just refresh to ensure it's displayed correctly
+            linkField.refresh();
+        }
+    }
+
+    // For Payment Entry (Receive) - Data field for customer issued certificates
+    // No special link behavior needed - it's a plain text field for manual input
 }

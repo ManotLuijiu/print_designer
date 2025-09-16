@@ -8,32 +8,49 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
     Create Withholding Tax Certificate automatically when Payment Entry is created
     from Purchase Invoice with WHT amount
     """
+    print(f"DEBUG wht_certificate_generator: Starting for Payment Entry {payment_entry_doc.name}")
+
     # Only process Payment Entry documents with Thai taxes
-    if not hasattr(payment_entry_doc, 'pd_custom_has_thai_taxes') or not payment_entry_doc.pd_custom_has_thai_taxes:
+    has_thai_taxes = getattr(payment_entry_doc, 'pd_custom_has_thai_taxes', 0)
+    print(f"DEBUG: pd_custom_has_thai_taxes = {has_thai_taxes}")
+
+    if not has_thai_taxes:
+        print("DEBUG: Skipping - No Thai taxes")
         return
 
     # Check if WHT amount exists
     wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 0))
+    print(f"DEBUG: pd_custom_withholding_tax_amount = {wht_amount}")
+
     if wht_amount <= 0:
+        print(f"DEBUG: Skipping - WHT amount is {wht_amount}")
         return
 
     # Skip if certificate already exists
     existing_cert = frappe.db.exists("Withholding Tax Certificate", {
         "payment_entry": payment_entry_doc.name
     })
+    print(f"DEBUG: Existing certificate check: {existing_cert}")
+
     if existing_cert:
+        print(f"DEBUG: Skipping - Certificate already exists: {existing_cert}")
         return
 
     # Get Purchase Invoice details for certificate
     purchase_invoice_name = None
+    print(f"DEBUG: Checking {len(payment_entry_doc.references)} references")
     for ref in payment_entry_doc.references:
+        print(f"DEBUG: Reference - DocType: {ref.reference_doctype}, Name: {ref.reference_name}")
         if ref.reference_doctype == "Purchase Invoice":
             purchase_invoice_name = ref.reference_name
+            print(f"DEBUG: Found Purchase Invoice: {purchase_invoice_name}")
             break
 
     if not purchase_invoice_name:
+        print("DEBUG: Skipping - No Purchase Invoice reference found")
         return
 
+    print(f"DEBUG: Getting Purchase Invoice doc: {purchase_invoice_name}")
     purchase_invoice = frappe.get_doc("Purchase Invoice", purchase_invoice_name)
 
     # Create WHT Certificate

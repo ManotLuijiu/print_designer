@@ -16,13 +16,29 @@ def after_insert(doc, method):
     Called after Payment Entry is created.
     Automatically create WHT Certificate if applicable.
     """
+    print(f"DEBUG after_insert: Payment Entry {doc.name}, Type: {doc.payment_type}")
+    frappe.log_error(
+        message=f"after_insert called for Payment Entry {doc.name}, Type: {doc.payment_type}",
+        title="Payment Entry after_insert Debug"
+    )
+
     # Only process if this Payment Entry was created from Purchase Invoice with WHT
     if doc.payment_type != "Pay":
+        print(f"DEBUG: Skipping - Payment type is {doc.payment_type}, not Pay")
         return
 
-    # Check if this Payment Entry needs a WHT Certificate
-    if not getattr(doc, 'pd_custom_needs_wht_certificate', 0):
+    # Check if this Payment Entry has Thai taxes that require a WHT Certificate
+    has_thai_taxes = getattr(doc, 'pd_custom_has_thai_taxes', 0)
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+
+    print(f"DEBUG: pd_custom_has_thai_taxes = {has_thai_taxes}")
+    print(f"DEBUG: pd_custom_withholding_tax_amount = {wht_amount}")
+
+    if not has_thai_taxes or wht_amount <= 0:
+        print("DEBUG: Skipping - No Thai taxes or WHT amount")
         return
+
+    print(f"DEBUG: Creating WHT Certificate for Payment Entry {doc.name}")
 
     # Import the WHT certificate generator
     from print_designer.custom.wht_certificate_generator import create_wht_certificate_from_payment_entry
@@ -30,8 +46,10 @@ def after_insert(doc, method):
     try:
         # Create WHT Certificate
         create_wht_certificate_from_payment_entry(doc)
+        print(f"DEBUG: WHT Certificate created successfully")
 
     except Exception as e:
+        print(f"DEBUG ERROR: Failed to create WHT Certificate: {str(e)}")
         frappe.log_error(
             message=f"Error in Payment Entry after_insert WHT certificate creation: {str(e)}",
             title="WHT Certificate Auto-Creation Error"
