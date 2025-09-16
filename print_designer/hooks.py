@@ -60,6 +60,16 @@ commands = [
     # Purchase Invoice and Purchase Order check functions (installation/removal handled in after_install/before_uninstall)
     "print_designer.commands.install_purchase_invoice_fields.check_purchase_invoice_fields",
     "print_designer.commands.install_purchase_order_fields.check_purchase_order_fields",
+    # Item WHT Income Type field (check function only - installation handled in after_install)
+    "print_designer.commands.install_item_wht_fields.check_item_wht_fields",
+    # Thai WHT Override Testing
+    "print_designer.commands.test_thai_wht_override.execute",
+    "print_designer.commands.test_thai_wht_override.test_purchase_order_wht_override",
+    # Thai WHT Calculation Precision Testing
+    "print_designer.regional.purchase_order_wht_override.test_thai_wht_calculation_precision",
+    "print_designer.regional.purchase_order_wht_override.test_thai_wht_automation",
+    # Purchase Invoice Thai WHT Testing
+    "print_designer.regional.purchase_invoice_wht_override.test_thai_wht_automation",
 ]
 
 # Includes in <head>
@@ -115,6 +125,8 @@ doctype_js = {
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
     ],
     "Sales Order": "public/js/thailand_wht/thailand_wht_sales_order.js",
+    "Purchase Order": "public/js/thailand_wht/thailand_wht_purchase_order.js",
+    "Purchase Invoice": "public/js/thailand_wht/thailand_wht_purchase_invoice.js",
     "Print Settings": "public/js/print_format/print_settings.js",
     "Signature Basic Information": "public/js/stamps_signatures/signature_basic_information.js",
     "Delivery Note": "public/js/delivery_note/delivery_approval.js",
@@ -420,6 +432,8 @@ jinja = {
         "print_designer.custom.withholding_tax.determine_income_type",
         "print_designer.custom.withholding_tax.convert_to_thai_date",
         "print_designer.custom.withholding_tax.get_suggested_wht_rate",
+        # Thai WHT Override and Debug methods
+        "print_designer.regional.purchase_order_wht_override.get_thai_wht_calculation_debug_info",
     ]
 }
 
@@ -461,6 +475,7 @@ after_install = [
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Install Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.execute",  # Install Purchase Order Thai tax compliance fields
+    "print_designer.commands.install_item_wht_fields.execute",  # Install Item WHT Income Type field for smart automation
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -497,6 +512,7 @@ after_migrate = [
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
+    "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
 ]
 
 # Uninstallation
@@ -509,6 +525,7 @@ before_uninstall = [
     "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",  # Remove Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
+    "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -546,12 +563,16 @@ doc_events = {
     # Sales Invoice events - consolidated in doc_events section below
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.withholding_tax.calculate_withholding_tax",
-        "before_save": "print_designer.custom.withholding_tax.validate_wht_setup",
+        "validate": "print_designer.regional.purchase_invoice_wht_override.validate_thai_wht_configuration",
+        "before_save": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
+        "on_update": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
     },
     # Sales Order and Quotation events - consolidated in doc_events section below
     "Purchase Order": {
         "before_print": "print_designer.pdf.before_print",
+        "validate": "print_designer.regional.purchase_order_wht_override.validate_thai_wht_configuration",
+        "before_save": "print_designer.regional.purchase_order_wht_override.override_purchase_order_wht_calculation",
+        "on_update": "print_designer.regional.purchase_order_wht_override.override_purchase_order_wht_calculation",
     },
     "Delivery Note": {
         "before_print": "print_designer.pdf.before_print",

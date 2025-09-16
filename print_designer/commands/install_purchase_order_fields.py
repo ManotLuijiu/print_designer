@@ -9,6 +9,20 @@ def execute():
 
     custom_fields = {
         "Purchase Order": [
+            # Thai WHT Compliance - Independent system
+            {
+                "fieldname": "apply_thai_wht_compliance",
+                "label": "Apply Thai Withholding Tax Compliance",
+                "fieldtype": "Check",
+                "insert_after": "tax_withholding_category",
+                "description": "TDS enabled: VAT Treatment will be auto-set to \"VAT Undue (7%)\" for compliance",
+                "default": "0",
+                "read_only": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
             # Thai Ecosystem Preview (ภาษีหัก ณ ที่จ่าย/เงินประกันผลงาน)
             {
                 "fieldname": "thai_wht_preview_section",
@@ -53,7 +67,7 @@ def execute():
                 "label": "Subject to Withholding Tax",
                 "fieldtype": "Check",
                 "insert_after": "vat_treatment",
-                "depends_on": "eval:doc.company && doc.thailand_service_business",
+                "depends_on": "eval:doc.apply_thai_wht_compliance",
                 "default": "0",
                 "read_only": 0,
                 "hidden": 0,
@@ -141,7 +155,7 @@ def execute():
                 "label": "Subject to Retention",
                 "fieldtype": "Check",
                 "insert_after": "wht_preview_column_break",
-                "depends_on": "eval:doc.company && doc.construction_service",
+                "depends_on": "eval:doc.apply_thai_wht_compliance",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -194,7 +208,7 @@ def execute():
                 "fieldname": "custom_retention",
                 "label": "Retention (%)",
                 "fieldtype": "Percent",
-                "insert_after": "base_in_words",
+                "insert_after": "base_rounded_total",
                 "depends_on": "eval:doc.custom_subject_to_retention",
                 "read_only": 0,
                 "hidden": 0,
@@ -276,6 +290,7 @@ def check_purchase_order_fields():
     """Check if Purchase Order Thai tax fields are installed."""
 
     required_fields = [
+        "apply_thai_wht_compliance",
         "thai_wht_preview_section",
         "vat_treatment",
         "subject_to_wht",
@@ -319,6 +334,7 @@ def uninstall_purchase_order_fields():
     """Remove all Purchase Order Thai tax fields during app uninstall."""
 
     fields_to_remove = [
+        "apply_thai_wht_compliance",
         "thai_wht_preview_section",
         "wht_amounts_column_break",
         "vat_treatment",
