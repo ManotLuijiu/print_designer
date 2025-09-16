@@ -30,11 +30,36 @@ frappe.ui.form.on('Payment Entry', {
     
     validate: function(frm) {
         console.log('✅ Payment Entry validate - calculating Thai tax totals');
+        console.log('📊 Document state before validate:', {
+            name: frm.doc.name,
+            docstatus: frm.doc.docstatus,
+            payment_type: frm.doc.payment_type,
+            paid_amount: frm.doc.paid_amount,
+            total_allocated_amount: frm.doc.total_allocated_amount
+        });
+
+        // DEBUG: Log all Thai tax related fields before validate
+        console.log('🔍 VALIDATE THAI TAX FIELDS DEBUG:');
+        const thai_fields = [
+            'pd_custom_withholding_tax_amount', 'custom_withholding_tax_amount',
+            'pd_custom_apply_withholding_tax', 'subject_to_wht', 'net_total_after_wht',
+            'pd_custom_has_thai_taxes', 'pd_custom_total_wht_amount', 'pd_custom_net_payment_amount',
+            'pd_custom_tax_base_amount'
+        ];
+        thai_fields.forEach(field => {
+            if (frm.doc[field] !== undefined) {
+                console.log(`   📋 ${field}: ${frm.doc[field]} (type: ${typeof frm.doc[field]})`);
+            } else {
+                console.log(`   ❌ ${field}: UNDEFINED`);
+            }
+        });
+
         try {
             // Calculate totals before saving
             calculate_thai_tax_totals(frm);
+            console.log('✅ Thai tax totals calculation completed in validate');
         } catch(e) {
-            console.error('Error in Payment Entry validation:', e);
+            console.error('❌ Error in Payment Entry validation:', e);
             // Don't block save on calculation errors
         }
     },
@@ -310,7 +335,12 @@ function calculate_thai_tax_totals(frm) {
     /**
      * Calculate total Thai tax amounts across all references
      */
+    console.log('🧮 =========================== CALCULATE THAI TAX TOTALS START ===========================');
     console.log('🧮 Calculating Thai tax totals for form:', frm.doc.name || 'New');
+    console.log('📊 Form docstatus:', frm.doc.docstatus, '(0=Draft, 1=Submitted, 2=Cancelled)');
+    console.log('💳 Payment type:', frm.doc.payment_type);
+    console.log('💰 Paid amount:', frm.doc.paid_amount);
+    console.log('💰 Total allocated amount:', frm.doc.total_allocated_amount);
 
     try {
         // DEBUG: Check field visibility status
@@ -412,18 +442,29 @@ function calculate_thai_tax_totals(frm) {
 
         // Calculate tax base amount from base_net_total (amount before VAT)
         if (frm.fields_dict.pd_custom_tax_base_amount) {
-            // Use the sum of base_net_total from all references if available
-            // Otherwise fallback to allocated amount minus VAT
-            let tax_base = 0;
+            // Check if server already set a reasonable value (from Purchase Invoice hook)
+            let current_tax_base = frm.doc.pd_custom_tax_base_amount || 0;
+            let calculated_tax_base = 0;
+
             if (total_base_net > 0) {
                 // Use accurate base amount from invoice
-                tax_base = total_base_net;
+                calculated_tax_base = total_base_net;
             } else if (frm.doc.total_allocated_amount > 0) {
                 // Fallback: calculate from allocated amount
-                tax_base = frm.doc.total_allocated_amount - total_vat_undue;
+                calculated_tax_base = frm.doc.total_allocated_amount - total_vat_undue;
             }
-            console.log('💰 Setting tax_base_amount:', tax_base, '(base_net:', total_base_net, ', allocated:', frm.doc.total_allocated_amount, ', VAT:', total_vat_undue, ')');
-            frm.set_value('pd_custom_tax_base_amount', tax_base);
+
+            // Prefer server-set value if it exists and is different from total_allocated_amount
+            // (Server sets net_total, client calculates from allocated amount)
+            let final_tax_base = calculated_tax_base;
+            if (current_tax_base > 0 && current_tax_base !== frm.doc.total_allocated_amount) {
+                console.log('💰 Using server-set tax_base_amount:', current_tax_base, '(preserving Purchase Invoice net_total)');
+                final_tax_base = current_tax_base;
+            } else if (calculated_tax_base > 0) {
+                console.log('💰 Using calculated tax_base_amount:', calculated_tax_base, '(base_net:', total_base_net, ', allocated:', frm.doc.total_allocated_amount, ', VAT:', total_vat_undue, ')');
+                final_tax_base = calculated_tax_base;
+                frm.set_value('pd_custom_tax_base_amount', final_tax_base);
+            }
         }
 
         if (frm.fields_dict.pd_custom_net_payment_amount) {
@@ -519,6 +560,21 @@ function calculate_thai_tax_totals(frm) {
     }
 
     console.log('✅ Thai tax totals calculation completed');
+
+    // FINAL DEBUG: Log all calculated values that will be saved to database
+    console.log('📊 FINAL CALCULATED VALUES SUMMARY:');
+    console.log('   💰 Calculated WHT: ฿', total_wht);
+    console.log('   💰 Calculated Retention: ฿', total_retention);
+    console.log('   💰 Calculated VAT Undue: ฿', total_vat_undue);
+    console.log('   🏛️ pd_custom_apply_withholding_tax:', frm.doc.pd_custom_apply_withholding_tax);
+    console.log('   🏛️ pd_custom_withholding_tax_amount:', frm.doc.pd_custom_withholding_tax_amount);
+    console.log('   🏛️ custom_withholding_tax_amount:', frm.doc.custom_withholding_tax_amount);
+    console.log('   💵 pd_custom_net_payment_amount:', frm.doc.pd_custom_net_payment_amount);
+    console.log('   📊 subject_to_wht:', frm.doc.subject_to_wht);
+    console.log('   📊 net_total_after_wht:', frm.doc.net_total_after_wht);
+    console.log('   📝 custom_subject_to_retention:', frm.doc.custom_subject_to_retention);
+
+    console.log('🧮 =========================== CALCULATE THAI TAX TOTALS END ===========================');
 }
 
 function refresh_thai_tax_check_fields(frm) {

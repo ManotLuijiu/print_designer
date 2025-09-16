@@ -396,7 +396,7 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
         
         print(f"📊 FOUND {len(found_fields)} RELEVANT FIELDS")
         
-        # CORRECTED: Enhanced retention processing using EXACT Sales Invoice field names
+        # CORRECTED: Enhanced retention processing using EXACT field names for both Sales Invoice and Purchase Invoice
         if reference_doctype == "Sales Invoice":
             # EXACT Sales Invoice field names (from install_sales_invoice_fields.py)
             subject_to_retention = getattr(invoice, 'custom_subject_to_retention', 0)
@@ -404,14 +404,14 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
             retention_percentage = flt(getattr(invoice, 'custom_retention', 0))
             net_total_after_wht_retention = flt(getattr(invoice, 'custom_net_total_after_wht_retention', 0))
             net_total_after_wht_retention_in_words = getattr(invoice, 'custom_net_total_after_wht_retention_in_words', '')
-            
-            print(f"🔍 CORRECTED RETENTION ANALYSIS (EXACT FIELD NAMES):")
+
+            print(f"🔍 SALES INVOICE RETENTION ANALYSIS (EXACT FIELD NAMES):")
             print(f"   custom_subject_to_retention: {subject_to_retention}")
             print(f"   custom_retention_amount: {retention_amount}")
             print(f"   custom_retention: {retention_percentage}")
             print(f"   custom_net_total_after_wht_retention: {net_total_after_wht_retention}")
             print(f"   custom_net_total_after_wht_retention_in_words: {net_total_after_wht_retention_in_words}")
-            
+
             if subject_to_retention and retention_amount > 0:
                 tax_info["has_thai_taxes"] = True
                 tax_info["retention_amount"] = retention_amount
@@ -421,6 +421,31 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
                 tax_info["net_total_after_wht_retention_in_words"] = net_total_after_wht_retention_in_words
                 print(f"   ✅ RETENTION DETECTED: {retention_amount} ({retention_percentage}%)")
                 print(f"   ✅ Net Total After WHT+Retention: {net_total_after_wht_retention}")
+
+        elif reference_doctype == "Purchase Invoice":
+            # PURCHASE INVOICE field names (using same field naming pattern as Sales Invoice)
+            subject_to_retention = getattr(invoice, 'custom_subject_to_retention', 0)
+            retention_amount = flt(getattr(invoice, 'custom_retention_amount', 0))
+            retention_percentage = flt(getattr(invoice, 'custom_retention', 0))
+            net_total_after_wht_retention = flt(getattr(invoice, 'custom_net_total_after_wht_retention', 0))
+            net_total_after_wht_retention_in_words = getattr(invoice, 'custom_net_total_after_wht_retention_in_words', '')
+
+            print(f"🔍 PURCHASE INVOICE RETENTION ANALYSIS (EXACT FIELD NAMES):")
+            print(f"   custom_subject_to_retention: {subject_to_retention}")
+            print(f"   custom_retention_amount: {retention_amount}")
+            print(f"   custom_retention: {retention_percentage}")
+            print(f"   custom_net_total_after_wht_retention: {net_total_after_wht_retention}")
+            print(f"   custom_net_total_after_wht_retention_in_words: {net_total_after_wht_retention_in_words}")
+
+            if subject_to_retention and retention_amount > 0:
+                tax_info["has_thai_taxes"] = True
+                tax_info["retention_amount"] = retention_amount
+                tax_info["retention_percentage"] = retention_percentage
+                tax_info["subject_to_retention"] = subject_to_retention
+                tax_info["net_total_after_wht_retention"] = net_total_after_wht_retention
+                tax_info["net_total_after_wht_retention_in_words"] = net_total_after_wht_retention_in_words
+                print(f"   ✅ PURCHASE INVOICE RETENTION DETECTED: {retention_amount} ({retention_percentage}%)")
+                print(f"   ✅ Purchase Invoice Net Total After WHT+Retention: {net_total_after_wht_retention}")
         
         # Enhanced WHT processing (existing + new)
         subject_to_wht = getattr(invoice, 'subject_to_wht', 0) or getattr(invoice, 'custom_subject_to_wht', 0)
@@ -539,19 +564,27 @@ def _get_company_thai_tax_accounts(company):
         # Get Company document
         company_doc = frappe.get_cached_doc("Company", company)
         
-        # Extract Thai tax account fields
+        # Extract Thai tax account fields (both Output and Input VAT accounts)
         company_accounts = {
             "company_name": company,
+            # WHT accounts
             "default_wht_account": getattr(company_doc, 'default_wht_account', None),
+            "default_wht_debt_account": getattr(company_doc, 'default_wht_debt_account', None),
+            # Retention account
             "default_retention_account": getattr(company_doc, 'default_retention_account', None),
+            # Output VAT accounts (for Sales Invoice/Payment Entry Receive)
             "default_output_vat_undue_account": getattr(company_doc, 'default_output_vat_undue_account', None),
-            "default_output_vat_account": getattr(company_doc, 'default_output_vat_account', None)
+            "default_output_vat_account": getattr(company_doc, 'default_output_vat_account', None),
+            # Input VAT accounts (for Purchase Invoice/Payment Entry Pay)
+            "default_input_vat_undue_account": getattr(company_doc, 'default_input_vat_undue_account', None),
+            "default_input_vat_account": getattr(company_doc, 'default_input_vat_account', None)
         }
         
         # DEBUG: Show what Company fields were found
         print(f"📋 COMPANY FIELD DISCOVERY:")
-        company_thai_fields = ['default_wht_account', 'default_retention_account', 
-                              'default_output_vat_undue_account', 'default_output_vat_account']
+        company_thai_fields = ['default_wht_account', 'default_wht_debt_account', 'default_retention_account',
+                              'default_output_vat_undue_account', 'default_output_vat_account',
+                              'default_input_vat_undue_account', 'default_input_vat_account']
         
         for field in company_thai_fields:
             if hasattr(company_doc, field):

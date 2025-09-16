@@ -54,9 +54,12 @@ def add_regional_gl_entries(gl_entries, doc):
         print(f"   📋 Available document fields: {list(doc_dict.keys())[:20]}")  # Show first 20 fields
 
     # Check total amounts - Use the actual fields that are being populated by JavaScript
-    total_wht = flt(getattr(doc, 'pd_custom_total_wht_amount', 0))  # Corrected field name
+    # Try multiple field naming patterns to find the correct values
+    total_wht = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+                   getattr(doc, 'custom_withholding_tax_amount', 0) or
+                   getattr(doc, 'pd_custom_total_wht_amount', 0))
     total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
-    total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))  # Use direct field
+    total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))
 
     print(f"   💰 total_wht_amount: {total_wht} (type: {type(total_wht)})")
     print(f"   💰 total_retention_amount: {total_retention} (type: {type(total_retention)})")
@@ -92,26 +95,42 @@ def add_regional_gl_entries(gl_entries, doc):
     # Fetch default accounts from Company or fall back to Payment Entry fields
     if company_doc:
         wht_account = getattr(company_doc, 'default_wht_account', None) or getattr(doc, 'pd_custom_wht_account', None)
+        wht_debt_account = getattr(company_doc, 'default_wht_debt_account', None)
         retention_account = getattr(company_doc, 'default_retention_account', None) or getattr(doc, 'pd_custom_retention_account', None)
-        vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None) or getattr(doc, 'pd_custom_output_vat_undue_account', None)
-        vat_account = getattr(company_doc, 'default_output_vat_account', None) or getattr(doc, 'pd_custom_output_vat_account', None)
+        # Output VAT accounts (for Sales Invoice/Payment Entry Receive)
+        output_vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None) or getattr(doc, 'pd_custom_output_vat_undue_account', None)
+        output_vat_account = getattr(company_doc, 'default_output_vat_account', None) or getattr(doc, 'pd_custom_output_vat_account', None)
+        # Input VAT accounts (for Purchase Invoice/Payment Entry Pay)
+        input_vat_undue_account = getattr(company_doc, 'default_input_vat_undue_account', None)
+        input_vat_account = getattr(company_doc, 'default_input_vat_account', None)
 
-        print(f"   🏦 default_wht_account (Company): {getattr(company_doc, 'default_wht_account', None)}")
-        print(f"   🏦 default_retention_account (Company): {getattr(company_doc, 'default_retention_account', None)}")
-        print(f"   🏦 default_output_vat_undue_account (Company): {getattr(company_doc, 'default_output_vat_undue_account', None)}")
-        print(f"   🏦 default_output_vat_account (Company): {getattr(company_doc, 'default_output_vat_account', None)}")
+        print(f"   🏦 COMPANY ACCOUNT CONFIGURATION:")
+        print(f"      default_wht_account: {getattr(company_doc, 'default_wht_account', None)}")
+        print(f"      default_wht_debt_account: {getattr(company_doc, 'default_wht_debt_account', None)}")
+        print(f"      default_retention_account: {getattr(company_doc, 'default_retention_account', None)}")
+        print(f"      default_output_vat_undue_account: {getattr(company_doc, 'default_output_vat_undue_account', None)}")
+        print(f"      default_output_vat_account: {getattr(company_doc, 'default_output_vat_account', None)}")
+        print(f"      default_input_vat_undue_account: {getattr(company_doc, 'default_input_vat_undue_account', None)}")
+        print(f"      default_input_vat_account: {getattr(company_doc, 'default_input_vat_account', None)}")
     else:
         # Fallback to Payment Entry fields (if they exist)
         wht_account = getattr(doc, 'pd_custom_wht_account', None)
+        wht_debt_account = None
         retention_account = getattr(doc, 'pd_custom_retention_account', None)
-        vat_undue_account = getattr(doc, 'pd_custom_output_vat_undue_account', None)
-        vat_account = getattr(doc, 'pd_custom_output_vat_account', None)
-        print(f"   ⚠️ Using Payment Entry fallback accounts")
+        output_vat_undue_account = getattr(doc, 'pd_custom_output_vat_undue_account', None)
+        output_vat_account = getattr(doc, 'pd_custom_output_vat_account', None)
+        input_vat_undue_account = None
+        input_vat_account = None
+        print(f"   ⚠️ Using Payment Entry fallback accounts (limited support)")
 
-    print(f"   🏦 Final wht_account: {wht_account}")
-    print(f"   🏦 Final retention_account: {retention_account}")
-    print(f"   🏦 Final vat_undue_account: {vat_undue_account}")
-    print(f"   🏦 Final vat_account: {vat_account}")
+    print(f"   🏦 FINAL ACCOUNT ASSIGNMENTS:")
+    print(f"      wht_account: {wht_account}")
+    print(f"      wht_debt_account: {wht_debt_account}")
+    print(f"      retention_account: {retention_account}")
+    print(f"      output_vat_undue_account: {output_vat_undue_account}")
+    print(f"      output_vat_account: {output_vat_account}")
+    print(f"      input_vat_undue_account: {input_vat_undue_account}")
+    print(f"      input_vat_account: {input_vat_account}")
 
     # DEBUG: Check current GL entries received
     print(f"🔍 CURRENT GL ENTRIES RECEIVED:")
@@ -195,8 +214,10 @@ def _adjust_cash_gl_entry_for_thai_compliance(gl_entries, doc):
 
     print(f"🔧 ADJUSTING CASH GL ENTRY DEBUG:")
 
-    # Get Thai tax deduction amounts - Use corrected field names
-    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)  # Corrected field name
+    # Get Thai tax deduction amounts - Use correct field names that match client script population
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     total_deductions = wht_amount + retention_amount
 
@@ -286,8 +307,11 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
         except Exception as e:
             print(f"   ❌ Error loading Company doc in _add_thai_compliance_gl_entries: {str(e)}")
 
-    # Get Thai tax amounts using correct field names from the system
-    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)  # Corrected: use total_wht_amount
+    # Get Thai tax amounts - use the actual field names populated by client scripts
+    # Check both possible field naming patterns (individual fields and consolidated fields)
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
 
@@ -394,6 +418,10 @@ def _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention
         input_vat_account = getattr(company_doc, 'default_input_vat_account', None) if company_doc else None
         input_vat_undue_account = getattr(company_doc, 'default_input_vat_undue_account', None) if company_doc else None
 
+        print(f"   🏦 Using Input VAT accounts:")
+        print(f"      input_vat_account: {input_vat_account}")
+        print(f"      input_vat_undue_account: {input_vat_undue_account}")
+
         if input_vat_account:
             print(f"   ✅ Creating Input VAT recognition GL entry (Pay): ฿{vat_amount}")
             gl_entries.append(doc.get_gl_dict({
@@ -406,6 +434,8 @@ def _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention
                 "cost_center": getattr(doc, 'cost_center', None),
                 "remarks": f"Thai Input VAT Recognition (Pay): ฿{vat_amount}",
             }))
+        else:
+            print(f"   ⚠️ No Input VAT account configured for company {doc.company}")
 
         # Credit Input VAT Undue account (clear the undue amount from Purchase Invoice)
         if input_vat_undue_account:
@@ -420,11 +450,15 @@ def _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention
                 "cost_center": getattr(doc, 'cost_center', None),
                 "remarks": f"Thai Input VAT Undue Clear (Pay): ฿{vat_amount}",
             }))
+        else:
+            print(f"   ⚠️ No Input VAT Undue account configured for company {doc.company}")
 
     # 2. Withholding Tax Debt (Cr. WHT Debt account)
     # We owe government the WHT we deducted from supplier
     if wht_amount > 0:
         wht_debt_account = getattr(company_doc, 'default_wht_debt_account', None) if company_doc else None
+
+        print(f"   🏦 Using WHT Debt account: {wht_debt_account}")
 
         if wht_debt_account:
             print(f"   ✅ Creating WHT Debt liability GL entry (Pay): ฿{wht_amount}")
@@ -439,7 +473,7 @@ def _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention
                 "remarks": f"Thai WHT Debt Liability (Pay): ฿{wht_amount}",
             }))
         else:
-            print(f"   ⚠️ No WHT debt account configured for company {company}")
+            print(f"   ⚠️ No WHT debt account configured for company {doc.company}")
 
     # 3. Retention handling (if applicable)
     if retention_amount > 0:

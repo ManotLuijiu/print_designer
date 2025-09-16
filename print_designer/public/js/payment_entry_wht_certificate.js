@@ -44,9 +44,9 @@ frappe.ui.form.on("Payment Entry", {
 
 function add_wht_certificate_buttons(frm) {
     // Remove existing buttons to prevent duplicates
-    frm.page.remove_custom_button(__("Preview WHT Certificate"));
-    frm.page.remove_custom_button(__("Create WHT Certificate"));
-    frm.page.remove_custom_button(__("View WHT Certificate"));
+    frm.remove_custom_button(__("Preview WHT Certificate"));
+    frm.remove_custom_button(__("Create WHT Certificate"));
+    frm.remove_custom_button(__("View WHT Certificate"));
 
     // Check if this Payment Entry has Thai taxes
     const has_thai_taxes = frm.doc.pd_custom_has_thai_taxes;

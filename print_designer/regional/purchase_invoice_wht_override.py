@@ -479,35 +479,47 @@ def calculate_thai_compliant_wht(doc):
     - Support Thai retention system integration
     """
 
+    print(f"🧮 DEBUG: calculate_thai_compliant_wht called for PI {doc.name}")
+
     # Get WHT rate from custom field
     wht_rate = flt(getattr(doc, 'custom_withholding_tax', 0))
+    print(f"🧮 DEBUG: WHT rate: {wht_rate}%")
+
     if wht_rate <= 0:
+        print(f"⏭️ DEBUG: WHT rate is 0 or negative, skipping calculation")
         return
 
     # Calculate base amount (net total before VAT)
     base_amount = get_wht_calculation_base(doc)
+    print(f"🧮 DEBUG: Base amount: {base_amount}")
 
     # Precise WHT calculation: base_amount × rate ÷ 100
     wht_amount = flt(base_amount * wht_rate / 100, 2)  # Round to 2 decimal places
+    print(f"🧮 DEBUG: Calculated WHT amount: {base_amount} × {wht_rate}% = {wht_amount}")
 
     # Update custom WHT fields
     doc.custom_withholding_tax_amount = wht_amount
+    print(f"🧮 DEBUG: Set custom_withholding_tax_amount = {wht_amount}")
 
     # CONDITIONAL: Set subject_to_wht flag only when WHT amount is calculated and > 0
     if wht_amount > 0:
         doc.subject_to_wht = 1
+        print(f"✅ DEBUG: Set subject_to_wht = 1 (WHT Amount: {wht_amount})")
         frappe.logger().info(f"Set subject_to_wht = 1 for PI {doc.name} (WHT Amount: {wht_amount})")
     else:
         doc.subject_to_wht = 0
+        print(f"❌ DEBUG: Set subject_to_wht = 0 (No WHT amount)")
         frappe.logger().info(f"Set subject_to_wht = 0 for PI {doc.name} (No WHT amount)")
 
     # Calculate final payment amount (after WHT and retention)
     retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
     final_payment = flt(doc.grand_total) - wht_amount - retention_amount
     doc.custom_payment_amount = final_payment
+    print(f"🧮 DEBUG: Final payment: {doc.grand_total} - {wht_amount} - {retention_amount} = {final_payment}")
 
     # Update preview fields for user display
     update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment)
+    print(f"🧮 DEBUG: Updated preview fields")
 
     frappe.logger().info(
         f"Thai WHT Calculation: {base_amount} × {wht_rate}% = {wht_amount} "
@@ -570,36 +582,58 @@ def validate_thai_wht_configuration(doc, method=None):
     THAI COMPLIANCE: Validate mandatory bill_no and bill_date for Thai tax compliance
     """
 
+    print(f"🔍 DEBUG: validate_thai_wht_configuration called for PI {doc.name}")
+    print(f"🔍 DEBUG: apply_thai_wht_compliance: {getattr(doc, 'apply_thai_wht_compliance', 0)}")
+    print(f"🔍 DEBUG: subject_to_wht: {getattr(doc, 'subject_to_wht', 0)}")
+    print(f"🔍 DEBUG: is_paid: {getattr(doc, 'is_paid', 0)}")
+    print(f"🔍 DEBUG: current custom_withholding_tax: {getattr(doc, 'custom_withholding_tax', 0)}")
+
     # THAI COMPLIANCE: Mandatory Bill Number and Bill Date validation (unless cash purchase)
     validate_thai_mandatory_bill_fields(doc)
 
     if not getattr(doc, 'apply_thai_wht_compliance', 0):
+        print(f"⏭️ DEBUG: Thai WHT compliance not enabled for PI {doc.name}")
         return
 
-    # Validate required fields for Thai WHT - ONLY when is_paid (cash purchase) is enabled
+    # ✅ FIX: Auto-populate WHT rate for ALL purchases with WHT, not just cash purchases
+    if getattr(doc, 'subject_to_wht', 0):
+        print(f"🎯 DEBUG: Processing WHT for PI {doc.name} (subject_to_wht=1)")
+
+        # Auto-populate WHT rate based on income type if not already set
+        if not getattr(doc, 'custom_withholding_tax') or flt(getattr(doc, 'custom_withholding_tax', 0)) == 0:
+            print(f"🔄 DEBUG: WHT rate empty, attempting auto-population")
+
+            # Try to get default WHT rate based on income type
+            wht_rate = get_default_wht_rate_by_income_type(doc)
+
+            if wht_rate and flt(wht_rate) > 0:
+                doc.custom_withholding_tax = flt(wht_rate)
+                print(f"✅ DEBUG: Auto-set WHT rate to {wht_rate}% for income type {getattr(doc, 'wht_income_type', None)}")
+                frappe.logger().info(f"Auto-set WHT rate {wht_rate}% for income type {getattr(doc, 'wht_income_type', None)} in PI {doc.name}")
+
+                # Show user-friendly message
+                frappe.msgprint(
+                    _("Auto-applied {0}% WHT rate for {1} income type").format(flt(wht_rate), getattr(doc, 'wht_income_type', 'selected')),
+                    indicator='blue'
+                )
+            else:
+                print(f"⚠️ DEBUG: No WHT rate found - user must set manually")
+                # Don't throw error - let user set rate manually
+                frappe.msgprint(
+                    _("Please set Withholding Tax percentage manually for this transaction"),
+                    indicator='yellow'
+                )
+
+    # Additional validation for cash purchases only
     if getattr(doc, 'subject_to_wht', 0) and getattr(doc, 'is_paid', 0):
+        print(f"💰 DEBUG: Additional cash purchase validation for PI {doc.name}")
+
         if not getattr(doc, 'wht_income_type'):
             frappe.throw(_("WHT Income Type is required when Subject to Withholding Tax is enabled for cash purchases"))
 
         # MANDATORY: pd_custom_income_type for Revenue Department compliance
         if not getattr(doc, 'pd_custom_income_type'):
             frappe.throw(_("Income Type (Revenue Department classification) is required when Subject to Withholding Tax is enabled for cash purchases"))
-
-        # Auto-fetch default WHT rate from Company if not specified
-        if not getattr(doc, 'custom_withholding_tax') or flt(getattr(doc, 'custom_withholding_tax', 0)) == 0:
-            default_wht_rate = frappe.db.get_value("Company", doc.company, "default_wht_rate")
-
-            if default_wht_rate and flt(default_wht_rate) > 0:
-                doc.custom_withholding_tax = flt(default_wht_rate)
-                frappe.logger().info(f"Auto-fetched default WHT rate {default_wht_rate}% from Company {doc.company}")
-
-                # Show user-friendly message
-                frappe.msgprint(
-                    _("Auto-applied default WHT rate {0}% from Company settings").format(flt(default_wht_rate)),
-                    indicator='blue'
-                )
-            else:
-                frappe.throw(_("Withholding Tax percentage is required. Please set either in this document or configure a default rate in Company settings."))
 
     # Validate VAT treatment for TDS transactions
     vat_treatment = getattr(doc, 'vat_treatment', '')
@@ -608,6 +642,48 @@ def validate_thai_wht_configuration(doc, method=None):
             _("Consider using 'VAT Undue (7%)' for TDS transactions to comply with Thai tax regulations"),
             indicator='yellow'
         )
+
+
+def get_default_wht_rate_by_income_type(doc):
+    """
+    Get default Thai WHT rate based on income type according to Thai Revenue Department regulations
+
+    Args:
+        doc: Purchase Invoice document
+
+    Returns:
+        float: WHT percentage rate (e.g., 3.0 for 3%)
+    """
+
+    wht_income_type = getattr(doc, 'wht_income_type', '')
+
+    # Standard Thai WHT rates according to Revenue Department regulations
+    wht_rate_mapping = {
+        'professional_services': 3.0,    # ค่าจ้างวิชาชีพ - 3% (Section 40(2))
+        'rental': 5.0,                   # ค่าเช่า - 5%
+        'service_fees': 3.0,             # ค่าบริการ - 3% (Section 3 Ter)
+        'construction': 3.0,             # ค่าก่อสร้าง - 3% (Section 3 Ter)
+        'advertising': 2.0,              # ค่าโฆษณา - 2% (Section 40(2))
+        'other_services': 3.0            # ค่าบริการอื่น ๆ - 3% (default for services)
+    }
+
+    rate = wht_rate_mapping.get(wht_income_type, None)
+
+    print(f"🔍 DEBUG: get_default_wht_rate_by_income_type")
+    print(f"  Income type: {wht_income_type}")
+    print(f"  Mapped rate: {rate}%")
+
+    if not rate:
+        # Try to get from Company default_wht_rate as fallback
+        try:
+            company_default = frappe.db.get_value("Company", doc.company, "default_wht_rate")
+            if company_default and flt(company_default) > 0:
+                rate = flt(company_default)
+                print(f"  Using company default: {rate}%")
+        except:
+            pass
+
+    return rate
 
 
 def validate_thai_mandatory_bill_fields(doc):
