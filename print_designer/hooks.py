@@ -43,28 +43,23 @@ commands = [
     "print_designer.commands.test_print_designer_installation.test_complete_print_designer_installation",
     # Production fix commands
     "print_designer.commands.force_install_construction_service.force_install_construction_service",
-    # Company Thai Tax Fields
-    "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",
+    # Company Thai Tax Fields (check function only - installation handled in after_install)
     "print_designer.commands.install_company_thai_tax_fields.check_company_thai_tax_fields",
-    # Thai Language Setup Commands
-    "print_designer.install.thai_defaults.setup_thai_language_defaults",
+    # Thai Language Setup Commands (check functions only - installation handled in after_install)
     "print_designer.install.thai_defaults.check_thai_language_setup",
-    "print_designer.install.thai_defaults.setup_thai_print_format_defaults",
-    # Thai WHT System Commands (DocType-specific installers)
+    # Thai WHT System Commands (DocType-specific check functions)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
-    # Payment Entry Thai Tax Preview Fields (Sales Invoice-style preview section)
-    "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",
-    # Payment Entry Thai Tax Compliance Fields
-    "print_designer.commands.install_payment_entry_thai_fields.execute",
+    # Payment Entry check functions (installation handled in after_install/before_uninstall)
+    "print_designer.commands.install_payment_entry_fields.check_payment_entry_fields_status",
     "print_designer.commands.install_payment_entry_thai_fields.check_fields_exist",
     # Console Utilities for Development and Debugging
     "print_designer.commands.console_utils.execute_sql_query",
     "print_designer.commands.console_utils.check_custom_field",
     "print_designer.commands.console_utils.fix_fetch_from_field",
     "print_designer.commands.console_utils.check_thai_tax_fields_status",
-    # Purchase Invoice Thai Tax Compliance Fields
-    "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",
-    "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",
+    # Purchase Invoice and Purchase Order check functions (installation/removal handled in after_install/before_uninstall)
+    "print_designer.commands.install_purchase_invoice_fields.check_purchase_invoice_fields",
+    "print_designer.commands.install_purchase_order_fields.check_purchase_order_fields",
 ]
 
 # Includes in <head>
@@ -593,7 +588,6 @@ doc_events = {
     },
     # Company DocType - Sync retention data to Company Retention Settings
     "Company": {
-        "validate": "print_designer.overrides.company.sync_company_retention_settings",
         "on_update": "print_designer.overrides.company.sync_company_retention_settings",
     },
     # Thai WHT Preview System - Sales Documents (Consolidated Calculations)

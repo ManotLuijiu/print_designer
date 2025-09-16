@@ -420,6 +420,63 @@ def remove_purchase_invoice_thai_tax_fields():
     frappe.db.commit()
     print(f"📊 Total removed: {removed_count} fields")
 
+@frappe.whitelist()
+def check_purchase_invoice_fields():
+    """Check if Purchase Invoice Thai tax fields are installed."""
+
+    required_fields = [
+        # Thai Tax Compliance Tab fields
+        "thai_tax_compliance_section",
+        "pd_custom_tax_invoice_number",
+        "pd_custom_tax_invoice_date",
+        "pd_custom_income_type",
+        "pd_custom_tax_base_amount",
+        "pd_custom_apply_withholding_tax",
+        "pd_custom_wht_certificate_no",
+        "pd_custom_wht_certificate_date",
+        "pd_custom_withholding_tax_rate",
+        "pd_custom_withholding_tax_amount",
+        "pd_custom_net_payment_amount",
+        # Thai WHT Preview Section fields
+        "thai_wht_preview_section",
+        "vat_treatment",
+        "subject_to_wht",
+        "wht_income_type",
+        "wht_description",
+        "net_total_after_wht",
+        "net_total_after_wht_in_words",
+        "wht_note",
+        # Retention fields
+        "custom_subject_to_retention",
+        "custom_net_total_after_wht_retention",
+        "custom_net_total_after_wht_retention_in_words",
+        "custom_retention_note",
+        "custom_retention",
+        "custom_retention_amount",
+        "custom_withholding_tax",
+        "custom_withholding_tax_amount",
+        "custom_payment_amount",
+    ]
+
+    existing_fields = frappe.db.sql("""
+        SELECT fieldname
+        FROM `tabCustom Field`
+        WHERE dt = 'Purchase Invoice'
+        AND fieldname IN ({})
+    """.format(','.join(['%s'] * len(required_fields))), required_fields, as_dict=True)
+
+    existing_field_names = [f.fieldname for f in existing_fields]
+    missing_fields = [f for f in required_fields if f not in existing_field_names]
+
+    if missing_fields:
+        print(f"❌ Missing {len(missing_fields)} fields in Purchase Invoice:")
+        for field in missing_fields:
+            print(f"   - {field}")
+        return False
+    else:
+        print("✅ All Purchase Invoice Thai tax fields are installed")
+        return True
+
 if __name__ == '__main__':
     frappe.init()
     frappe.connect()

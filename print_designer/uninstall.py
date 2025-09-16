@@ -135,7 +135,29 @@ def delete_all_print_designer_custom_fields():
 			# WHT calculation fields (print_designer calculations)
 			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
 		]
-		
+
+		# Purchase Invoice fields SPECIFICALLY created by print_designer install_purchase_invoice_fields.py
+		print_designer_purchase_invoice_fields = [
+			# Thai Tax Compliance Tab fields
+			"thai_tax_compliance_section",
+			"pd_custom_tax_invoice_number", "pd_custom_tax_invoice_date",
+			"pd_custom_income_type", "pd_custom_tax_base_amount",
+			"pd_custom_column_break_thai_tax",
+			"pd_custom_apply_withholding_tax", "pd_custom_wht_certificate_no",
+			"pd_custom_wht_certificate_date", "pd_custom_withholding_tax_rate",
+			"pd_custom_withholding_tax_amount", "pd_custom_net_payment_amount",
+			# Thai WHT Preview Section (shared fields)
+			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
+			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
+			"net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
+			# Retention fields (print_designer construction feature)
+			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
+			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
+			"custom_retention", "custom_retention_amount",
+			# WHT calculation fields (print_designer calculations)
+			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
+		]
+
 		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py
 		print_designer_company_tax_fields = [
 			# Company Thai tax system fields 
@@ -164,6 +186,7 @@ def delete_all_print_designer_custom_fields():
 			print_designer_payment_entry_fields +
 			print_designer_sales_invoice_fields +
 			print_designer_purchase_order_fields +
+			print_designer_purchase_invoice_fields +
 			print_designer_company_tax_fields +
 			print_designer_item_fields
 		)
