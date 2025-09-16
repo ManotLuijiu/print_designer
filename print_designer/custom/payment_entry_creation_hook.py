@@ -285,7 +285,9 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
         from frappe.model.naming import make_autoname
 
         # Get Buddhist Era year (add 543 to Gregorian year)
-        posting_date = pe.posting_date if pe.posting_date else datetime.now().date()
+        # Ensure posting_date is properly parsed as date object
+        from frappe.utils import getdate
+        posting_date = getdate(pe.posting_date) if pe.posting_date else datetime.now().date()
         buddhist_year = posting_date.year + 543
         buddhist_year_short = str(buddhist_year)[-2:]  # Last 2 digits (68 for 2568)
         month = str(posting_date.month).zfill(2)  # Zero-padded month (09 for September)
