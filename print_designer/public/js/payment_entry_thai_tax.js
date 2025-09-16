@@ -382,6 +382,14 @@ function calculate_thai_tax_totals(frm) {
     } else {
         console.log('⚠️ No references found for totals calculation');
     }
+
+    // ADDITIONAL: Check for header-level WHT amounts (Purchase Invoice → Payment Entry scenario)
+    // If we don't have reference-level WHT amounts, check header fields
+    if (total_wht === 0 && frm.doc.custom_withholding_tax_amount) {
+        total_wht = frm.doc.custom_withholding_tax_amount;
+        has_thai_taxes = true;
+        console.log('📊 Using header-level WHT amount (Purchase Invoice scenario):', total_wht);
+    }
     
     // Update summary fields if they exist (using correct field names)
     console.log('🔄 Updating Payment Entry summary fields');
@@ -393,9 +401,13 @@ function calculate_thai_tax_totals(frm) {
             frm.set_value('pd_custom_apply_withholding_tax', total_wht > 0 ? 1 : 0);
         }
 
+        // Handle both field naming patterns (legacy pd_custom_ and new custom_)
         if (frm.fields_dict.pd_custom_withholding_tax_amount) {
-            console.log('🏛️ Setting withholding_tax_amount:', total_wht);
+            console.log('🏛️ Setting pd_custom_withholding_tax_amount:', total_wht);
             frm.set_value('pd_custom_withholding_tax_amount', total_wht);
+        } else if (frm.fields_dict.custom_withholding_tax_amount) {
+            console.log('🏛️ Setting custom_withholding_tax_amount:', total_wht);
+            frm.set_value('custom_withholding_tax_amount', total_wht);
         }
 
         // Calculate tax base amount from base_net_total (amount before VAT)

@@ -1,0 +1,391 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:certificate_number",
+ "creation": "2025-09-16 18:59:25.995532",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "certificate_information_section",
+  "certificate_number",
+  "certificate_date",
+  "tax_year",
+  "tax_month",
+  "column_break_cert",
+  "status",
+  "submission_date",
+  "pnd_form_type",
+  "supplier_section",
+  "supplier",
+  "supplier_name",
+  "supplier_tax_id",
+  "supplier_address",
+  "column_break_supplier",
+  "supplier_branch_code",
+  "supplier_branch_name",
+  "payment_section",
+  "payment_entry",
+  "payment_date",
+  "purchase_invoice",
+  "column_break_payment",
+  "company",
+  "company_branch",
+  "wht_details_section",
+  "income_type",
+  "income_description",
+  "column_break_wht",
+  "wht_rate",
+  "wht_condition",
+  "amount_section",
+  "tax_base_amount",
+  "wht_amount",
+  "column_break_amount",
+  "net_payment_amount",
+  "total_payment_amount",
+  "notes_section",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "certificate_information_section",
+   "fieldtype": "Section Break",
+   "label": "Certificate Information"
+  },
+  {
+   "fieldname": "certificate_number",
+   "fieldtype": "Data",
+   "label": "Certificate Number",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Format: WHTC-BBMM-##### (Buddhist Era)",
+   "read_only_depends_on": "eval:!doc.__islocal",
+   "bold": 1
+  },
+  {
+   "fieldname": "certificate_date",
+   "fieldtype": "Date",
+   "label": "Certificate Date",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "tax_year",
+   "fieldtype": "Data",
+   "label": "Tax Year (พ.ศ.)",
+   "read_only": 1,
+   "description": "Buddhist Era year (auto-calculated)"
+  },
+  {
+   "fieldname": "tax_month",
+   "fieldtype": "Select",
+   "label": "Tax Month",
+   "options": "\n01 - มกราคม (January)\n02 - กุมภาพันธ์ (February)\n03 - มีนาคม (March)\n04 - เมษายน (April)\n05 - พฤษภาคม (May)\n06 - มิถุนายน (June)\n07 - กรกฎาคม (July)\n08 - สิงหาคม (August)\n09 - กันยายน (September)\n10 - ตุลาคม (October)\n11 - พฤศจิกายน (November)\n12 - ธันวาคม (December)",
+   "reqd": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_cert",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nIssued\nSubmitted to Revenue Dept\nCancelled",
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "submission_date",
+   "fieldtype": "Date",
+   "label": "Submission Date to Revenue Dept",
+   "description": "วันที่ส่งให้กรมสรรพากร"
+  },
+  {
+   "fieldname": "pnd_form_type",
+   "fieldtype": "Select",
+   "label": "PND Form Type (แบบ ภ.ง.ด.)",
+   "options": "\nภ.ง.ด.1 (PND 1)\nภ.ง.ด.2 (PND 2)\nภ.ง.ด.3 (PND 3)\nภ.ง.ด.53 (PND 53)\nภ.ง.ด.54 (PND 54)",
+   "description": "ประเภทแบบแสดงรายการภาษีเงินได้หัก ณ ที่จ่าย"
+  },
+  {
+   "fieldname": "supplier_section",
+   "fieldtype": "Section Break",
+   "label": "Supplier Information (ผู้ถูกหักภาษี)"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "label": "Supplier Name",
+   "fetch_from": "supplier.supplier_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "supplier_tax_id",
+   "fieldtype": "Data",
+   "label": "Supplier Tax ID",
+   "fetch_from": "supplier.tax_id",
+   "read_only": 1,
+   "description": "เลขประจำตัวผู้เสียภาษี"
+  },
+  {
+   "fieldname": "supplier_address",
+   "fieldtype": "Small Text",
+   "label": "Supplier Address",
+   "fetch_from": "supplier.supplier_primary_address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_supplier",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "supplier_branch_code",
+   "fieldtype": "Data",
+   "label": "Supplier Branch Code (รหัสสาขา)",
+   "default": "00000",
+   "description": "00000 = สำนักงานใหญ่ (Head Office)"
+  },
+  {
+   "fieldname": "supplier_branch_name",
+   "fieldtype": "Data",
+   "label": "Supplier Branch Name",
+   "description": "ชื่อสาขา (ถ้ามี)"
+  },
+  {
+   "fieldname": "supplier_type_classification",
+   "fieldtype": "Select",
+   "label": "Supplier Type Classification",
+   "options": "\nIndividual - Staff (PND.1)\nIndividual - Non-staff (PND.3)\nCompany/Juristic Person (PND.53)",
+   "description": "Classification for PND form reporting",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "payment_section",
+   "fieldtype": "Section Break",
+   "label": "Payment Information"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment_date",
+   "fieldtype": "Date",
+   "label": "Payment Date",
+   "fetch_from": "payment_entry.posting_date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "label": "Purchase Invoice",
+   "options": "Purchase Invoice",
+   "read_only_depends_on": "eval:doc.payment_entry"
+  },
+  {
+   "fieldname": "column_break_payment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company (ผู้หักภาษี)",
+   "options": "Company",
+   "reqd": 1,
+   "fetch_from": "payment_entry.company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company_branch",
+   "fieldtype": "Data",
+   "label": "Company Branch",
+   "default": "00000",
+   "description": "00000 = สำนักงานใหญ่"
+  },
+  {
+   "fieldname": "wht_details_section",
+   "fieldtype": "Section Break",
+   "label": "Withholding Tax Details (รายละเอียดภาษีหัก ณ ที่จ่าย)"
+  },
+  {
+   "fieldname": "income_type",
+   "fieldtype": "Select",
+   "label": "Income Type (ประเภทเงินได้)",
+   "options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1) - Salary\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2) - Fee/Commission\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3) - Royalty\n4. (ก) ดอกเบี้ย ฯลฯ 40(4)ก - Interest\n4. (ข) เงินปันผล เงินส่วนแบ่งกำไร ฯลฯ 40(4)ข - Dividend\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส - Service\n6. ค่าบริการ/ค่าสินค้าภาครัฐ - Government Service\n7. ค่าจ้างแรงงาน - Labor\n8. ค่าโฆษณา - Advertising\n9. ค่าเช่า - Rent\n10. ค่าขนส่ง - Transportation\n11. ค่าประกันภัย - Insurance\n12. อื่นๆ - Others",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "income_description",
+   "fieldtype": "Data",
+   "label": "Income Description (รายละเอียด)",
+   "reqd": 1,
+   "description": "ระบุรายละเอียดของรายได้"
+  },
+  {
+   "fieldname": "column_break_wht",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wht_rate",
+   "fieldtype": "Percent",
+   "label": "WHT Rate (อัตราภาษี %)",
+   "reqd": 1,
+   "precision": 2,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "wht_condition",
+   "fieldtype": "Select",
+   "label": "WHT Condition (เงื่อนไขการหัก)",
+   "options": "\n1. หัก ณ ที่จ่าย (Withhold at Source)\n2. ออกให้ตลอดไป (Permanent)\n3. ออกให้ครั้งเดียว (One Time)\n4. อื่นๆ (Others)",
+   "default": "1. หัก ณ ที่จ่าย (Withhold at Source)"
+  },
+  {
+   "fieldname": "amount_section",
+   "fieldtype": "Section Break",
+   "label": "Amount Details (รายละเอียดจำนวนเงิน)"
+  },
+  {
+   "fieldname": "tax_base_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Base Amount (ยอดเงินก่อน VAT)",
+   "options": "Company:company:default_currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "จำนวนเงินที่ใช้คำนวณภาษี (ไม่รวม VAT)"
+  },
+  {
+   "fieldname": "wht_amount",
+   "fieldtype": "Currency",
+   "label": "WHT Amount (ภาษีหัก ณ ที่จ่าย)",
+   "options": "Company:company:default_currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "bold": 1,
+   "description": "จำนวนภาษีที่หัก"
+  },
+  {
+   "fieldname": "column_break_amount",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_payment_amount",
+   "fieldtype": "Currency",
+   "label": "Net Payment Amount (จ่ายสุทธิ)",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "จำนวนเงินที่จ่ายหลังหักภาษี"
+  },
+  {
+   "fieldname": "total_payment_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount (รวมทั้งสิ้น)",
+   "options": "Company:company:default_currency",
+   "read_only": 1,
+   "description": "ยอดรวมทั้งหมด (รวม VAT)"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks (หมายเหตุ)"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Withholding Tax Certificate",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-09-16 19:00:03.986937",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Withholding Tax Certificate",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "certificate_number,supplier,payment_entry",
+ "sort_field": "certificate_date",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "certificate_number",
+ "track_changes": 1,
+ "track_views": 1
+}

@@ -75,7 +75,7 @@ def delete_all_print_designer_custom_fields():
 		print_designer_payment_entry_fields = [
 			# Payment Entry retention system fields (both pd_custom_ and legacy)
 			"pd_custom_retention_summary_section", "retention_summary_section",
-			"pd_custom_has_retention", "has_retention", 
+			"pd_custom_has_retention", "has_retention",
 			"pd_custom_retention_column_break", "retention_column_break",
 			"pd_custom_total_retention_amount", "total_retention_amount",
 			"pd_custom_net_payment_after_retention", "net_payment_after_retention",
@@ -100,6 +100,22 @@ def delete_all_print_designer_custom_fields():
 			"pd_custom_wht_percentage", "wht_percentage",
 			"pd_custom_vat_undue_amount", "vat_undue_amount",
 			"pd_custom_net_payable_amount", "net_payable_amount",
+			# Payment Entry Thai WHT Preview Section fields (install_payment_entry_fields.py)
+			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
+			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
+			"wht_certificate_required", "net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
+			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
+			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
+			"custom_retention", "custom_retention_amount",  # Recently added fields
+			"custom_withholding_tax", "custom_withholding_tax_amount",  # Recently added fields
+			# WHT Certificate link fields (install_wht_certificate_link_field.py)
+			"pd_custom_wht_certificate", "pd_custom_needs_wht_certificate",
+			# Thai Compliance Tab fields (Payment Entry Pay scenario)
+			"pd_custom_thai_compliance_tab", "pd_custom_tax_base_amount",
+			"pd_custom_wht_certificate_no", "pd_custom_wht_certificate_date",
+			"pd_custom_withholding_tax_rate", "pd_custom_withholding_tax_amount",
+			"pd_custom_net_payment_amount", "pd_custom_total_payment_amount",
+			"pd_custom_apply_withholding_tax", "pd_custom_income_type",
 		]
 		
 		# Sales Invoice fields SPECIFICALLY created by print_designer install_sales_invoice_fields.py

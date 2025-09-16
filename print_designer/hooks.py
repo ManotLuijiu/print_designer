@@ -70,6 +70,9 @@ commands = [
     "print_designer.regional.purchase_order_wht_override.test_thai_wht_automation",
     # Purchase Invoice Thai WHT Testing
     "print_designer.regional.purchase_invoice_wht_override.test_thai_wht_automation",
+    # WHT Certificate Link Field Management
+    "print_designer.commands.install_wht_certificate_link_field.install_wht_certificate_link_field",
+    "print_designer.commands.install_wht_certificate_link_field.check_wht_certificate_link_field",
 ]
 
 # Includes in <head>
@@ -120,6 +123,7 @@ doctype_js = {
         "public/js/delivery_approval.js",
         "public/js/thailand_wht/thailand_wht_payment_entry.js",
         "public/js/payment_entry_thai_tax.js",
+        "public/js/payment_entry_wht_certificate.js",
     ],
     "Sales Invoice": [
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
@@ -599,9 +603,17 @@ doc_events = {
             "print_designer.custom.payment_entry_retention.payment_entry_validate_thai_compliance",
             "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
             "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
+            "print_designer.custom.payment_entry_server_events.validate",
         ],
-        "on_submit": "print_designer.custom.payment_entry_retention.payment_entry_on_submit_thai_compliance",
-        "on_cancel": "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
+        "after_insert": "print_designer.custom.payment_entry_server_events.after_insert",
+        "on_submit": [
+            "print_designer.custom.payment_entry_retention.payment_entry_on_submit_thai_compliance",
+            "print_designer.custom.payment_entry_server_events.on_submit",
+        ],
+        "on_cancel": [
+            "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
+            "print_designer.custom.payment_entry_server_events.on_cancel",
+        ],
     },
     # Company DocType - Sync retention data to Company Retention Settings
     "Company": {

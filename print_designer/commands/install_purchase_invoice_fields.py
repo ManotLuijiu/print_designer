@@ -353,6 +353,18 @@ def install_purchase_invoice_thai_tax_fields():
                 "length": 0,
                 "bold": 0,
             },
+            # add บิลเงินสด to supplier_invoice_details Section Break
+             {
+                "fieldname": "bill_cash",
+                "label": "บิลเงินสด",
+                "fieldtype": "Check",
+                "insert_after": "bill_date",
+                "description": "คลิ๊กบิลเงินสดในกรณีไม่มีเลขที่เอกสารซื้อ",
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
         ]
     }
 
@@ -377,6 +389,7 @@ def remove_purchase_invoice_thai_tax_fields():
     """Remove Thai Tax Compliance fields from Purchase Invoice"""
 
     field_names = [
+        "bill_cash",
         "apply_thai_wht_compliance",
         "thai_tax_compliance_section",
         "pd_custom_tax_invoice_number",
@@ -440,6 +453,7 @@ def check_purchase_invoice_fields():
     """Check if Purchase Invoice Thai tax fields are installed."""
 
     required_fields = [
+        "bill_cash"
         # Thai WHT Compliance field
         "apply_thai_wht_compliance",
         # Thai Tax Compliance Tab fields

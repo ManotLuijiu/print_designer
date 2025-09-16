@@ -493,6 +493,14 @@ def calculate_thai_compliant_wht(doc):
     # Update custom WHT fields
     doc.custom_withholding_tax_amount = wht_amount
 
+    # CONDITIONAL: Set subject_to_wht flag only when WHT amount is calculated and > 0
+    if wht_amount > 0:
+        doc.subject_to_wht = 1
+        frappe.logger().info(f"Set subject_to_wht = 1 for PI {doc.name} (WHT Amount: {wht_amount})")
+    else:
+        doc.subject_to_wht = 0
+        frappe.logger().info(f"Set subject_to_wht = 0 for PI {doc.name} (No WHT amount)")
+
     # Calculate final payment amount (after WHT and retention)
     retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
     final_payment = flt(doc.grand_total) - wht_amount - retention_amount
@@ -559,7 +567,11 @@ def validate_thai_wht_configuration(doc, method=None):
     """
     Validate Thai WHT configuration to ensure proper setup
     Auto-fetch default WHT rate from Company if not specified
+    THAI COMPLIANCE: Validate mandatory bill_no and bill_date for Thai tax compliance
     """
+
+    # THAI COMPLIANCE: Mandatory Bill Number and Bill Date validation (unless cash purchase)
+    validate_thai_mandatory_bill_fields(doc)
 
     if not getattr(doc, 'apply_thai_wht_compliance', 0):
         return
@@ -595,6 +607,84 @@ def validate_thai_wht_configuration(doc, method=None):
         frappe.msgprint(
             _("Consider using 'VAT Undue (7%)' for TDS transactions to comply with Thai tax regulations"),
             indicator='yellow'
+        )
+
+
+def validate_thai_mandatory_bill_fields(doc):
+    """
+    Thai Tax Compliance: Make bill_no and bill_date mandatory fields by default
+    Required for Thai Revenue Department audit compliance and tax documentation
+    Prevents ERPNext bug where blank fields disappear and become uneditable
+
+    DEFAULT BEHAVIOR: Fields are ALWAYS mandatory (locked) regardless of is_paid
+    UNLOCK MECHANISM: User can tick 'bill_cash' checkbox to make fields optional
+    USE CASE: Street shops with บิลเงินสด that have no formal invoice numbering
+
+    Args:
+        doc: Purchase Invoice document
+
+    Raises:
+        frappe.ValidationError: If mandatory fields are missing and bill_cash is not enabled
+    """
+
+    # Check if user has enabled bill_cash (บิลเงินสด) to unlock mandatory fields
+    bill_cash_enabled = getattr(doc, 'bill_cash', 0)
+
+    if bill_cash_enabled:
+        # บิลเงินสด enabled: bill_no and bill_date are NOT mandatory (user unlocked)
+        frappe.logger().info(f"บิลเงินสด enabled for PI {doc.name}: User unlocked mandatory bill field validation")
+
+        # Optional: Show info message for unlocked fields (only in first save)
+        if hasattr(doc, 'is_new') and callable(doc.is_new) and doc.is_new():
+            frappe.msgprint(
+                _("🔓 บิลเงินสด: Fields unlocked - Supplier invoice details are optional"),
+                indicator='blue',
+                alert=False
+            )
+        return
+
+    # DEFAULT: bill_no and bill_date are ALWAYS MANDATORY (locked by default)
+
+    # Check if bill_no (Supplier Invoice No) is provided
+    bill_no = getattr(doc, 'bill_no', None)
+    if not bill_no or not str(bill_no).strip():
+        frappe.throw(
+            _("Supplier Invoice No (Bill No) is mandatory for Thai tax compliance. Please either:\n"
+              "• Enter the supplier's invoice number, OR\n"
+              "• Enable 'บิลเงินสด' checkbox if supplier has no formal invoice system"),
+            frappe.MandatoryError,
+            title=_("Missing Supplier Invoice No")
+        )
+
+    # Check if bill_date (Supplier Invoice Date) is provided
+    bill_date = getattr(doc, 'bill_date', None)
+    if not bill_date:
+        frappe.throw(
+            _("Supplier Invoice Date (Bill Date) is mandatory for Thai tax compliance. Please either:\n"
+              "• Enter the supplier's invoice date, OR\n"
+              "• Enable 'บิลเงินสด' checkbox if supplier has no formal invoice system"),
+            frappe.MandatoryError,
+            title=_("Missing Supplier Invoice Date")
+        )
+
+    # Additional validation: bill_date should not be in future
+    from frappe.utils import getdate, nowdate
+    if getdate(bill_date) > getdate(nowdate()):
+        frappe.throw(
+            _("Supplier Invoice Date cannot be in the future. Please enter a valid invoice date."),
+            frappe.ValidationError,
+            title=_("Invalid Invoice Date")
+        )
+
+    # Log successful validation for audit trail
+    frappe.logger().info(f"Thai mandatory bill fields validated successfully for PI {doc.name}: bill_no={bill_no}, bill_date={bill_date}")
+
+    # Optional: Show success message to user (only in first save)
+    if doc.is_new():
+        frappe.msgprint(
+            _("✅ Thai tax compliance validated: Supplier invoice details recorded"),
+            indicator='green',
+            alert=False
         )
 
 

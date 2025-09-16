@@ -31,13 +31,24 @@ def get_payment_entry_with_thai_tax(dt, dn, **kwargs):
             if ref.reference_doctype == "Sales Invoice" and ref.reference_name == dn:
                 # Fetch Thai tax data from the Sales Invoice
                 thai_tax_data = _get_sales_invoice_thai_tax_data(dn)
-                
+
                 if thai_tax_data:
                     # Populate Thai tax fields in the reference
                     _populate_reference_thai_tax_fields(ref, thai_tax_data)
-                    
+
                     # Update summary fields in the Payment Entry
                     _update_payment_entry_thai_tax_summary(pe, thai_tax_data)
+
+    # If this is a Purchase Invoice, populate Thai tax fields
+    elif dt == "Purchase Invoice" and pe.references:
+        for ref in pe.references:
+            if ref.reference_doctype == "Purchase Invoice" and ref.reference_name == dn:
+                # Fetch Thai tax data from the Purchase Invoice
+                thai_tax_data = _get_purchase_invoice_thai_tax_data(dn)
+
+                if thai_tax_data:
+                    # Populate Payment Entry header fields for Purchase Invoice scenario
+                    _populate_payment_entry_purchase_fields(pe, thai_tax_data)
     
     return pe
 
@@ -133,6 +144,195 @@ def _get_sales_invoice_thai_tax_data(invoice_name):
             title="Payment Entry Thai Tax Data Fetch Error"
         )
         return None
+
+
+def _get_purchase_invoice_thai_tax_data(invoice_name):
+    """
+    Fetch Thai tax data from a Purchase Invoice.
+    Returns dict with Thai tax information for Payment Entry (Pay) scenario.
+    """
+    try:
+        # Get Thai tax fields from Purchase Invoice
+        invoice_data = frappe.db.get_value(
+            "Purchase Invoice",
+            invoice_name,
+            [
+                "subject_to_wht",
+                "vat_treatment",
+                "net_total_after_wht",
+                "custom_withholding_tax",
+                "custom_withholding_tax_amount",
+                "apply_thai_wht_compliance",
+                "wht_income_type",
+                "wht_description",
+                "grand_total",
+                "net_total",  # Add net_total for tax base calculation
+                "taxes_and_charges"
+            ],
+            as_dict=True
+        )
+
+        print(f"DEBUG: Raw Purchase Invoice data for {invoice_name}:")
+        print(f"  - subject_to_wht: {invoice_data.get('subject_to_wht')}")
+        print(f"  - vat_treatment: {invoice_data.get('vat_treatment')}")
+        print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
+        print(f"  - custom_withholding_tax_amount: {invoice_data.get('custom_withholding_tax_amount')}")
+        print(f"  - apply_thai_wht_compliance: {invoice_data.get('apply_thai_wht_compliance')}")
+
+        if not invoice_data:
+            print(f"ERROR: No Purchase Invoice data found for {invoice_name}")
+            return None
+
+        # Convert to Payment Entry field format
+        thai_tax_data = {
+            "subject_to_wht": invoice_data.get("subject_to_wht", 0),
+            "vat_treatment": invoice_data.get("vat_treatment", ""),
+            "net_total_after_wht": invoice_data.get("net_total_after_wht", 0),
+            "wht_amount": invoice_data.get("custom_withholding_tax_amount", 0),
+            "wht_percentage": invoice_data.get("custom_withholding_tax", 0),
+            "apply_thai_wht_compliance": invoice_data.get("apply_thai_wht_compliance", 0),
+            "wht_income_type": invoice_data.get("wht_income_type", ""),
+            "wht_description": invoice_data.get("wht_description", ""),
+            "grand_total": invoice_data.get("grand_total", 0),
+            "net_total": invoice_data.get("net_total", 0)  # Use net_total for tax base (before VAT)
+        }
+
+        print(f"DEBUG: Final Purchase Invoice thai_tax_data for {invoice_name}:")
+        print(f"  - subject_to_wht: {thai_tax_data['subject_to_wht']}")
+        print(f"  - vat_treatment: {thai_tax_data['vat_treatment']}")
+        print(f"  - net_total_after_wht: {thai_tax_data['net_total_after_wht']}")
+        print(f"  - wht_amount: {thai_tax_data['wht_amount']}")
+
+        return thai_tax_data
+
+    except Exception as e:
+        frappe.log_error(
+            message=f"Error fetching Thai tax data for Purchase Invoice {invoice_name}: {str(e)}",
+            title="Payment Entry Purchase Invoice Thai Tax Data Fetch Error"
+        )
+        return None
+
+
+def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
+    """
+    Populate Payment Entry header fields for Purchase Invoice (Pay) scenario.
+    This copies Thai tax fields from Purchase Invoice to Payment Entry header.
+    """
+    if not thai_tax_data:
+        return
+
+    print(f"DEBUG: Populating Payment Entry header fields with Purchase Invoice data:")
+    print(f"  - subject_to_wht: {thai_tax_data.get('subject_to_wht')}")
+    print(f"  - vat_treatment: {thai_tax_data.get('vat_treatment')}")
+    print(f"  - wht_amount: {thai_tax_data.get('wht_amount')}")
+    print(f"  - wht_percentage: {thai_tax_data.get('wht_percentage')}")
+
+    # Set the main Thai tax fields in Payment Entry (ERPNext standard fields)
+    if hasattr(pe, 'subject_to_wht'):
+        pe.subject_to_wht = thai_tax_data.get("subject_to_wht", 0)
+        print(f"  - Set pe.subject_to_wht = {pe.subject_to_wht}")
+
+    if hasattr(pe, 'vat_treatment'):
+        pe.vat_treatment = thai_tax_data.get("vat_treatment", "")
+        print(f"  - Set pe.vat_treatment = '{pe.vat_treatment}'")
+
+    if hasattr(pe, 'net_total_after_wht'):
+        pe.net_total_after_wht = thai_tax_data.get("net_total_after_wht", 0)
+        print(f"  - Set pe.net_total_after_wht = {pe.net_total_after_wht}")
+
+    # Set WHT fields (newly added custom fields)
+    if hasattr(pe, 'custom_withholding_tax'):
+        pe.custom_withholding_tax = thai_tax_data.get("wht_percentage", 0)
+        print(f"  - Set pe.custom_withholding_tax = {pe.custom_withholding_tax}%")
+
+    if hasattr(pe, 'custom_withholding_tax_amount'):
+        pe.custom_withholding_tax_amount = thai_tax_data.get("wht_amount", 0)
+        print(f"  - Set pe.custom_withholding_tax_amount = {pe.custom_withholding_tax_amount}")
+
+    # Set income type and description from Purchase Invoice
+    if hasattr(pe, 'wht_income_type') and thai_tax_data.get("wht_income_type"):
+        pe.wht_income_type = thai_tax_data.get("wht_income_type", "")
+        print(f"  - Set pe.wht_income_type = '{pe.wht_income_type}'")
+
+    if hasattr(pe, 'wht_description') and thai_tax_data.get("wht_description"):
+        pe.wht_description = thai_tax_data.get("wht_description", "")
+        print(f"  - Set pe.wht_description = '{pe.wht_description}'")
+
+    # Set WHT certificate required flag
+    if hasattr(pe, 'wht_certificate_required'):
+        pe.wht_certificate_required = 1 if thai_tax_data.get("subject_to_wht", 0) else 0
+        print(f"  - Set pe.wht_certificate_required = {pe.wht_certificate_required}")
+
+    # Set Thai compliance application flags if they exist
+    if hasattr(pe, 'apply_thai_wht_compliance'):
+        pe.apply_thai_wht_compliance = thai_tax_data.get("apply_thai_wht_compliance", 0)
+        print(f"  - Set pe.apply_thai_wht_compliance = {pe.apply_thai_wht_compliance}")
+
+    # Set Thai Compliance Tab fields (pd_custom_* fields)
+
+    # Tax Base Amount (should be net_total, not grand_total)
+    if hasattr(pe, 'pd_custom_tax_base_amount'):
+        # Use net_total (before VAT) as tax base for WHT calculation
+        pe.pd_custom_tax_base_amount = thai_tax_data.get("net_total", 0)
+        print(f"  - Set pe.pd_custom_tax_base_amount = {pe.pd_custom_tax_base_amount} (net_total before VAT)")
+
+    # WHT Certificate Number - Auto-generate for Payment Entry (Pay)
+    if hasattr(pe, 'pd_custom_wht_certificate_no') and pe.payment_type == "Pay":
+        # Generate certificate number using Buddhist Era (พุทธศักราช) with monthly reset
+        # Format: WHTC-BBMM-##### where BB = Buddhist year (last 2 digits), MM = month
+        # Example: WHTC-6809-00001 for September 2025 (2568 BE)
+        from datetime import datetime
+        from frappe.model.naming import make_autoname
+
+        # Get Buddhist Era year (add 543 to Gregorian year)
+        posting_date = pe.posting_date if pe.posting_date else datetime.now().date()
+        buddhist_year = posting_date.year + 543
+        buddhist_year_short = str(buddhist_year)[-2:]  # Last 2 digits (68 for 2568)
+        month = str(posting_date.month).zfill(2)  # Zero-padded month (09 for September)
+
+        # Create naming pattern: WHTC-6809-#####
+        naming_pattern = f"WHTC-{buddhist_year_short}{month}-.#####"
+        pe.pd_custom_wht_certificate_no = make_autoname(naming_pattern)
+        print(f"  - Generated pe.pd_custom_wht_certificate_no = {pe.pd_custom_wht_certificate_no} (Buddhist Era {buddhist_year}, monthly series)")
+
+    # WHT Certificate Date - Use posting_date
+    if hasattr(pe, 'pd_custom_wht_certificate_date'):
+        pe.pd_custom_wht_certificate_date = pe.posting_date
+        print(f"  - Set pe.pd_custom_wht_certificate_date = {pe.pd_custom_wht_certificate_date}")
+
+    # WHT Rate - Copy from Purchase Invoice
+    if hasattr(pe, 'pd_custom_withholding_tax_rate'):
+        pe.pd_custom_withholding_tax_rate = thai_tax_data.get("wht_percentage", 0)
+        print(f"  - Set pe.pd_custom_withholding_tax_rate = {pe.pd_custom_withholding_tax_rate}%")
+
+    # WHT Amount - Already handled above via custom_withholding_tax_amount
+    if hasattr(pe, 'pd_custom_withholding_tax_amount'):
+        pe.pd_custom_withholding_tax_amount = thai_tax_data.get("wht_amount", 0)
+        print(f"  - Set pe.pd_custom_withholding_tax_amount = {pe.pd_custom_withholding_tax_amount}")
+
+    # Net Payment Amount - Calculate as grand_total - WHT amount
+    if hasattr(pe, 'pd_custom_net_payment_amount'):
+        grand_total = thai_tax_data.get("grand_total", 0)
+        wht_amount = thai_tax_data.get("wht_amount", 0)
+        pe.pd_custom_net_payment_amount = grand_total - wht_amount
+        print(f"  - Set pe.pd_custom_net_payment_amount = {pe.pd_custom_net_payment_amount} (grand_total {grand_total} - WHT {wht_amount})")
+
+    # Apply Withholding Tax flag
+    if hasattr(pe, 'pd_custom_apply_withholding_tax'):
+        pe.pd_custom_apply_withholding_tax = 1 if thai_tax_data.get("subject_to_wht", 0) else 0
+        print(f"  - Set pe.pd_custom_apply_withholding_tax = {pe.pd_custom_apply_withholding_tax}")
+
+    # Income Type for Thai Compliance Tab
+    if hasattr(pe, 'pd_custom_income_type') and thai_tax_data.get("wht_income_type"):
+        pe.pd_custom_income_type = thai_tax_data.get("wht_income_type", "")
+        print(f"  - Set pe.pd_custom_income_type = '{pe.pd_custom_income_type}'")
+
+    # Mark for WHT certificate creation if WHT amount exists
+    if thai_tax_data.get("wht_amount", 0) > 0:
+        pe.pd_custom_needs_wht_certificate = 1
+        print(f"  - Set pe.pd_custom_needs_wht_certificate = 1 (WHT amount = {thai_tax_data.get('wht_amount')})")
+    else:
+        pe.pd_custom_needs_wht_certificate = 0
 
 
 def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_treatment=""):
