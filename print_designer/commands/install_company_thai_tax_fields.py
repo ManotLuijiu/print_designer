@@ -47,23 +47,41 @@ def install_company_thai_tax_fields():
                 "depends_on": "eval:doc.thailand_service_business",
                 "description": "Default account for withholding tax asset (e.g., Withholding Tax Assets)"
             },
-            # VAT Undue Account field
+            # Output VAT Undue Account field
             {
                 "fieldname": "default_output_vat_undue_account",
                 "fieldtype": "Link",
                 "label": "Default Output VAT Undue Account",
                 "options": "Account",
                 "insert_after": "default_wht_account",
-                "description": "Default account for output VAT undue (e.g., Output VAT Undue)"
+                "description": "Default account for Output VAT undue (e.g., Output VAT Undue)"
             },
-            # VAT Output Account field
+            # Output VAT Output Account field
             {
                 "fieldname": "default_output_vat_account", 
                 "fieldtype": "Link",
                 "label": "Default Output VAT Account",
                 "options": "Account",
                 "insert_after": "default_output_vat_undue_account",
-                "description": "Default account for output VAT (e.g., Output VAT)"
+                "description": "Default account for Output VAT (e.g., Output VAT)"
+            },
+            # Input VAT Undue Account field
+            {
+                "fieldname": "default_input_vat_undue_account",
+                "fieldtype": "Link",
+                "label": "Default Input VAT Undue Account",
+                "options": "Account",
+                "insert_after": "parent_company",
+                "description": "Default account for Input VAT undue (e.g., Input VAT Undue)"
+            },
+            # Input VAT Account field
+            {
+                "fieldname": "default_input_vat_account", 
+                "fieldtype": "Link",
+                "label": "Default Input VAT Account",
+                "options": "Account",
+                "insert_after": "default_input_vat_undue_account",
+                "description": "Default account for Input VAT (e.g., Input VAT)"
             }
         ]
     }
@@ -213,10 +231,12 @@ def check_company_thai_tax_fields():
     # Check each field
     fields_to_check = [
         "thailand_service_business",
-        "default_wht_rate", 
+        "default_wht_rate",
         "default_wht_account",
         "default_output_vat_undue_account",
-        "default_output_vat_account"
+        "default_output_vat_account",
+        "default_input_vat_undue_account",
+        "default_input_vat_account"
     ]
     
     all_fields_exist = True

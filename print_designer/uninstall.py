@@ -107,11 +107,11 @@ def delete_all_print_designer_custom_fields():
 			# Watermark field
 			"watermark_text",
 			# Thai WHT Preview Section (print_designer specific)
-			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break", 
+			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
 			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
 			"net_total_after_wht", "net_total_after_wht_in_words", "wht_certificate_required", "wht_note",
 			# Retention fields (print_designer construction feature)
-			"custom_subject_to_retention", "custom_net_total_after_wht_retention", 
+			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
 			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
 			"custom_retention", "custom_retention_amount",
 			# Construction service (print_designer feature)
@@ -120,6 +120,20 @@ def delete_all_print_designer_custom_fields():
 			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
 			# Signature fields
 			"prepared_by_signature", "approved_by_signature",
+		]
+
+		# Purchase Order fields SPECIFICALLY created by print_designer install_purchase_order_fields.py
+		print_designer_purchase_order_fields = [
+			# Thai WHT Preview Section (print_designer specific)
+			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
+			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
+			"net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
+			# Retention fields (print_designer construction feature)
+			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
+			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
+			"custom_retention", "custom_retention_amount",
+			# WHT calculation fields (print_designer calculations)
+			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
 		]
 		
 		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py
@@ -146,9 +160,10 @@ def delete_all_print_designer_custom_fields():
 		
 		# Combine all print_designer specific field lists
 		all_print_designer_fields = (
-			print_designer_specific_patterns + 
+			print_designer_specific_patterns +
 			print_designer_payment_entry_fields +
 			print_designer_sales_invoice_fields +
+			print_designer_purchase_order_fields +
 			print_designer_company_tax_fields +
 			print_designer_item_fields
 		)
