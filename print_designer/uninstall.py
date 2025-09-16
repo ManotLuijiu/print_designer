@@ -160,9 +160,10 @@ def delete_all_print_designer_custom_fields():
 
 		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py
 		print_designer_company_tax_fields = [
-			# Company Thai tax system fields 
+			# Company Thai tax system fields
 			"thailand_service_business", "default_wht_rate", "default_wht_account",
 			"default_output_vat_undue_account", "default_output_vat_account",
+			"default_input_vat_undue_account", "default_input_vat_account", "default_wht_debt_account",
 			# Construction service retention fields
 			"construction_service", "default_retention_rate", "default_retention_account",
 		]

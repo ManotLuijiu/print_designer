@@ -41,7 +41,7 @@ def install_company_thai_tax_fields():
             {
                 "fieldname": "default_wht_account",
                 "fieldtype": "Link",
-                "label": "Default Withholding Tax Account",
+                "label": "Default Withholding Tax Assets Account",
                 "options": "Account",
                 "insert_after": "default_wht_rate",
                 "depends_on": "eval:doc.thailand_service_business",
@@ -82,6 +82,15 @@ def install_company_thai_tax_fields():
                 "options": "Account",
                 "insert_after": "default_input_vat_undue_account",
                 "description": "Default account for Input VAT (e.g., Input VAT)"
+            },
+            # WHT Debt Account field
+            {
+                "fieldname": "default_wht_debt_account", 
+                "fieldtype": "Link",
+                "label": "Default Withholding Tax Debt Account",
+                "options": "Account",
+                "insert_after": "default_input_vat_account",
+                "description": "Default account for withholding tax debt (e.g., Withholding Tax Debt)"
             }
         ]
     }
@@ -219,6 +228,47 @@ def _find_vat_accounts(company):  # Commented out - Chart of Accounts is dynamic
     except Exception as e:
         print(f"   ⚠️  Error finding VAT accounts for {company.name}: {str(e)}")
         return {"vat_undue": None, "vat_output": None}
+
+
+def remove_company_thai_tax_fields():
+    """Remove all Thai tax-related custom fields from Company doctype during uninstallation."""
+
+    print("Removing Company Thai Tax Fields...")
+
+    # List of all Company Thai tax fields to remove
+    fields_to_remove = [
+        "thailand_service_business",
+        "default_wht_rate",
+        "default_wht_account",
+        "default_output_vat_undue_account",
+        "default_output_vat_account",
+        "default_input_vat_undue_account",
+        "default_input_vat_account",
+        "default_wht_debt_account"
+    ]
+
+    try:
+        removed_count = 0
+        for field_name in fields_to_remove:
+            try:
+                # Check if custom field exists
+                custom_field_name = f"Company-{field_name}"
+                if frappe.db.exists("Custom Field", custom_field_name):
+                    frappe.delete_doc("Custom Field", custom_field_name)
+                    print(f"✅ Removed Company.{field_name}")
+                    removed_count += 1
+                else:
+                    print(f"⏭️ Company.{field_name} not found (already removed)")
+            except Exception as e:
+                print(f"❌ Error removing Company.{field_name}: {str(e)}")
+
+        frappe.db.commit()
+        print(f"✅ Successfully removed {removed_count} Company Thai tax fields")
+
+    except Exception as e:
+        print(f"❌ Error removing Company Thai tax fields: {str(e)}")
+        frappe.db.rollback()
+        raise
 
 
 def check_company_thai_tax_fields():

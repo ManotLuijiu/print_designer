@@ -32,7 +32,7 @@ frappe.connect()
 
 # Check Payment Entry field
 fields = frappe.db.get_all("Custom Field",
-    filters={"dt": "Payment Entry", "fieldname": "pd_custom_company_tax_address"},
+    filters={"dt": "Payment Entry", "fieldname": "pd_custom_tax_base_amount"},
     fields=["name", "fetch_from", "fieldtype", "label"])
 print("Field info:", fields)
 ' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console''',
@@ -43,7 +43,7 @@ frappe.connect()
 
 # Fix fetch_from field
 field_name = frappe.db.get_value("Custom Field",
-    {"dt": "Payment Entry", "fieldname": "pd_custom_company_tax_address"}, "name")
+    {"dt": "Payment Entry", "fieldname": "pd_custom_tax_base_amount"}, "name")
 
 if field_name:
     field_doc = frappe.get_doc("Custom Field", field_name)
@@ -76,7 +76,7 @@ frappe.init("moo.localhost")
 frappe.connect()
 
 # Check Thai tax fields status
-pe_fields = ["pd_custom_company_tax_address", "vat_treatment", "subject_to_wht", "net_total_after_wht"]
+pe_fields = ["vat_treatment", "subject_to_wht", "net_total_after_wht"]
 
 print("🔍 Payment Entry Thai Tax Fields Status:")
 for field in pe_fields:

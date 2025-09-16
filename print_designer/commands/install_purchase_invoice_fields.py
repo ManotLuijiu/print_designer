@@ -157,7 +157,7 @@ def install_purchase_invoice_thai_tax_fields():
                 "label": "Subject to Withholding Tax",
                 "fieldtype": "Check",
                 "insert_after": "vat_treatment",
-                "depends_on": "eval:doc.company && doc.thailand_service_business",
+                "depends_on": "eval:doc.apply_thai_wht_compliance",
                 "default": "0",
                 "read_only": 0,
                 "hidden": 0,

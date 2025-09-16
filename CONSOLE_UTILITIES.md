@@ -38,7 +38,7 @@ frappe.init("moo.localhost")
 frappe.connect()
 
 from print_designer.commands.console_utils import check_custom_field
-result = check_custom_field("Payment Entry", "pd_custom_company_tax_address")
+result = check_custom_field("Payment Entry", "pd_custom_tax_base_amount")
 ' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console
 ```
 
@@ -49,7 +49,7 @@ frappe.init("moo.localhost")
 frappe.connect()
 
 from print_designer.commands.console_utils import fix_fetch_from_field
-success = fix_fetch_from_field("Payment Entry", "pd_custom_company_tax_address", None)
+success = fix_fetch_from_field("Payment Entry", "pd_custom_tax_base_amount", None)
 ' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console
 ```
 
@@ -89,7 +89,7 @@ result = check_custom_field("Payment Entry", "vat_treatment")
 ### Fix Fetch From Issues
 ```python
 # Remove fetch_from reference
-success = fix_fetch_from_field("Payment Entry", "pd_custom_company_tax_address")
+success = fix_fetch_from_field("Payment Entry", "pd_custom_tax_base_amount")
 
 # Set new fetch_from
 success = fix_fetch_from_field("Payment Entry", "field_name", "company.valid_field")
@@ -101,7 +101,7 @@ success = fix_fetch_from_field("Payment Entry", "field_name", "company.valid_fie
 fields = execute_sql_query("""
     SELECT dt, fieldname, fetch_from
     FROM `tabCustom Field`
-    WHERE fetch_from LIKE '%pd_custom_thai_tax_address%'
+    WHERE fetch_from IS NOT NULL
 """)
 
 # Check Payment Entry field count
@@ -167,8 +167,8 @@ print(f"vat_treatment exists: {exists}")
 issues = frappe.db.sql("""
     SELECT fieldname, fetch_from
     FROM `tabCustom Field`
-    WHERE dt = %s AND fetch_from LIKE %s
-""", ("Payment Entry", "%pd_custom_thai_tax_address%"))
+    WHERE dt = %s AND fetch_from IS NOT NULL
+""", ("Payment Entry",))
 print(f"Fetch_from issues: {len(issues)}")
 
 # Clear cache

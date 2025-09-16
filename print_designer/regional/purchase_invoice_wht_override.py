@@ -137,6 +137,13 @@ def _populate_tax_invoice_from_bill_fields(doc):
 
     print(f"🏷️ DEBUG: Checking tax invoice fields for Purchase Invoice {doc.name}")
 
+    # Only populate tax invoice fields for cash purchases (is_paid = 1)
+    if not getattr(doc, 'is_paid', 0):
+        print(f"❌ DEBUG: Not a cash purchase (is_paid = 0), skipping tax invoice fields auto-population")
+        return
+
+    print(f"💰 DEBUG: Cash purchase detected (is_paid = 1), proceeding with tax invoice fields")
+
     # Tax Invoice Number ← bill_no
     if not getattr(doc, 'pd_custom_tax_invoice_number', None) and getattr(doc, 'bill_no', None):
         doc.pd_custom_tax_invoice_number = doc.bill_no

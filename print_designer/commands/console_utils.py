@@ -131,7 +131,6 @@ def check_thai_tax_fields_status():
 
         # Check Payment Entry fields
         pe_fields = [
-            "pd_custom_company_tax_address",
             "pd_custom_tax_base_amount",
             "pd_custom_apply_withholding_tax",
             "vat_treatment",

@@ -31,10 +31,13 @@ def add_regional_gl_entries(gl_entries, doc):
     # DEBUG: Check all Thai tax related fields on the document
     print(f"🔍 DEBUGGING ALL THAI TAX FIELDS:")
 
-    # Check primary flag - Use the correct field that JavaScript is actually setting
-    has_thai_taxes = getattr(doc, 'subject_to_wht', 0) or getattr(doc, 'pd_custom_apply_withholding_tax', 0)
+    # Check primary flag - Use multiple possible fields that indicate Thai tax compliance
+    has_thai_taxes = (getattr(doc, 'subject_to_wht', 0) or
+                     getattr(doc, 'pd_custom_apply_withholding_tax', 0) or
+                     getattr(doc, 'pd_custom_has_thai_taxes', 0))
     print(f"   📋 subject_to_wht: {getattr(doc, 'subject_to_wht', 0)} (type: {type(getattr(doc, 'subject_to_wht', 0))})")
     print(f"   📋 pd_custom_apply_withholding_tax: {getattr(doc, 'pd_custom_apply_withholding_tax', 0)} (type: {type(getattr(doc, 'pd_custom_apply_withholding_tax', 0))})")
+    print(f"   📋 pd_custom_has_thai_taxes: {getattr(doc, 'pd_custom_has_thai_taxes', 0)} (type: {type(getattr(doc, 'pd_custom_has_thai_taxes', 0))})")
     print(f"   📋 Combined has_thai_taxes: {has_thai_taxes} (type: {type(has_thai_taxes)})")
 
     # Log all document attributes to debug the exact field names
@@ -51,25 +54,19 @@ def add_regional_gl_entries(gl_entries, doc):
         print(f"   📋 Available document fields: {list(doc_dict.keys())[:20]}")  # Show first 20 fields
 
     # Check total amounts - Use the actual fields that are being populated by JavaScript
-    total_wht = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))  # Use the correct prefixed field
-    total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))  # Keep custom for retention
-    # For VAT, we need to calculate from the JavaScript total_vat_undue value
-    # Since this isn't stored in a direct field, we'll calculate it from the base amount
-    vat_rate = 0.07  # 7% VAT rate for Thailand
-    tax_base = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))  # Use the correct prefixed field
-    total_vat_undue = tax_base * vat_rate if tax_base > 0 else 0
+    total_wht = flt(getattr(doc, 'pd_custom_total_wht_amount', 0))  # Corrected field name
+    total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
+    total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))  # Use direct field
 
-    print(f"   💰 withholding_tax_amount: {total_wht} (type: {type(total_wht)})")
-    print(f"   💰 pd_custom_total_retention_amount: {total_retention} (type: {type(total_retention)})")
-    print(f"   💰 calculated VAT undue (7% of {tax_base}): {total_vat_undue} (type: {type(total_vat_undue)})")
+    print(f"   💰 total_wht_amount: {total_wht} (type: {type(total_wht)})")
+    print(f"   💰 total_retention_amount: {total_retention} (type: {type(total_retention)})")
+    print(f"   💰 total_vat_undue_amount: {total_vat_undue} (type: {type(total_vat_undue)})")
 
     # Check other WHT fields that might be relevant - Use the correct prefixed fields
     apply_wht = getattr(doc, 'pd_custom_apply_withholding_tax', 0)
-    wht_amount = getattr(doc, 'pd_custom_withholding_tax_amount', 0)
     tax_base = getattr(doc, 'pd_custom_tax_base_amount', 0)
     net_payment = getattr(doc, 'net_total_after_wht', 0)  # This field exists from the console log
     print(f"   🏛️ pd_custom_apply_withholding_tax: {apply_wht} (type: {type(apply_wht)})")
-    print(f"   🏛️ pd_custom_withholding_tax_amount: {wht_amount} (type: {type(wht_amount)})")
     print(f"   💵 pd_custom_tax_base_amount: {tax_base} (type: {type(tax_base)})")
     print(f"   💵 net_total_after_wht: {net_payment} (type: {type(net_payment)})")
 
@@ -199,8 +196,8 @@ def _adjust_cash_gl_entry_for_thai_compliance(gl_entries, doc):
     print(f"🔧 ADJUSTING CASH GL ENTRY DEBUG:")
 
     # Get Thai tax deduction amounts - Use corrected field names
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0), 2)  # Use the correct prefixed field
-    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)  # Keep custom for retention
+    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)  # Corrected field name
+    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     total_deductions = wht_amount + retention_amount
 
     print(f"   💰 WHT amount: ฿{wht_amount}")
@@ -278,6 +275,7 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
     """Add Thai compliance GL entries using proper ERPNext patterns (following UAE model)."""
 
     print(f"🏛️ ADDING THAI COMPLIANCE GL ENTRIES DEBUG:")
+    print(f"   💳 Payment Type: {doc.payment_type}")
 
     # Get default accounts from Company doctype
     company = getattr(doc, 'company', None)
@@ -288,147 +286,180 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
         except Exception as e:
             print(f"   ❌ Error loading Company doc in _add_thai_compliance_gl_entries: {str(e)}")
 
-    # WHT Assets GL Entry - Using doc.get_gl_dict() for proper object creation
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0), 2)  # Use the correct prefixed field
-
-    # Fetch WHT account from Company doctype first, then Payment Entry fallback
-    if company_doc:
-        wht_account = getattr(company_doc, 'default_wht_account', None) or getattr(doc, 'pd_custom_wht_account', None)
-    else:
-        wht_account = getattr(doc, 'pd_custom_wht_account', None)
+    # Get Thai tax amounts using correct field names from the system
+    wht_amount = flt(getattr(doc, 'pd_custom_total_wht_amount', 0), 2)  # Corrected: use total_wht_amount
+    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
+    vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
 
     print(f"   💰 WHT amount: ฿{wht_amount}")
-    print(f"   🏦 WHT account: '{wht_account}'")
+    print(f"   💰 Retention amount: ฿{retention_amount}")
+    print(f"   💰 VAT amount: ฿{vat_amount}")
 
-    if wht_amount > 0 and wht_account:
-        print(f"   ✅ Creating WHT GL entry...")
+    # Handle different payment types
+    if doc.payment_type == "Receive":
+        _add_thai_receive_gl_entries(gl_entries, doc, company_doc, wht_amount, retention_amount, vat_amount)
+    elif doc.payment_type == "Pay":
+        _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention_amount, vat_amount)
+    else:
+        print(f"   ⚠️ Unknown payment type: {doc.payment_type}")
 
-        against_account = doc.party if doc.payment_type == "Receive" else doc.paid_from
-        cost_center = getattr(doc, 'cost_center', None)
 
-        print(f"   📋 WHT GL Entry details:")
-        print(f"      🏦 Account: {wht_account}")
-        print(f"      💰 Debit: ฿{wht_amount}")
-        print(f"      🔄 Against: {against_account}")
-        print(f"      🏢 Cost Center: {cost_center}")
+def _add_thai_receive_gl_entries(gl_entries, doc, company_doc, wht_amount, retention_amount, vat_amount):
+    """Add Thai GL entries for Payment Entry (Receive) - Customer payments."""
 
-        try:
-            wht_gl_entry = doc.get_gl_dict({
+    print(f"   📥 Processing RECEIVE payment GL entries...")
+
+    # WHT Assets GL Entry - Customer pays us, we withhold tax
+    if wht_amount > 0:
+        wht_account = getattr(company_doc, 'default_wht_account', None) if company_doc else None
+        wht_account = wht_account or getattr(doc, 'pd_custom_wht_account', None)
+
+        if wht_account:
+            print(f"   ✅ Creating WHT Assets GL entry (Receive): ฿{wht_amount}")
+            gl_entries.append(doc.get_gl_dict({
                 "account": wht_account,
                 "debit": wht_amount,
                 "debit_in_account_currency": wht_amount,
                 "credit": 0,
                 "credit_in_account_currency": 0,
-                "against": against_account,
-                "cost_center": cost_center,
-                "remarks": f"Thai WHT Assets: {wht_amount}",
-            })
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai WHT Assets (Receive): ฿{wht_amount}",
+            }))
 
-            gl_entries.append(wht_gl_entry)
-            print(f"   ✅ WHT GL entry added successfully")
-        except Exception as e:
-            print(f"   ❌ Error creating WHT GL entry: {str(e)}")
-            raise
-    else:
-        print(f"   ⏭️ Skipping WHT GL entry - amount: ฿{wht_amount}, account: '{wht_account}'")
+    # Retention GL Entry - For construction/service retention
+    if retention_amount > 0:
+        retention_account = getattr(company_doc, 'default_retention_account', None) if company_doc else None
+        retention_account = retention_account or getattr(doc, 'pd_custom_retention_account', None)
 
-    # Retention GL Entry - Using doc.get_gl_dict() for proper object creation
-    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
-
-    # Fetch Retention account from Company doctype first, then Payment Entry fallback
-    if company_doc:
-        retention_account = getattr(company_doc, 'default_retention_account', None) or getattr(doc, 'pd_custom_retention_account', None)
-    else:
-        retention_account = getattr(doc, 'pd_custom_retention_account', None)
-
-    print(f"   💰 Retention amount: ฿{retention_amount}")
-    print(f"   🏦 Retention account: '{retention_account}'")
-
-    if retention_amount > 0 and retention_account:
-        print(f"   ✅ Creating Retention GL entry...")
-
-        against_account = doc.party if doc.payment_type == "Receive" else doc.paid_from
-        cost_center = getattr(doc, 'cost_center', None)
-
-        print(f"   📋 Retention GL Entry details:")
-        print(f"      🏦 Account: {retention_account}")
-        print(f"      💰 Debit: ฿{retention_amount}")
-        print(f"      🔄 Against: {against_account}")
-        print(f"      🏢 Cost Center: {cost_center}")
-
-        try:
-            retention_gl_entry = doc.get_gl_dict({
+        if retention_account:
+            print(f"   ✅ Creating Retention Assets GL entry (Receive): ฿{retention_amount}")
+            gl_entries.append(doc.get_gl_dict({
                 "account": retention_account,
                 "debit": retention_amount,
                 "debit_in_account_currency": retention_amount,
                 "credit": 0,
                 "credit_in_account_currency": 0,
-                "against": against_account,
-                "cost_center": cost_center,
-                "remarks": f"Thai Retention: {retention_amount}",
-            })
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Retention Assets (Receive): ฿{retention_amount}",
+            }))
 
-            gl_entries.append(retention_gl_entry)
-            print(f"   ✅ Retention GL entry added successfully")
-        except Exception as e:
-            print(f"   ❌ Error creating Retention GL entry: {str(e)}")
-            raise
-    else:
-        print(f"   ⏭️ Skipping Retention GL entry - amount: ฿{retention_amount}, account: '{retention_account}'")
-
-    # VAT Undue to VAT conversion GL entries - Using doc.get_gl_dict()
-    vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
-
-    # Fetch VAT accounts from Company doctype first, then Payment Entry fallback
-    if company_doc:
-        vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None) or getattr(doc, 'pd_custom_output_vat_undue_account', None)
-        vat_account = getattr(company_doc, 'default_output_vat_account', None) or getattr(doc, 'pd_custom_output_vat_account', None)
-    else:
-        vat_undue_account = getattr(doc, 'pd_custom_output_vat_undue_account', None)
-        vat_account = getattr(doc, 'pd_custom_output_vat_account', None)
-
-    print(f"   💰 VAT amount: ฿{vat_amount}")
-    print(f"   🏦 VAT Undue account: '{vat_undue_account}'")
-    print(f"   🏦 VAT account: '{vat_account}'")
-
+    # Output VAT: Undue → Due conversion (when we receive payment from customer)
     if vat_amount > 0:
-        # Debit VAT Undue account (clear undue amount)
-        if vat_undue_account:
-            print(f"   ✅ Creating VAT Undue clearing GL entry...")
-            gl_entries.append(
-                doc.get_gl_dict({
-                    "account": vat_undue_account,
-                    "debit": vat_amount,
-                    "debit_in_account_currency": vat_amount,
-                    "credit": 0,
-                    "credit_in_account_currency": 0,
-                    "against": doc.party if doc.payment_type == "Receive" else doc.paid_from,
-                    "cost_center": getattr(doc, 'cost_center', None),
-                    "remarks": f"Thai VAT Undue Clearing: {vat_amount}",
-                })
-            )
-        else:
-            print(f"   ⏭️ Skipping VAT Undue clearing - no vat_undue_account")
+        vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None) if company_doc else None
+        vat_due_account = getattr(company_doc, 'default_output_vat_account', None) if company_doc else None
 
-        # Credit VAT account (register due VAT)
-        if vat_account:
-            print(f"   ✅ Creating VAT due registration GL entry...")
-            gl_entries.append(
-                doc.get_gl_dict({
-                    "account": vat_account,
-                    "debit": 0,
-                    "debit_in_account_currency": 0,
-                    "credit": vat_amount,
-                    "credit_in_account_currency": vat_amount,
-                    "against": doc.party if doc.payment_type == "Receive" else doc.paid_from,
-                    "cost_center": getattr(doc, 'cost_center', None),
-                    "remarks": f"Thai VAT Due Registration: {vat_amount}",
-                })
-            )
+        if vat_undue_account and vat_due_account:
+            print(f"   ✅ Creating Output VAT Undue → Due conversion (Receive): ฿{vat_amount}")
+            # Debit VAT Undue (clear it)
+            gl_entries.append(doc.get_gl_dict({
+                "account": vat_undue_account,
+                "debit": vat_amount,
+                "debit_in_account_currency": vat_amount,
+                "credit": 0,
+                "credit_in_account_currency": 0,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Output VAT Undue Clear (Receive): ฿{vat_amount}",
+            }))
+            # Credit VAT Due (register liability)
+            gl_entries.append(doc.get_gl_dict({
+                "account": vat_due_account,
+                "debit": 0,
+                "debit_in_account_currency": 0,
+                "credit": vat_amount,
+                "credit_in_account_currency": vat_amount,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Output VAT Due Register (Receive): ฿{vat_amount}",
+            }))
+
+
+def _add_thai_pay_gl_entries(gl_entries, doc, company_doc, wht_amount, retention_amount, vat_amount):
+    """Add Thai GL entries for Payment Entry (Pay) - Supplier payments with Thai accounting flow."""
+
+    print(f"   📤 Processing PAY payment GL entries...")
+    print(f"   🏛️ Implementing Thai service purchase accounting flow...")
+
+    # For Pay transactions, we need to handle the Thai accounting flow:
+    # Dr. Creditors                      107  ← Standard ERPNext (party account)
+    # Dr. Input VAT                        7  ← Company.default_input_vat_account
+    #     Cr. Withholding Tax - Debt         3  ← Company.default_wht_debt_account
+    #     Cr. Cash/Bank                    104  ← Standard ERPNext (already adjusted)
+    #     Cr. Input VAT Undue                7  ← Company.default_input_vat_undue_account
+
+    # 1. Input VAT Recognition (Dr. Input VAT account)
+    if vat_amount > 0:
+        input_vat_account = getattr(company_doc, 'default_input_vat_account', None) if company_doc else None
+        input_vat_undue_account = getattr(company_doc, 'default_input_vat_undue_account', None) if company_doc else None
+
+        if input_vat_account:
+            print(f"   ✅ Creating Input VAT recognition GL entry (Pay): ฿{vat_amount}")
+            gl_entries.append(doc.get_gl_dict({
+                "account": input_vat_account,
+                "debit": vat_amount,
+                "debit_in_account_currency": vat_amount,
+                "credit": 0,
+                "credit_in_account_currency": 0,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Input VAT Recognition (Pay): ฿{vat_amount}",
+            }))
+
+        # Credit Input VAT Undue account (clear the undue amount from Purchase Invoice)
+        if input_vat_undue_account:
+            print(f"   ✅ Creating Input VAT Undue clear GL entry (Pay): ฿{vat_amount}")
+            gl_entries.append(doc.get_gl_dict({
+                "account": input_vat_undue_account,
+                "debit": 0,
+                "debit_in_account_currency": 0,
+                "credit": vat_amount,
+                "credit_in_account_currency": vat_amount,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Input VAT Undue Clear (Pay): ฿{vat_amount}",
+            }))
+
+    # 2. Withholding Tax Debt (Cr. WHT Debt account)
+    # We owe government the WHT we deducted from supplier
+    if wht_amount > 0:
+        wht_debt_account = getattr(company_doc, 'default_wht_debt_account', None) if company_doc else None
+
+        if wht_debt_account:
+            print(f"   ✅ Creating WHT Debt liability GL entry (Pay): ฿{wht_amount}")
+            gl_entries.append(doc.get_gl_dict({
+                "account": wht_debt_account,
+                "debit": 0,
+                "debit_in_account_currency": 0,
+                "credit": wht_amount,
+                "credit_in_account_currency": wht_amount,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai WHT Debt Liability (Pay): ฿{wht_amount}",
+            }))
         else:
-            print(f"   ⏭️ Skipping VAT due registration - no vat_account")
-    else:
-        print(f"   ⏭️ Skipping VAT GL entries - amount is ฿{vat_amount}")
+            print(f"   ⚠️ No WHT debt account configured for company {company}")
+
+    # 3. Retention handling (if applicable)
+    if retention_amount > 0:
+        retention_account = getattr(company_doc, 'default_retention_account', None) if company_doc else None
+
+        if retention_account:
+            print(f"   ✅ Creating Retention liability GL entry (Pay): ฿{retention_amount}")
+            gl_entries.append(doc.get_gl_dict({
+                "account": retention_account,
+                "debit": 0,
+                "debit_in_account_currency": 0,
+                "credit": retention_amount,
+                "credit_in_account_currency": retention_amount,
+                "against": doc.party,
+                "cost_center": getattr(doc, 'cost_center', None),
+                "remarks": f"Thai Retention Liability (Pay): ฿{retention_amount}",
+            }))
+
+    print(f"   ✅ Thai Pay GL entries completed")
+    print(f"   📊 Summary: VAT=฿{vat_amount}, WHT=฿{wht_amount}, Retention=฿{retention_amount}")
 
 
 def test_regional_gl_entries():

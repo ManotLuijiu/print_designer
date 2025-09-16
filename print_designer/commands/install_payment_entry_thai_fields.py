@@ -90,23 +90,12 @@ def create_payment_entry_thai_fields():
                 "print_hide": 0,
                 "bold": 1,
             },
-            {
-                "fieldname": "pd_custom_company_tax_address",
-                "fieldtype": "Small Text",
-                "label": "Company Tax Address",
-                "insert_after": "pd_custom_tax_base_amount",
-                "read_only": 0,  # Changed to editable per requirements
-                "translatable": 0,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
             # Column 2
             {
                 "fieldname": "pd_custom_thai_tax_column_2",
                 "fieldtype": "Column Break",
                 "label": "",
-                "insert_after": "pd_custom_company_tax_address",
+                "insert_after": "pd_custom_tax_base_amount",
                 "width": "50%",
             },
             {
@@ -271,7 +260,6 @@ def check_fields_exist():
 
     required_fields = [
         "pd_custom_thai_compliance_tab",
-        "pd_custom_company_tax_address",
         "pd_custom_tax_base_amount",
         "pd_custom_tax_invoice_number",
         # Removed pd_custom_supplier - using standard party field
@@ -323,7 +311,6 @@ def remove_thai_fields():
         "pd_custom_thai_compliance_tab",
         "pd_custom_thai_tax_column_1",
         "pd_custom_thai_tax_column_2",
-        "pd_custom_company_tax_address",
         "pd_custom_tax_base_amount",
         "pd_custom_tax_invoice_number",
         # Removed pd_custom_supplier - will be removed from DB

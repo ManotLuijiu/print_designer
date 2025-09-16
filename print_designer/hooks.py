@@ -326,12 +326,9 @@ fixtures = [
                     # Payment Entry - Thai Tax Compliance Fields
                     "Payment Entry-pd_custom_thai_compliance_tab",
                     "Payment Entry-pd_custom_thai_tax_column_1",
-                    "Payment Entry-pd_custom_company_tax_address",
                     "Payment Entry-pd_custom_tax_base_amount",
                     "Payment Entry-pd_custom_tax_invoice_number",
-                    "Payment Entry-pd_custom_supplier",
                     "Payment Entry-pd_custom_tax_invoice_date",
-                    "Payment Entry-pd_custom_supplier_name",
                     "Payment Entry-pd_custom_income_type",
                     "Payment Entry-pd_custom_thai_tax_column_2",
                     "Payment Entry-pd_custom_wht_certificate_no",
@@ -340,7 +337,6 @@ fixtures = [
                     "Payment Entry-pd_custom_withholding_tax_rate",
                     "Payment Entry-pd_custom_net_payment_amount",
                     "Payment Entry-pd_custom_apply_withholding_tax",
-                    "Payment Entry-pd_custom_get_invoices_from_purchase_billing",
                 ],
             ]
         ],
