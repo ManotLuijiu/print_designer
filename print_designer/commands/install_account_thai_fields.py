@@ -15,6 +15,11 @@ def execute():
     install_account_thai_translation_fields()
 
 
+def install_account_thai_fields():
+    """Wrapper function for hooks.py compatibility"""
+    return install_account_thai_translation_fields()
+
+
 def install_account_thai_translation_fields():
     """Install Thai translation fields for Account and Company DocTypes"""
 
@@ -24,6 +29,13 @@ def install_account_thai_translation_fields():
         # Install custom fields
         custom_fields = get_account_thai_custom_fields()
         create_custom_fields(custom_fields, update=True)
+
+        # Fix idx conflicts by positioning fields after all DocFields
+        _fix_account_field_positioning()
+
+        # Clear cache to ensure fields appear in UI immediately
+        frappe.clear_cache(doctype="Account")
+        frappe.clear_cache()
 
         print("✓ Thai Account Translation fields installed successfully")
 
@@ -38,6 +50,39 @@ def install_account_thai_translation_fields():
         frappe.log_error(f"Thai Account Translation installation error: {str(e)}")
 
 
+def _fix_account_field_positioning():
+    """Fix idx conflicts by positioning Thai fields after all standard DocFields."""
+
+    print("   Fixing Account field positioning to avoid idx conflicts...")
+
+    # Find the highest DocField idx for Account
+    max_docfield_idx = frappe.db.sql("""
+        SELECT MAX(idx) as max_idx FROM `tabDocField` WHERE parent = 'Account'
+    """)[0][0] or 0
+
+    # Account Thai fields in correct order
+    account_fields_order = [
+        ("account_name_th", "account_name"),
+        ("auto_translate_thai", "account_name_th"),
+        ("thai_notes", "account_currency")
+    ]
+
+    # Position Account fields starting after max DocField idx
+    current_idx = max_docfield_idx + 1
+
+    for fieldname, insert_after in account_fields_order:
+        custom_field_name = f"Account-{fieldname}"
+
+        if frappe.db.exists('Custom Field', custom_field_name):
+            frappe.db.set_value('Custom Field', custom_field_name, {
+                'idx': current_idx,
+                'insert_after': insert_after
+            })
+            current_idx += 1
+
+    print(f"   ✓ Positioned Account Thai fields at idx {max_docfield_idx + 1}+ (after DocField max of {max_docfield_idx})")
+
+
 def get_account_thai_custom_fields():
     """Get custom field definitions for Thai account translation"""
 
@@ -49,12 +94,13 @@ def get_account_thai_custom_fields():
                 "label": "Account Name (TH)",
                 "insert_after": "account_name",
                 "translatable": 1,
+                "in_list_view": 1,
                 "description": "Thai translation of account name for localized Chart of Accounts display",
             },
             {
                 "fieldname": "auto_translate_thai",
                 "fieldtype": "Check",
-                "label": "Auto-translate to Thai",
+                "label": "Auto Translate to Thai",
                 "insert_after": "account_name_th",
                 "default": 1,
                 "description": "Automatically populate Thai name based on common accounting terms",
