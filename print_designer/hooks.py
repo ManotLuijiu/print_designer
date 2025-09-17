@@ -45,6 +45,10 @@ commands = [
     "print_designer.commands.force_install_construction_service.force_install_construction_service",
     # Company Thai Tax Fields (check function only - installation handled in after_install)
     "print_designer.commands.install_company_thai_tax_fields.check_company_thai_tax_fields",
+    # Thai Account Translation Fields
+    "print_designer.commands.install_account_thai_fields.install_account_thai_fields",
+    "print_designer.commands.install_account_thai_fields.check_account_thai_fields_status",
+    "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",
     # Thai Language Setup Commands (check functions only - installation handled in after_install)
     "print_designer.install.thai_defaults.check_thai_language_setup",
     # Thai WHT System Commands (DocType-specific check functions)
@@ -434,6 +438,8 @@ jinja = {
         "print_designer.custom.withholding_tax.get_suggested_wht_rate",
         # Thai WHT Override and Debug methods
         "print_designer.regional.purchase_order_wht_override.get_thai_wht_calculation_debug_info",
+        # Thai Billing amount conversion methods
+        "print_designer.print_designer.doctype.thai_billing.thai_billing.get_thai_billing_amount_in_words",
     ]
 }
 
@@ -484,8 +490,11 @@ after_install = [
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
-boot_session = "print_designer.utils.signature_stamp.boot_session"
-extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
+# OLD: boot_session = "print_designer.utils.signature_stamp.boot_session"
+# OLD: extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
+# NEW: Consolidated boot session with Print Designer + Thai Billing workspace
+boot_session = "print_designer.boot.boot_session"
+extend_bootinfo = "print_designer.boot.boot_session"
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
@@ -701,3 +710,13 @@ standard_portal_menu_items = [
         "role": "Print Manager",
     }
 ]
+
+# Website route rules for custom URLs
+website_route_rules = [
+    {
+        "from_route": "/app/billing",
+        "to_route": "/app/thai-billing"
+    }
+]
+
+# Workspace extension is handled by the existing extend_bootinfo hook

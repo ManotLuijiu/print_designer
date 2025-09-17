@@ -1,0 +1,362 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-09-17 14:47:25.585742",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "company",
+  "posting_date",
+  "column_break_basic",
+  "customer",
+  "customer_name",
+  "due_date",
+  "section_break_customer_details",
+  "customer_address",
+  "contact_person",
+  "customer_phone",
+  "column_break_customer",
+  "customer_tax_id",
+  "customer_branch",
+  "billing_address_display",
+  "section_break_billing_period",
+  "billing_period_from",
+  "column_break_period",
+  "billing_period_to",
+  "section_break_invoices",
+  "invoice_items",
+  "section_break_totals",
+  "total_invoices",
+  "grand_total_in_words",
+  "column_break_totals",
+  "total_amount",
+  "grand_total",
+  "section_break_remarks",
+  "remarks",
+  "internal_notes",
+  "section_break_status",
+  "status",
+  "column_break_status",
+  "workflow_state",
+  "section_break_signatures",
+  "prepared_by",
+  "prepared_date",
+  "column_break_signatures",
+  "approved_by",
+  "approved_date",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "TB-.####.",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "TB-.####.\nTB-.YYYY.-.####.",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Title"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Due Date",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_customer_details",
+   "fieldtype": "Section Break",
+   "label": "Customer Details"
+  },
+  {
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Customer Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "fetch_from": "contact_person.phone",
+   "fieldname": "customer_phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "customer.tax_id",
+   "fieldname": "customer_tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_branch",
+   "fieldtype": "Data",
+   "label": "Branch Code"
+  },
+  {
+   "fieldname": "billing_address_display",
+   "fieldtype": "Small Text",
+   "label": "Billing Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_billing_period",
+   "fieldtype": "Section Break",
+   "label": "Billing Period"
+  },
+  {
+   "fieldname": "billing_period_from",
+   "fieldtype": "Date",
+   "label": "From Date"
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "billing_period_to",
+   "fieldtype": "Date",
+   "label": "To Date"
+  },
+  {
+   "fieldname": "section_break_invoices",
+   "fieldtype": "Section Break",
+   "label": "Invoice Items"
+  },
+  {
+   "fieldname": "invoice_items",
+   "fieldtype": "Table",
+   "label": "Invoice Items",
+   "options": "Thai Billing Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_invoices",
+   "fieldtype": "Int",
+   "label": "Total Invoices",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_remarks",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes"
+  },
+  {
+   "fieldname": "section_break_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nSubmitted\nPaid\nOverdue\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workflow_state",
+   "fieldtype": "Link",
+   "label": "Workflow State",
+   "options": "Workflow State",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_signatures",
+   "fieldtype": "Section Break",
+   "label": "Signatures"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared By",
+   "options": "User"
+  },
+  {
+   "fieldname": "prepared_date",
+   "fieldtype": "Date",
+   "label": "Prepared Date"
+  },
+  {
+   "fieldname": "column_break_signatures",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "approved_date",
+   "fieldtype": "Date",
+   "label": "Approved Date"
+  },
+  {
+   "description": "In Words will be visible once you save the Billing.",
+   "fieldname": "grand_total_in_words",
+   "fieldtype": "Small Text",
+   "label": "Grand Total In Words",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Thai Billing",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-09-17 17:34:21.367804",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai Billing",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "customer_name",
+ "track_changes": 1
+}

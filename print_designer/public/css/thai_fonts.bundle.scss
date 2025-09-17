@@ -31,3 +31,11 @@
     font-family: 'Noto Sans Thai', 'Sarabun', 'IBM Plex Sans Thai', 'Kanit', 'Prompt', 'Mitr', 'Pridi';
   }
 }
+
+.table-warning,
+  .table-warning > th,
+  .table-warning > td {
+      background-color: var(--bg-yellow);
+      border-color: var(--bg-yellow);
+      color: var(--text-on-yellow);
+  }
