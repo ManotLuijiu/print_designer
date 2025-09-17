@@ -16,35 +16,35 @@ def install_enhanced_retention_fields():
 
     # Define custom fields
     custom_fields = {
-        "Company": [
-            {
-                "fieldname": "construction_service",
-                "label": "Enable Construction Service",
-                "fieldtype": "Check",
-                "insert_after": "default_output_vat_account",
-                "description": "Enable construction service features including retention calculations",
-                "default": 0,
-            },
-            {
-                "fieldname": "default_retention_rate",
-                "fieldtype": "Percent",
-                "label": "Default Retention Rate (%)",
-                "insert_after": "construction_service",
-                "depends_on": "eval:doc.construction_service",
-                "description": "Default retention rate for construction projects (e.g., 5% for most projects)",
-                "default": "5",
-                "precision": 2,
-            },
-            {
-                "fieldname": "default_retention_account",
-                "fieldtype": "Link",
-                "label": "Default Retention Account",
-                "options": "Account",
-                "insert_after": "default_retention_rate",
-                "depends_on": "eval:doc.construction_service",
-                "description": "Default account for retention liability (e.g., Construction Retention Payable)",
-            },
-        ],
+        # "Company": [
+        #     {
+        #         "fieldname": "construction_service",
+        #         "label": "Enable Construction Service",
+        #         "fieldtype": "Check",
+        #         "insert_after": "default_output_vat_account",
+        #         "description": "Enable construction service features including retention calculations",
+        #         "default": 0,
+        #     },
+        #     {
+        #         "fieldname": "default_retention_rate",
+        #         "fieldtype": "Percent",
+        #         "label": "Default Retention Rate (%)",
+        #         "insert_after": "construction_service",
+        #         "depends_on": "eval:doc.construction_service",
+        #         "description": "Default retention rate for construction projects (e.g., 5% for most projects)",
+        #         "default": "5",
+        #         "precision": 2,
+        #     },
+        #     {
+        #         "fieldname": "default_retention_account",
+        #         "fieldtype": "Link",
+        #         "label": "Default Retention Account",
+        #         "options": "Account",
+        #         "insert_after": "default_retention_rate",
+        #         "depends_on": "eval:doc.construction_service",
+        #         "description": "Default account for retention liability (e.g., Construction Retention Payable)",
+        #     },
+        # ],
         "Sales Invoice": [
             {
                 "fieldname": "custom_retention",

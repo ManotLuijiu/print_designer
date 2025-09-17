@@ -50,17 +50,12 @@ def install_company_thai_tax_fields():
                 "insert_after": "enable_thai_accounting_translation",
                 "description": "Automatically translate common account names to Thai",
             },
-            {
-                "fieldname": "thai_accounting_column_right",
-                "fieldtype": "Column Break",
-                "insert_after": "auto_populate_thai_accounts",
-            },
             # Thailand Service Business (base field)
             {
                 "fieldname": "thailand_service_business",
                 "fieldtype": "Check",
                 "label": "Thailand Service Business",
-                "insert_after": "thai_accounting_column_right",
+                "insert_after": "auto_populate_thai_accounts",
                 "description": "Enable Thailand withholding tax features for service businesses",
                 "default": "0",
             },
@@ -85,13 +80,49 @@ def install_company_thai_tax_fields():
                 "depends_on": "eval:doc.thailand_service_business",
                 "description": "Default account for withholding tax asset (e.g., Withholding Tax Assets)",
             },
+            # Enable Construction Service
+            {
+                "fieldname": "construction_service",
+                "label": "Enable Construction Service",
+                "fieldtype": "Check",
+                "insert_after": "default_wht_account",
+                "description": "Enable construction service features including retention calculations",
+                "default": 0,
+            },
+            # Default Retention Rate (%)
+            {
+                "fieldname": "default_retention_rate",
+                "fieldtype": "Percent",
+                "label": "Default Retention Rate (%)",
+                "insert_after": "construction_service",
+                "depends_on": "eval:doc.construction_service",
+                "description": "Default retention rate for construction projects (e.g., 5% for most projects)",
+                "default": "5",
+                "precision": 2,
+            },
+            # Default Retention Account
+            {
+                "fieldname": "default_retention_account",
+                "fieldtype": "Link",
+                "label": "Default Retention Account",
+                "options": "Account",
+                "insert_after": "default_retention_rate",
+                "depends_on": "eval:doc.construction_service",
+                "description": "Default account for retention liability (e.g., Construction Retention Payable)",
+            },
+            # Right Column
+            {
+                "fieldname": "thai_accounting_column_right",
+                "fieldtype": "Column Break",
+                "insert_after": "default_retention_account",
+            },
             # Output VAT Undue Account field
             {
                 "fieldname": "default_output_vat_undue_account",
                 "fieldtype": "Link",
                 "label": "Default Output VAT Undue Account",
                 "options": "Account",
-                "insert_after": "default_wht_account",
+                "insert_after": "thai_accounting_column_right",
                 "description": "Default account for Output VAT undue (e.g., Output VAT Undue)",
             },
             # Output VAT Output Account field
@@ -109,7 +140,7 @@ def install_company_thai_tax_fields():
                 "fieldtype": "Link",
                 "label": "Default Input VAT Undue Account",
                 "options": "Account",
-                "insert_after": "parent_company",
+                "insert_after": "default_output_vat_account",
                 "description": "Default account for Input VAT undue (e.g., Input VAT Undue)",
             },
             # Input VAT Account field
