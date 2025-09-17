@@ -49,6 +49,14 @@ commands = [
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",
     "print_designer.commands.install_account_thai_fields.check_account_thai_fields_status",
     "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",
+    # Account translation system commands (simple direct approach)
+    "print_designer.commands.apply_account_thai_translations.execute",
+    "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
+    "print_designer.commands.apply_account_thai_translations.get_translation_stats",
+    "print_designer.commands.apply_account_thai_translations.check_glossary_coverage",
+    # Account file generation for external server access
+    "print_designer.utils.account_file_api.generate_files",
+    "print_designer.utils.account_file_api.check_files",
     # Thai Language Setup Commands (check functions only - installation handled in after_install)
     "print_designer.install.thai_defaults.check_thai_language_setup",
     # Thai WHT System Commands (DocType-specific check functions)
@@ -224,6 +232,10 @@ fixtures = [
                     "Company-enable_thai_numbering",
                     "Company-thai_business_registration",
                     "Company-vat_registration_number",
+                    # Account - Thai Translation Fields
+                    "Account-account_name_th",
+                    "Account-auto_translate_thai",
+                    "Account-thai_notes",
                     # Sales Invoice - Signature Fields
                     "Sales Invoice-prepared_by_signature",
                     "Sales Invoice-approved_by_signature",
@@ -476,6 +488,7 @@ after_install = [
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
+    "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Install Account Thai translation fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
@@ -487,6 +500,8 @@ after_install = [
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
     "print_designer.install.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
+    # Generate Account Thai translation files for external server access
+    "print_designer.utils.account_file_api.generate_account_files_for_external_access",
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
@@ -500,7 +515,7 @@ extend_bootinfo = "print_designer.boot.boot_session"
 after_migrate = [
     # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
     "print_designer.install.ensure_custom_fields",
-    
+
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
@@ -508,12 +523,13 @@ after_migrate = [
     "print_designer.api.safe_install.safe_install_signature_enhancements",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
-    
+
     # REMOVED DUPLICATE: "print_designer.install.ensure_watermark_fields_installed" - already in after_install
     # REMOVED DUPLICATE: "print_designer.install.emergency_watermark_fix_fallback" - already in after_install
-    
+
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
+    "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Ensure Account Thai translation fields are installed during migration
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
@@ -522,6 +538,10 @@ after_migrate = [
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
+    # Generate Account Thai translation files for external server access
+    "print_designer.utils.account_file_api.generate_account_files_for_external_access",
+    # Apply Account Thai translations after migration to ensure complete coverage
+    "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
 ]
 
 # Uninstallation
@@ -530,6 +550,7 @@ after_migrate = [
 before_uninstall = [
     "print_designer.uninstall.before_uninstall",
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
+    "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",  # Remove Account Thai translation fields
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
     "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",  # Remove Purchase Invoice Thai tax compliance fields
@@ -685,7 +706,11 @@ def override_erpnext_install():
 # }
 
 # Scheduled tasks for watermark cache management
-scheduler_events = {"daily": ["print_designer.api.watermark.cleanup_watermark_cache"]}
+scheduler_events = {
+    "daily": [
+        "print_designer.api.watermark.cleanup_watermark_cache",
+    ]
+}
 
 
 # Permission query conditions
