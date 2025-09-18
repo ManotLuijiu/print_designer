@@ -351,9 +351,14 @@ def remove_account_thai_fields():
 def auto_populate_company_thai_accounts(company):
     """API method to auto-populate Thai account names for a specific company"""
 
+    print(f"DEBUG: auto_populate_company_thai_accounts called with company: {company}")
+    frappe.log_error(f"DEBUG: Button clicked for company: {company}", "Thai Account Auto-Population")
+
     try:
         translation_map = get_thai_account_translation_map()
         accounts_updated = 0
+
+        print(f"DEBUG: Found {len(translation_map)} translation mappings")
 
         # Get accounts for this company only
         for english_name, thai_name in translation_map.items():
@@ -366,6 +371,8 @@ def auto_populate_company_thai_accounts(company):
             )
 
             for account in accounts:
+                print(f"DEBUG: Updating account {account.name} ({account.account_name}) -> {thai_name}")
+
                 # Update if Thai name is empty or user wants to refresh
                 frappe.db.set_value("Account", account.name, {
                     "account_name_th": thai_name,
@@ -375,6 +382,7 @@ def auto_populate_company_thai_accounts(company):
                 accounts_updated += 1
 
         frappe.db.commit()
+        print(f"DEBUG: Total accounts updated: {accounts_updated}")
 
         frappe.msgprint(
             _("Successfully updated Thai names for {0} accounts").format(accounts_updated),

@@ -146,7 +146,7 @@ doctype_js = {
     "Print Settings": "public/js/print_format/print_settings.js",
     "Signature Basic Information": "public/js/stamps_signatures/signature_basic_information.js",
     "Delivery Note": "public/js/delivery_note/delivery_approval.js",
-    "Company": "public/js/print_format/company.js",
+    "Company": ["public/js/print_format/company.js", "public/js/company/company_thai_accounts.js"],
     "Designation": "public/js/stamps_signatures/designation_signature.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

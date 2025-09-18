@@ -13,6 +13,7 @@ def install_company_thai_tax_fields():
     """Install all Thai tax-related custom fields for Company doctype."""
 
     print("Installing Company Thai Tax Fields...")
+    print("DEBUG: Starting installation of Thai tax fields for Company DocType")
 
     # Define custom fields for Company in the correct insertion order
     custom_fields = {
@@ -165,15 +166,29 @@ def install_company_thai_tax_fields():
     }
 
     try:
+        print("DEBUG: Creating custom fields with debugging output...")
+
         # Create custom fields
         create_custom_fields(custom_fields, update=True)
 
         print("✅ Company Thai tax fields created successfully!")
+        print("   Thai Translation Fields:")
+        print("   - Company: enable_thai_accounting_translation (checkbox)")
+        print("   - Company: auto_populate_thai_accounts (button)")
+        print("   WHT Fields:")
         print("   - Company: thailand_service_business (checkbox)")
         print("   - Company: default_wht_rate (percentage)")
         print("   - Company: default_wht_account (link to Account)")
+        print("   Construction/Retention Fields:")
+        print("   - Company: construction_service (checkbox)")
+        print("   - Company: default_retention_rate (percentage)")
+        print("   - Company: default_retention_account (link to Account)")
+        print("   VAT Account Fields:")
         print("   - Company: default_output_vat_undue_account (link to Account)")
         print("   - Company: default_output_vat_account (link to Account)")
+        print("   - Company: default_input_vat_undue_account (link to Account)")
+        print("   - Company: default_input_vat_account (link to Account)")
+        print("   - Company: default_wht_debt_account (link to Account)")
 
         # Setup default accounts for companies
         # _setup_default_accounts()  # Commented out - Chart of Accounts is dynamic per user
@@ -379,10 +394,15 @@ def remove_company_thai_tax_fields():
         "enable_thai_accounting_translation",
         "auto_populate_thai_accounts",
         "thai_accounting_column_right",
-        # WHT and VAT Fields
+        # WHT (Withholding Tax) Fields
         "thailand_service_business",
         "default_wht_rate",
         "default_wht_account",
+        # Construction Service & Retention Fields
+        "construction_service",
+        "default_retention_rate",
+        "default_retention_account",
+        # VAT Account Fields
         "default_output_vat_undue_account",
         "default_output_vat_account",
         "default_input_vat_undue_account",
@@ -430,10 +450,15 @@ def check_company_thai_tax_fields():
         "enable_thai_accounting_translation",
         "auto_populate_thai_accounts",
         "thai_accounting_column_right",
-        # WHT and VAT Fields
+        # WHT (Withholding Tax) Fields
         "thailand_service_business",
         "default_wht_rate",
         "default_wht_account",
+        # Construction Service & Retention Fields
+        "construction_service",
+        "default_retention_rate",
+        "default_retention_account",
+        # VAT Account Fields
         "default_output_vat_undue_account",
         "default_output_vat_account",
         "default_input_vat_undue_account",
@@ -451,44 +476,6 @@ def check_company_thai_tax_fields():
             all_fields_exist = False
 
     return all_fields_exist
-
-
-def emergency_fallback_install_company_thai_tax_fields():
-    """Emergency fallback to install Company Thai tax fields if they don't exist."""
-
-    print("🚨 Running Emergency Fallback: Company Thai Tax Fields Installation...")
-
-    try:
-        company_meta = frappe.get_meta("Company")
-
-        # Check if any key fields are missing
-        missing_fields = []
-        key_fields = [
-            "thailand_service_business",
-            "default_wht_rate",
-            "default_wht_account",
-            "default_output_vat_undue_account",
-            "default_output_vat_account",
-        ]
-
-        for field_name in key_fields:
-            if not company_meta.get_field(field_name):
-                missing_fields.append(field_name)
-
-        if missing_fields:
-            print(f"❌ Missing fields: {', '.join(missing_fields)} - installing now...")
-            install_company_thai_tax_fields()
-        else:
-            print("✅ All Company Thai tax fields already exist")
-
-    except Exception as e:
-        print(f"🚨 Emergency fallback error: {str(e)}")
-        print("   Attempting full installation...")
-        try:
-            install_company_thai_tax_fields()
-        except Exception as install_error:
-            print(f"❌ Failed to install Company Thai tax fields: {str(install_error)}")
-            raise
 
 
 if __name__ == "__main__":

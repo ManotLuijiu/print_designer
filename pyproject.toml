@@ -1,4 +1,5 @@
 [project]
+
 name = "print_designer"
 authors = [
     { name = "Frappe Technologies Pvt Ltd", email = "hello@frappe.io"}
@@ -7,6 +8,7 @@ description = "Frappe App to Design Print Formats using interactive UI."
 requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
+
 dependencies = [
     "PyQRCode~=1.2.1",
     "pypng~=0.20220715.0",
@@ -33,7 +35,11 @@ use_parentheses = true
 ensure_newline_before_comments = true
 indent = "\t"
 
-[deploy.dependencies.apt]
+[tool.ruff]
+line-length = 99
+extend-select = ["I"]
+
+[tool.deploy.dependencies.apt]
 packages = [
     "fonts-liberation",
     "libatk-bridge2.0-0",
