@@ -168,6 +168,8 @@ doctype_js = {
 # Note: Custom fields are installed programmatically via install.py to handle existing fields gracefully
 # Fixtures are used for Client Scripts and Property Setters only
 fixtures = [
+    {"doctype": "Print Format", "filters": [["module", "=", "Print Designer"]]},
+    {"doctype": "Report", "filters": [["module", "=", "Print Designer"]]},
     {
         "doctype": "Custom Field",
         "filters": [
@@ -515,7 +517,6 @@ extend_bootinfo = "print_designer.boot.boot_session"
 after_migrate = [
     # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
     "print_designer.install.ensure_custom_fields",
-
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
@@ -523,10 +524,8 @@ after_migrate = [
     "print_designer.api.safe_install.safe_install_signature_enhancements",
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
-
     # REMOVED DUPLICATE: "print_designer.install.ensure_watermark_fields_installed" - already in after_install
     # REMOVED DUPLICATE: "print_designer.install.emergency_watermark_fix_fallback" - already in after_install
-
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Ensure Account Thai translation fields are installed during migration
@@ -737,11 +736,6 @@ standard_portal_menu_items = [
 ]
 
 # Website route rules for custom URLs
-website_route_rules = [
-    {
-        "from_route": "/app/billing",
-        "to_route": "/app/thai-billing"
-    }
-]
+website_route_rules = [{"from_route": "/app/billing", "to_route": "/app/thai-billing"}]
 
 # Workspace extension is handled by the existing extend_bootinfo hook
