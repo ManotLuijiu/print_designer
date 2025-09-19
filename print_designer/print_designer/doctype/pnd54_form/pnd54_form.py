@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class PND54(Document):
+class PND54Form(Document):
 	pass

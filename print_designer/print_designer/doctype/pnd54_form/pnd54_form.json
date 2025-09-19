@@ -1,8 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:PND1-{tax_period_year}-{tax_period_month:02d}-{###}",
- "creation": "2025-09-19 22:34:50.111848",
+ "autoname": "format:PND54-{tax_period_year}-{tax_period_month:02d}-{###}",
+ "creation": "2025-09-19 23:05:09.650366",
  "doctype": "DocType",
  "engine": "InnoDB",
  "is_submittable": 1,
@@ -30,7 +30,7 @@
   {
    "fieldname": "form_information_section",
    "fieldtype": "Section Break",
-   "label": "PND1 Form Information (ภ.ง.ด.1 - Employee Tax)"
+   "label": "PND54 Form Information (ภ.ง.ด.54 - Overseas Purchases)"
   },
   {
    "fieldname": "form_number",
@@ -131,8 +131,8 @@
   {
    "fieldname": "items",
    "fieldtype": "Table",
-   "options": "PND1 Items",
-   "label": "PND1 Items"
+   "options": "PND54 Items",
+   "label": "PND54 Items"
   },
   {
    "fieldname": "notes_section",
@@ -148,10 +148,10 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-19 22:34:50.111848",
+ "modified": "2025-09-19 23:05:09.650366",
  "modified_by": "Administrator",
  "module": "Print Designer",
- "name": "PND1 Form",
+ "name": "PND54 Form",
  "owner": "Administrator",
  "permissions": [
   {

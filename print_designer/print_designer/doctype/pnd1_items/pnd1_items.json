@@ -4,13 +4,110 @@
  "creation": "2025-09-19 22:44:17.729949",
  "doctype": "DocType",
  "engine": "InnoDB",
+ "istable": 1,
  "field_order": [
-  "section_break_0esh"
+  "sequence_number",
+  "withholding_tax_cert",
+  "column_break_cert",
+  "employee_name",
+  "employee_tax_id",
+  "column_break_employee",
+  "income_type",
+  "income_description",
+  "column_break_income",
+  "gross_amount",
+  "wht_rate",
+  "tax_amount"
  ],
  "fields": [
   {
-   "fieldname": "section_break_0esh",
-   "fieldtype": "Section Break"
+   "fieldname": "sequence_number",
+   "fieldtype": "Int",
+   "label": "Sequence (ลำดับที่)",
+   "in_list_view": 1,
+   "reqd": 1,
+   "description": "Sequence number in PND1 form"
+  },
+  {
+   "fieldname": "withholding_tax_cert",
+   "fieldtype": "Link",
+   "options": "Withholding Tax Certificate",
+   "label": "WHT Certificate",
+   "in_list_view": 1,
+   "reqd": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "column_break_cert",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "in_list_view": 1,
+   "fetch_from": "withholding_tax_cert.supplier_name",
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "employee_tax_id",
+   "fieldtype": "Data",
+   "label": "Employee Tax ID",
+   "fetch_from": "withholding_tax_cert.supplier_tax_id",
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "column_break_employee",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "income_type",
+   "fieldtype": "Data",
+   "label": "Income Type",
+   "fetch_from": "withholding_tax_cert.income_type",
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "income_description",
+   "fieldtype": "Data",
+   "label": "Income Description",
+   "fetch_from": "withholding_tax_cert.income_description",
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "column_break_income",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gross_amount",
+   "fieldtype": "Currency",
+   "label": "Gross Amount",
+   "in_list_view": 1,
+   "fetch_from": "withholding_tax_cert.tax_base_amount",
+   "read_only": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "wht_rate",
+   "fieldtype": "Percent",
+   "label": "WHT Rate (%)",
+   "fetch_from": "withholding_tax_cert.wht_rate",
+   "read_only": 1,
+   "precision": "2",
+   "columns": 1
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Withheld",
+   "in_list_view": 1,
+   "fetch_from": "withholding_tax_cert.wht_amount",
+   "read_only": 1,
+   "columns": 1
   }
  ],
  "grid_page_length": 50,

@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestPND54(FrappeTestCase):
+class TestPND54Form(FrappeTestCase):
 	pass
