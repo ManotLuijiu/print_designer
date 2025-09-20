@@ -20,8 +20,9 @@ class PND1Form(Document):
 		# Clear existing items first
 		self.items = []
 
-		# Format tax month to match WHT certificate format
-		tax_month_formatted = f"{self.tax_period_month:02d}"
+		# Format tax month to match WHT certificate format (e.g., "09 - กันยายน (September)")
+		# Use string zfill to handle both string and int inputs safely
+		tax_month_formatted = str(self.tax_period_month).zfill(2)
 
 		# Get all WHT certificates and filter manually for complex matching
 		all_certificates = frappe.get_all(
