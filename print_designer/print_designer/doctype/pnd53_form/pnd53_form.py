@@ -21,7 +21,8 @@ class PND53Form(Document):
 		self.items = []
 
 		# Format tax month to match WHT certificate format (e.g., "09 - กันยายน (September)")
-		tax_month_formatted = f"{self.tax_period_month:02d}"
+		# Use string zfill to handle both string and int inputs safely
+		tax_month_formatted = str(self.tax_period_month).zfill(2)
 
 		# Get all WHT certificates and filter manually for complex matching
 		all_certificates = frappe.get_all(
@@ -80,6 +81,15 @@ class PND53Form(Document):
 			self.average_tax_rate = (self.total_tax_amount / self.total_gross_amount) * 100
 		else:
 			self.average_tax_rate = 0
+
+	def refresh_certificates(self):
+		"""Manually refresh WHT certificates and save the form"""
+		print(f"DEBUG: Refreshing PND53 Form {self.name}")
+		self.populate_wht_certificates()
+		self.calculate_totals()
+		self.save(ignore_permissions=True)
+		frappe.db.commit()
+		print(f"DEBUG: PND53 Form {self.name} refreshed with {len(self.items)} certificates")
 
 	def on_submit(self):
 		"""Update WHT certificates to link them to this PND form"""

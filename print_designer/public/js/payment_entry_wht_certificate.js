@@ -50,26 +50,42 @@ function add_wht_certificate_buttons(frm) {
     // Check if this Payment Entry has WHT amounts
     const wht_amount = flt(frm.doc.pd_custom_withholding_tax_amount || 0);
 
+    // Check if document is saved (not new) - following ERPNext pattern
+    const is_saved = !frm.doc.__islocal && !frm.is_new();
+
+    // DEBUG: Log document state information
+    console.log("DEBUG add_wht_certificate_buttons:", {
+        name: frm.doc.name,
+        payment_type: frm.doc.payment_type,
+        wht_amount: wht_amount,
+        is_new: frm.is_new(),
+        __islocal: frm.doc.__islocal,
+        docstatus: frm.doc.docstatus,
+        is_saved: is_saved,
+        has_certificate: !!frm.doc.pd_custom_wht_certificate
+    });
+
     if (wht_amount <= 0) {
+        console.log("DEBUG: Skipping - WHT amount is 0 or negative");
         return;
     }
 
     // Add buttons based on certificate status
     if (frm.doc.pd_custom_wht_certificate) {
         // Certificate exists - Add view button (will redirect to PND form if exists)
-        frm.add_custom_button(__("View PND Form / WHT Certificate"), function() {
+        console.log("DEBUG: Adding View button - certificate exists");
+        frm.add_custom_button(__("View WHT Certificate"), function() {
             view_wht_certificate(frm);
         }, __("Thai Compliance"));
 
-    } else if (!frm.doc.__islocal) {
-        // No certificate exists but Payment Entry is saved - Add creation buttons
+    } else if (is_saved) {
+        // No certificate exists but Payment Entry is saved - Add preview button only
+        console.log("DEBUG: Adding Preview button - document is saved and no certificate");
         frm.add_custom_button(__("Preview WHT Certificate"), function() {
             preview_wht_certificate(frm);
         }, __("Thai Compliance"));
-
-        frm.add_custom_button(__("Create WHT Certificate"), function() {
-            create_wht_certificate(frm);
-        }, __("Thai Compliance"));
+    } else {
+        console.log("DEBUG: No buttons added - document is new/unsaved");
     }
 }
 
@@ -101,17 +117,29 @@ function preview_wht_certificate(frm) {
 }
 
 function create_wht_certificate(frm) {
+    // DEBUG: Log attempt to create certificate
+    console.log("DEBUG create_wht_certificate: Starting creation for", {
+        payment_entry_name: frm.doc.name,
+        payment_type: frm.doc.payment_type,
+        is_new: frm.is_new(),
+        docstatus: frm.doc.docstatus,
+        wht_amount: frm.doc.pd_custom_withholding_tax_amount
+    });
+
     // Confirm before creating
     frappe.confirm(
         __("Create Withholding Tax Certificate for this Payment Entry?<br><br>This will generate an official WHT certificate for Thai Revenue Department compliance."),
         function() {
+            console.log("DEBUG: User confirmed certificate creation");
             frappe.call({
                 method: "print_designer.custom.payment_entry_server_events.create_wht_certificate_from_payment_entry",
                 args: {
                     payment_entry_name: frm.doc.name
                 },
                 callback: function(response) {
+                    console.log("DEBUG: Certificate creation response:", response);
                     if (response.message && response.message.status === "success") {
+                        console.log("DEBUG: Certificate creation successful");
                         frappe.msgprint({
                             title: __("Success"),
                             message: response.message.message,
@@ -124,6 +152,7 @@ function create_wht_certificate(frm) {
                             setup_wht_certificate_link(frm);
                         });
                     } else {
+                        console.log("DEBUG: Certificate creation failed:", response.message);
                         frappe.msgprint({
                             title: __("Creation Failed"),
                             message: response.message.message || __("Failed to create WHT Certificate"),
@@ -132,6 +161,7 @@ function create_wht_certificate(frm) {
                     }
                 },
                 error: function(error) {
+                    console.log("DEBUG: Certificate creation error:", error);
                     frappe.msgprint({
                         title: __("Creation Error"),
                         message: __("An error occurred while creating the WHT Certificate"),
@@ -174,21 +204,41 @@ function show_wht_certificate_preview_dialog(preview_data) {
                 options: get_wht_certificate_preview_html(preview_data)
             }
         ],
-        primary_action_label: __("Create Certificate"),
+        primary_action_label: __("Create Certificate (Disabled)"),
         primary_action: function() {
-            dialog.hide();
-            // Trigger certificate creation
-            create_wht_certificate(cur_frm);
+            // Disabled for automation - no manual certificate creation
+            frappe.msgprint({
+                title: __("Feature Disabled"),
+                message: __("Manual certificate creation is disabled in automation mode"),
+                indicator: "orange"
+            });
         }
     });
 
     dialog.show();
+
+    // Manually disable the primary button after dialog is shown
+    setTimeout(() => {
+        const $primaryBtn = dialog.$wrapper.find('.btn-modal-primary');
+        if ($primaryBtn.length) {
+            $primaryBtn
+                .removeClass('btn-primary')
+                .addClass('btn-secondary disabled')
+                .attr('disabled', true)
+                .attr('title', __('Auto Create after Submit'))
+                .css({
+                    'opacity': '0.6',
+                    'cursor': 'not-allowed',
+                    'pointer-events': 'auto'  // Allow hover for tooltip
+                });
+        }
+    }, 100);
 }
 
 function get_wht_certificate_preview_html(data) {
     return `
-        <div class="wht-certificate-preview" style="border: 1px solid #d1d8dd; border-radius: 6px; padding: 20px; background-color: #f8f9fa;">
-            <h4 style="color: #495057; margin-bottom: 20px; text-align: center;">
+        <div class="wht-certificate-preview" style="border: 1px solid var(--border-color); border-radius: 6px; padding: 20px; background-color: var(--bg-color);">
+            <h4 style="color: var(--text-color); margin-bottom: 20px; text-align: center;">
                 <i class="fa fa-file-text-o"></i> หนังสือรับรองการหักภาษีณ ที่จ่าย
             </h4>
 
@@ -233,7 +283,7 @@ function get_wht_certificate_preview_html(data) {
 
             <div class="row mt-3">
                 <div class="col-md-12">
-                    <h5 style="color: #495057;">Amount Details (รายละเอียดจำนวนเงิน)</h5>
+                    <h5 style="color: var(--text-color);">Amount Details (รายละเอียดจำนวนเงิน)</h5>
                     <table class="table table-bordered">
                         <tr>
                             <td><strong>Tax Base Amount (ยอดเงินก่อน VAT):</strong></td>
@@ -243,7 +293,7 @@ function get_wht_certificate_preview_html(data) {
                             <td><strong>WHT Rate (อัตราภาษี):</strong></td>
                             <td class="text-right">${flt(data.wht_rate, 2)}%</td>
                         </tr>
-                        <tr style="background-color: #e9ecef;">
+                        <tr style="background-color: var(--table-bg);">
                             <td><strong>WHT Amount (ภาษีหัก ณ ที่จ่าย):</strong></td>
                             <td class="text-right"><strong>${format_currency(data.wht_amount)}</strong></td>
                         </tr>
