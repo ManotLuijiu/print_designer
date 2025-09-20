@@ -428,7 +428,7 @@ function extendPrintView() {
     this.copy_controls_container = $(
       `<div class="copy-controls-container" style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 15px;">
         <div class="copy-count-control" style="display: flex; align-items: center; gap: 5px;">
-          <span style="font-size: 12px; color: #666;">${__('Copies:')}</span>
+          <span style="font-size: 12px; color: var(--text-muted);">${__('Copies:')}</span>
           <button class="btn btn-xs btn-secondary copy-decrease" style="padding: 2px 6px; font-size: 12px;">-</button>
           <input type="number" class="form-control copy-count-input" style="width: 50px; height: 26px; font-size: 12px; text-align: center;" value="1" min="1" max="10">
           <button class="btn btn-xs btn-secondary copy-increase" style="padding: 2px 6px; font-size: 12px;">+</button>
@@ -631,9 +631,9 @@ function extendPrintView() {
             <polyline points="10,9 9,9 8,9"/>
           </svg>
         </div>
-        <h4 style="margin-bottom: 10px; color: #495057;">${__('PDF Preview Unavailable')}</h4>
-        <p style="color: #6c757d; margin-bottom: 20px;">${__('Your browser cannot display PDFs inline. Please download the PDF to view it.')}</p>
-        <a href="${url}" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; border-radius: 5px;">${__('Download PDF')}</a>
+        <h4 style="margin-bottom: 10px; color: var(--text-color);">${__('PDF Preview Unavailable')}</h4>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">${__('Your browser cannot display PDFs inline. Please download the PDF to view it.')}</p>
+        <a href="${url}" target="_blank" class="btn btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 20px; background-color: var(--primary-color); color: var(--primary-text-color); border-radius: 5px;">${__('Download PDF')}</a>
       `;
       wrapperContainer.appendChild(downloadEl);
     }
@@ -908,22 +908,22 @@ function extendPrintView() {
 
     // Show enhanced loading state with generator information
     const loadingHTML = `
-      <div class="print-loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; background: #f8f9fa; border-radius: 8px; margin: 20px;">
+      <div class="print-loading-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 40px; background: var(--bg-color); border-radius: 8px; margin: 20px;">
         <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; margin-bottom: 20px;">
           <span class="sr-only">Loading...</span>
         </div>
-        <h4 style="color: #495057; margin-bottom: 10px;">${__('Generating PDF...')}</h4>
-        <p style="color: #6c757d; text-align: center; margin-bottom: 15px;">
+        <h4 style="color: var(--text-color); margin-bottom: 10px;">${__('Generating PDF...')}</h4>
+        <p style="color: var(--text-muted); text-align: center; margin-bottom: 15px;">
           ${__('Generator')}: <strong>${params.get('pdf_generator')}</strong><br>
           ${__('Format')}: <strong>${params.get('format')}</strong>
         </p>
-        <div class="progress" style="width: 200px; height: 4px; background-color: #e9ecef; border-radius: 2px; overflow: hidden;">
+        <div class="progress" style="width: 200px; height: 4px; background-color: var(--border-color); border-radius: 2px; overflow: hidden;">
           <div class="progress-bar progress-bar-striped progress-bar-animated"
                role="progressbar"
-               style="width: 100%; background-color: #007bff; animation: progress-bar-stripes 1s linear infinite;">
+               style="width: 100%; background-color: var(--primary-color); animation: progress-bar-stripes 1s linear infinite;">
           </div>
         </div>
-        <small style="color: #6c757d; margin-top: 15px; text-align: center;">
+        <small style="color: var(--text-muted); margin-top: 15px; text-align: center;">
           ${__('This may take a few moments...')}<br>
           ${__('If it takes too long, try switching to a different PDF generator from the sidebar.')}
         </small>
@@ -1806,8 +1806,8 @@ function extendPrintView() {
       this.pdf_generator_initialized = true;
 
       this.pdf_generator_section = $(`
-        <div class="pdf-generator-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
-          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('PDF Generator')}</div>
+        <div class="pdf-generator-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid var(--border-color);">
+          <div style="font-weight: bold; margin-bottom: 10px; color: var(--text-color);">${__('PDF Generator')}</div>
         </div>
       `).appendTo(this.sidebar);
 
@@ -1999,8 +1999,8 @@ function extendPrintView() {
     // Only show copy options if enabled in print settings
     if (this.print_settings.enable_multiple_copies) {
       this.copy_section = $(`
-        <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid #e6e6e6;">
-          <div style="font-weight: bold; margin-bottom: 10px; color: #555;">${__('Copy Options')}</div>
+        <div class="copy-options-section" style="margin-top: 20px; padding: 10px; border-top: 1px solid var(--border-color);">
+          <div style="font-weight: bold; margin-bottom: 10px; color: var(--text-color);">${__('Copy Options')}</div>
         </div>
       `).appendTo(this.sidebar);
 

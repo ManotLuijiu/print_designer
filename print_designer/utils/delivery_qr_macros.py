@@ -110,16 +110,16 @@ def render_delivery_qr_compact(delivery_note_name):
             '''
         elif status == 'Approved':
             return f'''
-            <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
-                <p style="margin: 0; color: #155724; font-weight: bold;">✓ Approved by {approved_by or 'Customer'}</p>
-                <p style="margin: 0; font-size: 12px; color: #155724;">{approved_on or ''}</p>
+            <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: var(--alert-bg-success); border: 1px solid var(--alert-border-success); border-radius: 5px;">
+                <p style="margin: 0; color: var(--alert-text-success); font-weight: bold;">✓ Approved by {approved_by or 'Customer'}</p>
+                <p style="margin: 0; font-size: 12px; color: var(--alert-text-success);">{approved_on or ''}</p>
             </div>
             '''
         elif status == 'Rejected':
-            rejection_text = f'<p style="margin: 0; font-size: 12px; color: #721c24;">{rejection_reason}</p>' if rejection_reason else ''
+            rejection_text = f'<p style="margin: 0; font-size: 12px; color: var(--alert-text-danger);">{rejection_reason}</p>' if rejection_reason else ''
             return f'''
-            <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">
-                <p style="margin: 0; color: #721c24; font-weight: bold;">✗ Rejected</p>
+            <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: var(--alert-bg-danger); border: 1px solid var(--alert-border-danger); border-radius: 5px;">
+                <p style="margin: 0; color: var(--alert-text-danger); font-weight: bold;">✗ Rejected</p>
                 {rejection_text}
             </div>
             '''
@@ -139,15 +139,15 @@ def render_delivery_status_badge(delivery_note_name):
         status = delivery_note.get("customer_approval_status") or delivery_note.get("custom_goods_received_status") or "Pending"
         
         if status == 'Approved':
-            return '<span style="background-color: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">✓ APPROVED</span>'
+            return '<span style="background-color: var(--success-color); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">✓ APPROVED</span>'
         elif status == 'Rejected':
-            return '<span style="background-color: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">✗ REJECTED</span>'
+            return '<span style="background-color: var(--danger-color); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">✗ REJECTED</span>'
         else:
-            return '<span style="background-color: #ffc107; color: black; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">⏳ PENDING</span>'
+            return '<span style="background-color: var(--warning-color); color: black; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">⏳ PENDING</span>'
             
     except Exception as e:
         frappe.log_error(f"Error rendering delivery status badge: {str(e)}")
-        return '<span style="background-color: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">UNKNOWN</span>'
+        return '<span style="background-color: var(--secondary-color); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">UNKNOWN</span>'
 
 def render_delivery_approval_summary(delivery_note_name):
     """
@@ -176,7 +176,7 @@ def render_delivery_approval_summary(delivery_note_name):
                 formatted_date = str(approved_on)
         
         html = '''
-        <div class="delivery-approval-summary" style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; background-color: #f9f9f9;">
+        <div class="delivery-approval-summary" style="border: 1px solid var(--border-color); padding: 15px; margin: 10px 0; border-radius: 5px; background-color: var(--bg-light);">
             <h4 style="margin: 0 0 10px 0; font-size: 16px;">Delivery Approval Status</h4>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div><strong>Status:</strong> ''' + render_delivery_status_badge(delivery_note_name) + '''</div>'''
@@ -199,7 +199,7 @@ def render_delivery_approval_summary(delivery_note_name):
                     </div>'''
             
             html += f'''
-            <div style="background-color: #d4edda; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
+            <div style="background-color: var(--alert-bg-success); padding: 10px; border-radius: 4px; border-left: 4px solid var(--success-color);">
                 <div><strong>Approved by:</strong> {approved_by or 'Unknown'}</div>
                 <div><strong>Approved on:</strong> {formatted_date}</div>
                 {signature_html}
@@ -208,16 +208,16 @@ def render_delivery_approval_summary(delivery_note_name):
         elif status == 'Rejected':
             reason_html = f'<div><strong>Reason:</strong> {rejection_reason}</div>' if rejection_reason else ''
             html += f'''
-            <div style="background-color: #f8d7da; padding: 10px; border-radius: 4px; border-left: 4px solid #dc3545;">
+            <div style="background-color: var(--alert-bg-danger); padding: 10px; border-radius: 4px; border-left: 4px solid var(--danger-color);">
                 <div><strong>Delivery rejected</strong></div>
                 {reason_html}
             </div>'''
             
         else:
             html += '''
-            <div style="background-color: #fff3cd; padding: 10px; border-radius: 4px; border-left: 4px solid #ffc107;">
+            <div style="background-color: var(--alert-bg-warning); padding: 10px; border-radius: 4px; border-left: 4px solid var(--warning-color);">
                 <div><strong>Awaiting customer approval</strong></div>
-                <div style="font-size: 12px; color: #856404; margin-top: 5px;">
+                <div style="font-size: 12px; color: var(--alert-text-warning); margin-top: 5px;">
                     Customer can scan the QR code to approve or reject this delivery
                 </div>
             </div>'''
@@ -242,15 +242,15 @@ def render_delivery_qr_with_instructions(delivery_note_name):
         
         if status == 'Pending' and qr_code:
             return f'''
-            <div style="text-align: center; padding: 20px; border: 2px dashed #007bff; margin: 15px 0; border-radius: 10px; background-color: #f8f9fa;">
-                <h3 style="color: #007bff; margin: 0 0 15px 0;">Customer Approval Required</h3>
+            <div style="text-align: center; padding: 20px; border: 2px dashed var(--primary-color); margin: 15px 0; border-radius: 10px; background-color: var(--bg-light);">
+                <h3 style="color: var(--primary-color); margin: 0 0 15px 0;">Customer Approval Required</h3>
                 <div style="display: inline-block; margin: 0 20px;">
-                    <img src="data:image/png;base64,{qr_code}" alt="Scan to approve delivery" style="width: 150px; height: 150px; border: 2px solid #007bff; border-radius: 10px;">
+                    <img src="data:image/png;base64,{qr_code}" alt="Scan to approve delivery" style="width: 150px; height: 150px; border: 2px solid var(--primary-color); border-radius: 10px;">
                 </div>
                 <div style="margin-top: 15px;">
-                    <p style="margin: 5px 0; font-size: 14px; font-weight: bold; color: #495057;">📱 Scan QR code with your mobile device</p>
-                    <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">You will be redirected to approve or reject this delivery</p>
-                    <p style="margin: 5px 0; font-size: 12px; color: #6c757d;">Digital signature collection available</p>
+                    <p style="margin: 5px 0; font-size: 14px; font-weight: bold; color: var(--text-color);">📱 Scan QR code with your mobile device</p>
+                    <p style="margin: 5px 0; font-size: 12px; color: var(--text-muted);">You will be redirected to approve or reject this delivery</p>
+                    <p style="margin: 5px 0; font-size: 12px; color: var(--text-muted);">Digital signature collection available</p>
                 </div>
             </div>
             '''

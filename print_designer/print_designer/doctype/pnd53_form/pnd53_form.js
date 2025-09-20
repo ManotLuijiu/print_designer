@@ -22,10 +22,13 @@ frappe.ui.form.on("PND53 Form", {
 			}, __("Actions"));
 		}
 
+		// Ensure totals are current when form loads
+		calculate_totals_client_side(frm);
+
 		// Show summary information
 		if (frm.doc.total_certificates) {
 			frm.dashboard.add_comment(
-				`<strong>Summary:</strong> ${frm.doc.total_certificates} certificates, Total Tax: ฿${format_currency(frm.doc.total_tax_amount)}`,
+				`<strong>Summary:</strong> ${frm.doc.total_certificates} certificates, Total Tax: ${format_currency(frm.doc.total_tax_amount)}`,
 				'blue', true
 			);
 		}
@@ -60,3 +63,48 @@ frappe.ui.form.on("PND53 Form", {
 		}
 	}
 });
+
+// Recalculate totals when items are added/removed/modified
+frappe.ui.form.on("PND53 Items", {
+	items_add: function(frm) {
+		calculate_totals_client_side(frm);
+	},
+	items_remove: function(frm) {
+		calculate_totals_client_side(frm);
+	},
+	gross_amount: function(frm) {
+		calculate_totals_client_side(frm);
+	},
+	tax_amount: function(frm) {
+		calculate_totals_client_side(frm);
+	}
+});
+
+function calculate_totals_client_side(frm) {
+	// Calculate totals from items table
+	let total_certificates = frm.doc.items ? frm.doc.items.length : 0;
+	let total_gross_amount = 0;
+	let total_tax_amount = 0;
+
+	if (frm.doc.items) {
+		frm.doc.items.forEach(function(item) {
+			total_gross_amount += flt(item.gross_amount);
+			total_tax_amount += flt(item.tax_amount);
+		});
+	}
+
+	// Calculate average tax rate
+	let average_tax_rate = 0;
+	if (total_gross_amount > 0) {
+		average_tax_rate = (total_tax_amount / total_gross_amount) * 100;
+	}
+
+	// Update form fields
+	frm.set_value('total_certificates', total_certificates);
+	frm.set_value('total_gross_amount', total_gross_amount);
+	frm.set_value('total_tax_amount', total_tax_amount);
+	frm.set_value('average_tax_rate', average_tax_rate);
+
+	// Refresh the form to update the display
+	frm.refresh_fields();
+}

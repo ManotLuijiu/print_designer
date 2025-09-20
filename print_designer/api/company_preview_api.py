@@ -142,18 +142,18 @@ def get_stamp_preview_html(stamp_name):
         html = f"""
         <div class="stamp-preview" style="text-align: center; padding: 15px;">
             <div class="stamp-image-container" style="margin-bottom: 10px;">
-                <img src="{stamp.signature_image}" 
-                     alt="{stamp.signature_name}" 
-                     style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                <img src="{stamp.signature_image}"
+                     alt="{stamp.signature_name}"
+                     style="max-width: 150px; max-height: 150px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 2px 4px var(--shadow-base);" />
             </div>
             <div class="stamp-info">
-                <h5 style="margin: 8px 0 4px 0; color: #333;">{stamp.signature_name}</h5>
-                <p style="margin: 4px 0; color: #666; font-size: 12px;">
-                    <strong>Type:</strong> {stamp.stamp_type or 'N/A'} | 
+                <h5 style="margin: 8px 0 4px 0; color: var(--text-color);">{stamp.signature_name}</h5>
+                <p style="margin: 4px 0; color: var(--text-muted); font-size: 12px;">
+                    <strong>Type:</strong> {stamp.stamp_type or 'N/A'} |
                     <strong>Authority:</strong> {stamp.stamp_authority or 'General'}
                 </p>
-                {f'<p style="margin: 4px 0; color: #888; font-size: 11px; font-style: italic;">Stamp #{stamp.stamp_number}</p>' if stamp.stamp_number else ''}
-                {f'<p style="margin: 4px 0; color: #888; font-size: 11px;">Title: {stamp.signature_title}</p>' if stamp.signature_title else ''}
+                {f'<p style="margin: 4px 0; color: var(--text-light); font-size: 11px; font-style: italic;">Stamp #{stamp.stamp_number}</p>' if stamp.stamp_number else ''}
+                {f'<p style="margin: 4px 0; color: var(--text-light); font-size: 11px;">Title: {stamp.signature_title}</p>' if stamp.signature_title else ''}
             </div>
         </div>
         """
@@ -209,17 +209,17 @@ def get_signature_preview_html(signature_name, source_type):
     html = f"""
     <div class="signature-preview" style="text-align: center; padding: 15px;">
         <div class="signature-image-container" style="margin-bottom: 10px;">
-            <img src="{signature_image}" 
-                 alt="{signature_title}" 
-                 style="max-width: 200px; max-height: 100px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background: white; padding: 5px;" />
+            <img src="{signature_image}"
+                 alt="{signature_title}"
+                 style="max-width: 200px; max-height: 100px; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 2px 4px var(--shadow-base); background: var(--bg-color); padding: 5px;" />
         </div>
         <div class="signature-info">
-            <h5 style="margin: 8px 0 4px 0; color: #333;">{signature_title}</h5>
-            {f'<p style="margin: 4px 0; color: #666; font-size: 12px;">{subtitle}</p>' if subtitle else ''}
-            <p style="margin: 4px 0; color: #888; font-size: 11px;">
+            <h5 style="margin: 8px 0 4px 0; color: var(--text-color);">{signature_title}</h5>
+            {f'<p style="margin: 4px 0; color: var(--text-muted); font-size: 12px;">{subtitle}</p>' if subtitle else ''}
+            <p style="margin: 4px 0; color: var(--text-light); font-size: 11px;">
                 <strong>Source:</strong> {source_type}
             </p>
-            {f'<p style="margin: 4px 0; color: #888; font-size: 11px; font-style: italic;">{signature.description}</p>' if hasattr(signature, 'description') and signature.description else ''}
+            {f'<p style="margin: 4px 0; color: var(--text-light); font-size: 11px; font-style: italic;">{signature.description}</p>' if hasattr(signature, 'description') and signature.description else ''}
         </div>
     </div>
     """

@@ -175,21 +175,8 @@ function create_wht_certificate(frm) {
 
 function view_wht_certificate(frm) {
     if (frm.doc.pd_custom_wht_certificate) {
-        // First get the WHT Certificate to find its linked PND form
-        frappe.db.get_doc("Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate)
-            .then(doc => {
-                if (doc.custom_pnd_form && doc.pnd_form_type) {
-                    // Redirect to the actual PND form
-                    frappe.set_route("Form", doc.pnd_form_type, doc.custom_pnd_form);
-                } else {
-                    // Fallback to WHT Certificate if no PND form linked
-                    frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
-                }
-            })
-            .catch(err => {
-                // On error, fallback to WHT Certificate
-                frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
-            });
+        // Navigate directly to the WHT Certificate (not PND form)
+        frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
     }
 }
 

@@ -68,12 +68,12 @@ frappe.ui.form.on("Global Defaults", {
             const typography_section = frm.fields_dict.typography_section?.$wrapper;
             if (typography_section) {
                 frm.$preview_area = $(`
-                    <div class="font-preview-area" style="margin: 15px 0; padding: 15px; border: 1px solid #d1d8dd; border-radius: 6px; background: #f8f9fa;">
-                        <div class="font-preview-header" style="font-weight: 600; margin-bottom: 10px; color: #36414c;">Font Preview</div>
-                        <div class="font-preview-text" style="font-size: 14px; line-height: 1.5; color: #36414c;">
+                    <div class="font-preview-area" style="margin: 15px 0; padding: 15px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color);">
+                        <div class="font-preview-header" style="font-weight: 600; margin-bottom: 10px; color: var(--text-color);">Font Preview</div>
+                        <div class="font-preview-text" style="font-size: 14px; line-height: 1.5; color: var(--text-color);">
                             <div>The quick brown fox jumps over the lazy dog. 1234567890</div>
                             <div style="margin-top: 8px;">ด่วน บริษัท จำกัด ใบกำกับภาษี ฟอนต์ไทย กบฏแปลกใหม่</div>
-                            <div style="margin-top: 8px; font-size: 12px; color: #8d99a6;">Applied Font Stack: <span class="current-font-stack"></span></div>
+                            <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">Applied Font Stack: <span class="current-font-stack"></span></div>
                         </div>
                     </div>
                 `);

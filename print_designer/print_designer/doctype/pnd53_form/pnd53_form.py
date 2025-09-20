@@ -82,15 +82,6 @@ class PND53Form(Document):
 		else:
 			self.average_tax_rate = 0
 
-	def refresh_certificates(self):
-		"""Manually refresh WHT certificates and save the form"""
-		print(f"DEBUG: Refreshing PND53 Form {self.name}")
-		self.populate_wht_certificates()
-		self.calculate_totals()
-		self.save(ignore_permissions=True)
-		frappe.db.commit()
-		print(f"DEBUG: PND53 Form {self.name} refreshed with {len(self.items)} certificates")
-
 	def on_submit(self):
 		"""Update WHT certificates to link them to this PND form"""
 		for item in self.items:

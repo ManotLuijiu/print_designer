@@ -12,7 +12,11 @@ class WithholdingTaxCertificate(Document):
 		self.create_or_update_pnd_form_item()
 
 	def on_submit(self):
-		"""Update PND form item when certificate is submitted"""
+		"""Update PND form item and status when certificate is submitted"""
+		# Update status from Draft to Issued (persist to database)
+		self.db_set("status", "Issued")
+
+		# Update PND form item
 		self.create_or_update_pnd_form_item(update_only=True)
 
 	def on_cancel(self):

@@ -198,21 +198,33 @@ def create_wht_certificate_from_payment_entry(payment_entry_name):
     """
     API endpoint to manually create WHT Certificate from Payment Entry.
     """
+    print(f"DEBUG API create_wht_certificate_from_payment_entry: Called with payment_entry_name={payment_entry_name}")
+
     try:
         payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
+
+        print(f"DEBUG: Payment Entry loaded - Name: {payment_entry_doc.name}, Type: {payment_entry_doc.payment_type}")
+        print(f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, flags: {payment_entry_doc.flags}")
+        print(f"DEBUG: Payment Entry is_new: {payment_entry_doc.is_new()}")
+        print(f"DEBUG: WHT fields - apply_wht: {getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 'NOT_SET')}, wht_amount: {getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 'NOT_SET')}")
 
         # Import and call the certificate generator
         from print_designer.custom.wht_certificate_generator import create_wht_certificate_from_payment_entry
         create_wht_certificate_from_payment_entry(payment_entry_doc)
 
+        print(f"DEBUG: Certificate creation completed successfully")
         return {
             "status": "success",
             "message": _("Withholding Tax Certificate created successfully")
         }
 
     except Exception as e:
+        print(f"DEBUG ERROR: Certificate creation failed: {str(e)}")
+        import traceback
+        print(f"DEBUG ERROR traceback: {traceback.format_exc()}")
+
         frappe.log_error(
-            message=f"Manual WHT Certificate creation failed for {payment_entry_name}: {str(e)}",
+            message=f"Manual WHT Certificate creation failed for {payment_entry_name}: {str(e)}\n\nTraceback:\n{traceback.format_exc()}",
             title="Manual WHT Certificate Creation Error"
         )
 
