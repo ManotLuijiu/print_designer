@@ -150,8 +150,9 @@ def validate(doc, method):
     # Validate Thai tax fields consistency
     _validate_thai_tax_consistency(doc)
 
-    # Set has_thai_taxes flag based on actual tax amounts
-    _update_has_thai_taxes_flag(doc)
+    # COMMENTED OUT: Set has_thai_taxes flag based on actual tax amounts
+    # Field pd_custom_has_thai_taxes is no longer used - visibility now controlled by depends_on conditions
+    # _update_has_thai_taxes_flag(doc)
 
 
 def _validate_thai_tax_consistency(doc):
@@ -178,17 +179,18 @@ def _validate_thai_tax_consistency(doc):
             )
 
 
-def _update_has_thai_taxes_flag(doc):
-    """
-    Update the has_thai_taxes flag based on actual tax amounts.
-    """
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
-    retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
+# COMMENTED OUT: Function no longer needed as pd_custom_has_thai_taxes field is removed
+# def _update_has_thai_taxes_flag(doc):
+#     """
+#     Update the has_thai_taxes flag based on actual tax amounts.
+#     """
+#     wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+#     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
 
-    has_thai_taxes = bool(wht_amount > 0 or retention_amount > 0)
+#     has_thai_taxes = bool(wht_amount > 0 or retention_amount > 0)
 
-    if hasattr(doc, 'pd_custom_has_thai_taxes'):
-        doc.pd_custom_has_thai_taxes = 1 if has_thai_taxes else 0
+#     if hasattr(doc, 'pd_custom_has_thai_taxes'):
+#         doc.pd_custom_has_thai_taxes = 1 if has_thai_taxes else 0
 
 
 @frappe.whitelist()

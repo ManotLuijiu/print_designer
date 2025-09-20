@@ -18,7 +18,7 @@ frappe.ui.form.on("Payment Entry", {
         // Setup field watchers for real-time calculations
         setup_wht_certificate_watchers(frm);
 
-        // Make WHT Certificate No clickable
+        // Make WHT Certificate field clickable to redirect to PND form
         setup_wht_certificate_link(frm);
     },
 
@@ -39,10 +39,6 @@ frappe.ui.form.on("Payment Entry", {
         calculate_wht_amount(frm);
     },
 
-    pd_custom_has_thai_taxes: function(frm) {
-        // Show/hide WHT certificate section based on Thai taxes flag
-        toggle_wht_certificate_section(frm);
-    }
 });
 
 function add_wht_certificate_buttons(frm) {
@@ -51,18 +47,17 @@ function add_wht_certificate_buttons(frm) {
     frm.remove_custom_button(__("Create WHT Certificate"));
     frm.remove_custom_button(__("View WHT Certificate"));
 
-    // Check if this Payment Entry has Thai taxes
-    const has_thai_taxes = frm.doc.pd_custom_has_thai_taxes;
+    // Check if this Payment Entry has WHT amounts
     const wht_amount = flt(frm.doc.pd_custom_withholding_tax_amount || 0);
 
-    if (!has_thai_taxes || wht_amount <= 0) {
+    if (wht_amount <= 0) {
         return;
     }
 
     // Add buttons based on certificate status
     if (frm.doc.pd_custom_wht_certificate) {
-        // Certificate exists - Add view button
-        frm.add_custom_button(__("View WHT Certificate"), function() {
+        // Certificate exists - Add view button (will redirect to PND form if exists)
+        frm.add_custom_button(__("View PND Form / WHT Certificate"), function() {
             view_wht_certificate(frm);
         }, __("Thai Compliance"));
 
@@ -150,7 +145,21 @@ function create_wht_certificate(frm) {
 
 function view_wht_certificate(frm) {
     if (frm.doc.pd_custom_wht_certificate) {
-        frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
+        // First get the WHT Certificate to find its linked PND form
+        frappe.db.get_doc("Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate)
+            .then(doc => {
+                if (doc.custom_pnd_form && doc.pnd_form_type) {
+                    // Redirect to the actual PND form
+                    frappe.set_route("Form", doc.pnd_form_type, doc.custom_pnd_form);
+                } else {
+                    // Fallback to WHT Certificate if no PND form linked
+                    frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
+                }
+            })
+            .catch(err => {
+                // On error, fallback to WHT Certificate
+                frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
+            });
     }
 }
 
@@ -271,22 +280,15 @@ function setup_wht_certificate_watchers(frm) {
         });
     }
 
-    if (frm.fields_dict.pd_custom_has_thai_taxes && frm.fields_dict.pd_custom_has_thai_taxes.$input) {
-        frm.fields_dict.pd_custom_has_thai_taxes.$input.on('change', function() {
-            setTimeout(() => {
-                add_wht_certificate_buttons(frm);
-                toggle_wht_certificate_section(frm);
-            }, 500);
-        });
-    }
 }
 
 function toggle_wht_certificate_section(frm) {
-    const has_thai_taxes = frm.doc.pd_custom_has_thai_taxes;
+    // WHT certificate fields are now always visible for Payment Entry (Pay)
+    // Visibility is controlled by depends_on conditions in field definitions
+    const is_pay_type = frm.doc.payment_type === "Pay";
 
-    // Show/hide WHT certificate fields based on Thai taxes flag
-    frm.toggle_display("pd_custom_wht_certificate", has_thai_taxes);
-    frm.toggle_display("pd_custom_needs_wht_certificate", has_thai_taxes);
+    frm.toggle_display("pd_custom_wht_certificate", is_pay_type);
+    frm.toggle_display("pd_custom_needs_wht_certificate", is_pay_type);
 }
 
 function load_wht_certificate_info(frm) {
@@ -322,17 +324,51 @@ function setup_wht_certificate_link(frm) {
      * - Payment Entry (Pay): pd_custom_wht_certificate (Link field) - auto-generated certificates
      * - Payment Entry (Receive): pd_custom_wht_certificate_no (Data field) - manual input
      *
-     * Link field automatically provides:
-     * - Draft status: Shows "x" and "→" icons
-     * - Submitted status: Shows as clickable hyperlink
+     * When clicked, redirects to the actual PND form instead of WHT Certificate
      */
 
     // For Payment Entry (Pay) - Link field for our issued certificates
     if (frm.doc.payment_type === "Pay") {
         const linkField = frm.fields_dict.pd_custom_wht_certificate;
         if (linkField && frm.doc.pd_custom_wht_certificate) {
-            // Link field already has proper behavior built-in
-            // Just refresh to ensure it's displayed correctly
+            // Override the link click behavior
+            setTimeout(() => {
+                // Find the link element and override its click behavior
+                const $link = frm.fields_dict.pd_custom_wht_certificate.$wrapper.find('.control-value a');
+                if ($link.length) {
+                    $link.off('click').on('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Get the WHT Certificate to find its linked PND form
+                        frappe.db.get_doc("Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate)
+                            .then(doc => {
+                                if (doc.custom_pnd_form && doc.pnd_form_type) {
+                                    // Redirect to the actual PND form
+                                    frappe.set_route("Form", doc.pnd_form_type, doc.custom_pnd_form);
+                                } else {
+                                    // Fallback to WHT Certificate if no PND form linked
+                                    frappe.msgprint({
+                                        title: __("PND Form Not Found"),
+                                        message: __("The PND form for this WHT Certificate has not been created yet. Redirecting to WHT Certificate instead."),
+                                        indicator: "orange"
+                                    });
+                                    frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
+                                }
+                            })
+                            .catch(err => {
+                                console.error("Error fetching WHT Certificate:", err);
+                                // On error, fallback to WHT Certificate
+                                frappe.set_route("Form", "Withholding Tax Certificate", frm.doc.pd_custom_wht_certificate);
+                            });
+                    });
+
+                    // Change the tooltip to indicate PND form redirect
+                    $link.attr('title', __('Click to view PND Form'));
+                }
+            }, 100);
+
+            // Refresh the field
             linkField.refresh();
         }
     }

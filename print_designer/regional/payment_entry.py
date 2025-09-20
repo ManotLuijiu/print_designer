@@ -33,11 +33,13 @@ def add_regional_gl_entries(gl_entries, doc):
 
     # Check primary flag - Use multiple possible fields that indicate Thai tax compliance
     has_thai_taxes = (getattr(doc, 'subject_to_wht', 0) or
-                     getattr(doc, 'pd_custom_apply_withholding_tax', 0) or
-                     getattr(doc, 'pd_custom_has_thai_taxes', 0))
+                     getattr(doc, 'pd_custom_apply_withholding_tax', 0))
+                     # COMMENTED OUT: pd_custom_has_thai_taxes field removed
+                     # or getattr(doc, 'pd_custom_has_thai_taxes', 0))
     print(f"   📋 subject_to_wht: {getattr(doc, 'subject_to_wht', 0)} (type: {type(getattr(doc, 'subject_to_wht', 0))})")
     print(f"   📋 pd_custom_apply_withholding_tax: {getattr(doc, 'pd_custom_apply_withholding_tax', 0)} (type: {type(getattr(doc, 'pd_custom_apply_withholding_tax', 0))})")
-    print(f"   📋 pd_custom_has_thai_taxes: {getattr(doc, 'pd_custom_has_thai_taxes', 0)} (type: {type(getattr(doc, 'pd_custom_has_thai_taxes', 0))})")
+    # COMMENTED OUT: pd_custom_has_thai_taxes field removed from debug logging
+    # print(f"   📋 pd_custom_has_thai_taxes: {getattr(doc, 'pd_custom_has_thai_taxes', 0)} (type: {type(getattr(doc, 'pd_custom_has_thai_taxes', 0))})")
     print(f"   📋 Combined has_thai_taxes: {has_thai_taxes} (type: {type(has_thai_taxes)})")
 
     # Log all document attributes to debug the exact field names

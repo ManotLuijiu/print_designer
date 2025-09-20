@@ -1,139 +1,139 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2025-09-19 22:44:30.176895",
- "doctype": "DocType",
- "engine": "InnoDB",
- "istable": 1,
- "field_order": [
-  "sequence_number",
-  "withholding_tax_cert",
-  "column_break_cert",
-  "supplier_name",
-  "supplier_tax_id",
-  "column_break_supplier",
-  "income_type",
-  "income_description",
-  "column_break_income",
-  "gross_amount",
-  "wht_rate",
-  "tax_amount"
- ],
- "fields": [
-  {
-   "fieldname": "sequence_number",
-   "fieldtype": "Int",
-   "label": "Sequence (ลำดับที่)",
-   "in_list_view": 1,
-   "reqd": 1,
-   "description": "Sequence number in PND3 form"
-  },
-  {
-   "fieldname": "withholding_tax_cert",
-   "fieldtype": "Link",
-   "options": "Withholding Tax Certificate",
-   "label": "WHT Certificate",
-   "in_list_view": 1,
-   "reqd": 1,
-   "columns": 2
-  },
-  {
-   "fieldname": "column_break_cert",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "supplier_name",
-   "fieldtype": "Data",
-   "label": "Individual/Supplier Name",
-   "in_list_view": 1,
-   "fetch_from": "withholding_tax_cert.supplier_name",
-   "read_only": 1,
-   "columns": 2
-  },
-  {
-   "fieldname": "supplier_tax_id",
-   "fieldtype": "Data",
-   "label": "Tax ID",
-   "fetch_from": "withholding_tax_cert.supplier_tax_id",
-   "read_only": 1,
-   "columns": 2
-  },
-  {
-   "fieldname": "column_break_supplier",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "income_type",
-   "fieldtype": "Data",
-   "label": "Income Type",
-   "fetch_from": "withholding_tax_cert.income_type",
-   "read_only": 1,
-   "columns": 2
-  },
-  {
-   "fieldname": "income_description",
-   "fieldtype": "Data",
-   "label": "Income Description",
-   "fetch_from": "withholding_tax_cert.income_description",
-   "read_only": 1,
-   "columns": 2
-  },
-  {
-   "fieldname": "column_break_income",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "gross_amount",
-   "fieldtype": "Currency",
-   "label": "Gross Amount",
-   "in_list_view": 1,
-   "fetch_from": "withholding_tax_cert.tax_base_amount",
-   "read_only": 1,
-   "columns": 1
-  },
-  {
-   "fieldname": "wht_rate",
-   "fieldtype": "Percent",
-   "label": "WHT Rate (%)",
-   "fetch_from": "withholding_tax_cert.wht_rate",
-   "read_only": 1,
-   "precision": "2",
-   "columns": 1
-  },
-  {
-   "fieldname": "tax_amount",
-   "fieldtype": "Currency",
-   "label": "Tax Withheld",
-   "in_list_view": 1,
-   "fetch_from": "withholding_tax_cert.wht_amount",
-   "read_only": 1,
-   "columns": 1
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-09-19 22:44:30.176895",
- "modified_by": "Administrator",
- "module": "Print Designer",
- "name": "PND3 Items",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+	"actions": [],
+	"allow_rename": 1,
+	"creation": "2025-09-19 22:44:30.176895",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"istable": 1,
+	"field_order": [
+		"sequence_number",
+		"withholding_tax_cert",
+		"column_break_cert",
+		"supplier_name",
+		"supplier_tax_id",
+		"column_break_supplier",
+		"income_type",
+		"income_description",
+		"column_break_income",
+		"gross_amount",
+		"wht_rate",
+		"tax_amount"
+	],
+	"fields": [
+		{
+			"fieldname": "sequence_number",
+			"fieldtype": "Int",
+			"label": "Sequence",
+			"in_list_view": 1,
+			"reqd": 1,
+			"description": "Sequence number in PND3 form"
+		},
+		{
+			"fieldname": "withholding_tax_cert",
+			"fieldtype": "Link",
+			"options": "Withholding Tax Certificate",
+			"label": "WHT Certificate",
+			"in_list_view": 1,
+			"reqd": 1,
+			"columns": 2
+		},
+		{
+			"fieldname": "column_break_cert",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "supplier_name",
+			"fieldtype": "Data",
+			"label": "Individual/Supplier Name",
+			"in_list_view": 1,
+			"fetch_from": "withholding_tax_cert.supplier_name",
+			"read_only": 1,
+			"columns": 2
+		},
+		{
+			"fieldname": "supplier_tax_id",
+			"fieldtype": "Data",
+			"label": "Tax ID",
+			"fetch_from": "withholding_tax_cert.supplier_tax_id",
+			"read_only": 1,
+			"columns": 2
+		},
+		{
+			"fieldname": "column_break_supplier",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "income_type",
+			"fieldtype": "Data",
+			"label": "Income Type",
+			"fetch_from": "withholding_tax_cert.income_type",
+			"read_only": 1,
+			"columns": 2
+		},
+		{
+			"fieldname": "income_description",
+			"fieldtype": "Data",
+			"label": "Income Description",
+			"fetch_from": "withholding_tax_cert.income_description",
+			"read_only": 1,
+			"columns": 2
+		},
+		{
+			"fieldname": "column_break_income",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "gross_amount",
+			"fieldtype": "Currency",
+			"label": "Gross Amount",
+			"in_list_view": 1,
+			"fetch_from": "withholding_tax_cert.tax_base_amount",
+			"read_only": 1,
+			"columns": 1
+		},
+		{
+			"fieldname": "wht_rate",
+			"fieldtype": "Percent",
+			"label": "WHT Rate (%)",
+			"fetch_from": "withholding_tax_cert.wht_rate",
+			"read_only": 1,
+			"precision": "2",
+			"columns": 1
+		},
+		{
+			"fieldname": "tax_amount",
+			"fieldtype": "Currency",
+			"label": "Tax Withheld",
+			"in_list_view": 1,
+			"fetch_from": "withholding_tax_cert.wht_amount",
+			"read_only": 1,
+			"columns": 1
+		}
+	],
+	"grid_page_length": 50,
+	"index_web_pages_for_search": 1,
+	"links": [],
+	"modified": "2025-09-19 22:44:30.176895",
+	"modified_by": "Administrator",
+	"module": "Print Designer",
+	"name": "PND3 Items",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"row_format": "Dynamic",
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": []
 }

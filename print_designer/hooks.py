@@ -85,6 +85,11 @@ commands = [
     # WHT Certificate Link Field Management - REDUNDANT: Fields now handled by install_payment_entry_thai_fields.py
     # "print_designer.commands.install_wht_certificate_link_field.install_wht_certificate_link_field",
     # "print_designer.commands.install_wht_certificate_link_field.check_wht_certificate_link_field",
+    # Field cleanup commands
+    "print_designer.commands.cleanup_has_thai_taxes_field.cleanup_has_thai_taxes_field",
+    "print_designer.commands.cleanup_has_thai_taxes_field.check_has_thai_taxes_field_status",
+    # PND Form testing utilities
+    "print_designer.commands.test_pnd_population.test_pnd_population",
 ]
 
 # Includes in <head>
@@ -595,6 +600,7 @@ doc_events = {
         "validate": "print_designer.regional.purchase_invoice_wht_override.validate_thai_wht_configuration",
         "before_save": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
         "on_update": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
+        "on_submit": "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice",
     },
     # Sales Order and Quotation events - consolidated in doc_events section below
     "Purchase Order": {

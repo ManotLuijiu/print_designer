@@ -124,9 +124,10 @@ def create_payment_entry_thai_fields():
             {
                 "fieldname": "pd_custom_wht_certificate_no",
                 "fieldtype": "Data",
-                "label": "WHT Certificate No",
+                "label": "Certificate Number",
                 "insert_after": "pd_custom_wht_certificate",
                 "depends_on": "eval:doc.payment_type=='Receive'",
+                "description": "WHT Certificate Number received from customer",
                 "translatable": 0,
                 "hidden": 0,
                 "no_copy": 0,

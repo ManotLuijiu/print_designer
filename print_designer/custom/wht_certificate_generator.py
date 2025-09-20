@@ -134,6 +134,7 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
 
         # Update Payment Entry with certificate link
         frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate", wht_cert.name)
+        frappe.db.commit()  # Ensure the link is committed to database
 
         frappe.msgprint(
             _("Withholding Tax Certificate {0} created successfully").format(wht_cert.name),
@@ -142,8 +143,13 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         )
 
     except Exception as e:
-        frappe.log_error(f"Error creating WHT Certificate: {str(e)}")
-        frappe.throw(_("Failed to create Withholding Tax Certificate: {0}").format(str(e)))
+        # Log full error details
+        frappe.log_error(
+            message=f"Error creating WHT Certificate for Payment Entry {payment_entry_doc.name}: {str(e)}",
+            title="WHT Certificate Error"
+        )
+        # Show concise message to user
+        frappe.throw(_("Failed to create WHT Certificate. Check error log for details."))
 
 
 def _get_thai_month_name(month_num):
@@ -202,7 +208,7 @@ def _get_pnd_form_and_classification(supplier_name):
     - Company/Juristic Person: PND.53 (ภ.ง.ด.53) - Corporate
 
     Returns:
-        tuple: (pnd_form_type, supplier_classification)
+        tuple: (pnd_form_doctype_name, supplier_classification)
     """
     try:
         # Get supplier details to determine type
@@ -232,18 +238,18 @@ def _get_pnd_form_and_classification(supplier_name):
                 is_company = False
 
         if is_company:
-            # Company or Juristic Person
-            return ("ภ.ง.ด.53 (PND 53)", "Company/Juristic Person (PND.53)")
+            # Company or Juristic Person - return the DocType name
+            return ("PND53 Form", "Company/Juristic Person (PND.53)")
         else:
             # Individual - For now, default to PND.3 (Services)
             # Note: PND.1 is for salary/employee payments, which would need additional logic
             # to determine if this is an employee vs. freelancer/service provider
-            return ("ภ.ง.ด.3 (PND 3)", "Individual - Non-staff (PND.3)")
+            return ("PND3 Form", "Individual - Non-staff (PND.3)")
 
     except Exception as e:
         frappe.log_error(f"Error determining PND form type for supplier {supplier_name}: {str(e)}")
-        # Default fallback
-        return ("ภ.ง.ด.3 (PND 3)", "Individual - Non-staff (PND.3)")
+        # Default fallback - return the DocType name
+        return ("PND3 Form", "Individual - Non-staff (PND.3)")
 
 
 def _ensure_wht_certificate_link_field():

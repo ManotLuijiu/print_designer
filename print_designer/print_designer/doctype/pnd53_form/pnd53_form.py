@@ -20,24 +20,38 @@ class PND53Form(Document):
 		# Clear existing items first
 		self.items = []
 
-		# Find WHT certificates for this period that are eligible for PND53
-		wht_certificates = frappe.get_all(
+		# Format tax month to match WHT certificate format (e.g., "09 - กันยายน (September)")
+		tax_month_formatted = f"{self.tax_period_month:02d}"
+
+		# Get all WHT certificates and filter manually for complex matching
+		all_certificates = frappe.get_all(
 			"Withholding Tax Certificate",
 			filters={
 				"docstatus": 1,  # Only submitted certificates
 				"status": "Issued",  # Only issued certificates
 				"tax_year": self.tax_period_year,
-				"tax_month": self.tax_period_month,
 				"pnd_form_type": "PND53 Form",  # Only PND53 type
-				"custom_pnd_form": ["in", ["", None]],  # Not already assigned to another PND form
-				"supplier_type_classification": ["in", ["Company", "Corporation"]]  # PND53 is for corporate income
 			},
 			fields=[
-				"name", "supplier_name", "supplier_tax_id", "income_type",
-				"income_description", "tax_base_amount", "wht_rate", "wht_amount"
+				"name", "supplier_name", "supplier_tax_id", "income_type", "tax_month",
+				"income_description", "tax_base_amount", "wht_rate", "wht_amount",
+				"custom_pnd_form", "supplier_type_classification"
 			],
 			order_by="certificate_date asc"
 		)
+
+		# Filter certificates that match this period and are eligible for PND53
+		wht_certificates = []
+		for cert in all_certificates:
+			# Check if tax month matches (handle both "09" and "09 - กันยายน (September)" formats)
+			cert_month = cert.tax_month
+			if cert_month and (cert_month.startswith(tax_month_formatted) or cert_month == str(self.tax_period_month)):
+				# Check if supplier classification is for companies/corporations (PND53 target)
+				classification = cert.supplier_type_classification or ""
+				if any(keyword in classification for keyword in ["Company", "Corporation", "Juristic Person", "PND.53"]):
+					# Allow certificates already assigned to THIS PND form or unassigned
+					if not cert.custom_pnd_form or cert.custom_pnd_form == self.name:
+						wht_certificates.append(cert)
 
 		sequence = 1
 		for cert in wht_certificates:

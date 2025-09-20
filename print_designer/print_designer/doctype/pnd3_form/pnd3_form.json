@@ -1,174 +1,174 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "format:PND3-{tax_period_year}-{tax_period_month:02d}-{###}",
- "creation": "2025-09-19 22:35:07.526968",
- "doctype": "DocType",
- "engine": "InnoDB",
- "is_submittable": 1,
- "field_order": [
-  "form_information_section",
-  "form_number",
-  "tax_period_month",
-  "tax_period_year",
-  "column_break_form",
-  "company",
-  "submission_date",
-  "submission_status",
-  "totals_section",
-  "total_certificates",
-  "total_tax_amount",
-  "column_break_totals",
-  "total_gross_amount",
-  "average_tax_rate",
-  "items_section",
-  "items",
-  "notes_section",
-  "remarks"
- ],
- "fields": [
-  {
-   "fieldname": "form_information_section",
-   "fieldtype": "Section Break",
-   "label": "PND3 Form Information (ภ.ง.ด.3 - Individual Non-Employee Tax)"
-  },
-  {
-   "fieldname": "form_number",
-   "fieldtype": "Data",
-   "label": "Form Number",
-   "read_only": 1,
-   "description": "Auto-generated form number"
-  },
-  {
-   "fieldname": "tax_period_month",
-   "fieldtype": "Select",
-   "label": "Tax Period (Month)",
-   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "tax_period_year",
-   "fieldtype": "Int",
-   "label": "Tax Period (Year)",
-   "reqd": 1,
-   "in_list_view": 1,
-   "default": "eval:new Date().getFullYear()"
-  },
-  {
-   "fieldname": "column_break_form",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "options": "Company",
-   "label": "Company",
-   "reqd": 1,
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "submission_date",
-   "fieldtype": "Date",
-   "label": "Submission Date to Revenue Dept",
-   "description": "Date when form was submitted to Thai Revenue Department"
-  },
-  {
-   "fieldname": "submission_status",
-   "fieldtype": "Select",
-   "options": "Draft\nReady for Submission\nSubmitted\nProcessed by Revenue Dept",
-   "default": "Draft",
-   "label": "Submission Status",
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "totals_section",
-   "fieldtype": "Section Break",
-   "label": "Summary Totals",
-   "collapsible": 1
-  },
-  {
-   "fieldname": "total_certificates",
-   "fieldtype": "Int",
-   "label": "Total WHT Certificates",
-   "read_only": 1,
-   "in_list_view": 1,
-   "description": "Auto-calculated from items table"
-  },
-  {
-   "fieldname": "total_tax_amount",
-   "fieldtype": "Currency",
-   "label": "Total Tax Withheld",
-   "read_only": 1,
-   "options": "Company:company:default_currency",
-   "description": "Auto-calculated total tax amount"
-  },
-  {
-   "fieldname": "column_break_totals",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "total_gross_amount",
-   "fieldtype": "Currency",
-   "label": "Total Gross Amount",
-   "read_only": 1,
-   "options": "Company:company:default_currency",
-   "description": "Auto-calculated total gross payments"
-  },
-  {
-   "fieldname": "average_tax_rate",
-   "fieldtype": "Percent",
-   "label": "Average Tax Rate",
-   "read_only": 1,
-   "precision": "2",
-   "description": "Auto-calculated average withholding rate"
-  },
-  {
-   "fieldname": "items_section",
-   "fieldtype": "Section Break",
-   "label": "Withholding Tax Certificates (รายการหนังสือรับรอง)"
-  },
-  {
-   "fieldname": "items",
-   "fieldtype": "Table",
-   "options": "PND3 Items",
-   "label": "PND3 Items"
-  },
-  {
-   "fieldname": "notes_section",
-   "fieldtype": "Section Break",
-   "label": "Notes"
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks"
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "links": [],
- "modified": "2025-09-19 22:35:07.526968",
- "modified_by": "Administrator",
- "module": "Print Designer",
- "name": "PND3 Form",
- "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+	"actions": [],
+	"allow_rename": 1,
+	"autoname": "format:PND3-{tax_period_year}-{tax_period_month:02d}-{###}",
+	"creation": "2025-09-19 22:35:07.526968",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"is_submittable": 1,
+	"field_order": [
+		"form_information_section",
+		"form_number",
+		"tax_period_month",
+		"tax_period_year",
+		"column_break_form",
+		"company",
+		"submission_date",
+		"submission_status",
+		"totals_section",
+		"total_certificates",
+		"total_tax_amount",
+		"column_break_totals",
+		"total_gross_amount",
+		"average_tax_rate",
+		"items_section",
+		"items",
+		"notes_section",
+		"remarks"
+	],
+	"fields": [
+		{
+			"fieldname": "form_information_section",
+			"fieldtype": "Section Break",
+			"label": "PND3 Form Information"
+		},
+		{
+			"fieldname": "form_number",
+			"fieldtype": "Data",
+			"label": "Form Number",
+			"read_only": 1,
+			"description": "Auto-generated form number"
+		},
+		{
+			"fieldname": "tax_period_month",
+			"fieldtype": "Select",
+			"label": "Tax Period (Month)",
+			"options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
+			"reqd": 1,
+			"in_list_view": 1
+		},
+		{
+			"fieldname": "tax_period_year",
+			"fieldtype": "Int",
+			"label": "Tax Period (Year)",
+			"reqd": 1,
+			"in_list_view": 1,
+			"default": "eval:new Date().getFullYear()"
+		},
+		{
+			"fieldname": "column_break_form",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"label": "Company",
+			"reqd": 1,
+			"in_list_view": 1
+		},
+		{
+			"fieldname": "submission_date",
+			"fieldtype": "Date",
+			"label": "Submission Date to Revenue Dept",
+			"description": "Date when form was submitted to Thai Revenue Department"
+		},
+		{
+			"fieldname": "submission_status",
+			"fieldtype": "Select",
+			"options": "Draft\nReady for Submission\nSubmitted\nProcessed by Revenue Dept",
+			"default": "Draft",
+			"label": "Submission Status",
+			"in_list_view": 1
+		},
+		{
+			"fieldname": "totals_section",
+			"fieldtype": "Section Break",
+			"label": "Summary Totals",
+			"collapsible": 1
+		},
+		{
+			"fieldname": "total_certificates",
+			"fieldtype": "Int",
+			"label": "Total WHT Certificates",
+			"read_only": 1,
+			"in_list_view": 1,
+			"description": "Auto-calculated from items table"
+		},
+		{
+			"fieldname": "total_tax_amount",
+			"fieldtype": "Currency",
+			"label": "Total Tax Withheld",
+			"read_only": 1,
+			"options": "Company:company:default_currency",
+			"description": "Auto-calculated total tax amount"
+		},
+		{
+			"fieldname": "column_break_totals",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "total_gross_amount",
+			"fieldtype": "Currency",
+			"label": "Total Gross Amount",
+			"read_only": 1,
+			"options": "Company:company:default_currency",
+			"description": "Auto-calculated total gross payments"
+		},
+		{
+			"fieldname": "average_tax_rate",
+			"fieldtype": "Percent",
+			"label": "Average Tax Rate",
+			"read_only": 1,
+			"precision": "2",
+			"description": "Auto-calculated average withholding rate"
+		},
+		{
+			"fieldname": "items_section",
+			"fieldtype": "Section Break",
+			"label": "Withholding Tax Certificates"
+		},
+		{
+			"fieldname": "items",
+			"fieldtype": "Table",
+			"options": "PND3 Items",
+			"label": "PND3 Items"
+		},
+		{
+			"fieldname": "notes_section",
+			"fieldtype": "Section Break",
+			"label": "Notes"
+		},
+		{
+			"fieldname": "remarks",
+			"fieldtype": "Small Text",
+			"label": "Remarks"
+		}
+	],
+	"grid_page_length": 50,
+	"index_web_pages_for_search": 1,
+	"links": [],
+	"modified": "2025-09-19 22:35:07.526968",
+	"modified_by": "Administrator",
+	"module": "Print Designer",
+	"name": "PND3 Form",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"write": 1
+		}
+	],
+	"row_format": "Dynamic",
+	"sort_field": "modified",
+	"sort_order": "DESC",
+	"states": []
 }

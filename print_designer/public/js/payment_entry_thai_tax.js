@@ -43,7 +43,7 @@ frappe.ui.form.on('Payment Entry', {
         const thai_fields = [
             'pd_custom_withholding_tax_amount', 'custom_withholding_tax_amount',
             'pd_custom_apply_withholding_tax', 'subject_to_wht', 'net_total_after_wht',
-            'pd_custom_has_thai_taxes', 'pd_custom_total_wht_amount', 'pd_custom_net_payment_amount',
+            'pd_custom_total_wht_amount', 'pd_custom_net_payment_amount',
             'pd_custom_tax_base_amount'
         ];
         thai_fields.forEach(field => {
