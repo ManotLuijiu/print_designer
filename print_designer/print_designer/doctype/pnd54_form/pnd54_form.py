@@ -12,6 +12,15 @@ class PND54Form(Document):
 		self.populate_wht_certificates()
 		self.calculate_totals()
 
+	def autoname(self):
+		"""Custom naming with zero-padded month"""
+		if self.tax_period_month and self.tax_period_year:
+			# Pad month with zero for naming (e.g., 9 -> 09)
+			month_padded = str(self.tax_period_month).zfill(2)
+			# Generate series number
+			from frappe.model.naming import make_autoname
+			self.name = make_autoname(f"PND54-{self.tax_period_year}-{month_padded}-.###.")
+
 	def populate_wht_certificates(self):
 		"""Automatically populate WHT certificates based on tax period and form type"""
 		if not self.tax_period_year or not self.tax_period_month:

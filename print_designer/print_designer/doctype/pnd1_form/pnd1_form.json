@@ -1,7 +1,6 @@
 {
 	"actions": [],
 	"allow_rename": 1,
-	"autoname": "format:PND1-{tax_period_year}-{tax_period_month:02d}-{###}",
 	"creation": "2025-09-19 22:34:50.111848",
 	"doctype": "DocType",
 	"engine": "InnoDB",
@@ -41,11 +40,11 @@
 		},
 		{
 			"fieldname": "tax_period_month",
-			"fieldtype": "Select",
+			"fieldtype": "Int",
 			"label": "Tax Period (Month)",
-			"options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
 			"reqd": 1,
-			"in_list_view": 1
+			"in_list_view": 1,
+			"default": "eval:new Date().getMonth() + 1"
 		},
 		{
 			"fieldname": "tax_period_year",
