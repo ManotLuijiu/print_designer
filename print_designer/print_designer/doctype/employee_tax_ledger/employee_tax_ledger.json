@@ -1,0 +1,194 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "ETL-.YY.MM.-.#####",
+ "creation": "2025-09-21 12:05:44.087650",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee_section",
+  "employee",
+  "employee_name",
+  "employee_tax_id",
+  "column_break_emp",
+  "tax_year",
+  "status",
+  "resignation_date",
+  "summary_section",
+  "total_gross_salary",
+  "total_income_tax_deducted",
+  "column_break_summary",
+  "total_social_security",
+  "total_provident_fund",
+  "monthly_details_section",
+  "monthly_entries",
+  "certificate_section",
+  "wht_certificate",
+  "certificate_issue_date",
+  "certificate_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee_section",
+   "fieldtype": "Section Break",
+   "label": "Employee Information"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.pan_number",
+   "fieldname": "employee_tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_emp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "2568",
+   "description": "Buddhist Era Year",
+   "fieldname": "tax_year",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Tax Year (พ.ศ.)",
+   "reqd": 1
+  },
+  {
+   "default": "Active",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Active\nResigned\nCertificate Issued",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.status == 'Resigned'",
+   "fieldname": "resignation_date",
+   "fieldtype": "Date",
+   "label": "Resignation Date"
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Summary"
+  },
+  {
+   "fieldname": "total_gross_salary",
+   "fieldtype": "Currency",
+   "label": "Total Gross Salary",
+   "options": "THB",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "total_income_tax_deducted",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Income Tax Deducted",
+   "options": "THB",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_summary",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_social_security",
+   "fieldtype": "Currency",
+   "label": "Total Social Security",
+   "options": "THB",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_provident_fund",
+   "fieldtype": "Currency",
+   "label": "Total Provident Fund",
+   "options": "THB",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_details_section",
+   "fieldtype": "Section Break",
+   "label": "Monthly Details"
+  },
+  {
+   "fieldname": "monthly_entries",
+   "fieldtype": "Table",
+   "label": "Monthly Tax Entries",
+   "options": "Employee Tax Ledger Entry"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "certificate_section",
+   "fieldtype": "Section Break",
+   "label": "WHT Certificate Information"
+  },
+  {
+   "fieldname": "wht_certificate",
+   "fieldtype": "Link",
+   "label": "WHT Certificate",
+   "options": "Withholding Tax Certificate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "certificate_issue_date",
+   "fieldtype": "Date",
+   "label": "Certificate Issue Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "certificate_reason",
+   "fieldtype": "Select",
+   "label": "Certificate Reason",
+   "options": "\nAnnual\nResignation",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-21 12:05:44.087650",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Employee Tax Ledger",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

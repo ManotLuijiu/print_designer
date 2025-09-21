@@ -676,6 +676,10 @@ doc_events = {
         "validate": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
         "on_update": "print_designer.custom.customer_wht_config_handler.handle_customer_wht_config_changes",
     },
+    # Salary Slip - Employee Tax Ledger Integration
+    "Salary Slip": {
+        "on_submit": "print_designer.print_designer.doctype.employee_tax_ledger.employee_tax_ledger.update_from_salary_slip",
+    },
 }
 
 

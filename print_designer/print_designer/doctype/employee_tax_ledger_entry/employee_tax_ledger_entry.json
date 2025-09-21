@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-21 12:06:25.742262",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "salary_slip",
+  "posting_date",
+  "month",
+  "year",
+  "column_break_1",
+  "gross_salary",
+  "income_tax_amount",
+  "social_security",
+  "provident_fund",
+  "net_pay"
+ ],
+ "fields": [
+  {
+   "fieldname": "salary_slip",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Salary Slip",
+   "options": "Salary Slip",
+   "reqd": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Month",
+   "options": "01 - January\n02 - February\n03 - March\n04 - April\n05 - May\n06 - June\n07 - July\n08 - August\n09 - September\n10 - October\n11 - November\n12 - December",
+   "reqd": 1
+  },
+  {
+   "fieldname": "year",
+   "fieldtype": "Data",
+   "label": "Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gross_salary",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Gross Salary",
+   "options": "THB"
+  },
+  {
+   "bold": 1,
+   "fieldname": "income_tax_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Income Tax",
+   "options": "THB"
+  },
+  {
+   "fieldname": "social_security",
+   "fieldtype": "Currency",
+   "label": "Social Security",
+   "options": "THB"
+  },
+  {
+   "fieldname": "provident_fund",
+   "fieldtype": "Currency",
+   "label": "Provident Fund",
+   "options": "THB"
+  },
+  {
+   "fieldname": "net_pay",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Net Pay",
+   "options": "THB"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-21 12:06:25.742262",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Employee Tax Ledger Entry",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

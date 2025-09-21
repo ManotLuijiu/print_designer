@@ -27,62 +27,114 @@ class PND1Form(Document):
 			self.name = make_autoname(f"PND1-{period}-.#####.")
 
 	def populate_wht_certificates(self):
-		"""Automatically populate WHT certificates based on tax period and form type"""
+		"""Populate PND1 Items from Employee Tax Ledger entries for the specified month"""
 		if not self.tax_period_year or not self.tax_period_month:
 			return
 
 		# Clear existing items first
 		self.items = []
 
-		# Format tax month to match WHT certificate format (e.g., "09 - กันยายน (September)")
-		# Use string zfill to handle both string and int inputs safely
-		tax_month_formatted = str(self.tax_period_month).zfill(2)
+		# Convert Buddhist year to Christian year for month filtering
+		christian_year = int(self.tax_period_year) - 543
 
-		# Get all WHT certificates and filter manually for complex matching
-		all_certificates = frappe.get_all(
-			"Withholding Tax Certificate",
+		# Build month filter string (format: "MM - MonthName")
+		month_filter = f"{str(self.tax_period_month).zfill(2)} - {self._get_month_name(self.tax_period_month)}"
+
+		# Get ALL Employee Tax Ledger entries for the specified period
+		# This includes employees with ฿0 income tax (as per requirement)
+		ledger_entries = frappe.get_all(
+			"Employee Tax Ledger Entry",
 			filters={
-				"docstatus": 1,  # Only submitted certificates
-				"status": "Issued",  # Only issued certificates
-				"tax_year": self.tax_period_year,
-				"pnd_form_type": "PND1 Form",  # Only PND1 type
+				"year": str(christian_year),
+				"month": month_filter
 			},
 			fields=[
-				"name", "supplier_name", "supplier_tax_id", "income_type", "tax_month",
-				"income_description", "tax_base_amount", "wht_rate", "wht_amount",
-				"custom_pnd_form", "supplier_type_classification"
+				"parent", "salary_slip", "posting_date", "month", "year",
+				"gross_salary", "income_tax_amount", "social_security",
+				"provident_fund", "net_pay"
 			],
-			order_by="certificate_date asc"
+			order_by="posting_date asc"
 		)
 
-		# Filter certificates that match this period and are eligible for PND1
-		wht_certificates = []
-		for cert in all_certificates:
-			# Check if tax month matches
-			cert_month = cert.tax_month
-			if cert_month and (cert_month.startswith(tax_month_formatted) or cert_month == str(self.tax_period_month)):
-				# Check if supplier classification is for individuals (PND1 target)
-				classification = cert.supplier_type_classification or ""
-				if any(keyword in classification for keyword in ["Individual", "Personal", "PND.1"]):
-					# Allow certificates already assigned to THIS PND form or unassigned
-					if not cert.custom_pnd_form or cert.custom_pnd_form == self.name:
-						wht_certificates.append(cert)
+		# Group entries by employee (parent Employee Tax Ledger)
+		employee_data = {}
+		for entry in ledger_entries:
+			# Get employee details from the parent Employee Tax Ledger
+			if entry.parent not in employee_data:
+				ledger = frappe.get_doc("Employee Tax Ledger", entry.parent)
+				employee_data[entry.parent] = {
+					"employee": ledger.employee,
+					"employee_name": ledger.employee_name,
+					"employee_tax_id": ledger.employee_tax_id or "",
+					"total_gross": 0,
+					"total_tax": 0,
+					"entries_count": 0,
+					"employment_type": self._get_employee_employment_type(ledger.employee)
+				}
 
+			# Accumulate totals for this employee
+			emp_data = employee_data[entry.parent]
+			emp_data["total_gross"] += flt(entry.gross_salary)
+			emp_data["total_tax"] += flt(entry.income_tax_amount)
+			emp_data["entries_count"] += 1
+
+		# Add all employees to PND1 Items (including those with ฿0 tax)
 		sequence = 1
-		for cert in wht_certificates:
-			# Add to PND1 Items child table
+		for emp_data in employee_data.values():
+			# Calculate WHT rate
+			wht_rate = 0
+			if emp_data["total_gross"] > 0:
+				wht_rate = (emp_data["total_tax"] / emp_data["total_gross"]) * 100
+
+			# Determine income type based on employment type
+			income_type = self._determine_income_type(emp_data["employment_type"])
+			income_description = f"เงินเดือนประจำเดือน {self._get_thai_month_name(self.tax_period_month)} {self.tax_period_year}"
+
 			self.append("items", {
 				"sequence_number": sequence,
-				"withholding_tax_cert": cert.name,
-				"company_name": cert.supplier_name,
-				"company_tax_id": cert.supplier_tax_id,
-				"income_type": cert.income_type,
-				"income_description": cert.income_description,
-				"gross_amount": cert.tax_base_amount,
-				"wht_rate": cert.wht_rate,
-				"tax_amount": cert.wht_amount
+				"withholding_tax_cert": "",  # Optional field for PND1
+				"employee_name": emp_data["employee_name"],
+				"employee_tax_id": emp_data["employee_tax_id"],
+				"income_type": income_type,
+				"income_description": income_description,
+				"gross_amount": emp_data["total_gross"],
+				"wht_rate": wht_rate,
+				"tax_amount": emp_data["total_tax"]
 			})
 			sequence += 1
+
+	def _get_employee_employment_type(self, employee):
+		"""Get employee employment type"""
+		try:
+			emp_doc = frappe.get_doc("Employee", employee)
+			return getattr(emp_doc, 'employment_type', 'Permanent')
+		except:
+			return 'Permanent'
+
+	def _get_month_name(self, month_num):
+		"""Get English month name"""
+		month_names = {
+			1: "January", 2: "February", 3: "March", 4: "April",
+			5: "May", 6: "June", 7: "July", 8: "August",
+			9: "September", 10: "October", 11: "November", 12: "December"
+		}
+		return month_names.get(int(month_num), "")
+
+	def _get_thai_month_name(self, month_num):
+		"""Get Thai month name"""
+		thai_months = {
+			1: "มกราคม", 2: "กุมภาพันธ์", 3: "มีนาคม", 4: "เมษายน",
+			5: "พฤษภาคม", 6: "มิถุนายน", 7: "กรกฎาคม", 8: "สิงหาคม",
+			9: "กันยายน", 10: "ตุลาคม", 11: "พฤศจิกายน", 12: "ธันวาคม"
+		}
+		return thai_months.get(int(month_num), "")
+
+	def _determine_income_type(self, employment_type):
+		"""Determine income type based on employee employment type"""
+		if employment_type == "Contract":
+			return "2. เงินได้ตามมาตรา 40 (2) - Fee/Commission"
+		else:
+			return "1. เงินได้ตามมาตรา 40 (1) เงินเดือน ค่าจ้าง ฯลฯ - Salary"
 
 	def calculate_totals(self):
 		"""Calculate summary totals from items"""
@@ -97,41 +149,27 @@ class PND1Form(Document):
 			self.average_tax_rate = 0
 
 	def on_submit(self):
-		"""Update WHT certificates to link them to this PND form"""
-		for item in self.items:
-			if item.withholding_tax_cert:
-				frappe.db.set_value(
-					"Withholding Tax Certificate",
-					item.withholding_tax_cert,
-					"custom_pnd_form",
-					self.name
-				)
-
+		"""PND1 Form submission - no certificate linking required"""
+		# PND1 is independent of WHT Certificate status
+		# Just commit the form submission
 		frappe.db.commit()
 
 	def on_cancel(self):
-		"""Remove PND form link from WHT certificates"""
-		for item in self.items:
-			if item.withholding_tax_cert:
-				frappe.db.set_value(
-					"Withholding Tax Certificate",
-					item.withholding_tax_cert,
-					"custom_pnd_form",
-					""
-				)
-
+		"""PND1 Form cancellation - no certificate unlinking required"""
+		# PND1 is independent of WHT Certificate status
+		# Just commit the form cancellation
 		frappe.db.commit()
 
 	@frappe.whitelist()
-	def refresh_certificates(self):
-		"""Manual refresh of certificates (callable from frontend)"""
+	def refresh_employee_data(self):
+		"""Manual refresh of employee data from Tax Ledger (callable from frontend)"""
 		self.populate_wht_certificates()
 		self.calculate_totals()
 		self.save()
 
-		frappe.msgprint(f"Refreshed with {len(self.items)} WHT certificates for {self.tax_period_month}/{self.tax_period_year}")
+		frappe.msgprint(f"Refreshed with {len(self.items)} employees for {self.tax_period_month}/{self.tax_period_year}")
 
 		return {
-			"total_certificates": self.total_certificates,
+			"total_employees": self.total_certificates,  # Field name kept for compatibility
 			"total_amount": self.total_tax_amount
 		}

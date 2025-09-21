@@ -1,399 +1,420 @@
 {
- "actions": [],
- "autoname": "field:certificate_number",
- "creation": "2025-09-16 18:59:25.995532",
- "doctype": "DocType",
- "engine": "InnoDB",
- "field_order": [
-  "certificate_information_section",
-  "certificate_number",
-  "certificate_date",
-  "tax_year",
-  "tax_month",
-  "column_break_cert",
-  "status",
-  "submission_date",
-  "pnd_form_type",
-  "custom_pnd_form",
-  "supplier_section",
-  "supplier",
-  "supplier_name",
-  "supplier_tax_id",
-  "supplier_address",
-  "column_break_supplier",
-  "supplier_branch_code",
-  "supplier_branch_name",
-  "payment_section",
-  "payment_entry",
-  "payment_date",
-  "purchase_invoice",
-  "column_break_payment",
-  "company",
-  "company_branch",
-  "wht_details_section",
-  "income_type",
-  "income_description",
-  "column_break_wht",
-  "wht_rate",
-  "wht_condition",
-  "amount_section",
-  "tax_base_amount",
-  "wht_amount",
-  "column_break_amount",
-  "net_payment_amount",
-  "total_payment_amount",
-  "notes_section",
-  "remarks",
-  "amended_from",
-  "supplier_type_classification"
- ],
- "fields": [
-  {
-   "fieldname": "certificate_information_section",
-   "fieldtype": "Section Break",
-   "label": "Certificate Information"
-  },
-  {
-   "bold": 1,
-   "description": "Format: WHTC-BBMM-##### (Buddhist Era)",
-   "fieldname": "certificate_number",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Certificate Number",
-   "read_only_depends_on": "eval:!doc.__islocal",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
-   "default": "Today",
-   "fieldname": "certificate_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Certificate Date",
-   "reqd": 1
-  },
-  {
-   "description": "Buddhist Era year (auto-calculated)",
-   "fieldname": "tax_year",
-   "fieldtype": "Data",
-   "label": "Tax Year (\u0e1e.\u0e28.)",
-   "read_only": 1
-  },
-  {
-   "fieldname": "tax_month",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "Tax Month",
-   "options": "\n01 - \u0e21\u0e01\u0e23\u0e32\u0e04\u0e21 (January)\n02 - \u0e01\u0e38\u0e21\u0e20\u0e32\u0e1e\u0e31\u0e19\u0e18\u0e4c (February)\n03 - \u0e21\u0e35\u0e19\u0e32\u0e04\u0e21 (March)\n04 - \u0e40\u0e21\u0e29\u0e32\u0e22\u0e19 (April)\n05 - \u0e1e\u0e24\u0e29\u0e20\u0e32\u0e04\u0e21 (May)\n06 - \u0e21\u0e34\u0e16\u0e38\u0e19\u0e32\u0e22\u0e19 (June)\n07 - \u0e01\u0e23\u0e01\u0e0e\u0e32\u0e04\u0e21 (July)\n08 - \u0e2a\u0e34\u0e07\u0e2b\u0e32\u0e04\u0e21 (August)\n09 - \u0e01\u0e31\u0e19\u0e22\u0e32\u0e22\u0e19 (September)\n10 - \u0e15\u0e38\u0e25\u0e32\u0e04\u0e21 (October)\n11 - \u0e1e\u0e24\u0e28\u0e08\u0e34\u0e01\u0e32\u0e22\u0e19 (November)\n12 - \u0e18\u0e31\u0e19\u0e27\u0e32\u0e04\u0e21 (December)",
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_cert",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "Draft",
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Status",
-   "options": "Draft\nIssued\nSubmitted to Revenue Dept\nCancelled",
-   "read_only": 1
-  },
-  {
-   "description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e43\u0e2b\u0e49\u0e01\u0e23\u0e21\u0e2a\u0e23\u0e23\u0e1e\u0e32\u0e01\u0e23",
-   "fieldname": "submission_date",
-   "fieldtype": "Date",
-   "label": "Submission Date to Revenue Dept"
-  },
-  {
-   "description": "\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e41\u0e1a\u0e1a\u0e41\u0e2a\u0e14\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e20\u0e32\u0e29\u0e35\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22",
-   "fieldname": "pnd_form_type",
-   "fieldtype": "Link",
-   "label": "PND Form Type (\u0e41\u0e1a\u0e1a \u0e20.\u0e07.\u0e14.)",
-   "options": "DocType",
-   "search_index": 1
-  },
-  {
-   "fieldname": "supplier_section",
-   "fieldtype": "Section Break",
-   "label": "Supplier Information (\u0e1c\u0e39\u0e49\u0e16\u0e39\u0e01\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)"
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Supplier",
-   "options": "Supplier",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "supplier.supplier_name",
-   "fieldname": "supplier_name",
-   "fieldtype": "Data",
-   "label": "Supplier Name",
-   "read_only": 1
-  },
-  {
-   "description": "\u0e40\u0e25\u0e02\u0e1b\u0e23\u0e30\u0e08\u0e33\u0e15\u0e31\u0e27\u0e1c\u0e39\u0e49\u0e40\u0e2a\u0e35\u0e22\u0e20\u0e32\u0e29\u0e35",
-   "fetch_from": "supplier.tax_id",
-   "fieldname": "supplier_tax_id",
-   "fieldtype": "Data",
-   "label": "Supplier Tax ID",
-   "read_only": 1
-  },
-  {
-   "fetch_from": "supplier.supplier_primary_address",
-   "fieldname": "supplier_address",
-   "fieldtype": "Small Text",
-   "label": "Supplier Address",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_supplier",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "00000",
-   "description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48 (Head Office)",
-   "fieldname": "supplier_branch_code",
-   "fieldtype": "Data",
-   "label": "Supplier Branch Code (\u0e23\u0e2b\u0e31\u0e2a\u0e2a\u0e32\u0e02\u0e32)"
-  },
-  {
-   "description": "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e32\u0e02\u0e32 (\u0e16\u0e49\u0e32\u0e21\u0e35)",
-   "fieldname": "supplier_branch_name",
-   "fieldtype": "Data",
-   "label": "Supplier Branch Name"
-  },
-  {
-   "description": "Classification for PND form reporting",
-   "fieldname": "supplier_type_classification",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "Supplier Type Classification",
-   "options": "\nIndividual - Staff (PND.1)\nIndividual - Non-staff (PND.3)\nCompany/Juristic Person (PND.53)"
-  },
-  {
-   "fieldname": "payment_section",
-   "fieldtype": "Section Break",
-   "label": "Payment Information"
-  },
-  {
-   "fieldname": "payment_entry",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Payment Entry",
-   "options": "Payment Entry",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "payment_entry.posting_date",
-   "fieldname": "payment_date",
-   "fieldtype": "Date",
-   "label": "Payment Date",
-   "read_only": 1
-  },
-  {
-   "fieldname": "purchase_invoice",
-   "fieldtype": "Link",
-   "label": "Purchase Invoice",
-   "options": "Purchase Invoice",
-   "read_only_depends_on": "eval:doc.payment_entry"
-  },
-  {
-   "fieldname": "column_break_payment",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "payment_entry.company",
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company (\u0e1c\u0e39\u0e49\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)",
-   "options": "Company",
-   "read_only": 1,
-   "reqd": 1
-  },
-  {
-   "default": "00000",
-   "description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48",
-   "fieldname": "company_branch",
-   "fieldtype": "Data",
-   "label": "Company Branch"
-  },
-  {
-   "fieldname": "wht_details_section",
-   "fieldtype": "Section Break",
-   "label": "Withholding Tax Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)"
-  },
-  {
-   "fieldname": "income_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Income Type (\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49)",
-   "options": "\n1. \u0e40\u0e07\u0e34\u0e19\u0e40\u0e14\u0e37\u0e2d\u0e19 \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07 \u0e2f\u0e25\u0e2f 40(1) - Salary\n2. \u0e04\u0e48\u0e32\u0e18\u0e23\u0e23\u0e21\u0e40\u0e19\u0e35\u0e22\u0e21 \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 \u0e2f\u0e25\u0e2f 40(2) - Fee/Commission\n3. \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c \u0e2f\u0e25\u0e2f 40(3) - Royalty\n4. (\u0e01) \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22 \u0e2f\u0e25\u0e2f 40(4)\u0e01 - Interest\n4. (\u0e02) \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25 \u0e40\u0e07\u0e34\u0e19\u0e2a\u0e48\u0e27\u0e19\u0e41\u0e1a\u0e48\u0e07\u0e01\u0e33\u0e44\u0e23 \u0e2f\u0e25\u0e2f 40(4)\u0e02 - Dividend\n5. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07 \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23 \u0e2f\u0e25\u0e2f 3 \u0e40\u0e15\u0e23\u0e2a - Service\n6. \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23/\u0e04\u0e48\u0e32\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e20\u0e32\u0e04\u0e23\u0e31\u0e10 - Government Service\n7. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e41\u0e23\u0e07\u0e07\u0e32\u0e19 - Labor\n8. \u0e04\u0e48\u0e32\u0e42\u0e06\u0e29\u0e13\u0e32 - Advertising\n9. \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32 - Rent\n10. \u0e04\u0e48\u0e32\u0e02\u0e19\u0e2a\u0e48\u0e07 - Transportation\n11. \u0e04\u0e48\u0e32\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19\u0e20\u0e31\u0e22 - Insurance\n12. \u0e2d\u0e37\u0e48\u0e19\u0e46 - Others",
-   "reqd": 1
-  },
-  {
-   "description": "\u0e23\u0e30\u0e1a\u0e38\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e02\u0e2d\u0e07\u0e23\u0e32\u0e22\u0e44\u0e14\u0e49",
-   "fieldname": "income_description",
-   "fieldtype": "Data",
-   "label": "Income Description (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14)",
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_wht",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "wht_rate",
-   "fieldtype": "Percent",
-   "in_list_view": 1,
-   "label": "WHT Rate (\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e20\u0e32\u0e29\u0e35 %)",
-   "precision": "2",
-   "reqd": 1
-  },
-  {
-   "default": "1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)",
-   "fieldname": "wht_condition",
-   "fieldtype": "Select",
-   "label": "WHT Condition (\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e01\u0e32\u0e23\u0e2b\u0e31\u0e01)",
-   "options": "\n1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)\n2. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e15\u0e25\u0e2d\u0e14\u0e44\u0e1b (Permanent)\n3. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e04\u0e23\u0e31\u0e49\u0e07\u0e40\u0e14\u0e35\u0e22\u0e27 (One Time)\n4. \u0e2d\u0e37\u0e48\u0e19\u0e46 (Others)"
-  },
-  {
-   "fieldname": "amount_section",
-   "fieldtype": "Section Break",
-   "label": "Amount Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19)"
-  },
-  {
-   "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e04\u0e33\u0e19\u0e27\u0e13\u0e20\u0e32\u0e29\u0e35 (\u0e44\u0e21\u0e48\u0e23\u0e27\u0e21 VAT)",
-   "fieldname": "tax_base_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Tax Base Amount (\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e01\u0e48\u0e2d\u0e19 VAT)",
-   "options": "Company:company:default_currency",
-   "reqd": 1
-  },
-  {
-   "bold": 1,
-   "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e20\u0e32\u0e29\u0e35\u0e17\u0e35\u0e48\u0e2b\u0e31\u0e01",
-   "fieldname": "wht_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "WHT Amount (\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)",
-   "options": "Company:company:default_currency",
-   "reqd": 1
-  },
-  {
-   "fieldname": "column_break_amount",
-   "fieldtype": "Column Break"
-  },
-  {
-   "description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35",
-   "fieldname": "net_payment_amount",
-   "fieldtype": "Currency",
-   "label": "Net Payment Amount (\u0e08\u0e48\u0e32\u0e22\u0e2a\u0e38\u0e17\u0e18\u0e34)",
-   "options": "Company:company:default_currency",
-   "read_only": 1
-  },
-  {
-   "description": "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 (\u0e23\u0e27\u0e21 VAT)",
-   "fieldname": "total_payment_amount",
-   "fieldtype": "Currency",
-   "label": "Total Amount (\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2a\u0e34\u0e49\u0e19)",
-   "options": "Company:company:default_currency",
-   "read_only": 1
-  },
-  {
-   "fieldname": "notes_section",
-   "fieldtype": "Section Break",
-   "label": "Notes"
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks (\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38)"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Withholding Tax Certificate",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
-   "fieldname": "custom_pnd_form",
-   "fieldtype": "Dynamic Link",
-   "label": "PND Form",
-   "options": "pnd_form_type"
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "is_submittable": 1,
- "links": [],
- "modified": "2025-09-19 22:39:33.996481",
- "modified_by": "Administrator",
- "module": "Print Designer",
- "name": "Withholding Tax Certificate",
- "naming_rule": "By fieldname",
- "owner": "Administrator",
- "permissions": [
-  {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "amend": 1,
-   "cancel": 1,
-   "create": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Accounts Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Accounts User",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  }
- ],
- "row_format": "Dynamic",
- "search_fields": "certificate_number,supplier,payment_entry",
- "sort_field": "certificate_date",
- "sort_order": "DESC",
- "states": [],
- "title_field": "certificate_number",
- "track_changes": 1,
- "track_views": 1
+	"actions": [],
+	"autoname": "field:certificate_number",
+	"creation": "2025-09-16 18:59:25.995532",
+	"doctype": "DocType",
+	"engine": "InnoDB",
+	"field_order": [
+		"certificate_information_section",
+		"certificate_number",
+		"certificate_date",
+		"tax_year",
+		"tax_month",
+		"column_break_cert",
+		"status",
+		"submission_date",
+		"pnd_form_type",
+		"custom_pnd_form",
+		"supplier_section",
+		"supplier",
+		"supplier_name",
+		"supplier_tax_id",
+		"supplier_address",
+		"column_break_supplier",
+		"supplier_branch_code",
+		"supplier_branch_name",
+		"payment_section",
+		"payment_entry",
+		"payment_date",
+		"purchase_invoice",
+		"column_break_payment",
+		"company",
+		"company_branch",
+		"wht_details_section",
+		"income_type",
+		"income_description",
+		"column_break_wht",
+		"wht_rate",
+		"wht_condition",
+		"amount_section",
+		"tax_base_amount",
+		"wht_amount",
+		"column_break_amount",
+		"net_payment_amount",
+		"total_payment_amount",
+		"notes_section",
+		"remarks",
+		"amended_from",
+		"supplier_type_classification"
+	],
+	"fields": [
+		{
+			"fieldname": "certificate_information_section",
+			"fieldtype": "Section Break",
+			"label": "Certificate Information"
+		},
+		{
+			"bold": 1,
+			"description": "Format: WHTC-BBMM-##### (Buddhist Era)",
+			"fieldname": "certificate_number",
+			"fieldtype": "Data",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Certificate Number",
+			"read_only_depends_on": "eval:!doc.__islocal",
+			"reqd": 1,
+			"unique": 1
+		},
+		{
+			"default": "Today",
+			"fieldname": "certificate_date",
+			"fieldtype": "Date",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Certificate Date",
+			"reqd": 1
+		},
+		{
+			"description": "Buddhist Era year (auto-calculated)",
+			"fieldname": "tax_year",
+			"fieldtype": "Data",
+			"label": "Tax Year (\u0e1e.\u0e28.)",
+			"read_only": 1
+		},
+		{
+			"fieldname": "tax_month",
+			"fieldtype": "Select",
+			"in_standard_filter": 1,
+			"label": "Tax Month",
+			"options": "\n01 - \u0e21\u0e01\u0e23\u0e32\u0e04\u0e21 (January)\n02 - \u0e01\u0e38\u0e21\u0e20\u0e32\u0e1e\u0e31\u0e19\u0e18\u0e4c (February)\n03 - \u0e21\u0e35\u0e19\u0e32\u0e04\u0e21 (March)\n04 - \u0e40\u0e21\u0e29\u0e32\u0e22\u0e19 (April)\n05 - \u0e1e\u0e24\u0e29\u0e20\u0e32\u0e04\u0e21 (May)\n06 - \u0e21\u0e34\u0e16\u0e38\u0e19\u0e32\u0e22\u0e19 (June)\n07 - \u0e01\u0e23\u0e01\u0e0e\u0e32\u0e04\u0e21 (July)\n08 - \u0e2a\u0e34\u0e07\u0e2b\u0e32\u0e04\u0e21 (August)\n09 - \u0e01\u0e31\u0e19\u0e22\u0e32\u0e22\u0e19 (September)\n10 - \u0e15\u0e38\u0e25\u0e32\u0e04\u0e21 (October)\n11 - \u0e1e\u0e24\u0e28\u0e08\u0e34\u0e01\u0e32\u0e22\u0e19 (November)\n12 - \u0e18\u0e31\u0e19\u0e27\u0e32\u0e04\u0e21 (December)",
+			"reqd": 1
+		},
+		{
+			"fieldname": "column_break_cert",
+			"fieldtype": "Column Break"
+		},
+		{
+			"default": "Draft",
+			"fieldname": "status",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Status",
+			"options": "Draft\nIssued\nSubmitted to Revenue Dept\nCancelled",
+			"read_only": 1
+		},
+		{
+			"description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e43\u0e2b\u0e49\u0e01\u0e23\u0e21\u0e2a\u0e23\u0e23\u0e1e\u0e32\u0e01\u0e23",
+			"fieldname": "submission_date",
+			"fieldtype": "Date",
+			"label": "Submission Date to Revenue Dept"
+		},
+		{
+			"description": "\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e41\u0e1a\u0e1a\u0e41\u0e2a\u0e14\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e20\u0e32\u0e29\u0e35\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22",
+			"fieldname": "pnd_form_type",
+			"fieldtype": "Link",
+			"label": "PND Form Type (\u0e41\u0e1a\u0e1a \u0e20.\u0e07.\u0e14.)",
+			"options": "DocType",
+			"search_index": 1
+		},
+		{
+			"fieldname": "supplier_section",
+			"fieldtype": "Section Break",
+			"label": "Supplier Information (\u0e1c\u0e39\u0e49\u0e16\u0e39\u0e01\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)"
+		},
+		{
+			"fieldname": "supplier",
+			"fieldtype": "Link",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"label": "Supplier",
+			"options": "Supplier",
+			"reqd": 1
+		},
+		{
+			"fetch_from": "supplier.supplier_name",
+			"fieldname": "supplier_name",
+			"fieldtype": "Data",
+			"label": "Supplier Name",
+			"read_only": 1
+		},
+		{
+			"description": "\u0e40\u0e25\u0e02\u0e1b\u0e23\u0e30\u0e08\u0e33\u0e15\u0e31\u0e27\u0e1c\u0e39\u0e49\u0e40\u0e2a\u0e35\u0e22\u0e20\u0e32\u0e29\u0e35",
+			"fetch_from": "supplier.tax_id",
+			"fieldname": "supplier_tax_id",
+			"fieldtype": "Data",
+			"label": "Supplier Tax ID",
+			"read_only": 1
+		},
+		{
+			"fetch_from": "supplier.supplier_primary_address",
+			"fieldname": "supplier_address",
+			"fieldtype": "Small Text",
+			"label": "Supplier Address",
+			"read_only": 1
+		},
+		{
+			"fieldname": "column_break_supplier",
+			"fieldtype": "Column Break"
+		},
+		{
+			"default": "00000",
+			"description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48 (Head Office)",
+			"fieldname": "supplier_branch_code",
+			"fieldtype": "Data",
+			"label": "Supplier Branch Code (\u0e23\u0e2b\u0e31\u0e2a\u0e2a\u0e32\u0e02\u0e32)"
+		},
+		{
+			"description": "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e32\u0e02\u0e32 (\u0e16\u0e49\u0e32\u0e21\u0e35)",
+			"fieldname": "supplier_branch_name",
+			"fieldtype": "Data",
+			"label": "Supplier Branch Name"
+		},
+		{
+			"description": "Classification for PND form reporting",
+			"fieldname": "supplier_type_classification",
+			"fieldtype": "Select",
+			"in_standard_filter": 1,
+			"label": "Supplier Type Classification",
+			"options": "\nIndividual - Staff (PND.1)\nIndividual - Non-staff (PND.3)\nCompany/Juristic Person (PND.53)"
+		},
+		{
+			"fieldname": "payment_section",
+			"fieldtype": "Section Break",
+			"label": "Payment Information"
+		},
+		{
+			"fieldname": "payment_entry",
+			"fieldtype": "Link",
+			"in_list_view": 1,
+			"label": "Payment Entry",
+			"options": "Payment Entry",
+			"reqd": 1
+		},
+		{
+			"fetch_from": "payment_entry.posting_date",
+			"fieldname": "payment_date",
+			"fieldtype": "Date",
+			"label": "Payment Date",
+			"read_only": 1
+		},
+		{
+			"fieldname": "purchase_invoice",
+			"fieldtype": "Link",
+			"label": "Purchase Invoice",
+			"options": "Purchase Invoice",
+			"read_only_depends_on": "eval:doc.payment_entry"
+		},
+		{
+			"fieldname": "column_break_payment",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fetch_from": "payment_entry.company",
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"label": "Company (\u0e1c\u0e39\u0e49\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)",
+			"options": "Company",
+			"read_only": 1,
+			"reqd": 1
+		},
+		{
+			"default": "00000",
+			"description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48",
+			"fieldname": "company_branch",
+			"fieldtype": "Data",
+			"label": "Company Branch"
+		},
+		{
+			"fieldname": "wht_details_section",
+			"fieldtype": "Section Break",
+			"label": "Withholding Tax Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)"
+		},
+		{
+			"fieldname": "income_type",
+			"fieldtype": "Select",
+			"in_list_view": 1,
+			"label": "Income Type (\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49)",
+			"options": "\n1. \u0e40\u0e07\u0e34\u0e19\u0e40\u0e14\u0e37\u0e2d\u0e19 \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07 \u0e2f\u0e25\u0e2f 40(1) - Salary\n2. \u0e04\u0e48\u0e32\u0e18\u0e23\u0e23\u0e21\u0e40\u0e19\u0e35\u0e22\u0e21 \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 \u0e2f\u0e25\u0e2f 40(2) - Fee/Commission\n3. \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c \u0e2f\u0e25\u0e2f 40(3) - Royalty\n4. (\u0e01) \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22 \u0e2f\u0e25\u0e2f 40(4)\u0e01 - Interest\n4. (\u0e02) \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25 \u0e40\u0e07\u0e34\u0e19\u0e2a\u0e48\u0e27\u0e19\u0e41\u0e1a\u0e48\u0e07\u0e01\u0e33\u0e44\u0e23 \u0e2f\u0e25\u0e2f 40(4)\u0e02 - Dividend\n5. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07 \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23 \u0e2f\u0e25\u0e2f 3 \u0e40\u0e15\u0e23\u0e2a - Service\n6. \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23/\u0e04\u0e48\u0e32\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e20\u0e32\u0e04\u0e23\u0e31\u0e10 - Government Service\n7. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e41\u0e23\u0e07\u0e07\u0e32\u0e19 - Labor\n8. \u0e04\u0e48\u0e32\u0e42\u0e06\u0e29\u0e13\u0e32 - Advertising\n9. \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32 - Rent\n10. \u0e04\u0e48\u0e32\u0e02\u0e19\u0e2a\u0e48\u0e07 - Transportation\n11. \u0e04\u0e48\u0e32\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19\u0e20\u0e31\u0e22 - Insurance\n12. \u0e2d\u0e37\u0e48\u0e19\u0e46 - Others",
+			"reqd": 1
+		},
+		{
+			"description": "\u0e23\u0e30\u0e1a\u0e38\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e02\u0e2d\u0e07\u0e23\u0e32\u0e22\u0e44\u0e14\u0e49",
+			"fieldname": "income_description",
+			"fieldtype": "Data",
+			"label": "Income Description (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14)",
+			"reqd": 1
+		},
+		{
+			"fieldname": "column_break_wht",
+			"fieldtype": "Column Break"
+		},
+		{
+			"fieldname": "wht_rate",
+			"fieldtype": "Percent",
+			"in_list_view": 1,
+			"label": "WHT Rate (\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e20\u0e32\u0e29\u0e35 %)",
+			"precision": "2",
+			"reqd": 1
+		},
+		{
+			"default": "1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)",
+			"fieldname": "wht_condition",
+			"fieldtype": "Select",
+			"label": "WHT Condition (\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e01\u0e32\u0e23\u0e2b\u0e31\u0e01)",
+			"options": "\n1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)\n2. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e15\u0e25\u0e2d\u0e14\u0e44\u0e1b (Permanent)\n3. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e04\u0e23\u0e31\u0e49\u0e07\u0e40\u0e14\u0e35\u0e22\u0e27 (One Time)\n4. \u0e2d\u0e37\u0e48\u0e19\u0e46 (Others)"
+		},
+		{
+			"fieldname": "amount_section",
+			"fieldtype": "Section Break",
+			"label": "Amount Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19)"
+		},
+		{
+			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e04\u0e33\u0e19\u0e27\u0e13\u0e20\u0e32\u0e29\u0e35 (\u0e44\u0e21\u0e48\u0e23\u0e27\u0e21 VAT)",
+			"fieldname": "tax_base_amount",
+			"fieldtype": "Currency",
+			"in_list_view": 1,
+			"label": "Tax Base Amount (\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e01\u0e48\u0e2d\u0e19 VAT)",
+			"options": "Company:company:default_currency",
+			"reqd": 1
+		},
+		{
+			"bold": 1,
+			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e20\u0e32\u0e29\u0e35\u0e17\u0e35\u0e48\u0e2b\u0e31\u0e01",
+			"fieldname": "wht_amount",
+			"fieldtype": "Currency",
+			"in_list_view": 1,
+			"label": "WHT Amount (\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)",
+			"options": "Company:company:default_currency",
+			"reqd": 1
+		},
+		{
+			"fieldname": "column_break_amount",
+			"fieldtype": "Column Break"
+		},
+		{
+			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35",
+			"fieldname": "net_payment_amount",
+			"fieldtype": "Currency",
+			"label": "Net Payment Amount (\u0e08\u0e48\u0e32\u0e22\u0e2a\u0e38\u0e17\u0e18\u0e34)",
+			"options": "Company:company:default_currency",
+			"read_only": 1
+		},
+		{
+			"description": "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 (\u0e23\u0e27\u0e21 VAT)",
+			"fieldname": "total_payment_amount",
+			"fieldtype": "Currency",
+			"label": "Total Amount (\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2a\u0e34\u0e49\u0e19)",
+			"options": "Company:company:default_currency",
+			"read_only": 1
+		},
+		{
+			"fieldname": "notes_section",
+			"fieldtype": "Section Break",
+			"label": "Notes"
+		},
+		{
+			"fieldname": "remarks",
+			"fieldtype": "Small Text",
+			"label": "Remarks (\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38)"
+		},
+		{
+			"fieldname": "amended_from",
+			"fieldtype": "Link",
+			"label": "Amended From",
+			"no_copy": 1,
+			"options": "Withholding Tax Certificate",
+			"print_hide": 1,
+			"read_only": 1,
+			"search_index": 1
+		},
+		{
+			"fieldname": "custom_pnd_form",
+			"fieldtype": "Dynamic Link",
+			"label": "PND Form",
+			"options": "pnd_form_type"
+		},
+		{
+			"fieldname": "employee",
+			"fieldtype": "Link",
+			"label": "Employee",
+			"options": "Employee",
+			"depends_on": "eval:doc.income_type && (doc.income_type.includes('40(1)') || doc.income_type.includes('40(2)'))"
+		},
+		{
+			"fieldname": "employee_tax_ledger",
+			"fieldtype": "Link",
+			"label": "Employee Tax Ledger",
+			"options": "Employee Tax Ledger",
+			"read_only": 1
+		},
+		{
+			"fieldname": "certificate_period",
+			"fieldtype": "Select",
+			"label": "Certificate Period",
+			"options": "Annual\nResignation\nMonthly",
+			"default": "Monthly"
+		}
+	],
+	"grid_page_length": 50,
+	"index_web_pages_for_search": 1,
+	"is_submittable": 1,
+	"links": [],
+	"modified": "2025-09-19 22:39:33.996481",
+	"modified_by": "Administrator",
+	"module": "Print Designer",
+	"name": "Withholding Tax Certificate",
+	"naming_rule": "By fieldname",
+	"owner": "Administrator",
+	"permissions": [
+		{
+			"amend": 1,
+			"cancel": 1,
+			"create": 1,
+			"delete": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "System Manager",
+			"share": 1,
+			"submit": 1,
+			"write": 1
+		},
+		{
+			"amend": 1,
+			"cancel": 1,
+			"create": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Accounts Manager",
+			"share": 1,
+			"submit": 1,
+			"write": 1
+		},
+		{
+			"create": 1,
+			"email": 1,
+			"export": 1,
+			"print": 1,
+			"read": 1,
+			"report": 1,
+			"role": "Accounts User",
+			"share": 1,
+			"submit": 1,
+			"write": 1
+		}
+	],
+	"row_format": "Dynamic",
+	"search_fields": "certificate_number,supplier,payment_entry",
+	"sort_field": "certificate_date",
+	"sort_order": "DESC",
+	"states": [],
+	"title_field": "certificate_number",
+	"track_changes": 1,
+	"track_views": 1
 }
