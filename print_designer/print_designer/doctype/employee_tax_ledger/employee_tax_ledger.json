@@ -52,7 +52,7 @@
    "read_only": 1
   },
   {
-   "fetch_from": "employee.pan_number",
+   "fetch_from": "employee.pd_custom_thai_tax_id",
    "fieldname": "employee_tax_id",
    "fieldtype": "Data",
    "label": "Tax ID Number",

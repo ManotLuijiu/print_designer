@@ -90,6 +90,10 @@ commands = [
     "print_designer.commands.cleanup_has_thai_taxes_field.check_has_thai_taxes_field_status",
     # PND Form testing utilities
     "print_designer.commands.test_pnd_population.test_pnd_population",
+    # Employee Thai Tax ID field
+    "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",
+    "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",
+    "print_designer.commands.install_employee_thai_tax_fields.check_employee_thai_tax_fields",
 ]
 
 # Includes in <head>
@@ -239,6 +243,8 @@ fixtures = [
                     "Company-enable_thai_numbering",
                     "Company-thai_business_registration",
                     "Company-vat_registration_number",
+                    # Employee - Thai Tax ID
+                    "Employee-pd_custom_thai_tax_id",
                     # Account - Thai Translation Fields
                     "Account-account_name_th",
                     "Account-auto_translate_thai",
@@ -495,6 +501,7 @@ after_install = [
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
+    "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",  # Install Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Install Account Thai translation fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
@@ -533,6 +540,7 @@ after_migrate = [
     # REMOVED DUPLICATE: "print_designer.install.emergency_watermark_fix_fallback" - already in after_install
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
+    "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",  # Install Employee Thai Tax ID field during migration
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Ensure Account Thai translation fields are installed during migration
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
@@ -554,6 +562,7 @@ after_migrate = [
 before_uninstall = [
     "print_designer.uninstall.before_uninstall",
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
+    "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",  # Remove Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",  # Remove Account Thai translation fields
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
     "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields

@@ -34,22 +34,20 @@ class PND1Form(Document):
 		# Clear existing items first
 		self.items = []
 
-		# Convert Buddhist year to Christian year for month filtering
-		christian_year = int(self.tax_period_year) - 543
-
 		# Build month filter string (format: "MM - MonthName")
 		month_filter = f"{str(self.tax_period_month).zfill(2)} - {self._get_month_name(self.tax_period_month)}"
 
 		# Get ALL Employee Tax Ledger entries for the specified period
 		# This includes employees with ฿0 income tax (as per requirement)
+		# Use year_buddhist field directly - no conversion needed!
 		ledger_entries = frappe.get_all(
 			"Employee Tax Ledger Entry",
 			filters={
-				"year": str(christian_year),
+				"year_buddhist": str(self.tax_period_year),
 				"month": month_filter
 			},
 			fields=[
-				"parent", "salary_slip", "posting_date", "month", "year",
+				"parent", "salary_slip", "posting_date", "month", "year", "year_buddhist",
 				"gross_salary", "income_tax_amount", "social_security",
 				"provident_fund", "net_pay"
 			],
@@ -173,3 +171,122 @@ class PND1Form(Document):
 			"total_employees": self.total_certificates,  # Field name kept for compatibility
 			"total_amount": self.total_tax_amount
 		}
+
+
+@frappe.whitelist()
+def get_employee_tax_ledger_entries(tax_period_year, tax_period_month):
+	"""Get Employee Tax Ledger entries for PND1 Form population"""
+	print(f"🔍 PND1 API called: Year={tax_period_year}, Month={tax_period_month}")
+
+	# Build month filter string (format: "MM - MonthName")
+	month_names = {
+		1: "January", 2: "February", 3: "March", 4: "April",
+		5: "May", 6: "June", 7: "July", 8: "August",
+		9: "September", 10: "October", 11: "November", 12: "December"
+	}
+	month_filter = f"{str(tax_period_month).zfill(2)} - {month_names.get(int(tax_period_month), '')}"
+	print(f"📅 Month filter: {month_filter}")
+
+	# Get ALL Employee Tax Ledger entries for the specified period
+	# Use year_buddhist field directly - no conversion needed!
+	print(f"🔎 Searching Employee Tax Ledger Entry with filters:")
+	print(f"   year_buddhist: {str(tax_period_year)}")
+	print(f"   month: {month_filter}")
+
+	ledger_entries = frappe.get_all(
+		"Employee Tax Ledger Entry",
+		filters={
+			"year_buddhist": str(tax_period_year),
+			"month": month_filter
+		},
+		fields=[
+			"parent", "salary_slip", "posting_date", "month", "year", "year_buddhist",
+			"gross_salary", "income_tax_amount", "social_security",
+			"provident_fund", "net_pay"
+		],
+		order_by="posting_date asc"
+	)
+
+	print(f"📊 Found {len(ledger_entries)} ledger entries")
+
+	# Group entries by employee (parent Employee Tax Ledger)
+	employee_data = {}
+	for entry in ledger_entries:
+		print(f"  Processing entry: {entry.salary_slip}, Parent: {entry.parent}")
+		# Get employee details from the parent Employee Tax Ledger
+		if entry.parent not in employee_data:
+			print(f"    Creating new employee data for parent: {entry.parent}")
+			ledger = frappe.get_doc("Employee Tax Ledger", entry.parent)
+			employee_data[entry.parent] = {
+				"employee": ledger.employee,
+				"employee_name": ledger.employee_name,
+				"employee_tax_id": ledger.employee_tax_id or "",
+				"total_gross": 0,
+				"total_tax": 0,
+				"entries_count": 0,
+				"employment_type": _get_employee_employment_type(ledger.employee)
+			}
+			print(f"    Employee: {ledger.employee_name}, Tax ID: {ledger.employee_tax_id}")
+
+		# Accumulate totals for this employee
+		emp_data = employee_data[entry.parent]
+		emp_data["total_gross"] += flt(entry.gross_salary)
+		emp_data["total_tax"] += flt(entry.income_tax_amount)
+		emp_data["entries_count"] += 1
+		print(f"    Updated totals - Gross: {emp_data['total_gross']}, Tax: {emp_data['total_tax']}")
+
+	# Format for PND1 Items
+	items = []
+	sequence = 1
+	thai_months = {
+		1: "มกราคม", 2: "กุมภาพันธ์", 3: "มีนาคม", 4: "เมษายน",
+		5: "พฤษภาคม", 6: "มิถุนายน", 7: "กรกฎาคม", 8: "สิงหาคม",
+		9: "กันยายน", 10: "ตุลาคม", 11: "พฤศจิกายน", 12: "ธันวาคม"
+	}
+
+	print(f"📋 Creating PND1 Items from {len(employee_data)} employees")
+
+	for emp_data in employee_data.values():
+		# Calculate WHT rate
+		wht_rate = 0
+		if emp_data["total_gross"] > 0:
+			wht_rate = (emp_data["total_tax"] / emp_data["total_gross"]) * 100
+
+		# Determine income type based on employment type
+		income_type = _determine_income_type_static(emp_data["employment_type"])
+		income_description = f"เงินเดือนประจำเดือน {thai_months.get(int(tax_period_month), '')} {tax_period_year}"
+
+		item = {
+			"sequence_number": sequence,
+			"withholding_tax_cert": "",  # Optional field for PND1
+			"employee_name": emp_data["employee_name"],
+			"employee_tax_id": emp_data["employee_tax_id"],
+			"income_type": income_type,
+			"income_description": income_description,
+			"gross_amount": emp_data["total_gross"],
+			"wht_rate": wht_rate,
+			"tax_amount": emp_data["total_tax"]
+		}
+		items.append(item)
+		print(f"  Item {sequence}: {emp_data['employee_name']}, Tax: {emp_data['total_tax']}")
+		sequence += 1
+
+	print(f"✅ Returning {len(items)} PND1 Items")
+	return items
+
+
+def _get_employee_employment_type(employee):
+	"""Get employee employment type"""
+	try:
+		emp_doc = frappe.get_doc("Employee", employee)
+		return getattr(emp_doc, 'employment_type', 'Permanent')
+	except:
+		return 'Permanent'
+
+
+def _determine_income_type_static(employment_type):
+	"""Determine income type based on employee employment type (static function)"""
+	if employment_type == "Contract":
+		return "2. เงินได้ตามมาตรา 40 (2) - Fee/Commission"
+	else:
+		return "1. เงินได้ตามมาตรา 40 (1) เงินเดือน ค่าจ้าง ฯลฯ - Salary"

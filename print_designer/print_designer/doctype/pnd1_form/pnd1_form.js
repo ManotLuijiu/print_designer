@@ -35,31 +35,80 @@ frappe.ui.form.on("PND1 Form", {
 	},
 
 	tax_period_year(frm) {
+		console.log("🔍 PND1 Form: tax_period_year changed to:", frm.doc.tax_period_year);
 		// Auto-refresh when period changes
 		if (frm.doc.tax_period_year && frm.doc.tax_period_month) {
+			console.log("✅ Both year and month set, triggering refresh");
 			frm.trigger('refresh_on_period_change');
+		} else {
+			console.log("⏳ Waiting for month to be set. Month:", frm.doc.tax_period_month);
 		}
 	},
 
 	tax_period_month(frm) {
+		console.log("🔍 PND1 Form: tax_period_month changed to:", frm.doc.tax_period_month);
 		// Auto-refresh when period changes
 		if (frm.doc.tax_period_year && frm.doc.tax_period_month) {
+			console.log("✅ Both year and month set, triggering refresh");
 			frm.trigger('refresh_on_period_change');
+		} else {
+			console.log("⏳ Waiting for year to be set. Year:", frm.doc.tax_period_year);
 		}
 	},
 
 	refresh_on_period_change(frm) {
-		// Auto-populate certificates when period is set
-		if (!frm.is_new() && frm.doc.tax_period_year && frm.doc.tax_period_month) {
+		console.log("🔄 PND1 Form: refresh_on_period_change called");
+		console.log("Year:", frm.doc.tax_period_year, "Month:", frm.doc.tax_period_month);
+
+		// Auto-populate Employee Tax Ledger entries when period is set
+		// Works for both new and existing forms
+		if (frm.doc.tax_period_year && frm.doc.tax_period_month) {
+			console.log("📡 Calling server to get Employee Tax Ledger entries...");
 			frappe.call({
-				method: "refresh_certificates",
-				doc: frm.doc,
+				method: "print_designer.print_designer.doctype.pnd1_form.pnd1_form.get_employee_tax_ledger_entries",
+				args: {
+					tax_period_year: frm.doc.tax_period_year,
+					tax_period_month: frm.doc.tax_period_month
+				},
 				callback: function(r) {
-					if (r.message) {
-						frm.reload_doc();
+					console.log("📥 Server response received:", r);
+					if (r.message && r.message.length > 0) {
+						console.log("✅ Found", r.message.length, "entries");
+						// Clear existing items
+						frm.clear_table("items");
+
+						// Add new items from Employee Tax Ledger
+						r.message.forEach(function(item, idx) {
+							console.log(`  Adding item ${idx + 1}:`, item.employee_name, item.tax_amount);
+							let row = frm.add_child("items");
+							Object.assign(row, item);
+						});
+
+						frm.refresh_field("items");
+						calculate_totals_client_side(frm);
+
+						frappe.show_alert({
+							message: `Loaded ${r.message.length} employee(s) from Tax Ledger`,
+							indicator: 'green'
+						});
+					} else {
+						console.log("⚠️ No entries found for this period");
+						frappe.show_alert({
+							message: `No Employee Tax Ledger entries found for ${frm.doc.tax_period_month}/${frm.doc.tax_period_year}`,
+							indicator: 'yellow'
+						});
 					}
+				},
+				error: function(r) {
+					console.error("❌ Error calling server:", r);
+					frappe.show_alert({
+						message: "Error fetching Employee Tax Ledger entries",
+						indicator: 'red'
+					});
 				}
 			});
+		} else {
+			console.log("❌ Missing year or month, skipping refresh");
 		}
 	}
 });

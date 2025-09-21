@@ -67,6 +67,7 @@ class EmployeeTaxLedger(Document):
             existing_entry.posting_date = salary_slip_doc.posting_date
             existing_entry.month = month_names.get(month_num)
             existing_entry.year = str(posting_date.year)
+            existing_entry.year_buddhist = str(posting_date.year + 543)
             existing_entry.gross_salary = salary_slip_doc.gross_pay
             existing_entry.income_tax_amount = income_tax
             existing_entry.social_security = social_security
@@ -79,6 +80,7 @@ class EmployeeTaxLedger(Document):
                 "posting_date": salary_slip_doc.posting_date,
                 "month": month_names.get(month_num),
                 "year": str(posting_date.year),
+                "year_buddhist": str(posting_date.year + 543),
                 "gross_salary": salary_slip_doc.gross_pay,
                 "income_tax_amount": income_tax,
                 "social_security": social_security,
