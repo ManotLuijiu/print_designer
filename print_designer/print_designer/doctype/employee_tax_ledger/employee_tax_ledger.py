@@ -35,6 +35,8 @@ class EmployeeTaxLedger(Document):
 
     def add_salary_slip_entry(self, salary_slip_doc):
         """Add or update entry from Salary Slip"""
+        print(f"📊 Processing salary slip entry for {salary_slip_doc.name}")
+
         # Check if entry already exists for this salary slip
         existing_entry = None
         for entry in self.monthly_entries:
@@ -46,6 +48,9 @@ class EmployeeTaxLedger(Document):
         income_tax = self.get_income_tax_from_salary_slip(salary_slip_doc)
         social_security = self.get_deduction_amount(salary_slip_doc, "Social Security")
         provident_fund = self.get_deduction_amount(salary_slip_doc, "Provident Fund")
+
+        print(f"💸 Amounts - Income Tax: {income_tax}, Social Security: {social_security}, Provident Fund: {provident_fund}")
+        print(f"💰 Gross Pay: {salary_slip_doc.gross_pay}, Net Pay: {salary_slip_doc.net_pay}")
 
         # Get month name
         posting_date = getdate(salary_slip_doc.posting_date)
@@ -222,38 +227,62 @@ class EmployeeTaxLedger(Document):
         return thai_months.get(month_num, month_num)
 
 
-@frappe.whitelist()
-def update_from_salary_slip(salary_slip_name):
+def update_from_salary_slip(doc, method=None):
     """Update Employee Tax Ledger from Salary Slip submission"""
+    try:
+        print(f"🔄 Employee Tax Ledger: Processing salary slip {doc.name}")
+
+        # doc is the Salary Slip document instance
+        salary_slip = doc
+
+        # Get tax year (Buddhist Era)
+        posting_date = getdate(salary_slip.posting_date)
+        tax_year = str(posting_date.year + 543)
+
+        print(f"📅 Employee: {salary_slip.employee}, Tax Year: {tax_year}, Posting Date: {posting_date}")
+
+        # Find or create ledger for employee and year
+        ledger_name = frappe.db.get_value(
+            "Employee Tax Ledger",
+            {"employee": salary_slip.employee, "tax_year": tax_year},
+            "name"
+        )
+
+        print(f"🔍 Existing ledger found: {ledger_name if ledger_name else 'None - will create new'}")
+
+        if not ledger_name:
+            # Create new ledger
+            print(f"✨ Creating new Employee Tax Ledger for {salary_slip.employee_name}")
+            ledger = frappe.new_doc("Employee Tax Ledger")
+            ledger.employee = salary_slip.employee
+            ledger.employee_name = salary_slip.employee_name
+            ledger.tax_year = tax_year
+            ledger.status = "Active"
+        else:
+            # Get existing ledger
+            print(f"📋 Using existing Employee Tax Ledger: {ledger_name}")
+            ledger = frappe.get_doc("Employee Tax Ledger", ledger_name)
+
+        # Add salary slip entry
+        print(f"💰 Adding salary slip entry: Gross={salary_slip.gross_pay}")
+        ledger.add_salary_slip_entry(salary_slip)
+        ledger.save()
+
+        print(f"✅ Employee Tax Ledger updated successfully: {ledger.name}")
+        return ledger.name
+
+    except Exception as e:
+        print(f"❌ Error updating Employee Tax Ledger: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+
+@frappe.whitelist()
+def update_from_salary_slip_api(salary_slip_name):
+    """API endpoint to update Employee Tax Ledger from Salary Slip name"""
     salary_slip = frappe.get_doc("Salary Slip", salary_slip_name)
-
-    # Get tax year (Buddhist Era)
-    posting_date = getdate(salary_slip.posting_date)
-    tax_year = str(posting_date.year + 543)
-
-    # Find or create ledger for employee and year
-    ledger_name = frappe.db.get_value(
-        "Employee Tax Ledger",
-        {"employee": salary_slip.employee, "tax_year": tax_year},
-        "name"
-    )
-
-    if not ledger_name:
-        # Create new ledger
-        ledger = frappe.new_doc("Employee Tax Ledger")
-        ledger.employee = salary_slip.employee
-        ledger.employee_name = salary_slip.employee_name
-        ledger.tax_year = tax_year
-        ledger.status = "Active"
-    else:
-        # Get existing ledger
-        ledger = frappe.get_doc("Employee Tax Ledger", ledger_name)
-
-    # Add salary slip entry
-    ledger.add_salary_slip_entry(salary_slip)
-    ledger.save()
-
-    return ledger.name
+    return update_from_salary_slip(salary_slip, "on_submit")
 
 
 @frappe.whitelist()
