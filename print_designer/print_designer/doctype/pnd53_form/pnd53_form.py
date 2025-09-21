@@ -13,13 +13,18 @@ class PND53Form(Document):
 		self.calculate_totals()
 
 	def autoname(self):
-		"""Custom naming with zero-padded month"""
+		"""Custom naming using YYMM-NNNNN pattern with monthly reset"""
 		if self.tax_period_month and self.tax_period_year:
-			# Pad month with zero for naming (e.g., 9 -> 09)
-			month_padded = str(self.tax_period_month).zfill(2)
-			# Generate series number
+			# Convert Buddhist year to 2-digit format (e.g., 2568 -> 68)
+			yy = str(self.tax_period_year)[-2:]
+			# Zero-pad month (e.g., 9 -> 09)
+			mm = str(self.tax_period_month).zfill(2)
+			# Create YYMM period identifier
+			period = f"{yy}{mm}"
+
+			# Generate sequential number with monthly reset
 			from frappe.model.naming import make_autoname
-			self.name = make_autoname(f"PND53-{self.tax_period_year}-{month_padded}-.###.")
+			self.name = make_autoname(f"PND53-{period}-.#####.")
 
 	def populate_wht_certificates(self):
 		"""Automatically populate WHT certificates based on tax period and form type"""
