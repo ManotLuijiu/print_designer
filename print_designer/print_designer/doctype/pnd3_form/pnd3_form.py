@@ -70,18 +70,35 @@ class PND3Form(Document):
 
 		sequence = 1
 		for cert in wht_certificates:
+			# Debug: Print cert object details
+			print(f"[PND3 Form] Processing cert #{sequence}:")
+			print(f"  🆔 cert.name: {getattr(cert, 'name', 'N/A')}")
+			print(f"  👤 cert.supplier_name: {getattr(cert, 'supplier_name', 'N/A')}")
+			print(f"  🏢 cert.supplier_tax_id: {getattr(cert, 'supplier_tax_id', 'N/A')}")
+			print(f"  💼 cert.income_type: {getattr(cert, 'income_type', 'N/A')}")
+			print(f"  📄 cert.income_description: {getattr(cert, 'income_description', 'N/A')}")
+			print(f"  💰 cert.tax_base_amount: {getattr(cert, 'tax_base_amount', 'N/A')}")
+			print(f"  📊 cert.wht_rate: {getattr(cert, 'wht_rate', 'N/A')}")
+			print(f"  💸 cert.wht_amount: {getattr(cert, 'wht_amount', 'N/A')}")
+			print(f"  🔗 cert.custom_pnd_form: {getattr(cert, 'custom_pnd_form', 'N/A')}")
+			print(f"  📋 cert.supplier_type_classification: {getattr(cert, 'supplier_type_classification', 'N/A')}")
+			print(f"  📅 cert.tax_month: {getattr(cert, 'tax_month', 'N/A')}")
+			print(f"  🏷️ All cert attributes: {[attr for attr in dir(cert) if not attr.startswith('_')]}")
+
 			# Add to PND3 Items child table
 			self.append("items", {
 				"sequence_number": sequence,
 				"withholding_tax_cert": cert.name,
-				"company_name": cert.supplier_name,
-				"company_tax_id": cert.supplier_tax_id,
+				"supplier_name": cert.supplier_name,  # Fixed: was "company_name"
+				"supplier_tax_id": cert.supplier_tax_id,
 				"income_type": cert.income_type,
 				"income_description": cert.income_description,
 				"gross_amount": cert.tax_base_amount,
 				"wht_rate": cert.wht_rate,
 				"tax_amount": cert.wht_amount
 			})
+
+			print(f"[PND3 Form] ✅ Added item {sequence} with cert: {cert.name}")
 			sequence += 1
 
 	def calculate_totals(self):
