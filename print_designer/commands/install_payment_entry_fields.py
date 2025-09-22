@@ -11,7 +11,7 @@ Enhanced with validation, error handling, and comprehensive Thai tax integration
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.utils import flt, cint
+from frappe.utils import cint, flt
 
 
 def install_payment_entry_custom_fields():
@@ -77,7 +77,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             # Left Column - WHT (Withholding Tax) Fields (matches Sales Invoice structure)
             {
                 "fieldname": "wht_amounts_column_break",
@@ -90,7 +89,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             # VAT Treatment (Foundation field - matches Sales Invoice exactly)
             {
                 "fieldname": "vat_treatment",
@@ -108,7 +106,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             # WHT Chain (matches Sales Invoice exactly)
             {
                 "fieldname": "subject_to_wht",
@@ -123,7 +120,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "wht_income_type",
                 "fieldtype": "Select",
@@ -138,7 +134,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "wht_description",
                 "fieldtype": "Data",
@@ -152,7 +147,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "wht_certificate_required",
                 "fieldtype": "Check",
@@ -166,7 +160,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "net_total_after_wht",
                 "fieldtype": "Currency",
@@ -180,7 +173,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "net_total_after_wht_in_words",
                 "fieldtype": "Data",
@@ -194,7 +186,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "wht_note",
                 "fieldtype": "Small Text",
@@ -210,7 +201,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             # Right Column - Retention Fields (matches Sales Invoice exactly)
             {
                 "fieldname": "wht_preview_column_break",
@@ -222,7 +212,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             # Retention Chain (matches Sales Invoice exactly)
             {
                 "fieldname": "custom_subject_to_retention",
@@ -237,7 +226,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "custom_net_total_after_wht_retention",
                 "fieldtype": "Currency",
@@ -252,7 +240,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "custom_net_total_after_wht_retention_in_words",
                 "fieldtype": "Data",
@@ -267,7 +254,6 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-
             {
                 "fieldname": "custom_retention_note",
                 "fieldtype": "Small Text",
@@ -344,12 +330,12 @@ def force_remove_depends_on_conditions():
 
         # Fields that should NOT have depends_on conditions
         fields_to_fix = [
-            'wht_income_type',
-            'wht_description',
-            'wht_certificate_required',
-            'net_total_after_wht',
-            'net_total_after_wht_in_words',
-            'wht_note'
+            "wht_income_type",
+            "wht_description",
+            "wht_certificate_required",
+            "net_total_after_wht",
+            "net_total_after_wht_in_words",
+            "wht_note",
         ]
 
         updated_count = 0
@@ -357,18 +343,18 @@ def force_remove_depends_on_conditions():
             try:
                 # Get the Custom Field record
                 custom_field_name = frappe.db.get_value(
-                    'Custom Field',
-                    {'dt': 'Payment Entry', 'fieldname': fieldname},
-                    'name'
+                    "Custom Field", {"dt": "Payment Entry", "fieldname": fieldname}, "name"
                 )
 
                 if custom_field_name:
                     # Check if it has a depends_on condition
-                    current_depends_on = frappe.db.get_value('Custom Field', custom_field_name, 'depends_on')
+                    current_depends_on = frappe.db.get_value(
+                        "Custom Field", custom_field_name, "depends_on"
+                    )
 
                     if current_depends_on:
                         # Force remove the depends_on condition
-                        frappe.db.set_value('Custom Field', custom_field_name, 'depends_on', '')
+                        frappe.db.set_value("Custom Field", custom_field_name, "depends_on", "")
                         updated_count += 1
                         print(f"   ✅ Cleared depends_on for {fieldname}")
                     else:
@@ -507,13 +493,9 @@ def check_payment_entry_fields_status():
             print("\n📋 Current Field Order:")
             for i, field in enumerate(current_fields, 1):
                 insert_after = (
-                    f" | after: {field['insert_after']}"
-                    if field["insert_after"]
-                    else ""
+                    f" | after: {field['insert_after']}" if field["insert_after"] else ""
                 )
-                print(
-                    f"{i:2d}. {field['fieldname']:<45} | {field['fieldtype']:<15}{insert_after}"
-                )
+                print(f"{i:2d}. {field['fieldname']:<45} | {field['fieldtype']:<15}{insert_after}")
         else:
             print("❌ No Payment Entry custom fields found")
 
@@ -582,7 +564,7 @@ def uninstall_payment_entry_custom_fields():
                 custom_fields = frappe.get_all(
                     "Custom Field",
                     filters={"dt": "Payment Entry", "fieldname": fieldname},
-                    fields=["name"]
+                    fields=["name"],
                 )
 
                 for field in custom_fields:
@@ -601,10 +583,7 @@ def uninstall_payment_entry_custom_fields():
         else:
             print("ℹ️ No Payment Entry Thai tax preview fields found to remove")
 
-        return {
-            "success": True,
-            "removed_count": removed_count
-        }
+        return {"success": True, "removed_count": removed_count}
 
     except Exception as e:
         error_msg = f"Error removing Payment Entry Thai tax preview fields: {str(e)}"
@@ -624,70 +603,63 @@ def check_and_fix_depends_on_issues():
 
         # Fields that should NOT have depends_on conditions
         problem_fields = [
-            'wht_income_type',
-            'wht_description',
-            'wht_certificate_required',
-            'net_total_after_wht',
-            'net_total_after_wht_in_words',
-            'wht_note'
+            "wht_income_type",
+            "wht_description",
+            "wht_certificate_required",
+            "net_total_after_wht",
+            "net_total_after_wht_in_words",
+            "wht_note",
         ]
 
-        print('🔍 Checking Payment Entry custom fields depends_on in DATABASE:')
+        print("🔍 Checking Payment Entry custom fields depends_on in DATABASE:")
 
         # Get all Payment Entry custom fields
         custom_fields = frappe.get_all(
-            'Custom Field',
-            filters={'dt': 'Payment Entry'},
-            fields=['fieldname', 'depends_on', 'name'],
-            order_by='idx asc'
+            "Custom Field",
+            filters={"dt": "Payment Entry"},
+            fields=["fieldname", "depends_on", "name"],
+            order_by="idx asc",
         )
 
         issues_found = []
 
         for field in custom_fields:
             fieldname = field.fieldname
-            depends_on = field.depends_on or ''
+            depends_on = field.depends_on or ""
 
             if fieldname in problem_fields:
                 if depends_on:
                     print(f'   ❌ {fieldname}: depends_on = "{depends_on}" (SHOULD BE EMPTY)')
-                    issues_found.append({
-                        'fieldname': fieldname,
-                        'depends_on': depends_on,
-                        'name': field.name
-                    })
+                    issues_found.append(
+                        {"fieldname": fieldname, "depends_on": depends_on, "name": field.name}
+                    )
                 else:
                     print(f'   ✅ {fieldname}: depends_on = "" (CORRECT)')
 
         if issues_found:
-            print(f'\n❌ Found {len(issues_found)} fields with problematic depends_on conditions')
-            print('🔧 Fixing these fields...')
+            print(f"\n❌ Found {len(issues_found)} fields with problematic depends_on conditions")
+            print("🔧 Fixing these fields...")
 
             for issue in issues_found:
                 try:
                     # Update the Custom Field to remove depends_on
-                    frappe.db.set_value('Custom Field', issue['name'], 'depends_on', '')
+                    frappe.db.set_value("Custom Field", issue["name"], "depends_on", "")
                     print(f'   ✅ Fixed {issue["fieldname"]} - removed depends_on condition')
                 except Exception as e:
                     print(f'   ❌ Error fixing {issue["fieldname"]}: {str(e)}')
 
             frappe.db.commit()
-            print('✅ Database changes committed')
+            print("✅ Database changes committed")
 
             return {
                 "success": True,
                 "issues_found": len(issues_found),
                 "issues_fixed": len(issues_found),
-                "fixed_fields": [issue['fieldname'] for issue in issues_found]
+                "fixed_fields": [issue["fieldname"] for issue in issues_found],
             }
         else:
-            print('\n✅ All fields have correct depends_on conditions')
-            return {
-                "success": True,
-                "issues_found": 0,
-                "issues_fixed": 0,
-                "fixed_fields": []
-            }
+            print("\n✅ All fields have correct depends_on conditions")
+            return {"success": True, "issues_found": 0, "issues_fixed": 0, "fixed_fields": []}
 
     except Exception as e:
         error_msg = f"Error checking depends_on issues: {str(e)}"
