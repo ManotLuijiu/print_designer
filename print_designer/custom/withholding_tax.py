@@ -58,15 +58,80 @@ def calculate_withholding_tax(doc, method=None):
 def get_base_amount_for_wht(doc):
     """
     Get base amount for WHT calculation based on DocType
+    Enhanced to handle mixed purchases (service + stock/asset items)
+
+    Thai Revenue Department Ruling กค 0702/9274 (10 Nov 2552):
+    - If separate line items: WHT 3% on service amount only
+    - If combined line: No WHT (treated as goods sale)
     """
     if doc.doctype == "Purchase Invoice":
-        return flt(doc.grand_total)
+        # Check if this is a mixed purchase with separated service items
+        if has_separated_service_items(doc):
+            # Calculate WHT only on service item amounts (Thai tax compliance)
+            return get_service_amount_for_wht(doc)
+        else:
+            # Single combined item or pure goods - use grand total
+            return flt(doc.grand_total)
     elif doc.doctype == "Payment Entry":
         if doc.payment_type == "Pay":
             return flt(doc.paid_amount)
         else:
             return flt(doc.received_amount)
     return 0
+
+
+def has_separated_service_items(purchase_invoice):
+    """
+    Check if purchase invoice has service items as separate line items
+    (not combined with goods in single line)
+
+    Returns True if ANY service item exists as separate line
+    """
+    for item in purchase_invoice.items:
+        item_doc = frappe.get_doc("Item", item.item_code)
+        if item_doc.is_stock_item == 0:  # Service item
+            return True
+    return False
+
+
+def get_service_amount_for_wht(purchase_invoice):
+    """
+    Calculate base amount only from service items (excluding stock/asset items)
+
+    Thai Revenue Department Ruling กค 0702/9274:
+    WHT 3% applies only to service/installation fees when separated from goods
+
+    Examples:
+    - Machine ฿100,000 + Installation ฿10,000 → WHT on ฿10,000 only
+    - Consulting ฿10,000 + Laptop ฿50,000 → WHT on ฿10,000 only
+    - Parts ฿5,000 + Repair ฿3,000 → WHT on ฿8,000 total (maintenance)
+    """
+    service_amount = 0
+    has_maintenance = False
+
+    # Check if this is maintenance/repair service
+    for item in purchase_invoice.items:
+        item_doc = frappe.get_doc("Item", item.item_code)
+        item_group = getattr(item_doc, 'item_group', '').lower()
+        item_desc = (item.description or '').lower()
+
+        # Detect maintenance/repair keywords
+        maintenance_keywords = ['repair', 'maintenance', 'ซ่อม', 'บำรุง', 'รักษา']
+        if any(keyword in item_group or keyword in item_desc for keyword in maintenance_keywords):
+            has_maintenance = True
+            break
+
+    # Thai Tax Rule: Maintenance = WHT on total (parts + labor)
+    if has_maintenance:
+        return flt(purchase_invoice.grand_total)
+
+    # Normal case: WHT only on service items
+    for item in purchase_invoice.items:
+        item_doc = frappe.get_doc("Item", item.item_code)
+        if item_doc.is_stock_item == 0:  # Service item only
+            service_amount += flt(item.amount)
+
+    return service_amount
 
 
 def generate_certificate_number(doc):

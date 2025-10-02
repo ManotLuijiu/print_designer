@@ -93,20 +93,47 @@ def calculate_thai_compliant_wht(doc):
 def get_wht_calculation_base(doc):
     """
     Get the correct base amount for WHT calculation.
-    Thai WHT should be calculated on net amount before VAT.
+    Thai WHT should be calculated ONLY on service items, not assets/goods.
+    WHT applies to: Item.pd_custom_is_service_item = 1
     """
 
-    # Priority order for base amount selection
-    if hasattr(doc, 'net_total') and doc.net_total:
-        return flt(doc.net_total)
-    elif hasattr(doc, 'base_net_total') and doc.base_net_total:
-        return flt(doc.base_net_total)
-    elif hasattr(doc, 'total') and doc.total:
-        return flt(doc.total)
-    else:
-        # Fallback: calculate net total from items
-        net_total = sum(flt(item.amount) for item in doc.items if item.amount)
-        return flt(net_total)
+    # Calculate WHT base from SERVICE ITEMS ONLY
+    # WHT does not apply to assets/goods, only to services
+    service_items_total = 0.0
+
+    print(f"\n🔍 DEBUG: WHT Base Calculation for {doc.doctype} {doc.name}")
+    print(f"📦 DEBUG: Document has {len(doc.items) if hasattr(doc, 'items') else 0} items")
+
+    if hasattr(doc, 'items') and doc.items:
+        for idx, item in enumerate(doc.items):
+            item_amount = flt(item.amount)
+            item_code = getattr(item, 'item_code', 'Unknown')
+
+            print(f"  Item {idx + 1}: {item_code}")
+            print(f"    - amount: {item_amount}")
+
+            # Check if item is a service item by querying Item master
+            is_service = 0
+            if item_code and item_code != 'Unknown':
+                try:
+                    item_doc = frappe.get_cached_doc('Item', item_code)
+                    is_service = getattr(item_doc, 'pd_custom_is_service_item', 0)
+                    print(f"    - Item master pd_custom_is_service_item: {is_service}")
+                except Exception as e:
+                    print(f"    ⚠️ Could not fetch Item master: {e}")
+                    is_service = 0
+
+            if is_service:
+                # Sum only service item amounts
+                service_items_total += item_amount
+                print(f"    ✅ INCLUDED in WHT calculation (Service Item)")
+            else:
+                print(f"    ❌ EXCLUDED from WHT calculation (Asset/Good)")
+
+    print(f"💰 DEBUG: Total Service Items Amount (WHT Base): {service_items_total}")
+    print(f"📊 DEBUG: Document net_total for comparison: {getattr(doc, 'net_total', 0)}")
+
+    return flt(service_items_total)
 
 
 def update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment):
@@ -168,12 +195,56 @@ def validate_thai_wht_configuration(doc, method=None):
                 frappe.throw(_("Withholding Tax percentage is required. Please set either in this document or configure a default rate in Company settings."))
 
     # Validate VAT treatment for TDS transactions
+    # Only suggest VAT Undue if document has single item type (not mixed assets + services)
     vat_treatment = getattr(doc, 'vat_treatment', '')
     if vat_treatment and vat_treatment not in ['VAT Undue (7%)', 'Exempt from VAT']:
-        frappe.msgprint(
-            _("Consider using 'VAT Undue (7%)' for TDS transactions to comply with Thai tax regulations"),
-            indicator='yellow'
-        )
+        # Check if document has mixed item types
+        has_mixed_item_types = _check_mixed_item_types(doc)
+
+        # Only show VAT Undue suggestion for single-item-type documents
+        if not has_mixed_item_types:
+            frappe.msgprint(
+                _("Consider using 'VAT Undue (7%)' for TDS transactions to comply with Thai tax regulations"),
+                indicator='yellow'
+            )
+
+
+def _check_mixed_item_types(doc):
+    """
+    Check if document contains mixed item types (both assets and services).
+    VAT point occurs immediately for mixed documents, so VAT Undue is not applicable.
+
+    Args:
+        doc: Purchase Invoice or Purchase Order document
+
+    Returns:
+        bool: True if document has mixed item types (assets + services), False otherwise
+    """
+    if not hasattr(doc, 'items') or not doc.items:
+        return False
+
+    has_assets = False
+    has_services = False
+
+    for item in doc.items:
+        # Check if item is an asset or service
+        if hasattr(item, 'item_code') and item.item_code:
+            item_doc = frappe.get_cached_doc('Item', item.item_code)
+            is_fixed_asset = getattr(item_doc, 'is_fixed_asset', 0)
+            is_stock_item = getattr(item_doc, 'is_stock_item', 0)
+
+            # Asset: is_fixed_asset = 1 OR is_stock_item = 1 (goods)
+            # Service: is_fixed_asset = 0 AND is_stock_item = 0
+            if is_fixed_asset or is_stock_item:
+                has_assets = True
+            else:
+                has_services = True
+
+        # Early exit if we found both types
+        if has_assets and has_services:
+            return True
+
+    return False
 
 
 @frappe.whitelist()
