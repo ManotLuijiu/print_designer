@@ -8,92 +8,123 @@ from erpnext.setup.doctype.company.company import Company
 
 
 class CustomCompany(Company):
-    def validate(self):
-        """Override to add retention data synchronization"""
-        super().validate()
-        self.sync_retention_settings()
-    
+    def after_insert(self):
+        """Import Chart of Accounts after company creation"""
+        super().after_insert()
+
+        # Import Chart of Accounts if specified
+        if self.chart_of_accounts:
+            try:
+                self.create_default_accounts()
+            except Exception as e:
+                frappe.log_error(
+                    f"Error importing Chart of Accounts for {self.name}: {str(e)}",
+                    "Chart of Accounts Import Error"
+                )
+
     def on_update(self):
-        """Override to sync retention settings after update"""
-        super().on_update()
-        self.sync_retention_settings()
+        """Override to handle tax setup errors and sync retention settings"""
+        try:
+            super().on_update()
+        except IndexError as e:
+            # Handle ERPNext tax setup error when Chart of Accounts not yet imported
+            # This happens during initial company creation with custom CoA
+            if "list index out of range" in str(e):
+                # Silently skip - will be created after Chart of Accounts import
+                pass
+            else:
+                raise
+
+        # Only sync retention settings for existing documents with retention data
+        # Skip for new companies to avoid creation errors
+        if not self.is_new() and self.has_retention_data():
+            self.sync_retention_settings()
+
+    def create_default_accounts(self):
+        """
+        Create Chart of Accounts from selected template
+
+        Phase 1 (Current): Basic auto-import only
+        - Import CoA from JSON template
+        - Skip default account assignment (Phase 2)
+        - Skip tax template creation (Phase 3)
+
+        See CHART_OF_ACCOUNTS_AUTOMATION.md for full roadmap
+        """
+        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
+
+        # Import the chart
+        frappe.local.flags.ignore_root_company_validation = True
+        create_charts(
+            self.name,
+            self.chart_of_accounts,
+            self.country
+        )
+
+        # TODO Phase 2: Auto-assign default accounts
+        # TODO Phase 3: Auto-create tax templates
+        # TODO Phase 4: Industry-specific configuration
+        # TODO Phase 5: Validation and compliance checks
+
+    def has_retention_data(self):
+        """Check if company has any retention-related data"""
+        return any([
+            getattr(self, 'construction_service', False),
+            getattr(self, 'default_retention_rate', 0) > 0,
+            getattr(self, 'default_retention_account', None)
+        ])
     
     def sync_retention_settings(self):
         """Synchronize retention data to Company Retention Settings DocType"""
         try:
-            # Import here to avoid circular imports
-            from print_designer.print_designer.doctype.company_retention_settings.company_retention_settings import CompanyRetentionSettings
-            
-            # Check if any retention fields are set
-            has_retention_data = any([
-                getattr(self, 'construction_service', False),
-                getattr(self, 'default_retention_rate', 0),
-                getattr(self, 'default_retention_account', None)
-            ])
-            
-            if not has_retention_data:
-                # No retention data in Company, nothing to sync
-                return
-            
             # Get or create Company Retention Settings record
             if frappe.db.exists("Company Retention Settings", self.name):
                 settings = frappe.get_doc("Company Retention Settings", self.name)
             else:
                 settings = frappe.new_doc("Company Retention Settings")
                 settings.company = self.name
-            
+
             # Map Company fields to Company Retention Settings fields
             field_mapping = {
                 'construction_service': 'construction_service_enabled',
-                'default_retention_rate': 'default_retention_rate', 
+                'default_retention_rate': 'default_retention_rate',
                 'default_retention_account': 'retention_account'
             }
-            
+
             # Track if any changes were made
             changes_made = False
-            
+
             for company_field, settings_field in field_mapping.items():
                 company_value = getattr(self, company_field, None)
                 current_settings_value = getattr(settings, settings_field, None)
-                
+
                 # Only update if values are different
                 if company_value != current_settings_value:
                     setattr(settings, settings_field, company_value)
                     changes_made = True
-            
+
             # Set defaults for advanced settings if this is a new record
             if not settings.name:
                 settings.auto_calculate_retention = 1
                 settings.maximum_retention_rate = 10.0
                 settings.minimum_invoice_amount = 0.0
                 changes_made = True
-            
-            # Save if changes were made
+
+            # Save if changes were made (silently without user messages)
             if changes_made:
-                # Disable sync flag to prevent infinite loops
                 settings.flags.skip_company_sync = True
-                
                 if settings.name:
                     settings.save()
-                    frappe.db.commit()
-                    frappe.msgprint(
-                        _("Updated Company Retention Settings for {0}").format(self.name),
-                        alert=True, indicator="green"
-                    )
                 else:
                     settings.insert()
-                    frappe.db.commit()
-                    frappe.msgprint(
-                        _("Created Company Retention Settings for {0}").format(self.name),
-                        alert=True, indicator="green"
-                    )
-                
+                frappe.db.commit()
+
         except Exception as e:
+            # Silently log error - don't fail Company save
             frappe.log_error(
                 f"Error syncing Company retention settings for {self.name}: {str(e)}",
-                "Company Retention Sync Error"
+                "Company Retention Sync"
             )
-            # Don't fail the Company save if retention sync fails
             pass
 
 

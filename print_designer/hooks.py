@@ -508,6 +508,7 @@ after_install = [
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Install Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.execute",  # Install Purchase Order Thai tax compliance fields
+    "print_designer.commands.install_item_service_field.install_item_service_field",  # Install Item Is Service field (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Install Item WHT Income Type field for smart automation
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
@@ -549,6 +550,7 @@ after_migrate = [
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
+    "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
@@ -568,7 +570,8 @@ before_uninstall = [
     "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",  # Remove Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
-    "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field
+    "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
+    "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
