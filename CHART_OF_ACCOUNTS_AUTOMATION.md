@@ -433,9 +433,9 @@ def get_children(parent, company, name_field="account_name"):
     "is_group": 1,
     "thai_account": "เงินฝากกระแสรายวัน",
 
-    "Kasikorn - Current 711-1-04156-8": {
+    "Kasikorn - Current XXX-X-XXXXX-X": {
       "account_number": "1112-01",
-      "thai_account": "กสิกรไทย/กระแสฯ 711-1-04156-8",
+      "thai_account": "กสิกรไทย/กระแสฯ XXX-X-XXXXX-X",
       "_meta": {
         "default_for": "bank",
         "auto_assign_field": "default_bank_account",
@@ -477,7 +477,8 @@ Use placeholder pattern for bank account numbers in JSON:
         "bank_name_en": "Kasikorn",
         "account_type": "CURRENT",
         "account_type_th": "กระแสรายวัน",
-        "variable_name": "kasikorn_current_account"
+        "variable_name": "kasikorn_current_account",
+        "placeholder": "e.g., 123-4-56789-0"
       }
     },
 
@@ -715,7 +716,7 @@ def build_bank_selection_html(bank_templates, thai_banks):
                        class="form-control bank-account-input"
                        id="{variable_name}"
                        name="{variable_name}"
-                       placeholder="e.g., 711-1-04156-8"
+                       placeholder="e.g., 123-4-56789-0"
                        data-bank-code="{bank_code}"
                        data-account-type="{account_type}">
                 <p class="help-text">Enter account number without bank code</p>
@@ -809,7 +810,7 @@ def create_default_accounts_with_variables(self, bank_account_variables):
 
     Args:
         bank_account_variables: Dict of {variable_name: account_number}
-        Example: {"kasikorn_current_account": "711-1-04156-8"}
+        Example: {"kasikorn_current_account": "123-4-56789-0"}
     """
     from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import get_chart, create_charts
 
@@ -877,7 +878,7 @@ def substitute_placeholders(text, variables):
     Replace {{variable}} with actual value
 
     Example: "Kasikorn - Current {{kasikorn_current_account}}"
-         --> "Kasikorn - Current 711-1-04156-8"
+         --> "Kasikorn - Current 123-4-56789-0"
     """
     import re
 
@@ -948,14 +949,14 @@ class CustomCompany(Company):
    - Input fields for account numbers (shown only when bank is selected)
 3. **User Selection**:
    - User checks "Kasikorn Bank" → Input field appears for Current Account number
-   - User enters "711-1-04156-8"
+   - User enters their actual account number (e.g., "123-4-56789-0")
    - User checks "Bangkok Bank" → Input field appears for Savings Account number
-   - User enters "123-4-56789-0"
+   - User enters their actual account number (e.g., "987-6-54321-0")
 4. **Chart Import**: System creates accounts with actual values:
-   - "Kasikorn - Current 711-1-04156-8" (English)
-   - "กสิกรไทย/กระแสฯ 711-1-04156-8" (Thai)
-   - "Bangkok Bank - Savings 123-4-56789-0"
-   - "กรุงเทพ/ออมทรัพย์ 123-4-56789-0"
+   - "Kasikorn - Current 123-4-56789-0" (English)
+   - "กสิกรไทย/กระแสฯ 123-4-56789-0" (Thai)
+   - "Bangkok Bank - Savings 987-6-54321-0"
+   - "กรุงเทพ/ออมทรัพย์ 987-6-54321-0"
 5. **Accounts Not Selected**: Banks not checked are simply not created (optional accounts)
 
 **Benefits**:
