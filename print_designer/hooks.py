@@ -179,201 +179,201 @@ doctype_js = {
 fixtures = [
     {"doctype": "Print Format", "filters": [["module", "=", "Print Designer"]]},
     {"doctype": "Report", "filters": [["module", "=", "Print Designer"]]},
-    {
-        "doctype": "Custom Field",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    # Company DocType - All Custom Fields for Print Designer
-                    # Company - Stamps & Signatures Fields (relocated to proper sections)
-                    "Company-company_signatures_section",
-                    "Company-authorized_signature_1",
-                    "Company-authorized_signature_2",
-                    "Company-ceo_signature",
-                    "Company-company_stamps_section",
-                    "Company-company_stamp_1",
-                    "Company-company_stamp_2",
-                    "Company-official_seal",
-                    # Company - Thai Business Configuration
-                    "Company-thailand_service_business",
-                    "Company-default_wht_account",
-                    "Company-default_wht_rate",
-                    "Company-default_output_vat_undue_account",
-                    "Company-default_output_vat_account",
-                    "Company-default_input_vat_undue_account",
-                    "Company-default_input_vat_account",
-                    "Company-construction_service",
-                    "Company-default_retention_rate",
-                    "Company-default_retention_account",
-                    # Company - Retention Settings
-                    "Company-retention_section",
-                    "Company-retention_enabled",
-                    "Company-retention_percentage",
-                    "Company-retention_account",
-                    "Company-retention_description",
-                    "Company-retention_notes",
-                    # Company - Thai WHT Settings
-                    "Company-thai_wht_section",
-                    "Company-wht_enabled",
-                    "Company-default_wht_rate",
-                    "Company-wht_liability_account",
-                    "Company-wht_description",
-                    "Company-wht_certificate_required",
-                    # Company - Typography Settings
-                    "Company-typography_section",
-                    "Company-default_print_font",
-                    "Company-enable_thai_fonts",
-                    "Company-custom_css_styles",
-                    # Company - Watermark Settings
-                    "Company-watermark_section",
-                    "Company-default_watermark_text",
-                    "Company-watermark_enabled",
-                    "Company-watermark_position",
-                    "Company-watermark_opacity",
-                    # Company - Print Format Settings
-                    "Company-print_format_section",
-                    "Company-default_print_format",
-                    "Company-enable_company_signature",
-                    "Company-auto_apply_watermark",
-                    # Company - Document Numbering
-                    "Company-document_numbering_section",
-                    "Company-custom_invoice_prefix",
-                    "Company-enable_thai_numbering",
-                    "Company-thai_business_registration",
-                    "Company-vat_registration_number",
-                    # Employee - Thai Tax ID
-                    "Employee-pd_custom_thai_tax_id",
-                    # Account - Thai Translation Fields
-                    "Account-account_name_th",
-                    "Account-auto_translate_thai",
-                    "Account-thai_notes",
-                    # Sales Invoice - Signature Fields
-                    "Sales Invoice-prepared_by_signature",
-                    "Sales Invoice-approved_by_signature",
-                    # Sales Invoice - Watermark Field
-                    "Sales Invoice-watermark_text",
-                    # Sales Invoice - Digisoft ERP Tab
-                    "Sales Invoice-digisoft_erp_tab",
-                    # Removed redundant Thai Tax Information Fields - using thai_wht_preview_section instead
-                    # Sales Invoice - Thai Compliance Fields
-                    "Sales Invoice-thai_compliance_section",
-                    "Sales Invoice-thai_vat_eligible",
-                    "Sales Invoice-thai_export_eligible",
-                    "Sales Invoice-thai_cash_receipt",
-                    # Sales Invoice - VAT Treatment Field
-                    "Sales Invoice-custom_vat_treatment",
-                    # Sales Invoice - WHT (Withholding Tax) Fields
-                    "Sales Invoice-subject_to_wht",
-                    "Sales Invoice-wht_income_type",
-                    "Sales Invoice-wht_description",
-                    "Sales Invoice-wht_certificate_required",
-                    "Sales Invoice-net_total_after_wht",
-                    "Sales Invoice-net_total_after_wht_in_words",
-                    "Sales Invoice-wht_note",
-                    # Sales Invoice - Thai WHT Preview Fields
-                    "Sales Invoice-thai_wht_preview_section",
-                    "Sales Invoice-wht_amounts_column_break",
-                    "Sales Invoice-wht_preview_column_break",
-                    # Sales Invoice - Retention System Fields
-                    "Sales Invoice-custom_subject_to_retention",
-                    "Sales Invoice-custom_net_total_after_wht_retention",
-                    "Sales Invoice-custom_net_total_after_wht_retention_in_words",
-                    "Sales Invoice-custom_retention_note",
-                    "Sales Invoice-custom_retention",
-                    "Sales Invoice-custom_retention_amount",
-                    "Sales Invoice-custom_withholding_tax",
-                    "Sales Invoice-custom_withholding_tax_amount",
-                    "Sales Invoice-custom_payment_amount",
-                    # Quotation - Signature Fields
-                    "Quotation-prepared_by_signature",
-                    # Quotation - Watermark Field
-                    "Quotation-watermark_text",
-                    # Quotation - VAT Treatment Field
-                    "Quotation-vat_treatment",
-                    # Quotation - WHT (Withholding Tax) Fields
-                    "Quotation-wht_note",
-                    "Quotation-subject_to_wht",
-                    "Quotation-wht_description",
-                    "Quotation-wht_income_type",
-                    "Quotation-net_total_after_wht_in_words",
-                    "Quotation-net_total_after_wht",
-                    # Quotation - Thai WHT Preview Fields
-                    "Quotation-thai_wht_preview_section",
-                    "Quotation-wht_amounts_column_break",
-                    "Quotation-wht_preview_column_break",
-                    # Quotation - Retention System Fields
-                    "Quotation-custom_subject_to_retention",
-                    "Quotation-custom_net_total_after_wht_retention",
-                    "Quotation-custom_net_total_after_wht_retention_in_words",
-                    "Quotation-custom_retention",
-                    "Quotation-custom_retention_amount",
-                    "Quotation-custom_retention_note",
-                    "Quotation-custom_withholding_tax",
-                    "Quotation-custom_withholding_tax_amount",
-                    "Quotation-custom_payment_amount",
-                    # Sales Order - Signature Fields
-                    "Sales Order-prepared_by_signature",
-                    "Sales Order-approved_by_signature",
-                    # Sales Order - Watermark Field
-                    "Sales Order-watermark_text",
-                    # Sales Order - Deposit Fields
-                    "Sales Order-has_deposit",
-                    "Sales Order-deposit_invoice",
-                    "Sales Order-percent_deposit",
-                    "Sales Order-column_break_euapx",
-                    "Sales Order-section_break_o8q38",
-                    "Sales Order-deposit_deduction_method",
-                    # Sales Order - VAT Treatment Field
-                    "Sales Order-custom_vat_treatment",
-                    # Sales Order - WHT (Withholding Tax) Fields
-                    "Sales Order-subject_to_wht",
-                    "Sales Order-wht_note",
-                    "Sales Order-wht_description",
-                    "Sales Order-wht_income_type",
-                    "Sales Order-net_total_after_wht_in_words",
-                    "Sales Order-net_total_after_wht",
-                    # Sales Order - Thai WHT Preview Fields
-                    "Sales Order-thai_wht_preview_section",
-                    "Sales Order-wht_amounts_column_break",
-                    "Sales Order-wht_preview_column_break",
-                    # Sales Order - Retention System Fields
-                    "Sales Order-custom_subject_to_retention",
-                    "Sales Order-custom_net_total_after_wht_retention",
-                    "Sales Order-custom_net_total_after_wht_retention_in_words",
-                    "Sales Order-custom_retention_note",
-                    "Sales Order-custom_retention",
-                    "Sales Order-custom_retention_amount",
-                    "Sales Order-custom_withholding_tax",
-                    "Sales Order-custom_withholding_tax_amount",
-                    "Sales Order-custom_payment_amount",
-                    # Customer - Thai WHT Configuration Fields (Print Designer Section)
-                    "Customer-print_designer_wht_section",
-                    "Customer-print_designer_wht_column_1",
-                    "Customer-subject_to_wht",
-                    "Customer-wht_income_type",
-                    "Customer-custom_wht_rate",
-                    "Customer-print_designer_wht_column_2",
-                    "Customer-is_juristic_person",
-                    # Payment Entry - Thai Tax Compliance Fields
-                    "Payment Entry-pd_custom_thai_compliance_tab",
-                    "Payment Entry-pd_custom_thai_tax_column_1",
-                    "Payment Entry-pd_custom_tax_base_amount",
-                    "Payment Entry-pd_custom_tax_invoice_number",
-                    "Payment Entry-pd_custom_tax_invoice_date",
-                    "Payment Entry-pd_custom_income_type",
-                    "Payment Entry-pd_custom_thai_tax_column_2",
-                    "Payment Entry-pd_custom_wht_certificate_no",
-                    "Payment Entry-pd_custom_wht_certificate_date",
-                    "Payment Entry-pd_custom_withholding_tax_amount",
-                    "Payment Entry-pd_custom_withholding_tax_rate",
-                    "Payment Entry-pd_custom_net_payment_amount",
-                    "Payment Entry-pd_custom_apply_withholding_tax",
-                ],
-            ]
-        ],
-    },
+    # {
+    #     "doctype": "Custom Field",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 # Company DocType - All Custom Fields for Print Designer
+    #                 # Company - Stamps & Signatures Fields (relocated to proper sections)
+    #                 "Company-company_signatures_section",
+    #                 "Company-authorized_signature_1",
+    #                 "Company-authorized_signature_2",
+    #                 "Company-ceo_signature",
+    #                 "Company-company_stamps_section",
+    #                 "Company-company_stamp_1",
+    #                 "Company-company_stamp_2",
+    #                 "Company-official_seal",
+    #                 # Company - Thai Business Configuration
+    #                 "Company-thailand_service_business",
+    #                 "Company-default_wht_account",
+    #                 "Company-default_wht_rate",
+    #                 "Company-default_output_vat_undue_account",
+    #                 "Company-default_output_vat_account",
+    #                 "Company-default_input_vat_undue_account",
+    #                 "Company-default_input_vat_account",
+    #                 "Company-construction_service",
+    #                 "Company-default_retention_rate",
+    #                 "Company-default_retention_account",
+    #                 # Company - Retention Settings
+    #                 "Company-retention_section",
+    #                 "Company-retention_enabled",
+    #                 "Company-retention_percentage",
+    #                 "Company-retention_account",
+    #                 "Company-retention_description",
+    #                 "Company-retention_notes",
+    #                 # Company - Thai WHT Settings
+    #                 "Company-thai_wht_section",
+    #                 "Company-wht_enabled",
+    #                 "Company-default_wht_rate",
+    #                 "Company-wht_liability_account",
+    #                 "Company-wht_description",
+    #                 "Company-wht_certificate_required",
+    #                 # Company - Typography Settings
+    #                 "Company-typography_section",
+    #                 "Company-default_print_font",
+    #                 "Company-enable_thai_fonts",
+    #                 "Company-custom_css_styles",
+    #                 # Company - Watermark Settings
+    #                 "Company-watermark_section",
+    #                 "Company-default_watermark_text",
+    #                 "Company-watermark_enabled",
+    #                 "Company-watermark_position",
+    #                 "Company-watermark_opacity",
+    #                 # Company - Print Format Settings
+    #                 "Company-print_format_section",
+    #                 "Company-default_print_format",
+    #                 "Company-enable_company_signature",
+    #                 "Company-auto_apply_watermark",
+    #                 # Company - Document Numbering
+    #                 "Company-document_numbering_section",
+    #                 "Company-custom_invoice_prefix",
+    #                 "Company-enable_thai_numbering",
+    #                 "Company-thai_business_registration",
+    #                 "Company-vat_registration_number",
+    #                 # Employee - Thai Tax ID
+    #                 "Employee-pd_custom_thai_tax_id",
+    #                 # Account - Thai Translation Fields
+    #                 "Account-account_name_th",
+    #                 "Account-auto_translate_thai",
+    #                 "Account-thai_notes",
+    #                 # Sales Invoice - Signature Fields
+    #                 "Sales Invoice-prepared_by_signature",
+    #                 "Sales Invoice-approved_by_signature",
+    #                 # Sales Invoice - Watermark Field
+    #                 "Sales Invoice-watermark_text",
+    #                 # Sales Invoice - Digisoft ERP Tab
+    #                 "Sales Invoice-digisoft_erp_tab",
+    #                 # Removed redundant Thai Tax Information Fields - using thai_wht_preview_section instead
+    #                 # Sales Invoice - Thai Compliance Fields
+    #                 "Sales Invoice-thai_compliance_section",
+    #                 "Sales Invoice-thai_vat_eligible",
+    #                 "Sales Invoice-thai_export_eligible",
+    #                 "Sales Invoice-thai_cash_receipt",
+    #                 # Sales Invoice - VAT Treatment Field
+    #                 "Sales Invoice-custom_vat_treatment",
+    #                 # Sales Invoice - WHT (Withholding Tax) Fields
+    #                 "Sales Invoice-subject_to_wht",
+    #                 "Sales Invoice-wht_income_type",
+    #                 "Sales Invoice-wht_description",
+    #                 "Sales Invoice-wht_certificate_required",
+    #                 "Sales Invoice-net_total_after_wht",
+    #                 "Sales Invoice-net_total_after_wht_in_words",
+    #                 "Sales Invoice-wht_note",
+    #                 # Sales Invoice - Thai WHT Preview Fields
+    #                 "Sales Invoice-thai_wht_preview_section",
+    #                 "Sales Invoice-wht_amounts_column_break",
+    #                 "Sales Invoice-wht_preview_column_break",
+    #                 # Sales Invoice - Retention System Fields
+    #                 "Sales Invoice-custom_subject_to_retention",
+    #                 "Sales Invoice-custom_net_total_after_wht_retention",
+    #                 "Sales Invoice-custom_net_total_after_wht_retention_in_words",
+    #                 "Sales Invoice-custom_retention_note",
+    #                 "Sales Invoice-custom_retention",
+    #                 "Sales Invoice-custom_retention_amount",
+    #                 "Sales Invoice-custom_withholding_tax",
+    #                 "Sales Invoice-custom_withholding_tax_amount",
+    #                 "Sales Invoice-custom_payment_amount",
+    #                 # Quotation - Signature Fields
+    #                 "Quotation-prepared_by_signature",
+    #                 # Quotation - Watermark Field
+    #                 "Quotation-watermark_text",
+    #                 # Quotation - VAT Treatment Field
+    #                 "Quotation-vat_treatment",
+    #                 # Quotation - WHT (Withholding Tax) Fields
+    #                 "Quotation-wht_note",
+    #                 "Quotation-subject_to_wht",
+    #                 "Quotation-wht_description",
+    #                 "Quotation-wht_income_type",
+    #                 "Quotation-net_total_after_wht_in_words",
+    #                 "Quotation-net_total_after_wht",
+    #                 # Quotation - Thai WHT Preview Fields
+    #                 "Quotation-thai_wht_preview_section",
+    #                 "Quotation-wht_amounts_column_break",
+    #                 "Quotation-wht_preview_column_break",
+    #                 # Quotation - Retention System Fields
+    #                 "Quotation-custom_subject_to_retention",
+    #                 "Quotation-custom_net_total_after_wht_retention",
+    #                 "Quotation-custom_net_total_after_wht_retention_in_words",
+    #                 "Quotation-custom_retention",
+    #                 "Quotation-custom_retention_amount",
+    #                 "Quotation-custom_retention_note",
+    #                 "Quotation-custom_withholding_tax",
+    #                 "Quotation-custom_withholding_tax_amount",
+    #                 "Quotation-custom_payment_amount",
+    #                 # Sales Order - Signature Fields
+    #                 "Sales Order-prepared_by_signature",
+    #                 "Sales Order-approved_by_signature",
+    #                 # Sales Order - Watermark Field
+    #                 "Sales Order-watermark_text",
+    #                 # Sales Order - Deposit Fields
+    #                 "Sales Order-has_deposit",
+    #                 "Sales Order-deposit_invoice",
+    #                 "Sales Order-percent_deposit",
+    #                 "Sales Order-column_break_euapx",
+    #                 "Sales Order-section_break_o8q38",
+    #                 "Sales Order-deposit_deduction_method",
+    #                 # Sales Order - VAT Treatment Field
+    #                 "Sales Order-custom_vat_treatment",
+    #                 # Sales Order - WHT (Withholding Tax) Fields
+    #                 "Sales Order-subject_to_wht",
+    #                 "Sales Order-wht_note",
+    #                 "Sales Order-wht_description",
+    #                 "Sales Order-wht_income_type",
+    #                 "Sales Order-net_total_after_wht_in_words",
+    #                 "Sales Order-net_total_after_wht",
+    #                 # Sales Order - Thai WHT Preview Fields
+    #                 "Sales Order-thai_wht_preview_section",
+    #                 "Sales Order-wht_amounts_column_break",
+    #                 "Sales Order-wht_preview_column_break",
+    #                 # Sales Order - Retention System Fields
+    #                 "Sales Order-custom_subject_to_retention",
+    #                 "Sales Order-custom_net_total_after_wht_retention",
+    #                 "Sales Order-custom_net_total_after_wht_retention_in_words",
+    #                 "Sales Order-custom_retention_note",
+    #                 "Sales Order-custom_retention",
+    #                 "Sales Order-custom_retention_amount",
+    #                 "Sales Order-custom_withholding_tax",
+    #                 "Sales Order-custom_withholding_tax_amount",
+    #                 "Sales Order-custom_payment_amount",
+    #                 # Customer - Thai WHT Configuration Fields (Print Designer Section)
+    #                 "Customer-print_designer_wht_section",
+    #                 "Customer-print_designer_wht_column_1",
+    #                 "Customer-subject_to_wht",
+    #                 "Customer-wht_income_type",
+    #                 "Customer-custom_wht_rate",
+    #                 "Customer-print_designer_wht_column_2",
+    #                 "Customer-is_juristic_person",
+    #                 # Payment Entry - Thai Tax Compliance Fields
+    #                 "Payment Entry-pd_custom_thai_compliance_tab",
+    #                 "Payment Entry-pd_custom_thai_tax_column_1",
+    #                 "Payment Entry-pd_custom_tax_base_amount",
+    #                 "Payment Entry-pd_custom_tax_invoice_number",
+    #                 "Payment Entry-pd_custom_tax_invoice_date",
+    #                 "Payment Entry-pd_custom_income_type",
+    #                 "Payment Entry-pd_custom_thai_tax_column_2",
+    #                 "Payment Entry-pd_custom_wht_certificate_no",
+    #                 "Payment Entry-pd_custom_wht_certificate_date",
+    #                 "Payment Entry-pd_custom_withholding_tax_amount",
+    #                 "Payment Entry-pd_custom_withholding_tax_rate",
+    #                 "Payment Entry-pd_custom_net_payment_amount",
+    #                 "Payment Entry-pd_custom_apply_withholding_tax",
+    #             ],
+    #         ]
+    #     ],
+    # },
     {
         "doctype": "Property Setter",
         "filters": [
