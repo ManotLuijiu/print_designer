@@ -12,7 +12,19 @@ class CustomCompany(Company):
         """Import Chart of Accounts after company creation"""
         super().after_insert()
 
-        # Import Chart of Accounts if specified
+        # Check for CSV-based CoA import first (print_designer custom fields)
+        if self.get('pd_use_csv_coa') and self.get('pd_coa_csv_file'):
+            try:
+                self.import_coa_from_csv()
+                return  # Skip standard CoA import if CSV import successful
+            except Exception as e:
+                frappe.log_error(
+                    f"Error importing Chart of Accounts from CSV for {self.name}: {str(e)}",
+                    "CSV CoA Import Error"
+                )
+                # Fall through to standard import if CSV import fails
+
+        # Import Chart of Accounts from standard template if specified
         if self.chart_of_accounts:
             try:
                 self.create_default_accounts()
@@ -39,6 +51,151 @@ class CustomCompany(Company):
         # Skip for new companies to avoid creation errors
         if not self.is_new() and self.has_retention_data():
             self.sync_retention_settings()
+
+    def import_coa_from_csv(self):
+        """
+        Import Chart of Accounts from CSV file.
+
+        Attempts to use thai_business_suite CoA mapper if available,
+        falls back to basic import if not available.
+
+        Raises:
+            Exception: If import fails
+        """
+        import tempfile
+        import os
+        import json
+
+        # Get CSV file content
+        from frappe.utils.file_manager import get_file
+        csv_content = get_file(self.pd_coa_csv_file)[1]
+
+        # Decode if bytes
+        if isinstance(csv_content, bytes):
+            csv_content = csv_content.decode('utf-8')
+
+        # Write CSV to temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as tmp_csv:
+            tmp_csv.write(csv_content)
+            tmp_csv_path = tmp_csv.name
+
+        # Write JSON to temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as tmp_json:
+            tmp_json_path = tmp_json.name
+
+        try:
+            # Try to use thai_business_suite CoA mapper (advanced)
+            thai_business_suite_available = False
+            try:
+                from thai_business_suite.coa_mapper.chart_of_accounts_mapper import ChartOfAccountsMapper
+                thai_business_suite_available = True
+                frappe.msgprint(
+                    _("Using advanced CSV mapper from thai_business_suite"),
+                    indicator='blue',
+                    alert=True
+                )
+            except ImportError:
+                frappe.msgprint(
+                    _("thai_business_suite not available - Using basic CSV import"),
+                    indicator='orange',
+                    alert=True
+                )
+
+            if thai_business_suite_available:
+                # Advanced import with thai_business_suite
+                mapping_template = self.get('pd_coa_mapping_template')
+
+                if mapping_template:
+                    # Use specified template
+                    template = frappe.get_doc('TBS CoA Mapping Template', mapping_template)
+                    config = template.get_mapping_config()
+                else:
+                    # Use default Standard Thai CoA template
+                    from thai_business_suite.coa_mapper.chart_of_accounts_mapper import get_coa_mapping_config
+                    try:
+                        config = get_coa_mapping_config('standard_thai_coa')
+                    except ValueError:
+                        # Fallback to inpac_pharma_format if standard not found
+                        config = get_coa_mapping_config('inpac_pharma_format')
+
+                # Override chart name to match company
+                config['coa_config']['chart_name'] = f"{self.name} Chart of Accounts"
+
+                # Create mapper and convert
+                mapper = ChartOfAccountsMapper(mapping_config=config)
+                result = mapper.csv_to_json_template(
+                    source_csv=tmp_csv_path,
+                    output_json=tmp_json_path,
+                    validate=True
+                )
+
+                # Import the generated JSON
+                self._import_coa_json(tmp_json_path)
+
+                # Update status
+                self.db_set('pd_coa_import_status', f"✅ Imported {result['statistics']['total_accounts']} accounts", update_modified=False)
+
+                frappe.msgprint(
+                    _("Chart of Accounts imported successfully from CSV: {0} accounts").format(
+                        result['statistics']['total_accounts']
+                    ),
+                    indicator='green',
+                    alert=True
+                )
+
+            else:
+                # Basic CSV import (fallback without thai_business_suite)
+                # This requires CSV to be in exact ERPNext JSON-compatible format
+                frappe.throw(
+                    _("""
+                        <strong>thai_business_suite not installed</strong><br><br>
+                        CSV-based Chart of Accounts import requires the thai_business_suite app for advanced mapping.<br><br>
+                        <strong>Options:</strong><br>
+                        1. Install thai_business_suite: <code>bench get-app thai_business_suite</code><br>
+                        2. Use standard ERPNext Chart of Accounts templates instead<br>
+                        3. Manually import accounts after company creation
+                    """),
+                    title=_("Advanced CSV Import Not Available")
+                )
+
+        finally:
+            # Clean up temporary files
+            if os.path.exists(tmp_csv_path):
+                os.remove(tmp_csv_path)
+            if os.path.exists(tmp_json_path):
+                os.remove(tmp_json_path)
+
+    def _import_coa_json(self, json_path):
+        """
+        Import Chart of Accounts from JSON file.
+
+        Args:
+            json_path: Path to Chart of Accounts JSON file
+        """
+        import json
+
+        # Read JSON file
+        with open(json_path, 'r', encoding='utf-8') as f:
+            coa_data = json.load(f)
+
+        # Use ERPNext's chart import function
+        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
+
+        # Create a temporary chart template
+        chart_name = coa_data.get('name', f"{self.name} Chart of Accounts")
+
+        # ERPNext expects chart template in specific location
+        # We'll use the import_chart function which handles JSON data
+        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import import_chart
+
+        frappe.local.flags.ignore_root_company_validation = True
+
+        # Import the chart
+        import_chart(
+            self.name,
+            chart_data=coa_data,
+            from_coa_importer=True
+        )
 
     def create_default_accounts(self):
         """
