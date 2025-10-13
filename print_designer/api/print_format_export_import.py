@@ -6,6 +6,7 @@ import json
 import frappe
 from frappe import _
 from datetime import datetime
+from print_designer.utils.convert_print_format_to_designer_export import create_designer_export_dict
 
 
 def safe_get_attr(obj, attr_name, default=None):
@@ -232,10 +233,10 @@ def duplicate_print_format(source_name, new_name):
 def validate_import_data(export_data):
     """
     Validate export data before import to provide early feedback.
-    
+
     Args:
         export_data: JSON string or dict to validate
-        
+
     Returns:
         Dict with validation results
     """
@@ -243,40 +244,40 @@ def validate_import_data(export_data):
         # Parse JSON if string
         if isinstance(export_data, str):
             export_data = json.loads(export_data)
-        
+
         # Check required fields
         if "print_format" not in export_data:
             return {
                 "valid": False,
                 "message": _("Missing print_format in export data")
             }
-        
+
         format_data = export_data["print_format"]
-        
+
         # Check essential fields
         required_fields = ["doc_type", "print_designer"]
         missing_fields = [f for f in required_fields if f not in format_data]
-        
+
         if missing_fields:
             return {
                 "valid": False,
                 "message": _("Missing required fields: {0}").format(", ".join(missing_fields))
             }
-        
+
         # Check if doctype exists
         if not frappe.db.exists("DocType", format_data["doc_type"]):
             return {
                 "valid": False,
                 "message": _("DocType {0} does not exist in this system").format(format_data["doc_type"])
             }
-        
+
         # Check if it's a Print Designer format
         if not format_data.get("print_designer"):
             return {
                 "valid": False,
                 "message": _("This is not a Print Designer format")
             }
-        
+
         # All validations passed
         return {
             "valid": True,
@@ -286,7 +287,7 @@ def validate_import_data(export_data):
             "export_date": export_data.get("export_date"),
             "exported_by": export_data.get("metadata", {}).get("exported_by")
         }
-        
+
     except json.JSONDecodeError as e:
         return {
             "valid": False,
@@ -297,3 +298,43 @@ def validate_import_data(export_data):
             "valid": False,
             "message": _("Validation error: {0}").format(str(e))
         }
+
+
+@frappe.whitelist()
+def convert_to_designer_export_format(print_format_name):
+    """
+    Convert a standard Print Format DocType JSON to Print Designer export format.
+    This is useful for converting Print Formats downloaded from internet or exported
+    as raw DocType JSON into the proper Print Designer import structure.
+
+    Uses the shared conversion utility from:
+    print_designer.utils.convert_print_format_to_designer_export.create_designer_export_dict()
+
+    Args:
+        print_format_name: Name of the print format to convert
+
+    Returns:
+        JSON dict with Print Designer export structure
+    """
+    if not frappe.has_permission("Print Format", "read", print_format_name):
+        frappe.throw(_("You don't have permission to access this Print Format"))
+
+    # Get the Print Format document
+    print_format = frappe.get_doc("Print Format", print_format_name)
+
+    # Convert to dictionary (same as DocType JSON export)
+    format_dict = print_format.as_dict()
+
+    # Remove system fields that shouldn't be in export
+    system_fields = ["modified", "modified_by", "creation", "owner", "docstatus", "idx", "_liked_by", "_comments", "_assign", "_user_tags"]
+    for field in system_fields:
+        format_dict.pop(field, None)
+
+    # Use shared conversion function
+    designer_export = create_designer_export_dict(
+        print_format_dict=format_dict,
+        exported_by=frappe.session.user,
+        frappe_version=frappe.__version__
+    )
+
+    return designer_export
