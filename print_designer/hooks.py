@@ -133,7 +133,10 @@ page_js = {
 
 # include js in doctype views
 doctype_js = {
-    "Print Format": "public/js/print_format/print_format.js",
+    "Print Format": [
+        "public/js/print_format/print_format.js",
+        "public/js/print_format/print_format_conversion_dialog.js",
+    ],
     # "Print Settings": "print_designer/client_scripts/print_settings.js",
     "Client Script": "print_designer/client_scripts/client_script.js",
     # "Global Defaults": "print_designer/client_scripts/global_defaults.js",

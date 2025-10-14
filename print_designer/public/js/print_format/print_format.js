@@ -206,51 +206,20 @@ frappe.ui.form.on("Print Format", {
 				true
 			);
 
-			// Convert to Print Designer Export menu item
+			// Convert to Print Designer Export menu item - Opens dialog for file path conversion
 			frm.page.add_menu_item(
 				__("Convert to Print Designer Export"),
 				function () {
-					frappe.call({
-						method: "print_designer.api.print_format_export_import.convert_to_designer_export_format",
-						args: {
-							print_format_name: frm.doc.name
-						},
-						freeze: true,
-						freeze_message: __("Converting to Print Designer export format..."),
-						callback: function (r) {
-							if (r.message) {
-								// Create a download for the converted JSON
-								const designer_export = r.message;
-								const filename = `${frm.doc.name.replace(/[^a-z0-9]/gi, '_')}_Designer_Export.json`;
-
-								// Create blob and download
-								const blob = new Blob([JSON.stringify(designer_export, null, 2)], {
-									type: 'application/json'
-								});
-								const url = window.URL.createObjectURL(blob);
-								const a = document.createElement('a');
-								a.style.display = 'none';
-								a.href = url;
-								a.download = filename;
-								document.body.appendChild(a);
-								a.click();
-								window.URL.revokeObjectURL(url);
-								document.body.removeChild(a);
-
-								frappe.show_alert({
-									message: __('Print Designer export format downloaded successfully!'),
-									indicator: 'green'
-								}, 5);
-							}
-						},
-						error: function (r) {
-							frappe.msgprint({
-								title: __('Conversion Failed'),
-								message: __('Failed to convert Print Format to Print Designer export format.'),
-								indicator: 'red'
-							});
-						}
-					});
+					// Show conversion dialog (defined in print_format_conversion_dialog.js)
+					if (window.show_print_format_conversion_dialog) {
+						window.show_print_format_conversion_dialog();
+					} else {
+						frappe.msgprint({
+							title: __('Dialog Not Available'),
+							message: __('Conversion dialog script not loaded. Please refresh the page.'),
+							indicator: 'red'
+						});
+					}
 				},
 				true
 			);

@@ -56,15 +56,20 @@ def _fix_account_field_positioning():
     print("   Fixing Account field positioning to avoid idx conflicts...")
 
     # Find the highest DocField idx for Account
-    max_docfield_idx = frappe.db.sql("""
+    max_docfield_idx = (
+        frappe.db.sql(
+            """
         SELECT MAX(idx) as max_idx FROM `tabDocField` WHERE parent = 'Account'
-    """)[0][0] or 0
+    """
+        )[0][0]
+        or 0
+    )
 
     # Account Thai fields in correct order
     account_fields_order = [
         ("account_name_th", "account_name"),
         ("auto_translate_thai", "account_name_th"),
-        ("thai_notes", "account_currency")
+        ("thai_notes", "account_currency"),
     ]
 
     # Position Account fields starting after max DocField idx
@@ -73,14 +78,17 @@ def _fix_account_field_positioning():
     for fieldname, insert_after in account_fields_order:
         custom_field_name = f"Account-{fieldname}"
 
-        if frappe.db.exists('Custom Field', custom_field_name):
-            frappe.db.set_value('Custom Field', custom_field_name, {
-                'idx': current_idx,
-                'insert_after': insert_after
-            })
+        if frappe.db.exists("Custom Field", custom_field_name):
+            frappe.db.set_value(
+                "Custom Field",
+                custom_field_name,
+                {"idx": current_idx, "insert_after": insert_after},
+            )
             current_idx += 1
 
-    print(f"   ✓ Positioned Account Thai fields at idx {max_docfield_idx + 1}+ (after DocField max of {max_docfield_idx})")
+    print(
+        f"   ✓ Positioned Account Thai fields at idx {max_docfield_idx + 1}+ (after DocField max of {max_docfield_idx})"
+    )
 
 
 def get_account_thai_custom_fields():
@@ -93,7 +101,6 @@ def get_account_thai_custom_fields():
                 "fieldtype": "Data",
                 "label": "Account Name (TH)",
                 "insert_after": "account_name",
-                "translatable": 1,
                 "in_list_view": 1,
                 "description": "Thai translation of account name for localized Chart of Accounts display",
             },
@@ -352,7 +359,9 @@ def auto_populate_company_thai_accounts(company):
     """API method to auto-populate Thai account names for a specific company"""
 
     print(f"DEBUG: auto_populate_company_thai_accounts called with company: {company}")
-    frappe.log_error(f"DEBUG: Button clicked for company: {company}", "Thai Account Auto-Population")
+    frappe.log_error(
+        f"DEBUG: Button clicked for company: {company}", "Thai Account Auto-Population"
+    )
 
     try:
         translation_map = get_thai_account_translation_map()
@@ -362,23 +371,27 @@ def auto_populate_company_thai_accounts(company):
 
         # Get accounts for this company only
         for english_name, thai_name in translation_map.items():
-            accounts = frappe.get_all("Account",
-                filters={
-                    "company": company,
-                    "account_name": english_name
-                },
-                fields=["name", "account_name", "account_name_th"]
+            accounts = frappe.get_all(
+                "Account",
+                filters={"company": company, "account_name": english_name},
+                fields=["name", "account_name", "account_name_th"],
             )
 
             for account in accounts:
-                print(f"DEBUG: Updating account {account.name} ({account.account_name}) -> {thai_name}")
+                print(
+                    f"DEBUG: Updating account {account.name} ({account.account_name}) -> {thai_name}"
+                )
 
                 # Update if Thai name is empty or user wants to refresh
-                frappe.db.set_value("Account", account.name, {
-                    "account_name_th": thai_name,
-                    "auto_translate_thai": 1,
-                    "thai_notes": "Auto-populated by Print Designer"
-                })
+                frappe.db.set_value(
+                    "Account",
+                    account.name,
+                    {
+                        "account_name_th": thai_name,
+                        "auto_translate_thai": 1,
+                        "thai_notes": "Auto-populated by Print Designer",
+                    },
+                )
                 accounts_updated += 1
 
         frappe.db.commit()
@@ -387,7 +400,7 @@ def auto_populate_company_thai_accounts(company):
         frappe.msgprint(
             _("Successfully updated Thai names for {0} accounts").format(accounts_updated),
             title=_("Thai Translation Complete"),
-            indicator="green"
+            indicator="green",
         )
 
         return {"status": "success", "accounts_updated": accounts_updated}
@@ -413,7 +426,7 @@ class ThaiAccountTranslationManager:
         frappe.msgprint(
             _("Thai account translation enabled for {0}").format(company),
             title=_("Thai Translation Enabled"),
-            indicator="green"
+            indicator="green",
         )
 
     @staticmethod
@@ -426,7 +439,7 @@ class ThaiAccountTranslationManager:
         frappe.msgprint(
             _("Thai account translation disabled for {0}").format(company),
             title=_("Thai Translation Disabled"),
-            indicator="blue"
+            indicator="blue",
         )
 
     @staticmethod
@@ -437,20 +450,22 @@ class ThaiAccountTranslationManager:
         accounts_updated = 0
 
         for english_name, thai_name in translation_map.items():
-            accounts = frappe.get_all("Account",
+            accounts = frappe.get_all(
+                "Account",
                 filters={
                     "company": company,
                     "account_name": english_name,
-                    "account_name_th": ["in", ["", None]]
+                    "account_name_th": ["in", ["", None]],
                 },
-                fields=["name", "account_name"]
+                fields=["name", "account_name"],
             )
 
             for account in accounts:
-                frappe.db.set_value("Account", account.name, {
-                    "account_name_th": thai_name,
-                    "auto_translate_thai": 1
-                })
+                frappe.db.set_value(
+                    "Account",
+                    account.name,
+                    {"account_name_th": thai_name, "auto_translate_thai": 1},
+                )
                 accounts_updated += 1
 
         frappe.db.commit()

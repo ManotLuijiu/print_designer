@@ -338,3 +338,72 @@ def convert_to_designer_export_format(print_format_name):
     )
 
     return designer_export
+
+
+@frappe.whitelist()
+def convert_file_to_designer_export(source_file, target_file):
+    """
+    Convert a Print Format file to Designer Export format.
+    This reads a Print Format DocType JSON file from disk, converts it to
+    Print Designer export format, and saves it to a target file.
+
+    Args:
+        source_file: Absolute path to source .txt or .json file containing Print Format DocType JSON
+        target_file: Absolute path where converted JSON will be saved
+
+    Returns:
+        Dict with success status and file details
+    """
+    import os
+
+    # Validate source file exists
+    if not os.path.exists(source_file):
+        frappe.throw(_("Source file not found: {0}").format(source_file))
+
+    # Validate source file extension
+    if not source_file.lower().endswith(('.txt', '.json')):
+        frappe.throw(_("Source file must be .txt or .json file"))
+
+    try:
+        # Read the Print Format DocType JSON from source file
+        with open(source_file, 'r', encoding='utf-8') as f:
+            print_format_dict = json.load(f)
+
+        # Validate it's a Print Format
+        if 'doctype' not in print_format_dict or print_format_dict.get('doctype') != 'Print Format':
+            frappe.throw(_("Source file does not contain a valid Print Format DocType JSON"))
+
+        # Extract format details for response
+        name = print_format_dict.get('name', 'Imported Print Format')
+        doc_type = print_format_dict.get('doc_type', '')
+
+        # Use shared conversion function
+        designer_export = create_designer_export_dict(
+            print_format_dict=print_format_dict,
+            exported_by=frappe.session.user,
+            frappe_version=frappe.__version__
+        )
+
+        # Create target directory if it doesn't exist
+        target_dir = os.path.dirname(target_file)
+        if target_dir and not os.path.exists(target_dir):
+            os.makedirs(target_dir, exist_ok=True)
+
+        # Write the converted format to target file
+        with open(target_file, 'w', encoding='utf-8') as f:
+            json.dump(designer_export, f, indent=2, ensure_ascii=False)
+
+        return {
+            "success": True,
+            "name": name,
+            "doc_type": doc_type,
+            "output_file": target_file
+        }
+
+    except json.JSONDecodeError as e:
+        frappe.throw(_("Invalid JSON in source file: {0}").format(str(e)))
+    except IOError as e:
+        frappe.throw(_("File operation error: {0}").format(str(e)))
+    except Exception as e:
+        frappe.log_error(f"Error converting file: {str(e)}", "Print Format File Conversion Error")
+        frappe.throw(_("Error converting file: {0}").format(str(e)))
