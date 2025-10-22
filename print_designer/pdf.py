@@ -366,7 +366,15 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
         **kwargs: Additional arguments including 'args' for template context
     """
     print(f"[DEBUG] before_print called with doc={doc}, method={method}")
-    
+
+    # Print full document object for debugging
+    if doc:
+        print("\n" + "="*80)
+        print(f"[DOC OBJECT DEBUG] Document: {doc.doctype} - {doc.name}")
+        print("="*80)
+        print(doc.as_dict())
+        print("="*80 + "\n")
+
     try:
         # Get the print format from form_dict if not provided
         print_format = kwargs.get("print_format")
