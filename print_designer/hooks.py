@@ -11,8 +11,10 @@ required_apps = ["erpnext"]
 
 # Custom bench commands
 commands = [
-    "print_designer.commands.signature_setup.setup_signatures",
-    "print_designer.commands.signature_setup.check_signature_status",
+    # Signature field management (clean installation system)
+    "print_designer.commands.install_signature_fields.install_signature_fields_cmd",
+    "print_designer.commands.install_signature_fields.check_signature_fields_cmd",
+    "print_designer.commands.install_signature_fields.uninstall_signature_fields_cmd",
     "print_designer.commands.install_watermark_fields.install_watermark_fields",
     "print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi",
     "print_designer.commands.install_delivery_qr.install_delivery_qr",
@@ -537,7 +539,7 @@ after_migrate = [
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
     "print_designer.hooks.override_erpnext_install",  # Apply ERPNext overrides
-    "print_designer.api.safe_install.safe_install_signature_enhancements",
+    "print_designer.commands.install_signature_fields.create_signature_fields",  # Install signature fields using clean system
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
     # REMOVED DUPLICATE: "print_designer.install.ensure_watermark_fields_installed" - already in after_install
@@ -566,6 +568,7 @@ after_migrate = [
 
 before_uninstall = [
     "print_designer.uninstall.before_uninstall",
+    "print_designer.commands.install_signature_fields.uninstall_signature_fields",  # Remove all signature fields using clean system
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
     "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",  # Remove Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",  # Remove Account Thai translation fields
