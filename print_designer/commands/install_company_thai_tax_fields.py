@@ -162,6 +162,15 @@ def install_company_thai_tax_fields():
                 "insert_after": "default_input_vat_account",
                 "description": "Default account for withholding tax debt (e.g., Withholding Tax Debt)",
             },
+            # Default Company Branch Code field
+            {
+                "fieldname": "default_company_branch_code",
+                "fieldtype": "Data",
+                "label": "Default Company Branch Code",
+                "insert_after": "default_wht_debt_account",
+                "description": "Default company branch code (e.g., 00000)",
+                "default": "00000",
+            },
         ]
     }
 
@@ -189,7 +198,7 @@ def install_company_thai_tax_fields():
         print("   - Company: default_input_vat_undue_account (link to Account)")
         print("   - Company: default_input_vat_account (link to Account)")
         print("   - Company: default_wht_debt_account (link to Account)")
-
+        print("   - Company: default_company_branch_code (data)")
         # Setup default accounts for companies
         # _setup_default_accounts()  # Commented out - Chart of Accounts is dynamic per user
 
@@ -211,9 +220,14 @@ def _fix_field_positioning():
     print("   Fixing field positioning to avoid idx conflicts...")
 
     # Find the highest DocField idx for Company
-    max_docfield_idx = frappe.db.sql("""
+    max_docfield_idx = (
+        frappe.db.sql(
+            """
         SELECT MAX(idx) as max_idx FROM `tabDocField` WHERE parent = 'Company'
-    """)[0][0] or 0
+    """
+        )[0][0]
+        or 0
+    )
 
     # Thai fields in correct order
     thai_fields_order = [
@@ -233,7 +247,8 @@ def _fix_field_positioning():
         ("default_output_vat_account", "default_output_vat_undue_account"),
         ("default_input_vat_undue_account", "default_output_vat_account"),
         ("default_input_vat_account", "default_input_vat_undue_account"),
-        ("default_wht_debt_account", "default_input_vat_account")
+        ("default_wht_debt_account", "default_input_vat_account"),
+        ("default_company_branch_code", "default_wht_debt_account"),
     ]
 
     # Position Thai fields starting after max DocField idx
@@ -242,14 +257,17 @@ def _fix_field_positioning():
     for fieldname, insert_after in thai_fields_order:
         custom_field_name = f"Company-{fieldname}"
 
-        if frappe.db.exists('Custom Field', custom_field_name):
-            frappe.db.set_value('Custom Field', custom_field_name, {
-                'idx': current_idx,
-                'insert_after': insert_after
-            })
+        if frappe.db.exists("Custom Field", custom_field_name):
+            frappe.db.set_value(
+                "Custom Field",
+                custom_field_name,
+                {"idx": current_idx, "insert_after": insert_after},
+            )
             current_idx += 1
 
-    print(f"   ✓ Positioned Thai fields at idx {max_docfield_idx + 1}+ (after DocField max of {max_docfield_idx})")
+    print(
+        f"   ✓ Positioned Thai fields at idx {max_docfield_idx + 1}+ (after DocField max of {max_docfield_idx})"
+    )
 
 
 def _setup_default_accounts():  # Commented out - Chart of Accounts is dynamic per user
@@ -408,6 +426,7 @@ def remove_company_thai_tax_fields():
         "default_input_vat_undue_account",
         "default_input_vat_account",
         "default_wht_debt_account",
+        "default_company_branch_code",
     ]
 
     try:

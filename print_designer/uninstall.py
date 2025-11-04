@@ -176,12 +176,21 @@ def delete_all_print_designer_custom_fields():
 
 		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py
 		print_designer_company_tax_fields = [
+			# Thai Compliance Tab and Sections
+			"accounts_thai_tab", "thai_accounting_section", "thai_accounting_column_left",
+			# Thai Accounting Translation fields
+			"enable_thai_accounting_translation", "auto_populate_thai_accounts",
 			# Company Thai tax system fields
 			"thailand_service_business", "default_wht_rate", "default_wht_account",
-			"default_output_vat_undue_account", "default_output_vat_account",
-			"default_input_vat_undue_account", "default_input_vat_account", "default_wht_debt_account",
 			# Construction service retention fields
 			"construction_service", "default_retention_rate", "default_retention_account",
+			# Right column
+			"thai_accounting_column_right",
+			# VAT account fields
+			"default_output_vat_undue_account", "default_output_vat_account",
+			"default_input_vat_undue_account", "default_input_vat_account", "default_wht_debt_account",
+			# Branch code field
+			"default_company_branch_code",
 		]
 		
 		# Item service field SPECIFICALLY created by print_designer install_item_service_field.py
