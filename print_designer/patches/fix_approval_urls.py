@@ -12,6 +12,12 @@ import re
 def execute():
 	"""Update all Delivery Note approval URLs to new web page format."""
 
+	# Check if the custom field exists in the Delivery Note table
+	if not frappe.db.has_column("Delivery Note", "custom_approval_url"):
+		print("ℹ️  custom_approval_url column not found in Delivery Note table")
+		print("ℹ️  Skipping approval URL migration (field needs to be created first)")
+		return
+
 	# Get all Delivery Notes with approval URLs
 	delivery_notes = frappe.get_all(
 		"Delivery Note",
