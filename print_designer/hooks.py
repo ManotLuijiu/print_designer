@@ -636,7 +636,7 @@ doc_events = {
     },
     "Delivery Note": {
         "before_print": "print_designer.pdf.before_print",
-        # "on_submit": "print_designer.custom.delivery_note_qr.add_qr_to_delivery_note",  # Disabled due to field length errors
+        "on_submit": "print_designer.custom.delivery_note.on_submit_delivery_note",  # Server-side QR generation
         "before_save": "print_designer.utils.field_sync.sync_delivery_note_fields",
     },
     "Purchase Receipt": {

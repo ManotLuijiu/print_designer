@@ -59,7 +59,7 @@ class DeliveryNoteApproval(Document):
 	def get_approval_url(self):
 		"""Get the approval URL for this record"""
 		base_url = frappe.utils.get_url()
-		return f"{base_url}/app/delivery-approval/{self.delivery_note}?token={self.approval_token}"
+		return f"{base_url}/delivery-approval?dn={self.delivery_note}&token={self.approval_token}"
 	
 	def is_expired(self):
 		"""Check if the approval token has expired (7 days default)"""

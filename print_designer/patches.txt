@@ -36,3 +36,4 @@ print_designer.patches.v1_2.ensure_watermark_fields_complete
 print_designer.patches.v1_2.force_install_construction_service_field
 print_designer.patches.fix_pnd3_form_field_types
 print_designer.patches.fix_all_pnd_form_field_types
+print_designer.patches.fix_approval_urls

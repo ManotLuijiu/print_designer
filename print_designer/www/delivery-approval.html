@@ -208,23 +208,25 @@
     <script>
         let signaturePad;
         let deliveryNoteId;
+        let approvalToken;
         let deliveryData;
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Get delivery note ID from URL
-            const urlParts = window.location.pathname.split('/');
-            deliveryNoteId = urlParts[urlParts.length - 1];
-            
-            // Check if we have a valid delivery note ID
-            if (!deliveryNoteId || deliveryNoteId === 'delivery-approval') {
+            // Get parameters from URL query string
+            const urlParams = new URLSearchParams(window.location.search);
+            deliveryNoteId = urlParams.get('dn');
+            approvalToken = urlParams.get('token');
+
+            // Check if we have a valid delivery note ID and token
+            if (!deliveryNoteId || !approvalToken) {
                 showNoDeliveryNote();
                 return;
             }
-            
+
             // Initialize signature pad
             initSignaturePad();
-            
+
             // Load delivery information
             loadDeliveryInfo();
         });
@@ -434,33 +436,41 @@
 
         async function approveDelivery() {
             const signature = signaturePad && !signaturePad.isEmpty() ? signaturePad.toDataURL() : null;
-            
+            const customerName = prompt('Please enter your name for confirmation:', '');
+
+            if (!customerName || !customerName.trim()) {
+                showAlert('warning', 'Name is required to approve delivery.');
+                return;
+            }
+
             // Disable buttons during processing
             document.getElementById('approve-btn').disabled = true;
             document.getElementById('reject-btn').disabled = true;
-            
+
             try {
-                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.approve_delivery_goods', {
+                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.submit_token_approval', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Frappe-CSRF-Token': window.csrf_token || ''
                     },
                     body: JSON.stringify({
-                        delivery_note_name: deliveryNoteId,
-                        customer_signature: signature
+                        token: approvalToken,
+                        decision: 'Approved',
+                        customer_name: customerName.trim(),
+                        digital_signature: signature
                     })
                 });
-                
+
                 const data = await response.json();
-                
-                if (data.message && data.message.success) {
+
+                if (data.message && data.message.status === 'success') {
                     showAlert('success', 'Delivery approved successfully! Thank you for confirming receipt of goods.');
                     setTimeout(() => {
                         loadDeliveryInfo();
                     }, 2000);
                 } else {
-                    showAlert('danger', 'Error approving delivery. Please try again.');
+                    showAlert('danger', data.message?.message || 'Error approving delivery. Please try again.');
                 }
             } catch (error) {
                 console.error('Error approving delivery:', error);
@@ -473,38 +483,46 @@
         }
 
         async function rejectDelivery() {
+            const customerName = prompt('Please enter your name:', '');
+            if (!customerName || !customerName.trim()) {
+                showAlert('warning', 'Name is required.');
+                return;
+            }
+
             const reason = prompt('Please provide a reason for rejection (required):');
             if (!reason || !reason.trim()) {
                 showAlert('warning', 'Rejection reason is required.');
                 return;
             }
-            
+
             // Disable buttons during processing
             document.getElementById('approve-btn').disabled = true;
             document.getElementById('reject-btn').disabled = true;
-            
+
             try {
-                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.reject_delivery_goods', {
+                const response = await fetch('/api/method/print_designer.custom.delivery_note_qr.submit_token_approval', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Frappe-CSRF-Token': window.csrf_token || ''
                     },
                     body: JSON.stringify({
-                        delivery_note_name: deliveryNoteId,
-                        rejection_reason: reason.trim()
+                        token: approvalToken,
+                        decision: 'Rejected',
+                        customer_name: customerName.trim(),
+                        remarks: reason.trim()
                     })
                 });
-                
+
                 const data = await response.json();
-                
-                if (data.message && data.message.success) {
+
+                if (data.message && data.message.status === 'success') {
                     showAlert('info', 'Delivery rejection recorded. The vendor will be notified of the issue.');
                     setTimeout(() => {
                         loadDeliveryInfo();
                     }, 2000);
                 } else {
-                    showAlert('danger', 'Error recording rejection. Please try again.');
+                    showAlert('danger', data.message?.message || 'Error recording rejection. Please try again.');
                 }
             } catch (error) {
                 console.error('Error rejecting delivery:', error);
@@ -542,7 +560,7 @@
                             <p class="mb-0">
                                 <strong>To use this system:</strong><br>
                                 1. Scan the QR code from your delivery note<br>
-                                2. Or use the full URL format: <code>/delivery-approval/{delivery-note-id}</code>
+                                2. Or use the full URL format: <code>/delivery-approval?dn={delivery-note-id}&token={approval-token}</code>
                             </p>
                         </div>
                         
