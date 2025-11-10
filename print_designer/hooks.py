@@ -19,6 +19,10 @@ commands = [
     "print_designer.commands.install_customer_fields.install_customer_fields_cmd",
     "print_designer.commands.install_customer_fields.check_customer_fields_cmd",
     "print_designer.commands.install_customer_fields.uninstall_customer_fields_cmd",
+    # Supplier field management (Branch Code for Thai tax invoices)
+    "print_designer.commands.install_supplier_fields.install_supplier_fields_cmd",
+    "print_designer.commands.install_supplier_fields.check_supplier_fields_cmd",
+    "print_designer.commands.install_supplier_fields.uninstall_supplier_fields_cmd",
     "print_designer.commands.install_watermark_fields.install_watermark_fields",
     "print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi",
     "print_designer.commands.install_delivery_qr.install_delivery_qr",
@@ -511,6 +515,7 @@ after_install = [
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Install Customer branch_code field
+    "print_designer.commands.install_supplier_fields.create_supplier_fields",  # Install Supplier branch_code field
     "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",  # Install Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Install Account Thai translation fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
@@ -552,6 +557,7 @@ after_migrate = [
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Ensure Customer branch_code field is installed during migration
+    "print_designer.commands.install_supplier_fields.create_supplier_fields",  # Ensure Supplier branch_code field is installed during migration
     "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",  # Install Employee Thai Tax ID field during migration
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Ensure Account Thai translation fields are installed during migration
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
@@ -577,6 +583,7 @@ before_uninstall = [
     "print_designer.commands.install_signature_fields.uninstall_signature_fields",  # Remove all signature fields using clean system
     "print_designer.custom.company_tab.remove_company_stamps_signatures_tab",  # Remove Company tab on uninstall
     "print_designer.commands.install_customer_fields.uninstall_customer_fields",  # Remove Customer branch_code field
+    "print_designer.commands.install_supplier_fields.uninstall_supplier_fields",  # Remove Supplier branch_code field
     "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",  # Remove Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",  # Remove Account Thai translation fields
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
