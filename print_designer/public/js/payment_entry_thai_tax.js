@@ -524,8 +524,27 @@ function calculate_thai_tax_totals(frm) {
         }
 
         if (frm.fields_dict.custom_subject_to_retention) {
-            const new_value = total_retention > 0 ? 1 : 0;
-            console.log('📝 Setting custom_subject_to_retention:', new_value, '(current:', frm.doc.custom_subject_to_retention, ')');
+            // For Purchase Invoice scenario: Check header-level retention fields first
+            // This preserves values set by server-side Python code
+            const header_retention_amount = frm.doc.custom_retention_amount || 0;
+            const header_has_retention = frm.doc.custom_subject_to_retention || 0;
+
+            let new_value;
+            if (header_retention_amount > 0 || header_has_retention === 1) {
+                // Header-level retention exists (Purchase Invoice scenario)
+                // Preserve the server-set checkbox value
+                new_value = 1;
+                console.log('📝 Preserving server-set custom_subject_to_retention: 1 (header retention_amount:', header_retention_amount, ')');
+            } else if (total_retention > 0) {
+                // Reference-level retention exists (Sales Invoice scenario)
+                new_value = 1;
+                console.log('📝 Setting custom_subject_to_retention: 1 (reference-level total_retention:', total_retention, ')');
+            } else {
+                // No retention at all
+                new_value = 0;
+                console.log('📝 Setting custom_subject_to_retention: 0 (no retention found)');
+            }
+
             frm.set_value('custom_subject_to_retention', new_value);
         } else {
             console.log('❌ custom_subject_to_retention field not found in form');
@@ -537,6 +556,37 @@ function calculate_thai_tax_totals(frm) {
             frm.set_value('net_total_after_wht', net_total_after_wht);
         } else {
             console.log('❌ net_total_after_wht field not found in form');
+        }
+
+        // Calculate Net Total after WHT AND Retention
+        if (frm.fields_dict.custom_net_total_after_wht_retention) {
+            // Get retention amount using the same pattern as retention checkbox
+            // Priority 1: Header-level retention (Purchase Invoice scenario)
+            const header_retention_amount = frm.doc.custom_retention_amount || 0;
+
+            // Priority 2: Reference-level retention (Sales Invoice scenario)
+            let retention_amount = header_retention_amount;
+            if (retention_amount === 0) {
+                retention_amount = total_retention;
+            }
+
+            // Calculate: Net Total after WHT and Retention = Net Total after WHT - Retention Amount
+            const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
+            const custom_net_total_after_wht_retention = net_total_after_wht - retention_amount;
+
+            console.log('💵 Calculating custom_net_total_after_wht_retention:');
+            console.log('   📊 total_allocated_amount:', frm.doc.total_allocated_amount);
+            console.log('   📊 total_wht:', total_wht);
+            console.log('   📊 net_total_after_wht:', net_total_after_wht);
+            console.log('   📊 header_retention_amount:', header_retention_amount);
+            console.log('   📊 reference_retention_amount:', total_retention);
+            console.log('   📊 final_retention_amount:', retention_amount);
+            console.log('   💰 custom_net_total_after_wht_retention:', custom_net_total_after_wht_retention);
+            console.log('   📋 current value:', frm.doc.custom_net_total_after_wht_retention);
+
+            frm.set_value('custom_net_total_after_wht_retention', custom_net_total_after_wht_retention);
+        } else {
+            console.log('❌ custom_net_total_after_wht_retention field not found in form');
         }
     } catch(e) {
         console.error('Error updating Payment Entry summary fields:', e);

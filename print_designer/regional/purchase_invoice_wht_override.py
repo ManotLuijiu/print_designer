@@ -511,6 +511,44 @@ def calculate_thai_compliant_wht(doc):
         print(f"❌ DEBUG: Set subject_to_wht = 0 (No WHT amount)")
         frappe.logger().info(f"Set subject_to_wht = 0 for PI {doc.name} (No WHT amount)")
 
+    # Calculate retention amount if retention is enabled
+    print("\n" + "="*80)
+    print("🔍 RETENTION CALCULATION DEBUG START - Purchase Invoice")
+    print("="*80)
+
+    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
+    has_custom_retention = hasattr(doc, 'custom_retention')
+    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
+    print(f"2. has custom_retention attr: {has_custom_retention}")
+
+    if custom_subject_to_retention and has_custom_retention:
+        retention_percentage = flt(getattr(doc, 'custom_retention', 0))
+        print(f"3. retention_percentage: {retention_percentage}%")
+        print(f"4. base_amount: {base_amount}")
+
+        # Browser debug message
+        frappe.msgprint(
+            f"🔍 CALC DEBUG (PI): base_amount = {base_amount}, retention % = {retention_percentage}%",
+            indicator='orange',
+            title="Retention Calculation - PI"
+        )
+
+        if retention_percentage > 0:
+            # Retention is calculated on base_amount (before VAT), same as WHT
+            # Example: 100 THB × 5% = 5 THB retention
+            calculated_retention = flt(base_amount * retention_percentage / 100, 2)
+            doc.custom_retention_amount = calculated_retention
+            print(f"5. ✅ Calculated retention_amount: {base_amount} × {retention_percentage}% = {calculated_retention}")
+
+            # Browser debug message
+            frappe.msgprint(
+                f"✅ Calculated retention_amount = {calculated_retention} THB",
+                indicator='green',
+                title="Retention Calculation Success - PI"
+            )
+
+    print("="*80 + "\n")
+
     # Calculate final payment amount (after WHT and retention)
     retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
     final_payment = flt(doc.grand_total) - wht_amount - retention_amount
@@ -634,6 +672,89 @@ def validate_thai_wht_configuration(doc, method=None):
                     _("Please set Withholding Tax percentage manually for this transaction"),
                     indicator='yellow'
                 )
+
+    # Auto-fetch default retention rate from Company if applicable
+    print("\n" + "="*80)
+    print("🔍 RETENTION AUTO-FETCH DEBUG START - Purchase Invoice")
+    print("="*80)
+
+    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
+    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
+
+    # Browser debug message
+    frappe.msgprint(
+        f"🔍 DEBUG Step 1: custom_subject_to_retention = {custom_subject_to_retention}",
+        indicator='orange',
+        title="Retention Debug - PI"
+    )
+
+    if custom_subject_to_retention:
+        print(f"2. Company: {doc.company}")
+
+        # Check if construction_service is enabled for this Company
+        construction_service_enabled = frappe.db.get_value("Company", doc.company, "construction_service")
+        print(f"3. construction_service_enabled: {construction_service_enabled}")
+
+        # Browser debug message
+        frappe.msgprint(
+            f"🔍 DEBUG Step 2: Company = {doc.company}<br>construction_service = {construction_service_enabled}",
+            indicator='orange',
+            title="Retention Debug - PI"
+        )
+
+        if construction_service_enabled:
+            # Check current retention rate value
+            current_retention = getattr(doc, 'custom_retention', None)
+            current_retention_value = flt(current_retention) if current_retention else 0
+            print(f"4. Current custom_retention: {current_retention} (value: {current_retention_value})")
+
+            # PRIORITY 1: Check if retention rate came from Purchase Order
+            # If PI was created from PO, retention should already be populated
+            has_po_reference = False
+            if hasattr(doc, 'items') and doc.items:
+                for item in doc.items:
+                    if hasattr(item, 'purchase_order') and item.purchase_order:
+                        has_po_reference = True
+                        print(f"5. ✅ Found PO reference: {item.purchase_order}")
+                        break
+
+            if has_po_reference and current_retention_value > 0:
+                # Case 1: PI created from PO and retention rate already populated from PO
+                print(f"6. ✅ Retention rate already populated from Purchase Order: {current_retention_value}%")
+                frappe.msgprint(
+                    f"✅ Using retention rate from Purchase Order: {current_retention_value}%",
+                    indicator='blue',
+                    title="Retention from PO - PI"
+                )
+            elif not current_retention or current_retention_value == 0:
+                # Case 2: No PO reference OR PO has no retention → Auto-fetch from Company
+                print(f"7. No retention from PO, fetching from Company default...")
+
+                default_retention_rate = frappe.db.get_value("Company", doc.company, "default_retention_rate")
+                print(f"8. default_retention_rate from Company: {default_retention_rate}")
+
+                # Browser debug message
+                frappe.msgprint(
+                    f"🔍 DEBUG Step 3: No PO retention, using Company default = {default_retention_rate}%",
+                    indicator='orange',
+                    title="Retention Debug - PI"
+                )
+
+                if default_retention_rate and flt(default_retention_rate) > 0:
+                    doc.custom_retention = flt(default_retention_rate)
+                    print(f"9. ✅ Set doc.custom_retention to Company default: {doc.custom_retention}")
+
+                    # Show success message
+                    frappe.msgprint(
+                        f"✅ Auto-applied Company default retention rate: {flt(default_retention_rate)}%",
+                        indicator='green',
+                        title="Success - PI"
+                    )
+            else:
+                # Case 3: Retention already set manually by user
+                print(f"10. ℹ️ Retention rate already set manually: {current_retention_value}%")
+
+    print("="*80 + "\n")
 
     # Additional validation for cash purchases only
     if getattr(doc, 'subject_to_wht', 0) and getattr(doc, 'is_paid', 0):

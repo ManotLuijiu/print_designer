@@ -167,7 +167,10 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
                 "wht_description",
                 "grand_total",
                 "net_total",  # Add net_total for tax base calculation
-                "taxes_and_charges"
+                "taxes_and_charges",
+                "custom_subject_to_retention",  # Add retention checkbox
+                "custom_retention",  # Add retention percentage
+                "custom_retention_amount"  # Add retention amount
             ],
             as_dict=True
         )
@@ -178,6 +181,9 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
         print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
         print(f"  - custom_withholding_tax_amount: {invoice_data.get('custom_withholding_tax_amount')}")
         print(f"  - apply_thai_wht_compliance: {invoice_data.get('apply_thai_wht_compliance')}")
+        print(f"  - custom_subject_to_retention: {invoice_data.get('custom_subject_to_retention')}")
+        print(f"  - custom_retention: {invoice_data.get('custom_retention')}")
+        print(f"  - custom_retention_amount: {invoice_data.get('custom_retention_amount')}")
 
         if not invoice_data:
             print(f"ERROR: No Purchase Invoice data found for {invoice_name}")
@@ -194,7 +200,10 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
             "wht_income_type": invoice_data.get("wht_income_type", ""),
             "wht_description": invoice_data.get("wht_description", ""),
             "grand_total": invoice_data.get("grand_total", 0),
-            "net_total": invoice_data.get("net_total", 0)  # Use net_total for tax base (before VAT)
+            "net_total": invoice_data.get("net_total", 0),  # Use net_total for tax base (before VAT)
+            "custom_subject_to_retention": invoice_data.get("custom_subject_to_retention", 0),
+            "custom_retention": invoice_data.get("custom_retention", 0),
+            "custom_retention_amount": invoice_data.get("custom_retention_amount", 0)
         }
 
         print(f"DEBUG: Final Purchase Invoice thai_tax_data for {invoice_name}:")
@@ -202,6 +211,9 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
         print(f"  - vat_treatment: {thai_tax_data['vat_treatment']}")
         print(f"  - net_total_after_wht: {thai_tax_data['net_total_after_wht']}")
         print(f"  - wht_amount: {thai_tax_data['wht_amount']}")
+        print(f"  - custom_subject_to_retention: {thai_tax_data['custom_subject_to_retention']}")
+        print(f"  - custom_retention: {thai_tax_data['custom_retention']}")
+        print(f"  - custom_retention_amount: {thai_tax_data['custom_retention_amount']}")
 
         return thai_tax_data
 
@@ -325,6 +337,118 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     else:
         # No WHT certificate needed since no WHT amount
         print(f"  - No WHT certificate needed (no WHT amount)")
+
+    # ============================================================================
+    # RETENTION FIELDS DEBUG SECTION
+    # ============================================================================
+    print("\n" + "="*80)
+    print("🔍 RETENTION CHECKBOX DEBUG - Payment Entry Population")
+    print("="*80)
+    
+    # Get the raw value from thai_tax_data
+    checkbox_value_raw = thai_tax_data.get("custom_subject_to_retention")
+    retention_rate_raw = thai_tax_data.get("custom_retention")
+    retention_amount_raw = thai_tax_data.get("custom_retention_amount")
+    
+    print(f"1. Raw values from Purchase Invoice:")
+    print(f"   - custom_subject_to_retention (checkbox): {checkbox_value_raw} (type: {type(checkbox_value_raw)})")
+    print(f"   - custom_retention (rate): {retention_rate_raw} (type: {type(retention_rate_raw)})")
+    print(f"   - custom_retention_amount: {retention_amount_raw} (type: {type(retention_amount_raw)})")
+    
+    # Check if Payment Entry has the retention fields
+    has_checkbox = hasattr(pe, 'custom_subject_to_retention')
+    has_rate = hasattr(pe, 'custom_retention')
+    has_amount = hasattr(pe, 'custom_retention_amount')
+    
+    print(f"\n2. Payment Entry field availability:")
+    print(f"   - hasattr(pe, 'custom_subject_to_retention'): {has_checkbox}")
+    print(f"   - hasattr(pe, 'custom_retention'): {has_rate}")
+    print(f"   - hasattr(pe, 'custom_retention_amount'): {has_amount}")
+    
+    # Browser debug message for field availability
+    frappe.msgprint(
+        f"🔍 RETENTION DEBUG - Field Availability:<br><br>"
+        f"<b>Raw Purchase Invoice Values:</b><br>"
+        f"• Checkbox: {checkbox_value_raw} (type: {type(checkbox_value_raw).__name__})<br>"
+        f"• Rate: {retention_rate_raw}<br>"
+        f"• Amount: {retention_amount_raw}<br><br>"
+        f"<b>Payment Entry Field Checks:</b><br>"
+        f"• Has checkbox field: {has_checkbox}<br>"
+        f"• Has rate field: {has_rate}<br>"
+        f"• Has amount field: {has_amount}",
+        indicator='orange',
+        title="Retention Field Debug"
+    )
+    
+    # Set retention checkbox from Purchase Invoice
+    if has_checkbox:
+        # Try multiple approaches to set the checkbox
+        checkbox_value = int(checkbox_value_raw) if checkbox_value_raw else 0
+        
+        print(f"\n3. Setting checkbox field:")
+        print(f"   - Converting {checkbox_value_raw} to integer: {checkbox_value}")
+        print(f"   - Before setting: pe.custom_subject_to_retention = {getattr(pe, 'custom_subject_to_retention', 'NOT SET')}")
+        
+        # Set the value
+        pe.custom_subject_to_retention = checkbox_value
+        
+        print(f"   - After setting: pe.custom_subject_to_retention = {pe.custom_subject_to_retention}")
+        print(f"   - Verification: getattr(pe, 'custom_subject_to_retention') = {getattr(pe, 'custom_subject_to_retention', 'FAILED')}")
+        
+        # Browser message for checkbox setting
+        frappe.msgprint(
+            f"📝 CHECKBOX SETTING:<br><br>"
+            f"• Raw value: {checkbox_value_raw}<br>"
+            f"• Converted to: {checkbox_value}<br>"
+            f"• Set pe.custom_subject_to_retention = {checkbox_value}<br>"
+            f"• After setting: {getattr(pe, 'custom_subject_to_retention', 'FAILED')}",
+            indicator='blue',
+            title="Checkbox Setting"
+        )
+    else:
+        print(f"\n3. ❌ CHECKBOX FIELD NOT FOUND on Payment Entry")
+        frappe.msgprint(
+            f"❌ ERROR: Payment Entry does not have 'custom_subject_to_retention' field!<br>"
+            f"Field availability check returned: {has_checkbox}",
+            indicator='red',
+            title="Missing Field Error"
+        )
+
+    # Set retention rate from Purchase Invoice
+    if has_rate:
+        print(f"\n4. Setting retention rate field:")
+        print(f"   - Before: pe.custom_retention = {getattr(pe, 'custom_retention', 'NOT SET')}")
+        pe.custom_retention = thai_tax_data.get("custom_retention", 0)
+        print(f"   - After: pe.custom_retention = {pe.custom_retention}%")
+    else:
+        print(f"\n4. ❌ RATE FIELD NOT FOUND on Payment Entry")
+
+    # Set retention amount from Purchase Invoice
+    if has_amount:
+        print(f"\n5. Setting retention amount field:")
+        print(f"   - Before: pe.custom_retention_amount = {getattr(pe, 'custom_retention_amount', 'NOT SET')}")
+        pe.custom_retention_amount = thai_tax_data.get("custom_retention_amount", 0)
+        print(f"   - After: pe.custom_retention_amount = {pe.custom_retention_amount}")
+    else:
+        print(f"\n5. ❌ AMOUNT FIELD NOT FOUND on Payment Entry")
+    
+    # Final verification
+    print(f"\n6. FINAL VERIFICATION - All retention fields after setting:")
+    print(f"   - custom_subject_to_retention: {getattr(pe, 'custom_subject_to_retention', 'NOT FOUND')}")
+    print(f"   - custom_retention: {getattr(pe, 'custom_retention', 'NOT FOUND')}%")
+    print(f"   - custom_retention_amount: {getattr(pe, 'custom_retention_amount', 'NOT FOUND')}")
+    print("="*80 + "\n")
+    
+    # Final browser message
+    frappe.msgprint(
+        f"✅ FINAL RETENTION VALUES:<br><br>"
+        f"<b>Payment Entry After Setting:</b><br>"
+        f"• Checkbox: {getattr(pe, 'custom_subject_to_retention', 'NOT FOUND')}<br>"
+        f"• Rate: {getattr(pe, 'custom_retention', 'NOT FOUND')}%<br>"
+        f"• Amount: {getattr(pe, 'custom_retention_amount', 'NOT FOUND')} THB",
+        indicator='green',
+        title="Final Retention Values"
+    )
 
 
 def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_treatment=""):

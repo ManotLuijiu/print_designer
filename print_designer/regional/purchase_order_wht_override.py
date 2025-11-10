@@ -76,10 +76,81 @@ def calculate_thai_compliant_wht(doc):
     # Update custom WHT fields
     doc.custom_withholding_tax_amount = wht_amount
 
+    # Calculate retention amount if retention is enabled
+    print("\n" + "="*80)
+    print("🔍 RETENTION CALCULATION DEBUG START")
+    print("="*80)
+
+    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
+    has_custom_retention = hasattr(doc, 'custom_retention')
+    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
+    print(f"2. has custom_retention attr: {has_custom_retention}")
+
+    if custom_subject_to_retention and has_custom_retention:
+        retention_percentage = flt(getattr(doc, 'custom_retention', 0))
+        print(f"3. retention_percentage: {retention_percentage}%")
+        print(f"4. base_amount: {base_amount}")
+
+        # Browser debug message
+        frappe.msgprint(
+            f"🔍 CALC DEBUG: base_amount = {base_amount}, retention % = {retention_percentage}%",
+            indicator='orange',
+            title="Retention Calculation"
+        )
+
+        if retention_percentage > 0:
+            # Retention is calculated on base_amount (before VAT), same as WHT
+            # Example: 100 THB × 5% = 5 THB retention
+            calculated_retention = flt(base_amount * retention_percentage / 100, 2)
+            doc.custom_retention_amount = calculated_retention
+            print(f"5. ✅ Calculated retention_amount: {base_amount} × {retention_percentage}% = {calculated_retention}")
+            frappe.logger().info(
+                f"Retention Calculation: {base_amount} × {retention_percentage}% = {doc.custom_retention_amount}"
+            )
+
+            # Browser debug message
+            frappe.msgprint(
+                f"✅ Calculated retention_amount = {calculated_retention} THB",
+                indicator='green',
+                title="Retention Calculation Success"
+            )
+        else:
+            print("5. ⚠️ Retention percentage is 0, no calculation")
+    else:
+        print("3. ❌ Retention not enabled or field missing")
+
+    print("="*80)
+    print("🔍 RETENTION CALCULATION DEBUG END")
+    print("="*80 + "\n")
+
     # Calculate final payment amount (after WHT and retention)
+    print("\n" + "="*80)
+    print("🔍 FINAL PAYMENT CALCULATION DEBUG START")
+    print("="*80)
+
     retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
+    print(f"1. grand_total: {doc.grand_total}")
+    print(f"2. wht_amount: {wht_amount}")
+    print(f"3. retention_amount: {retention_amount}")
+
     final_payment = flt(doc.grand_total) - wht_amount - retention_amount
+    print(f"4. ✅ final_payment: {doc.grand_total} - {wht_amount} - {retention_amount} = {final_payment}")
+
+    # Browser debug message
+    frappe.msgprint(
+        f"🔍 FINAL CALC: grand_total = {doc.grand_total}<br>"
+        f"WHT = {wht_amount}<br>"
+        f"Retention = {retention_amount}<br>"
+        f"<b>Final Payment = {final_payment} THB</b>",
+        indicator='blue',
+        title="Final Payment Calculation"
+    )
+
     doc.custom_payment_amount = final_payment
+
+    print("="*80)
+    print("🔍 FINAL PAYMENT CALCULATION DEBUG END")
+    print("="*80 + "\n")
 
     # Update preview fields for user display
     update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment)
@@ -193,6 +264,82 @@ def validate_thai_wht_configuration(doc, method=None):
                 )
             else:
                 frappe.throw(_("Withholding Tax percentage is required. Please set either in this document or configure a default rate in Company settings."))
+
+    # Auto-fetch default retention rate from Company if applicable
+    print("\n" + "="*80)
+    print("🔍 RETENTION AUTO-FETCH DEBUG START")
+    print("="*80)
+
+    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
+    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
+
+    # Browser debug message
+    frappe.msgprint(
+        f"🔍 DEBUG Step 1: custom_subject_to_retention = {custom_subject_to_retention}",
+        indicator='orange',
+        title="Retention Debug"
+    )
+
+    if custom_subject_to_retention:
+        print(f"2. Company: {doc.company}")
+
+        # Check if construction_service is enabled for this Company
+        construction_service_enabled = frappe.db.get_value("Company", doc.company, "construction_service")
+        print(f"3. construction_service_enabled: {construction_service_enabled}")
+
+        # Browser debug message
+        frappe.msgprint(
+            f"🔍 DEBUG Step 2: Company = {doc.company}<br>construction_service = {construction_service_enabled}",
+            indicator='orange',
+            title="Retention Debug"
+        )
+
+        if construction_service_enabled:
+            # Auto-fetch default retention rate if not specified
+            current_retention = getattr(doc, 'custom_retention', None)
+            current_retention_value = flt(current_retention) if current_retention else 0
+            print(f"4. Current custom_retention: {current_retention} (value: {current_retention_value})")
+
+            if not current_retention or current_retention_value == 0:
+                print("5. Retention is blank or zero, fetching from Company...")
+
+                default_retention_rate = frappe.db.get_value("Company", doc.company, "default_retention_rate")
+                print(f"6. default_retention_rate from Company: {default_retention_rate}")
+
+                # Browser debug message
+                frappe.msgprint(
+                    f"🔍 DEBUG Step 3: default_retention_rate from Company = {default_retention_rate}%",
+                    indicator='orange',
+                    title="Retention Debug"
+                )
+
+                if default_retention_rate and flt(default_retention_rate) > 0:
+                    doc.custom_retention = flt(default_retention_rate)
+                    print(f"7. ✅ Set doc.custom_retention to: {doc.custom_retention}")
+                    frappe.logger().info(f"Auto-fetched default retention rate {default_retention_rate}% from Company {doc.company}")
+
+                    # Show success message
+                    frappe.msgprint(
+                        f"✅ Auto-applied default retention rate {flt(default_retention_rate)}% from Company settings",
+                        indicator='green',
+                        title="Success"
+                    )
+                else:
+                    print("7. ❌ No valid default_retention_rate found in Company")
+                    frappe.msgprint(
+                        _("Please set retention percentage or configure a default retention rate in Company settings"),
+                        indicator='yellow'
+                    )
+            else:
+                print(f"5. Retention already set to {current_retention_value}%, skipping auto-fetch")
+        else:
+            print("3. ❌ construction_service is NOT enabled on Company")
+    else:
+        print("1. ❌ custom_subject_to_retention is NOT enabled")
+
+    print("="*80)
+    print("🔍 RETENTION AUTO-FETCH DEBUG END")
+    print("="*80 + "\n")
 
     # Validate VAT treatment for TDS transactions
     # Only suggest VAT Undue if document has single item type (not mixed assets + services)
