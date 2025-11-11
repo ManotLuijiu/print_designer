@@ -193,6 +193,9 @@ def delete_all_print_designer_custom_fields():
 			"default_company_branch_code",
 			# Export fields (from thai_business_suite)
 			"tbs_custom_require_export_documentation", "tbs_custom_default_export_account",
+			# Legacy export section structural fields (from old thai_business_suite implementation)
+			"tbs_custom_export_settings_section", "tbs_custom_column_break_company_export_left",
+			"tbs_custom_column_break_company_export_right",
 		]
 		
 		# Item service field SPECIFICALLY created by print_designer install_item_service_field.py
