@@ -171,6 +171,24 @@ def install_company_thai_tax_fields():
                 "description": "Default company branch code (e.g., 00000)",
                 "default": "00000",
             },
+            # Export Settings (from thai_business_suite)
+            {
+                "fieldname": "tbs_custom_require_export_documentation",
+                "fieldtype": "Check",
+                "label": "Require Export Documentation",
+                "insert_after": "default_company_branch_code",
+                "default": "0",
+                "description": "Require export fields (license, port, shipping bill) before submitting export invoices",
+            },
+            {
+                "fieldname": "tbs_custom_default_export_account",
+                "fieldtype": "Link",
+                "label": "Default Export Sales Account",
+                "options": "Account",
+                "depends_on": "eval:doc.tbs_custom_require_export_documentation",
+                "insert_after": "tbs_custom_require_export_documentation",
+                "description": "Default income account for export sales transactions",
+            },
         ]
     }
 
@@ -199,6 +217,9 @@ def install_company_thai_tax_fields():
         print("   - Company: default_input_vat_account (link to Account)")
         print("   - Company: default_wht_debt_account (link to Account)")
         print("   - Company: default_company_branch_code (data)")
+        print("   Export Fields (from thai_business_suite):")
+        print("   - Company: tbs_custom_require_export_documentation (checkbox)")
+        print("   - Company: tbs_custom_default_export_account (link to Account)")
         # Setup default accounts for companies
         # _setup_default_accounts()  # Commented out - Chart of Accounts is dynamic per user
 
@@ -249,6 +270,8 @@ def _fix_field_positioning():
         ("default_input_vat_account", "default_input_vat_undue_account"),
         ("default_wht_debt_account", "default_input_vat_account"),
         ("default_company_branch_code", "default_wht_debt_account"),
+        ("tbs_custom_require_export_documentation", "default_company_branch_code"),
+        ("tbs_custom_default_export_account", "tbs_custom_require_export_documentation"),
     ]
 
     # Position Thai fields starting after max DocField idx
@@ -427,6 +450,9 @@ def remove_company_thai_tax_fields():
         "default_input_vat_account",
         "default_wht_debt_account",
         "default_company_branch_code",
+        # Export Fields (from thai_business_suite)
+        "tbs_custom_require_export_documentation",
+        "tbs_custom_default_export_account",
     ]
 
     try:
@@ -483,6 +509,10 @@ def check_company_thai_tax_fields():
         "default_input_vat_undue_account",
         "default_input_vat_account",
         "default_wht_debt_account",
+        "default_company_branch_code",
+        # Export Fields (from thai_business_suite)
+        "tbs_custom_require_export_documentation",
+        "tbs_custom_default_export_account",
     ]
 
     all_fields_exist = True

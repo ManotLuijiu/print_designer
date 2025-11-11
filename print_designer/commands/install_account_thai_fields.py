@@ -103,6 +103,7 @@ def get_account_thai_custom_fields():
                 "insert_after": "account_name",
                 "in_list_view": 1,
                 "description": "Thai translation of account name for localized Chart of Accounts display",
+                "module": "Print Designer",
             },
             {
                 "fieldname": "auto_translate_thai",
@@ -111,6 +112,7 @@ def get_account_thai_custom_fields():
                 "insert_after": "account_name_th",
                 "default": 1,
                 "description": "Automatically populate Thai name based on common accounting terms",
+                "module": "Print Designer",
             },
             {
                 "fieldname": "thai_notes",
@@ -118,6 +120,7 @@ def get_account_thai_custom_fields():
                 "label": "Thai Translation Notes",
                 "insert_after": "account_currency",
                 "description": "Notes about Thai translation or accounting context",
+                "module": "Print Designer",
             },
         ],
         # "Company": [
