@@ -330,10 +330,134 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
         print(f"   ⚠️ Unknown payment type: {doc.payment_type}")
 
 
+def _get_vat_undue_from_linked_sales_invoices(doc, company_doc):
+    """
+    Check linked Sales Invoices for VAT Undue treatment and calculate total VAT amount.
+
+    Logic:
+    - If Sales Invoice used VAT Undue treatment → include its VAT amount
+    - If Sales Invoice used Standard VAT treatment → skip (VAT already realized)
+
+    Args:
+        doc: Payment Entry document
+        company_doc: Company document
+
+    Returns:
+        Total VAT Undue amount from linked Sales Invoices
+    """
+    print(f"   🔍 Checking linked Sales Invoices for VAT Undue treatment...")
+
+    total_vat_undue = 0.0
+
+    # Get Payment Entry references (linked Sales Invoices)
+    if not hasattr(doc, 'references') or not doc.references:
+        print(f"   ⏭️ No references found in Payment Entry")
+        return total_vat_undue
+
+    # Get Company's default VAT Undue account for comparison
+    default_vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None) if company_doc else None
+
+    if not default_vat_undue_account:
+        print(f"   ⚠️ Company has no default_output_vat_undue_account configured")
+        return total_vat_undue
+
+    print(f"   📋 Found {len(doc.references)} reference(s) to process")
+
+    for ref in doc.references:
+        ref_doctype = getattr(ref, 'reference_doctype', None)
+        ref_name = getattr(ref, 'reference_name', None)
+        allocated_amount = flt(getattr(ref, 'allocated_amount', 0))
+
+        # Only process Sales Invoice references
+        if ref_doctype != "Sales Invoice":
+            print(f"   ⏭️ Skipping non-Sales Invoice reference: {ref_doctype} - {ref_name}")
+            continue
+
+        print(f"   📄 Processing Sales Invoice: {ref_name} (Allocated: ฿{allocated_amount})")
+
+        try:
+            # Fetch Sales Invoice to check vat_treatment
+            si_doc = frappe.get_doc("Sales Invoice", ref_name)
+            vat_treatment = getattr(si_doc, 'vat_treatment', None)
+
+            print(f"      VAT Treatment: {vat_treatment}")
+
+            # Check if this Sales Invoice used VAT Undue treatment
+            if not vat_treatment or "Undue" not in vat_treatment:
+                print(f"      ⏭️ Sales Invoice does not use VAT Undue treatment, skipping")
+                continue
+
+            # Sales Invoice used VAT Undue - need to convert to VAT Due
+            print(f"      ✅ Sales Invoice used VAT Undue treatment - checking GL entries")
+
+            # Get VAT amount from Sales Invoice's GL entries
+            # Look for GL entries with VAT Undue account
+            si_gl_entries = frappe.get_all(
+                "GL Entry",
+                filters={
+                    "voucher_type": "Sales Invoice",
+                    "voucher_no": ref_name,
+                    "account": default_vat_undue_account,
+                    "is_cancelled": 0
+                },
+                fields=["credit", "debit"]
+            )
+
+            if not si_gl_entries:
+                print(f"      ⚠️ No VAT Undue GL entries found for {ref_name}")
+                continue
+
+            # Calculate VAT Undue amount from GL entries
+            # VAT Undue is typically on Credit side for Sales Invoice
+            vat_undue_amount = sum(flt(entry.get('credit', 0)) - flt(entry.get('debit', 0)) for entry in si_gl_entries)
+
+            if vat_undue_amount > 0:
+                # Calculate proportional VAT based on allocated amount
+                si_grand_total = flt(getattr(si_doc, 'grand_total', 0))
+                if si_grand_total > 0:
+                    proportion = flt(allocated_amount) / flt(si_grand_total)
+                    proportional_vat = flt(vat_undue_amount * proportion, 2)
+                    total_vat_undue += proportional_vat
+
+                    print(f"      💰 VAT Undue found: ฿{vat_undue_amount}")
+                    print(f"      📊 Proportion: {proportion:.2%} ({allocated_amount}/{si_grand_total})")
+                    print(f"      💰 Proportional VAT: ฿{proportional_vat}")
+                else:
+                    # Fallback: use full VAT amount if grand_total is zero (shouldn't happen)
+                    total_vat_undue += vat_undue_amount
+                    print(f"      💰 VAT Undue found (full amount): ฿{vat_undue_amount}")
+            else:
+                print(f"      ⏭️ No VAT Undue amount found in GL entries")
+
+        except frappe.DoesNotExistError:
+            print(f"      ❌ Sales Invoice {ref_name} not found")
+            continue
+        except Exception as e:
+            print(f"      ❌ Error processing Sales Invoice {ref_name}: {str(e)}")
+            frappe.log_error(
+                f"Error checking VAT Undue for {ref_name}: {str(e)}",
+                "Payment Entry VAT Undue Check"
+            )
+            continue
+
+    print(f"   📊 Total VAT Undue from linked Sales Invoices: ฿{total_vat_undue}")
+    return total_vat_undue
+
+
 def _add_thai_receive_gl_entries(gl_entries, doc, company_doc, wht_amount, retention_amount, vat_amount):
     """Add Thai GL entries for Payment Entry (Receive) - Customer payments."""
 
     print(f"   📥 Processing RECEIVE payment GL entries...")
+
+    # Check linked Sales Invoices for VAT Undue treatment
+    vat_undue_from_invoices = _get_vat_undue_from_linked_sales_invoices(doc, company_doc)
+
+    # Use VAT from linked invoices if available, otherwise use document field
+    if vat_undue_from_invoices > 0:
+        vat_amount = vat_undue_from_invoices
+        print(f"   📊 Using VAT Undue from linked Sales Invoices: ฿{vat_amount}")
+    elif vat_amount > 0:
+        print(f"   📊 Using VAT Undue from Payment Entry field: ฿{vat_amount}")
 
     # WHT Assets GL Entry - Customer pays us, we withhold tax
     if wht_amount > 0:

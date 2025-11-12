@@ -762,7 +762,8 @@ permission_query_conditions = {
 # Regional overrides for Thai compliance
 regional_overrides = {
     "Thailand": {
-        "erpnext.accounts.doctype.payment_entry.payment_entry.add_regional_gl_entries": "print_designer.regional.payment_entry.add_regional_gl_entries"
+        "erpnext.accounts.doctype.payment_entry.payment_entry.add_regional_gl_entries": "print_designer.regional.payment_entry.add_regional_gl_entries",
+        "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_regional_gl_entries": "print_designer.regional.sales_invoice.make_regional_gl_entries"
     }
 }
 
