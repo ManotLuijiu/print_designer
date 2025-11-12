@@ -62,15 +62,19 @@ def calculate_thai_compliant_wht(doc):
     - Support Thai retention system integration
     """
 
-    # Get WHT rate from custom field
-    wht_rate = flt(getattr(doc, 'custom_withholding_tax', 0))
-    if wht_rate <= 0:
-        return
-
-    # DEBUGGING: Show document totals BEFORE calculation
+    # DEBUGGING: Show document totals FIRST (before any early returns)
     print(f"\n{'='*80}")
     print(f"🔍 DOCUMENT TOTALS DEBUG (BEFORE get_wht_calculation_base)")
     print(f"{'='*80}")
+
+    # Get WHT rate from custom field
+    wht_rate = flt(getattr(doc, 'custom_withholding_tax', 0))
+    print(f"📋 WHT Rate: {wht_rate}%")
+
+    if wht_rate <= 0:
+        print(f"⚠️ WHT rate is 0 or negative, exiting early")
+        print(f"{'='*80}\n")
+        return
     print(f"📊 Document Level Totals:")
     print(f"   - base_total (Company Currency):     {flt(getattr(doc, 'base_total', 0))}")
     print(f"   - total (Transaction Currency):      {flt(getattr(doc, 'total', 0))}")
