@@ -87,16 +87,23 @@ def calculate_thai_compliant_wht(doc):
             print(f"   - Item {idx+1}: {getattr(item, 'item_code', 'Unknown')} | Amount: {flt(getattr(item, 'amount', 0))}")
     print(f"{'='*80}\n")
 
-    # Calculate base amount (net total before VAT)
-    base_amount = get_wht_calculation_base(doc)
+    # Calculate WHT base amount (SERVICE ITEMS ONLY - Thai tax law)
+    wht_base_amount = get_wht_calculation_base(doc)
+
+    # Calculate RETENTION base amount (WHOLE INVOICE - contract guarantee)
+    # Priority: base_total (Company Currency) → total (Transaction Currency)
+    retention_base_amount = flt(getattr(doc, 'base_total', 0)) or flt(getattr(doc, 'total', 0))
 
     # DEBUGGING: Show result AFTER calculation
     print(f"\n{'='*80}")
-    print(f"📊 RESULT: base_amount from get_wht_calculation_base() = {base_amount}")
+    print(f"📊 WHT Base (service items only): {wht_base_amount}")
+    print(f"📊 Retention Base (whole invoice): {retention_base_amount}")
+    print(f"   - base_total: {flt(getattr(doc, 'base_total', 0))}")
+    print(f"   - total: {flt(getattr(doc, 'total', 0))}")
     print(f"{'='*80}\n")
 
-    # Precise WHT calculation: base_amount × rate ÷ 100
-    wht_amount = flt(base_amount * wht_rate / 100, 2)  # Round to 2 decimal places
+    # Precise WHT calculation: wht_base × rate ÷ 100 (SERVICE ITEMS ONLY)
+    wht_amount = flt(wht_base_amount * wht_rate / 100, 2)  # Round to 2 decimal places
 
     # Update custom WHT fields
     doc.custom_withholding_tax_amount = wht_amount
@@ -114,21 +121,21 @@ def calculate_thai_compliant_wht(doc):
     if custom_subject_to_retention and has_custom_retention:
         retention_percentage = flt(getattr(doc, 'custom_retention', 0))
         print(f"3. retention_percentage: {retention_percentage}%")
-        print(f"4. base_amount: {base_amount}")
+        print(f"4. retention_base_amount (WHOLE INVOICE): {retention_base_amount}")
 
         # Browser debug message
         frappe.msgprint(
-            f"🔍 CALC DEBUG: base_amount = {base_amount}, retention % = {retention_percentage}%",
+            f"🔍 CALC DEBUG: retention_base = {retention_base_amount} (whole invoice), retention % = {retention_percentage}%",
             indicator='orange',
             title="Retention Calculation"
         )
 
         if retention_percentage > 0:
-            # Retention is calculated on base_amount (before VAT), same as WHT
-            # Example: 100 THB × 5% = 5 THB retention
-            calculated_retention = flt(base_amount * retention_percentage / 100, 2)
+            # FIXED: Retention is calculated on WHOLE INVOICE, not just services
+            # Example: Total 1,000,000 THB (materials 600k + services 400k) × 5% = 50,000 THB retention
+            calculated_retention = flt(retention_base_amount * retention_percentage / 100, 2)
             doc.custom_retention_amount = calculated_retention
-            print(f"5. ✅ Calculated retention_amount: {base_amount} × {retention_percentage}% = {calculated_retention}")
+            print(f"5. ✅ Calculated retention_amount: {retention_base_amount} (whole invoice) × {retention_percentage}% = {calculated_retention}")
             frappe.logger().info(
                 f"Retention Calculation: {base_amount} × {retention_percentage}% = {doc.custom_retention_amount}"
             )
