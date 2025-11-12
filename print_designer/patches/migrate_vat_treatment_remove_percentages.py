@@ -91,10 +91,14 @@ def migrate_doctype_data():
 	frappe.logger().info("Migrating existing VAT Treatment data...")
 
 	# Mapping of old values to new values
+	# Note: Handle both single % and double %% (escaped) formats
 	value_mapping = {
-		"Standard VAT (7%)": "Standard VAT",
-		"VAT Undue (7%)": "VAT Undue",
-		"Zero-rated for Export (0%)": "Zero-rated for Export"
+		# Standard VAT variations (handles both % and %% formats)
+		("Standard VAT (7%)", "Standard VAT (7%%)"): "Standard VAT",
+		# VAT Undue variations
+		("VAT Undue (7%)", "VAT Undue (7%%)"): "VAT Undue",
+		# Zero-rated variations
+		("Zero-rated for Export (0%)", "Zero-rated for Export (0%%)"): "Zero-rated for Export"
 		# "Exempt from VAT" stays the same
 	}
 
@@ -137,13 +141,13 @@ def migrate_doctype_data():
 	frappe.logger().info(f"Data migration complete: {total_updated} records updated across all doctypes")
 
 
-def migrate_single_value(doctype, old_value, new_value):
+def migrate_single_value(doctype, old_values, new_value):
 	"""
-	Migrate a single VAT Treatment value in a doctype
+	Migrate VAT Treatment values in a doctype (handles multiple old value formats)
 
 	Args:
 		doctype: DocType name
-		old_value: Old VAT Treatment value (with percentage)
+		old_values: Tuple of old VAT Treatment values (handles both % and %% formats)
 		new_value: New VAT Treatment value (without percentage)
 
 	Returns:
@@ -153,12 +157,17 @@ def migrate_single_value(doctype, old_value, new_value):
 		# Use direct SQL for efficiency
 		table_name = f"tab{doctype}"
 
-		# Update the value
+		# Build IN clause for multiple old value formats
+		placeholders = ', '.join(['%s'] * len(old_values))
+
+		# Update all variations to the new value
 		frappe.db.sql(f"""
 			UPDATE `{table_name}`
 			SET vat_treatment = %s
-			WHERE vat_treatment = %s
-		""", (new_value, old_value))
+			WHERE vat_treatment IN ({placeholders})
+		""", (new_value, *old_values))
+
+		frappe.db.commit()
 
 		# Get count of updated rows
 		count = frappe.db.sql(f"""
@@ -170,7 +179,7 @@ def migrate_single_value(doctype, old_value, new_value):
 		return count
 
 	except Exception as e:
-		frappe.logger().error(f"Error migrating {old_value} → {new_value} in {doctype}: {str(e)}")
+		frappe.logger().error(f"Error migrating {old_values} → {new_value} in {doctype}: {str(e)}")
 		return 0
 
 
