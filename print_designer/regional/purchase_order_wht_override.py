@@ -67,8 +67,29 @@ def calculate_thai_compliant_wht(doc):
     if wht_rate <= 0:
         return
 
+    # DEBUGGING: Show document totals BEFORE calculation
+    print(f"\n{'='*80}")
+    print(f"🔍 DOCUMENT TOTALS DEBUG (BEFORE get_wht_calculation_base)")
+    print(f"{'='*80}")
+    print(f"📊 Document Level Totals:")
+    print(f"   - base_total (Company Currency):     {flt(getattr(doc, 'base_total', 0))}")
+    print(f"   - total (Transaction Currency):      {flt(getattr(doc, 'total', 0))}")
+    print(f"   - base_net_total (before discount):  {flt(getattr(doc, 'base_net_total', 0))}")
+    print(f"   - net_total (before discount):       {flt(getattr(doc, 'net_total', 0))}")
+    print(f"📦 Items:")
+    print(f"   - Number of items: {len(doc.items) if hasattr(doc, 'items') and doc.items else 0}")
+    if hasattr(doc, 'items') and doc.items:
+        for idx, item in enumerate(doc.items):
+            print(f"   - Item {idx+1}: {getattr(item, 'item_code', 'Unknown')} | Amount: {flt(getattr(item, 'amount', 0))}")
+    print(f"{'='*80}\n")
+
     # Calculate base amount (net total before VAT)
     base_amount = get_wht_calculation_base(doc)
+
+    # DEBUGGING: Show result AFTER calculation
+    print(f"\n{'='*80}")
+    print(f"📊 RESULT: base_amount from get_wht_calculation_base() = {base_amount}")
+    print(f"{'='*80}\n")
 
     # Precise WHT calculation: base_amount × rate ÷ 100
     wht_amount = flt(base_amount * wht_rate / 100, 2)  # Round to 2 decimal places
