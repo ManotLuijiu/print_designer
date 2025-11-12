@@ -4,7 +4,7 @@
 console.log('🚀 Purchase Order TDS Client Script Loaded Successfully');
 
 frappe.ui.form.on('Purchase Order', {
-    // Smart automation: When Thai WHT compliance is enabled, auto-select VAT Undue (7%) and enable subject_to_wht
+    // Smart automation: When Thai WHT compliance is enabled, auto-select VAT Undue and enable subject_to_wht
     apply_thai_wht_compliance: function(frm) {
         console.log('🔥 Purchase Order Thai WHT Compliance Script Triggered!', {
             apply_thai_wht_compliance: frm.doc.apply_thai_wht_compliance,
@@ -17,7 +17,7 @@ frappe.ui.form.on('Purchase Order', {
                 frm.set_value('subject_to_wht', 1);
             }
 
-            // Auto-select VAT Undue (7%) for better UX
+            // Auto-select VAT Undue for better UX
             console.log('🎯 Checking VAT Treatment field...', {
                 current_value: frm.doc.vat_treatment,
                 field_exists: !!frm.get_field('vat_treatment'),
@@ -25,9 +25,9 @@ frappe.ui.form.on('Purchase Order', {
             });
 
             // Auto-change from Standard VAT to VAT Undue for TDS transactions
-            if (!frm.doc.vat_treatment || frm.doc.vat_treatment === '' || frm.doc.vat_treatment === 'Standard VAT (7%)') {
-                console.log('⚡ Setting VAT Treatment to VAT Undue (7%)...');
-                frm.set_value('vat_treatment', 'VAT Undue (7%)');
+            if (!frm.doc.vat_treatment || frm.doc.vat_treatment === '' || frm.doc.vat_treatment === 'Standard VAT') {
+                console.log('⚡ Setting VAT Treatment to VAT Undue...');
+                frm.set_value('vat_treatment', 'VAT Undue');
             } else {
                 console.log('⏭️ VAT Treatment already set to:', frm.doc.vat_treatment);
             }
@@ -38,15 +38,15 @@ frappe.ui.form.on('Purchase Order', {
                 indicator: 'blue'
             }, 4);
 
-            console.log('Purchase Order Thai WHT: Auto-enabled subject_to_wht and VAT Undue (7%)');
+            console.log('Purchase Order Thai WHT: Auto-enabled subject_to_wht and VAT Undue');
         } else {
             // When Thai WHT compliance is disabled, clear auto-set fields
             if (frm.doc.subject_to_wht) {
                 frm.set_value('subject_to_wht', 0);
             }
 
-            if (frm.doc.vat_treatment === 'VAT Undue (7%)') {
-                frm.set_value('vat_treatment', 'Standard VAT (7%)');
+            if (frm.doc.vat_treatment === 'VAT Undue') {
+                frm.set_value('vat_treatment', 'Standard VAT');
             }
 
             frappe.show_alert({
@@ -89,9 +89,9 @@ frappe.ui.form.on('Purchase Order', {
     vat_treatment: function(frm) {
         if (frm.doc.apply_thai_wht_compliance && frm.doc.vat_treatment) {
             // Recommend VAT Undue for TDS transactions
-            if (frm.doc.vat_treatment !== 'VAT Undue (7%)') {
+            if (frm.doc.vat_treatment !== 'VAT Undue') {
                 frappe.show_alert({
-                    message: __('Consider using "VAT Undue (7%)" for TDS transactions to comply with Thai tax regulations'),
+                    message: __('Consider using "VAT Undue" for TDS transactions to comply with Thai tax regulations'),
                     indicator: 'yellow'
                 }, 5);
             }
@@ -145,7 +145,7 @@ frappe.ui.form.on('Purchase Order', {
 
                         // Auto-set VAT Undue if not already set
                         if (!frm.doc.vat_treatment) {
-                            frm.set_value('vat_treatment', 'VAT Undue (7%)');
+                            frm.set_value('vat_treatment', 'VAT Undue');
                         }
 
                         d.hide();
@@ -162,7 +162,7 @@ frappe.ui.form.on('Purchase Order', {
         // Add help text for Thai WHT users
         if (frm.doc.apply_thai_wht_compliance) {
             frm.set_df_property('apply_thai_wht_compliance', 'description',
-                'Thai WHT Compliance enabled: VAT Treatment will be auto-set to "VAT Undue (7%)" for compliance'
+                'Thai WHT Compliance enabled: VAT Treatment will be auto-set to "VAT Undue" for compliance'
             );
         }
 
@@ -237,10 +237,10 @@ function smart_configure_wht_from_item(frm, item_wht_config, item_code) {
     }
 
     // Auto-select VAT Undue if Standard VAT is set
-    if (frm.doc.vat_treatment === 'Standard VAT (7%)') {
-        frm.set_value('vat_treatment', 'VAT Undue (7%)');
-        changes_made.push('VAT → VAT Undue (7%)');
-        console.log('✅ Changed VAT treatment to VAT Undue (7%)');
+    if (frm.doc.vat_treatment === 'Standard VAT') {
+        frm.set_value('vat_treatment', 'VAT Undue');
+        changes_made.push('VAT → VAT Undue');
+        console.log('✅ Changed VAT treatment to VAT Undue');
     }
 
     // Show intelligent alert with changes made
@@ -293,8 +293,8 @@ function check_remaining_wht_items(frm) {
                     frm.set_value('apply_thai_wht_compliance', 0);
                     frm.set_value('subject_to_wht', 0);
                     frm.set_value('wht_income_type', '');
-                    if (frm.doc.vat_treatment === 'VAT Undue (7%)') {
-                        frm.set_value('vat_treatment', 'Standard VAT (7%)');
+                    if (frm.doc.vat_treatment === 'VAT Undue') {
+                        frm.set_value('vat_treatment', 'Standard VAT');
                     }
 
                     frappe.show_alert({

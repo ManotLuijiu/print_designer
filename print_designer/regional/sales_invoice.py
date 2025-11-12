@@ -10,8 +10,8 @@ Key Concept:
 - Regional GL entries OVERRIDE the template's VAT account based on VAT Treatment value
 
 VAT Treatment Logic:
-- "VAT Undue (7%)" → Use Company's default_output_vat_undue_account
-- "Standard VAT (7%)" → Use Company's default_output_vat_account
+- "VAT Undue" → Use Company's default_output_vat_undue_account
+- "Standard VAT" → Use Company's default_output_vat_account
 """
 
 import frappe
@@ -37,7 +37,7 @@ def make_regional_gl_entries(gl_entries, doc):
         return gl_entries
 
     # Check if VAT Treatment field is set
-    vat_treatment = getattr(doc, 'vat_treatment', None)
+    vat_treatment = getattr(doc, "vat_treatment", None)
     if not vat_treatment:
         # No VAT Treatment specified, use template's default behavior
         return gl_entries
@@ -50,7 +50,7 @@ def make_regional_gl_entries(gl_entries, doc):
         except frappe.DoesNotExistError:
             frappe.log_error(
                 f"Company '{doc.company}' not found for Sales Invoice {doc.name}",
-                "Regional GL Entries - Sales Invoice"
+                "Regional GL Entries - Sales Invoice",
             )
             return gl_entries
 
@@ -58,8 +58,8 @@ def make_regional_gl_entries(gl_entries, doc):
         return gl_entries
 
     # Fetch Company default VAT accounts
-    output_vat_undue_account = getattr(company_doc, 'default_output_vat_undue_account', None)
-    output_vat_account = getattr(company_doc, 'default_output_vat_account', None)
+    output_vat_undue_account = getattr(company_doc, "default_output_vat_undue_account", None)
+    output_vat_account = getattr(company_doc, "default_output_vat_account", None)
 
     # Determine which VAT account to use based on VAT Treatment
     target_vat_account = None
@@ -93,25 +93,22 @@ def make_regional_gl_entries(gl_entries, doc):
     vat_entries_modified = 0
 
     for gl_entry in gl_entries:
-        account = gl_entry.get('account', '')
-        credit_amount = flt(gl_entry.get('credit', 0))
+        account = gl_entry.get("account", "")
+        credit_amount = flt(gl_entry.get("credit", 0))
 
         # Identify VAT entries by:
         # 1. Credit side (output VAT for sales)
         # 2. Account name contains VAT/Output/Tax keywords
-        is_vat_entry = (
-            credit_amount > 0 and
-            (
-                'VAT' in account.upper() or
-                'OUTPUT TAX' in account.upper() or
-                'ภาษีขาย' in account or
-                'OUTPUT VAT' in account.upper()
-            )
+        is_vat_entry = credit_amount > 0 and (
+            "VAT" in account.upper()
+            or "OUTPUT TAX" in account.upper()
+            or "ภาษีขาย" in account
+            or "OUTPUT VAT" in account.upper()
         )
 
         if is_vat_entry:
-            original_account = gl_entry['account']
-            gl_entry['account'] = target_vat_account
+            original_account = gl_entry["account"]
+            gl_entry["account"] = target_vat_account
             vat_entries_modified += 1
 
             frappe.logger().info(
