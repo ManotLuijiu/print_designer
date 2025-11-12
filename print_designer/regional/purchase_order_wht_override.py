@@ -137,7 +137,7 @@ def calculate_thai_compliant_wht(doc):
             doc.custom_retention_amount = calculated_retention
             print(f"5. ✅ Calculated retention_amount: {retention_base_amount} (whole invoice) × {retention_percentage}% = {calculated_retention}")
             frappe.logger().info(
-                f"Retention Calculation: {base_amount} × {retention_percentage}% = {doc.custom_retention_amount}"
+                f"Retention Calculation: {retention_base_amount} × {retention_percentage}% = {doc.custom_retention_amount}"
             )
 
             # Browser debug message
@@ -185,10 +185,10 @@ def calculate_thai_compliant_wht(doc):
     print("="*80 + "\n")
 
     # Update preview fields for user display
-    update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment)
+    update_thai_wht_preview_fields(doc, wht_base_amount, wht_amount, final_payment)
 
     frappe.logger().info(
-        f"Thai WHT Calculation: {base_amount} × {wht_rate}% = {wht_amount} "
+        f"Thai WHT Calculation: {wht_base_amount} × {wht_rate}% = {wht_amount} "
         f"(Final Payment: {final_payment})"
     )
 
