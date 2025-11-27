@@ -701,6 +701,7 @@ doc_events = {
     # Sales Invoice - Using consolidated calculation functions
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
+        "before_validate": "print_designer.custom.sales_invoice_calculations.before_validate_sales_invoice",
         "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
     },
     # Customer WHT Configuration Changes - Consolidated handlers

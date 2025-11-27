@@ -11,28 +11,28 @@ from frappe.utils import flt, cint
 def sales_invoice_calculate_thailand_amounts(doc, method=None):
     """
     Calculate Thailand amounts for Sales Invoice DocType ONLY.
-    
+
     This function is specifically designed for Sales Invoice and handles:
     - Company default WHT/retention rates integration
     - Thai business logic based on Company configuration
     - Preview WHT calculations
     - Customer notification of WHT deductions
-    
+
     Called from Sales Invoice validate() method - runs server-side before save.
     """
     # DEBUG: Log function entry
     frappe.logger().info(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
     print(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    
+
     # Ensure this function only processes Sales Invoice DocType
     if doc.doctype != "Sales Invoice":
         frappe.logger().info(f"🔍 Sales Invoice Calc: Not a Sales Invoice ({doc.doctype}), skipping")
         return
-        
+
     if not doc.company:
         frappe.logger().info(f"🔍 Sales Invoice Calc: No company set, skipping")
         return
-    
+
     # Apply Company defaults if Sales Invoice fields are not specified
     apply_company_defaults_for_sales_invoice(doc)
     
@@ -485,7 +485,32 @@ def preview_wht_calculation_for_sales_invoice(customer, grand_total, net_total=N
                 })
         
         return preview_result
-        
+
     except Exception as e:
         frappe.log_error(f"Error in Sales Invoice WHT preview API: {str(e)}")
         return {"error": str(e)}
+
+
+def before_validate_sales_invoice(doc, method=None):
+    """
+    Before validate hook for Sales Invoice.
+
+    Sets the ignore_validate_update_after_submit flag to prevent
+    UpdateAfterSubmitError when ERPNext's set_total_in_words() recalculates
+    in_words/base_in_words fields during the submit validation cycle.
+
+    The error occurs because:
+    1. During submit, Frappe runs validate() again
+    2. ERPNext's set_total_in_words() recalculates in_words
+    3. If the recalculated value differs (e.g., currency format changes),
+       Frappe throws UpdateAfterSubmitError
+
+    This hook runs BEFORE validate(), so the flag is set before the
+    recalculation happens.
+
+    Only set the flag when document is being submitted (docstatus changing to 1).
+    """
+    # Only set flag when submitting (docstatus will be 1 during submit action)
+    if doc.docstatus == 1:
+        doc.flags.ignore_validate_update_after_submit = True
+        print(f"🔍 Sales Invoice before_validate: Set ignore_validate_update_after_submit flag for {doc.name} (submitting)")
