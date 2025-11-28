@@ -38,3 +38,4 @@ print_designer.patches.fix_pnd3_form_field_types
 print_designer.patches.fix_all_pnd_form_field_types
 print_designer.patches.fix_approval_urls
 print_designer.patches.migrate_vat_treatment_remove_percentages
+print_designer.patches.v1_8.migrate_branch_code_to_pd_custom

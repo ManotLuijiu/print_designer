@@ -144,7 +144,10 @@ def migrate_legacy_branch_data():
 
 def create_supplier_fields():
     """
-    Install Supplier custom fields for Print Designer with smart data migration.
+    Install Supplier custom fields for Print Designer.
+
+    Note: Legacy data migration is now handled by a one-time Frappe patch:
+    print_designer.patches.v1_8.migrate_branch_code_to_pd_custom
 
     Returns:
         bool: True if installation successful, False otherwise
@@ -152,27 +155,21 @@ def create_supplier_fields():
     try:
         print("🚀 Installing Print Designer Supplier custom fields...")
 
-        # Step 1: Create the field definition
+        # Create the field definition
         create_custom_fields(SUPPLIER_CUSTOM_FIELDS, update=True)
         frappe.db.commit()
 
         print("✅ Supplier custom fields installed successfully!")
         print("   - pd_custom_branch_code (Branch Code for Thai tax invoices)")
 
-        # Step 2: Migrate legacy data
-        print("\n🔄 Running smart data migration...")
-        migration_stats = migrate_legacy_branch_data()
-
-        # Step 3: Verify field exists
+        # Verify field exists
         field_exists = frappe.db.exists("Custom Field", {
             "dt": "Supplier",
             "fieldname": "pd_custom_branch_code"
         })
 
         if field_exists:
-            print("\n✅ Installation completed successfully!")
-            if migration_stats.get("migrated", 0) > 0:
-                print(f"   📦 Migrated {migration_stats['migrated']} existing branch codes")
+            print("✅ Installation completed successfully!")
 
         return True
 
