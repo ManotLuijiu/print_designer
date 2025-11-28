@@ -82,14 +82,13 @@ def migrate_doctype_branch_codes(doctype):
             continue
 
         # Find records with values in legacy field but NOT yet migrated
-        # Key change: Only migrate if pd_custom_branch_code is NULL or empty
-        # Do NOT overwrite if pd_custom_branch_code already has a value (including '00000')
+        # Only migrate if pd_custom_branch_code is NULL or empty
+        # Include '00000' values - user may have explicitly set head office code
         records_to_migrate = frappe.db.sql(f"""
             SELECT name, `{fieldname}` as legacy_value
             FROM `{table_name}`
             WHERE `{fieldname}` IS NOT NULL
             AND `{fieldname}` != ''
-            AND `{fieldname}` != '00000'
             AND (pd_custom_branch_code IS NULL OR pd_custom_branch_code = '')
         """, as_dict=True)
 
