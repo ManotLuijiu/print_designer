@@ -76,37 +76,34 @@ frappe.ui.form.on('Sales Invoice', {
 
 
 def setup_backend_retention_system():
-    """Setup complete backend-driven retention system"""
-    
+    """Setup complete backend-driven retention system (Company-based)"""
+
     print("🚀 Setting up backend-driven retention system...")
-    
+
     # Step 1: Install minimal client script (no API calls)
     install_minimal_retention_client_script()
-    
+
     # Step 2: Verify document events are registered in hooks.py
     print("✅ Document events configured in hooks.py")
-    print("   - Sales Invoice validate: company_retention_settings.sales_invoice_validate")
-    print("   - Sales Invoice before_save: company_retention_settings.sales_invoice_before_save")
-    
-    # Step 3: Verify retention settings exist for companies
-    companies = frappe.get_all("Company", fields=["name"])
-    for company in companies:
-        if not frappe.db.exists("Company Retention Settings", company.name):
-            from print_designer.doctype.company_retention_settings.company_retention_settings import CompanyRetentionSettings
-            CompanyRetentionSettings.create_default_settings(company.name)
-            print(f"✅ Created retention settings for {company.name}")
-        else:
-            print(f"   Retention settings exist for {company.name}")
-    
+    print("   - Sales Invoice validate: sales_invoice_calculations.sales_invoice_calculate_thailand_amounts")
+    print("   - Reads from Company fields directly (construction_service, default_retention_rate)")
+
+    # NOTE: Company Retention Settings creation REMOVED
+    # The retention system now reads directly from Company fields:
+    # - construction_service
+    # - default_retention_rate
+    # - default_retention_account
+    # See: sales_order_calculations.py:64-82, sales_invoice_calculations.py:58-83
+
     frappe.db.commit()
-    
-    print(f"""
+
+    print("""
 🎉 Backend-driven retention system ready!
 
 ✅ Key Benefits:
    - Zero API calls from client-side
    - All calculations happen on server during save/validate
-   - Automatic retention rate and amount calculation
+   - Reads directly from Company fields (no Company Retention Settings)
    - No cache management needed
    - No infinite loops possible
 
@@ -115,11 +112,14 @@ def setup_backend_retention_system():
    2. Server-side events automatically calculate retention when:
       - Document is validated
       - Document is saved
-      - Company settings change
-   
+   3. Settings come from Company fields:
+      - construction_service (enable/disable)
+      - default_retention_rate (percentage)
+      - default_retention_account (GL account)
+
 🔄 To test:
    1. Clear browser cache
-   2. Open Sales Invoice for "Moo Coding" 
+   2. Open Sales Invoice
    3. Add items and observe automatic retention calculation
    4. No API calls should appear in network tab
 """)

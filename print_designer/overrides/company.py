@@ -35,7 +35,7 @@ class CustomCompany(Company):
                 )
 
     def on_update(self):
-        """Override to handle tax setup errors and sync retention settings"""
+        """Override to handle tax setup errors"""
         try:
             super().on_update()
         except IndexError as e:
@@ -47,10 +47,18 @@ class CustomCompany(Company):
             else:
                 raise
 
-        # Only sync retention settings for existing documents with retention data
-        # Skip for new companies to avoid creation errors
-        if not self.is_new() and self.has_retention_data():
-            self.sync_retention_settings()
+        # NOTE: Company Retention Settings sync DISABLED
+        # Retention settings are read directly from Company fields (construction_service,
+        # default_retention_rate, default_retention_account) in SO/SI calculations.
+        # Company Retention Settings DocType is redundant and causes deletion issues.
+        # See: sales_order_calculations.py:64-82, sales_invoice_calculations.py:58-83
+
+    def on_trash(self):
+        """Delete linked Company Retention Settings before Company deletion"""
+        # Clean up any existing Company Retention Settings to prevent LinkExistsError
+        if frappe.db.exists("Company Retention Settings", self.name):
+            frappe.delete_doc("Company Retention Settings", self.name, force=True, ignore_permissions=True)
+            frappe.db.commit()
 
     def import_coa_from_csv(self):
         """

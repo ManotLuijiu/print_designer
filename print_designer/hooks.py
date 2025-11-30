@@ -682,10 +682,13 @@ doc_events = {
             "print_designer.custom.payment_entry_server_events.on_cancel",
         ],
     },
-    # Company DocType - Sync retention data to Company Retention Settings
-    "Company": {
-        "on_update": "print_designer.overrides.company.sync_company_retention_settings",
-    },
+    # Company DocType - Retention sync DISABLED (redundant)
+    # Retention settings are read directly from Company fields (construction_service,
+    # default_retention_rate, default_retention_account) in SO/SI calculations.
+    # on_trash is handled by CustomCompany class override (deletes linked Company Retention Settings)
+    # "Company": {
+    #     "on_update": "print_designer.overrides.company.sync_company_retention_settings",
+    # },
     # Thai WHT Preview System - Sales Documents (Consolidated Calculations)
     "Quotation": {
         "before_print": "print_designer.pdf.before_print",
