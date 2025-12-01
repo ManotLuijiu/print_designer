@@ -474,9 +474,22 @@ def download_pdf_with_signature_stamp(
                 html_content = str(html_content) + watermark_html
 
         # Now generate PDF from the modified HTML
-        from frappe.utils.pdf import get_pdf
-
-        pdf_file = get_pdf(html_content)
+        # Try wkhtmltopdf first, fallback to WeasyPrint if it fails
+        pdf_file = None
+        try:
+            from frappe.utils.pdf import get_pdf
+            pdf_file = get_pdf(html_content)
+            log_to_print_designer(f"PDF generated with wkhtmltopdf (with watermark)")
+        except Exception as wk_error:
+            log_to_print_designer(f"wkhtmltopdf failed: {wk_error}, trying WeasyPrint fallback")
+            try:
+                from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+                pdf_file = get_pdf_with_weasyprint(html_content)
+                log_to_print_designer(f"PDF generated with WeasyPrint fallback (with watermark)")
+            except Exception as wp_error:
+                log_to_print_designer(f"WeasyPrint also failed: {wp_error}")
+                frappe.log_error(f"Both PDF generators failed. wkhtmltopdf: {wk_error}, WeasyPrint: {wp_error}", "PDF Generation")
+                frappe.throw(f"PDF generation failed: {str(wk_error)}")
 
         # Set response similar to original download_pdf
         if not doc:
@@ -486,7 +499,7 @@ def download_pdf_with_signature_stamp(
         )
         frappe.local.response.filecontent = pdf_file
         frappe.local.response.type = "pdf"
-        
+
         log_to_print_designer(f"PDF generated successfully with watermark: {watermark_text}")
         return pdf_file
 
@@ -508,14 +521,39 @@ def download_pdf_with_signature_stamp(
     pdf_kwargs = {k: v for k, v in pdf_kwargs.items() if v is not None}
 
     # Call the original download_pdf function with compatible parameters only
+    # If wkhtmltopdf fails, fallback to WeasyPrint
     try:
         result = original_download_pdf(**pdf_kwargs)
         log_to_print_designer(f"Original PDF function completed successfully")
         return result
     except Exception as e:
-        log_to_print_designer(f"Error in original PDF function: {e}")
-        frappe.log_error(f"PDF generation error: {e}", "PDF Generation")
-        frappe.throw(f"PDF generation failed: {str(e)}")
+        log_to_print_designer(f"Error in original PDF function: {e}, trying WeasyPrint fallback")
+        # Try WeasyPrint fallback
+        try:
+            from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+            # Get the HTML content for WeasyPrint
+            html_content = frappe.get_print(
+                doctype,
+                name,
+                format,
+                doc=doc,
+                no_letterhead=no_letterhead,
+            )
+            pdf_file = get_pdf_with_weasyprint(html_content)
+
+            # Set response
+            frappe.local.response.filename = "{name}.pdf".format(
+                name=name.replace(" ", "-").replace("/", "-")
+            )
+            frappe.local.response.filecontent = pdf_file
+            frappe.local.response.type = "pdf"
+
+            log_to_print_designer(f"PDF generated with WeasyPrint fallback (no watermark)")
+            return pdf_file
+        except Exception as wp_error:
+            log_to_print_designer(f"WeasyPrint fallback also failed: {wp_error}")
+            frappe.log_error(f"Both PDF generators failed. wkhtmltopdf: {e}, WeasyPrint: {wp_error}", "PDF Generation")
+            frappe.throw(f"PDF generation failed: {str(e)}")
 
 
 # Optional: Auto-signature functionality
