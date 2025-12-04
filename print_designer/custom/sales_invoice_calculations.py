@@ -8,6 +8,49 @@ from frappe import _
 from frappe.utils import flt, cint
 
 
+def get_currency_precision():
+    """
+    Get currency precision from System Settings.
+
+    Respects the user's Float Precision and Currency Precision settings
+    in System Settings (0-9 range).
+
+    Priority:
+    1. currency_precision from System Settings (for Currency fields)
+    2. Fallback to 2 (standard for most currencies)
+    """
+    precision = cint(frappe.db.get_default("currency_precision"))
+    if not precision:
+        # Fallback to 2 if not set (standard for most currencies like THB)
+        precision = 2
+    return precision
+
+
+def thai_flt(value, precision=None):
+    """
+    Float with Thai Commercial Rounding (round half up).
+
+    Respects System Settings currency_precision (0-9) if precision not specified.
+
+    Thailand uses "round half up" rounding:
+    - 100.505 → 100.51 (not 100.50 like banker's rounding)
+    - 100.504 → 100.50
+    - 100.495 → 100.50
+
+    This is the standard for Thai tax calculations (WHT, VAT, Retention).
+
+    Args:
+        value: The numeric value to round
+        precision: Optional precision override. If None, uses System Settings currency_precision.
+
+    Returns:
+        Float rounded using Thai Commercial Rounding with specified precision.
+    """
+    if precision is None:
+        precision = get_currency_precision()
+    return flt(value, precision, rounding_method="Commercial Rounding")
+
+
 def sales_invoice_calculate_thailand_amounts(doc, method=None):
     """
     Calculate Thailand amounts for Sales Invoice DocType ONLY.
@@ -90,9 +133,10 @@ def calculate_withholding_tax_amounts_for_sales_invoice(doc):
         if doc.get('subject_to_wht') and doc.custom_withholding_tax and doc.net_total:
             wht_rate = flt(doc.custom_withholding_tax)  # Already in percentage
             current_net_total = flt(doc.net_total)
-            
+
             # Calculate what the WHT amount SHOULD be based on current net_total
-            expected_wht_amount = flt((current_net_total * wht_rate) / 100, 2)
+            # Use Thai Commercial Rounding: 100.505 → 100.51
+            expected_wht_amount = thai_flt((current_net_total * wht_rate) / 100)
             current_wht_amount = flt(doc.get('custom_withholding_tax_amount', 0))
             
             # Check if current amount is significantly different from expected (more than 0.01 difference)
@@ -159,9 +203,9 @@ def calculate_retention_amounts_for_sales_invoice(doc):
         if doc.get('custom_subject_to_retention') and doc.get('custom_retention') and doc.net_total:
             retention_rate = flt(doc.custom_retention)
             base_amount = flt(doc.net_total)
-            
-            # Calculate retention amount
-            doc.custom_retention_amount = flt((base_amount * retention_rate) / 100, 2)
+
+            # Calculate retention amount with Thai Commercial Rounding: 100.505 → 100.51
+            doc.custom_retention_amount = thai_flt((base_amount * retention_rate) / 100)
         else:
             doc.custom_retention_amount = 0
             
@@ -181,7 +225,8 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
         retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
         
         # Calculate what net_total_after_wht SHOULD be based on current grand_total and wht_amount
-        expected_net_total_after_wht = flt(grand_total - wht_amount, 2)
+        # Use Thai Commercial Rounding for consistency
+        expected_net_total_after_wht = thai_flt(grand_total - wht_amount)
         current_net_total_after_wht = flt(doc.get('net_total_after_wht', 0))
         
         # Check if current amount is significantly different from expected
@@ -203,7 +248,8 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
         # Calculate payment amount based on retention status
         if doc.get('custom_subject_to_retention') and retention_amount > 0:
             # custom_net_total_after_wht_retention = grand_total - custom_withholding_tax_amount - custom_retention_amount
-            doc.custom_net_total_after_wht_retention = flt(grand_total - wht_amount - retention_amount, 2)
+            # Use Thai Commercial Rounding for consistency
+            doc.custom_net_total_after_wht_retention = thai_flt(grand_total - wht_amount - retention_amount)
             
             # custom_payment_amount = custom_net_total_after_wht_retention
             doc.custom_payment_amount = doc.custom_net_total_after_wht_retention
