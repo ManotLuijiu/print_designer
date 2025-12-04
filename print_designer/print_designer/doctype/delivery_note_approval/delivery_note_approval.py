@@ -34,27 +34,33 @@ class DeliveryNoteApproval(Document):
 	def update_delivery_note_status(self):
 		"""Update the linked delivery note with approval status"""
 		try:
-			delivery_note = frappe.get_doc("Delivery Note", self.delivery_note)
-			
+			# Use db_set to bypass allow_on_submit restrictions for submitted DNs
+			update_values = {}
+
 			if self.status == "Approved":
 				# Update both new standardized and legacy fields for compatibility
-				delivery_note.customer_approval_status = "Approved"
-				delivery_note.custom_goods_received_status = "Approved"  # Legacy
-				delivery_note.customer_approved_on = self.approved_on or now_datetime()
-				delivery_note.custom_customer_approval_date = self.approved_on or now_datetime()  # Legacy
-				delivery_note.customer_approved_by = self.customer_name
-				delivery_note.custom_approved_by = self.customer_name  # Legacy
-				delivery_note.customer_signature = self.digital_signature
-				delivery_note.custom_customer_signature = self.digital_signature  # Legacy
+				update_values = {
+					"customer_approval_status": "Approved",
+					"custom_goods_received_status": "Approved",  # Legacy
+					"customer_approved_on": self.approved_on or now_datetime(),
+					"custom_customer_approval_date": self.approved_on or now_datetime(),  # Legacy
+					"customer_approved_by": self.customer_name,
+					"custom_approved_by": self.customer_name,  # Legacy
+					"customer_signature": self.digital_signature,
+					"custom_customer_signature": self.digital_signature  # Legacy
+				}
 			elif self.status == "Rejected":
-				delivery_note.customer_approval_status = "Rejected"
-				delivery_note.custom_goods_received_status = "Rejected"  # Legacy
-				delivery_note.custom_rejection_reason = self.remarks
-			
-			delivery_note.save()
-			
+				update_values = {
+					"customer_approval_status": "Rejected",
+					"custom_goods_received_status": "Rejected",  # Legacy
+					"custom_rejection_reason": self.remarks
+				}
+
+			if update_values:
+				frappe.db.set_value("Delivery Note", self.delivery_note, update_values, update_modified=True)
+
 		except Exception as e:
-			frappe.log_error(f"Error updating delivery note status: {str(e)}")
+			frappe.log_error(title="DN Status Update Error", message=str(e)[:1000])
 	
 	def get_approval_url(self):
 		"""Get the approval URL for this record"""
@@ -65,10 +71,15 @@ class DeliveryNoteApproval(Document):
 		"""Check if the approval token has expired (7 days default)"""
 		if not self.generated_on:
 			return True
-		
-		expiry_days = frappe.db.get_single_value("Print Designer Settings", "approval_expiry_days") or 7
+
+		# Try to get expiry days from settings, default to 7 if not configured
+		try:
+			expiry_days = frappe.db.get_single_value("Print Designer Settings", "approval_expiry_days") or 7
+		except Exception:
+			expiry_days = 7
+
 		expiry_date = add_days(self.generated_on, expiry_days)
-		
+
 		return now_datetime() > expiry_date
 	
 	@frappe.whitelist()
@@ -76,21 +87,34 @@ class DeliveryNoteApproval(Document):
 		"""Approve the delivery with customer details"""
 		if self.is_expired():
 			frappe.throw("Approval link has expired")
-		
+
 		if self.status != "Pending":
 			frappe.throw("Delivery has already been processed")
-		
-		self.status = "Approved"
-		self.approved_on = now_datetime()
-		self.customer_name = customer_name
-		self.digital_signature = digital_signature
-		self.remarks = remarks
-		
-		self.save()
-		
-		# Send notification
-		self.send_approval_notification()
-		
+
+		# Use db_set for submitted documents to bypass allow_on_submit restrictions
+		frappe.db.set_value(self.doctype, self.name, {
+			"status": "Approved",
+			"approved_on": now_datetime(),
+			"customer_name": customer_name,
+			"digital_signature": digital_signature,
+			"remarks": remarks
+		}, update_modified=True)
+
+		# Reload to get updated values
+		self.reload()
+
+		# Update linked Delivery Note status (non-blocking)
+		try:
+			self.update_delivery_note_status()
+		except Exception:
+			pass  # Don't fail approval if DN update fails
+
+		# Send notification (non-blocking)
+		try:
+			self.send_approval_notification()
+		except Exception:
+			pass  # Don't fail approval if notification fails
+
 		return {"status": "success", "message": "Delivery approved successfully"}
 	
 	@frappe.whitelist()
@@ -98,35 +122,57 @@ class DeliveryNoteApproval(Document):
 		"""Reject the delivery with reason"""
 		if self.is_expired():
 			frappe.throw("Approval link has expired")
-		
+
 		if self.status != "Pending":
 			frappe.throw("Delivery has already been processed")
-		
-		self.status = "Rejected"
-		self.customer_name = customer_name
-		self.remarks = remarks
-		
-		self.save()
-		
-		# Send notification
-		self.send_rejection_notification()
-		
+
+		# Use db_set for submitted documents to bypass allow_on_submit restrictions
+		frappe.db.set_value(self.doctype, self.name, {
+			"status": "Rejected",
+			"customer_name": customer_name,
+			"remarks": remarks
+		}, update_modified=True)
+
+		# Reload to get updated values
+		self.reload()
+
+		# Update linked Delivery Note status (non-blocking)
+		try:
+			self.update_delivery_note_status()
+		except Exception:
+			pass  # Don't fail rejection if DN update fails
+
+		# Send notification (non-blocking)
+		try:
+			self.send_rejection_notification()
+		except Exception:
+			pass  # Don't fail rejection if notification fails
+
 		return {"status": "success", "message": "Delivery rejected"}
 	
 	def send_approval_notification(self):
 		"""Send email notification when delivery is approved"""
 		try:
 			delivery_note = frappe.get_doc("Delivery Note", self.delivery_note)
-			
-			# Send to delivery note owner and sales team
-			recipients = [delivery_note.owner]
-			
+
+			# Get owner's email (not username)
+			owner_email = frappe.db.get_value("User", delivery_note.owner, "email")
+			recipients = []
+
+			# Only add if valid email
+			if owner_email and "@" in owner_email:
+				recipients.append(owner_email)
+
 			# Add sales manager if exists
 			if delivery_note.get("sales_partner"):
 				sales_manager = frappe.db.get_value("Sales Partner", delivery_note.sales_partner, "email_id")
-				if sales_manager:
+				if sales_manager and "@" in sales_manager:
 					recipients.append(sales_manager)
-			
+
+			# Only send if we have valid recipients
+			if not recipients:
+				return
+
 			frappe.sendmail(
 				recipients=recipients,
 				subject=f"Delivery Note {delivery_note.name} Approved",
@@ -139,18 +185,34 @@ class DeliveryNoteApproval(Document):
 				""",
 				now=True
 			)
-			
+
 		except Exception as e:
-			frappe.log_error(f"Error sending approval notification: {str(e)}")
+			# Log error with truncated title to avoid cascading errors
+			frappe.log_error(title="Approval Notification Error", message=str(e)[:1000])
 	
 	def send_rejection_notification(self):
 		"""Send email notification when delivery is rejected"""
 		try:
 			delivery_note = frappe.get_doc("Delivery Note", self.delivery_note)
-			
-			# Send to delivery note owner
-			recipients = [delivery_note.owner]
-			
+
+			# Get owner's email (not username)
+			owner_email = frappe.db.get_value("User", delivery_note.owner, "email")
+			recipients = []
+
+			# Only add if valid email
+			if owner_email and "@" in owner_email:
+				recipients.append(owner_email)
+
+			# Add sales manager if exists
+			if delivery_note.get("sales_partner"):
+				sales_manager = frappe.db.get_value("Sales Partner", delivery_note.sales_partner, "email_id")
+				if sales_manager and "@" in sales_manager:
+					recipients.append(sales_manager)
+
+			# Only send if we have valid recipients
+			if not recipients:
+				return
+
 			frappe.sendmail(
 				recipients=recipients,
 				subject=f"Delivery Note {delivery_note.name} Rejected",
@@ -163,9 +225,10 @@ class DeliveryNoteApproval(Document):
 				""",
 				now=True
 			)
-			
+
 		except Exception as e:
-			frappe.log_error(f"Error sending rejection notification: {str(e)}")
+			# Log error with truncated title to avoid cascading errors
+			frappe.log_error(title="Rejection Notification Error", message=str(e)[:1000])
 
 
 @frappe.whitelist(allow_guest=True)
