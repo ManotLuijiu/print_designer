@@ -17,7 +17,7 @@ CUSTOMER_CUSTOM_FIELDS = {
         {
             "fieldname": "pd_custom_branch_code",
             "label": "Branch Code",
-            "fieldtype": "Data",
+            "fieldtype": "Text",
             "insert_after": "tax_id",
             "default": "00000",
             "module": "Print Designer",
@@ -52,13 +52,16 @@ def migrate_legacy_branch_data():
         print("\n🔍 Checking for legacy branch_code fields to migrate...")
 
         # Get all existing custom fields for Customer with 'branch' in name
-        existing_fields = frappe.db.sql("""
+        existing_fields = frappe.db.sql(
+            """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
-        """, as_dict=True)
+        """,
+            as_dict=True,
+        )
 
         if not existing_fields:
             print("   ℹ️  No legacy branch fields found - fresh installation")
@@ -72,7 +75,9 @@ def migrate_legacy_branch_data():
         try:
             frappe.db.sql("SELECT pd_custom_branch_code FROM `tabCustomer` LIMIT 1")
         except Exception:
-            print("   ⚠️  Target field pd_custom_branch_code doesn't exist yet - will migrate after field creation")
+            print(
+                "   ⚠️  Target field pd_custom_branch_code doesn't exist yet - will migrate after field creation"
+            )
             return {"migrated": 0, "skipped": 0, "errors": 0, "deferred": True}
 
         # Get all customers that need migration
@@ -86,13 +91,16 @@ def migrate_legacy_branch_data():
                 frappe.db.sql(f"SELECT {fieldname} FROM `tabCustomer` LIMIT 1")
 
                 # Find customers with values in legacy field but empty pd_custom_branch_code
-                customers_to_migrate = frappe.db.sql(f"""
+                customers_to_migrate = frappe.db.sql(
+                    f"""
                     SELECT name, {fieldname} as legacy_value
                     FROM `tabCustomer`
                     WHERE {fieldname} IS NOT NULL
                     AND {fieldname} != ''
                     AND (pd_custom_branch_code IS NULL OR pd_custom_branch_code = '' OR pd_custom_branch_code = '00000')
-                """, as_dict=True)
+                """,
+                    as_dict=True,
+                )
 
                 if customers_to_migrate:
                     print(f"\n   🔄 Migrating from {fieldname}...")
@@ -105,10 +113,12 @@ def migrate_legacy_branch_data():
                                 customer.name,
                                 "pd_custom_branch_code",
                                 customer.legacy_value,
-                                update_modified=False  # Don't update modified timestamp
+                                update_modified=False,  # Don't update modified timestamp
                             )
 
-                            print(f"      ✓ {customer.name}: '{customer.legacy_value}' → pd_custom_branch_code")
+                            print(
+                                f"      ✓ {customer.name}: '{customer.legacy_value}' → pd_custom_branch_code"
+                            )
                             migration_stats["migrated"] += 1
 
                         except Exception as e:
@@ -120,7 +130,9 @@ def migrate_legacy_branch_data():
 
             except Exception:
                 # Legacy field column doesn't exist in database - skip
-                print(f"   ℹ️  Field {fieldname} defined in Custom Field but no database column - skipping")
+                print(
+                    f"   ℹ️  Field {fieldname} defined in Custom Field but no database column - skipping"
+                )
                 continue
 
         # Summary
@@ -129,8 +141,10 @@ def migrate_legacy_branch_data():
         print(f"   ⏭️  Skipped: {migration_stats['skipped']} customers")
         print(f"   ❌ Errors: {migration_stats['errors']} customers")
 
-        if migration_stats['migrated'] > 0:
-            print("\n💡 Tip: Legacy fields are preserved. You can safely delete them after verifying data.")
+        if migration_stats["migrated"] > 0:
+            print(
+                "\n💡 Tip: Legacy fields are preserved. You can safely delete them after verifying data."
+            )
 
         return migration_stats
 
@@ -161,10 +175,9 @@ def create_customer_fields():
         print("   - pd_custom_branch_code (Branch Code for Thai tax invoices)")
 
         # Verify field exists
-        field_exists = frappe.db.exists("Custom Field", {
-            "dt": "Customer",
-            "fieldname": "pd_custom_branch_code"
-        })
+        field_exists = frappe.db.exists(
+            "Custom Field", {"dt": "Customer", "fieldname": "pd_custom_branch_code"}
+        )
 
         if field_exists:
             print("✅ Installation completed successfully!")
@@ -202,16 +215,21 @@ def check_customer_fields():
                 print(f"   - {field}")
             return False
 
-        print(f"✅ All {len(CUSTOMER_CUSTOM_FIELDS['Customer'])} Customer custom fields are installed!")
+        print(
+            f"✅ All {len(CUSTOMER_CUSTOM_FIELDS['Customer'])} Customer custom fields are installed!"
+        )
 
         # Check for legacy fields that might need migration
-        legacy_fields = frappe.db.sql("""
+        legacy_fields = frappe.db.sql(
+            """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
-        """, as_dict=True)
+        """,
+            as_dict=True,
+        )
 
         if legacy_fields:
             print(f"\n⚠️  Found {len(legacy_fields)} legacy branch field(s):")
@@ -221,16 +239,23 @@ def check_customer_fields():
             # Check if any have data
             for legacy_field in legacy_fields:
                 try:
-                    count = frappe.db.sql(f"""
+                    count = frappe.db.sql(
+                        f"""
                         SELECT COUNT(*) as count
                         FROM `tabCustomer`
                         WHERE {legacy_field['fieldname']} IS NOT NULL
                         AND {legacy_field['fieldname']} != ''
-                    """, as_dict=True)[0].count
+                    """,
+                        as_dict=True,
+                    )[0].count
 
                     if count > 0:
-                        print(f"      💡 {legacy_field['fieldname']} has data in {count} customers")
-                        print("         Run: bench execute 'print_designer.commands.install_customer_fields.migrate_legacy_branch_data()'")
+                        print(
+                            f"      💡 {legacy_field['fieldname']} has data in {count} customers"
+                        )
+                        print(
+                            "         Run: bench execute 'print_designer.commands.install_customer_fields.migrate_legacy_branch_data()'"
+                        )
                 except Exception:
                     pass
 
@@ -271,12 +296,15 @@ def uninstall_customer_fields():
         print(f"✅ Successfully removed {removed_count} Customer custom field(s)!")
 
         # Check for legacy fields
-        legacy_fields = frappe.db.sql("""
+        legacy_fields = frappe.db.sql(
+            """
             SELECT fieldname
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
-        """, as_dict=True)
+        """,
+            as_dict=True,
+        )
 
         if legacy_fields:
             print(f"\n⚠️  {len(legacy_fields)} legacy branch field(s) remain:")
