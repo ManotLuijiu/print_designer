@@ -77,6 +77,7 @@ def install_all_custom_fields():
 
         # 1. Install basic print_designer custom fields first
         create_custom_fields(CUSTOM_FIELDS, ignore_validate=True)
+        frappe.db.commit()  # Commit to ensure fields are available for subsequent setup steps
         frappe.logger().info("✅ Basic custom fields installed")
 
         # 2. Install signature and watermark fields
