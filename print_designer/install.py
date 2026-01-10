@@ -1429,19 +1429,23 @@ def _ensure_signature_fields():
         if not existing_signature_field:
             click.echo("Installing signature enhancement fields...")
 
-            # Install the signature enhancement fields
-            from print_designer.api.safe_install import (
-                safe_install_signature_enhancements,
-            )
-
-            result = safe_install_signature_enhancements()
-
-            if result.get("success"):
-                click.echo("✅ Signature enhancement fields installed successfully")
-            else:
-                click.echo(
-                    f"⚠️  Warning: {result.get('error', 'Unknown error installing signature fields')}"
+            # Install the signature enhancement fields (optional module)
+            try:
+                from print_designer.api.safe_install import (
+                    safe_install_signature_enhancements,
                 )
+
+                result = safe_install_signature_enhancements()
+
+                if result.get("success"):
+                    click.echo("✅ Signature enhancement fields installed successfully")
+                else:
+                    click.echo(
+                        f"⚠️  Warning: {result.get('error', 'Unknown error installing signature fields')}"
+                    )
+            except ImportError:
+                # safe_install module is disabled/removed - skip signature enhancements
+                click.echo("ℹ️  Signature enhancement module not available - skipping")
 
     except Exception as e:
         frappe.log_error(f"Error ensuring signature fields: {str(e)}")

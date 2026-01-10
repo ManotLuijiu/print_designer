@@ -68,7 +68,7 @@ commands = [
     "print_designer.utils.account_file_api.generate_files",
     "print_designer.utils.account_file_api.check_files",
     # Thai Language Setup Commands (check functions only - installation handled in after_install)
-    "print_designer.install.thai_defaults.check_thai_language_setup",
+    "print_designer.install_utils.thai_defaults.check_thai_language_setup",
     # Thai WHT System Commands (DocType-specific check functions)
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
     # Payment Entry check functions (installation handled in after_install/before_uninstall)
@@ -529,7 +529,7 @@ after_install = [
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
-    "print_designer.install.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
+    "print_designer.install_utils.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
 ]

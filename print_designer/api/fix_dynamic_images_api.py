@@ -126,13 +126,16 @@ def apply_fixes():
     except Exception as e:
         frappe.log_error(f"Error installing signature fields: {str(e)}")
     
-    # Fix 2: Install signature enhancements
+    # Fix 2: Install signature enhancements (optional module)
     try:
         from print_designer.api.safe_install import safe_install_signature_enhancements
         result = safe_install_signature_enhancements()
-        
+
         if result.get("success"):
             fixes_applied.append("Signature enhancements (Target Signature Field) installed")
+    except ImportError:
+        # safe_install module is disabled/removed - skip silently
+        pass
     except Exception as e:
         frappe.log_error(f"Error installing signature enhancements: {str(e)}")
     
