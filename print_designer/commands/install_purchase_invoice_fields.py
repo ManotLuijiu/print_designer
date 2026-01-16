@@ -3,6 +3,22 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+
+def migrate_wht_income_type_field(doctype):
+    """
+    Migrate wht_income_type field from Select to Link type.
+    Frappe doesn't allow changing fieldtype directly, so we need to delete and recreate.
+    """
+    field_name = f"{doctype}-wht_income_type"
+    if frappe.db.exists("Custom Field", field_name):
+        existing_field = frappe.db.get_value("Custom Field", field_name, "fieldtype")
+        if existing_field == "Select":
+            # Delete old Select field to allow creating new Link field
+            frappe.delete_doc("Custom Field", field_name, force=True)
+            frappe.db.commit()
+            print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+
+
 def install_purchase_invoice_thai_tax_fields():
     """Install Thai Tax Compliance fields for Purchase Invoice in print_designer app"""
 
@@ -168,10 +184,10 @@ def install_purchase_invoice_thai_tax_fields():
             {
                 "fieldname": "wht_income_type",
                 "label": "WHT Income Type",
-                "fieldtype": "Select",
+                "fieldtype": "Link",
                 "insert_after": "subject_to_wht",
                 "depends_on": "eval:doc.subject_to_wht",
-                "options": "\nprofessional_services\nrental\nservice_fees\nconstruction\nadvertising\nother_services",
+                "options": "Thai WHT Income Type",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -371,6 +387,8 @@ def install_purchase_invoice_thai_tax_fields():
     print("🔧 Installing Thai Tax Compliance fields for Purchase Invoice...")
 
     try:
+        # Migrate wht_income_type from Select to Link (if exists as Select)
+        migrate_wht_income_type_field("Purchase Invoice")
         # Create the custom fields
         create_custom_fields(thai_tax_fields, ignore_validate=True)
         frappe.db.commit()

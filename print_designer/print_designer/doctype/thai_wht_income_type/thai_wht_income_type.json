@@ -1,0 +1,182 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{form_type}-{income_category}",
+ "creation": "2026-01-17 04:57:52.497894",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_info_section",
+  "form_type",
+  "recipient_type",
+  "column_break_form",
+  "tax_rate",
+  "is_active",
+  "accounting_section",
+  "tax_withholding_category",
+  "income_details_section",
+  "income_category",
+  "income_category_th",
+  "column_break_income",
+  "conditions",
+  "conditions_th",
+  "description_section",
+  "income_description",
+  "income_description_th"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_info_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "form_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Form Type",
+   "options": "PND3\nPND53",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Recipient Type",
+   "options": "Individual\nCorporate",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_form",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "tax_rate",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Tax Rate (%)",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Active"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting Integration"
+  },
+  {
+   "description": "Link to ERPNext Tax Withholding Category for GL posting",
+   "fieldname": "tax_withholding_category",
+   "fieldtype": "Link",
+   "label": "Tax Withholding Category",
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "income_details_section",
+   "fieldtype": "Section Break",
+   "label": "Income Details"
+  },
+  {
+   "fieldname": "income_category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Income Category",
+   "reqd": 1,
+   "translatable": 1
+  },
+  {
+   "fieldname": "income_category_th",
+   "fieldtype": "Data",
+   "label": "Income Category (Thai)"
+  },
+  {
+   "fieldname": "column_break_income",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "conditions",
+   "fieldtype": "Data",
+   "label": "Conditions",
+   "translatable": 1
+  },
+  {
+   "fieldname": "conditions_th",
+   "fieldtype": "Data",
+   "label": "Conditions (Thai)"
+  },
+  {
+   "fieldname": "description_section",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "income_description",
+   "fieldtype": "Small Text",
+   "label": "Income Description",
+   "translatable": 1
+  },
+  {
+   "fieldname": "income_description_th",
+   "fieldtype": "Small Text",
+   "label": "Income Description (Thai)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-17 06:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai WHT Income Type",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "income_category,form_type,recipient_type",
+ "sort_field": "form_type",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "income_category",
+ "track_changes": 1
+}

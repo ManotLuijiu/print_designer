@@ -1,0 +1,31 @@
+Form,Recipient Type,Income Category,Income Description,Conditions,Tax Rate (%)
+PND3,Individual,Rental Income,Rent or benefits from leasing buildings/houses/structures (Section 40(5)),Resident individual,5.0
+PND3,Individual,Rental Income (Ship Lease),Ship rental under Maritime Promotion Act (international transport),Resident individual,1.0
+PND3,Individual,Professional Services,Law / Medical / Engineering / Architecture / Accounting / Fine Arts (Section 40(6)),Resident individual,3.0
+PND3,Individual,Services Income,"Contracting / hire of work (Section 40(7),(8))",Individual recipient,3.0
+PND3,Individual,Prize & Awards,Contest / competition / lucky draw prizes,Individual recipient,5.0
+PND3,Individual,Entertainment Income,Public performers (actors / singers / musicians / athletes),Foreign resident,10.0
+PND3,Individual,Entertainment Income,Public performers (actors / singers / musicians / athletes),Filming in Thailand with permission,5.0
+PND3,Individual,Advertising Income,Advertising fees,Individual recipient,2.0
+PND3,Individual,Service Fees,General services excluding transport/hotel/insurance,Individual recipient,3.0
+PND3,Individual,Transport Fees,Freight and transport fees (non-public transport),Individual recipient,1.0
+PND3,Individual,Sales Promotion Income,Rewards / discounts / benefits from promotion,Not end-consumer,3.0
+PND53,Corporate,Commission & Royalties,"Commission / goodwill / copyright / rights (Section 40(2),(3))",Thai company,3.0
+PND53,Corporate,Commission & Royalties,"Commission / goodwill / copyright / rights (Section 40(2),(3))",Foundation/Association,10.0
+PND53,Corporate,Interest Income,Interest under Section 40(4)(a),Thai company (non-financial),1.0
+PND53,Corporate,Interest Income,Interest under Section 40(4)(a),Foundation/Association,10.0
+PND53,Corporate,Bond Interest,Bond or debenture interest,Financial institutions,1.0
+PND53,Corporate,Dividend Income,Dividends / profit sharing (Section 40(4)(b)),Foreign company operating in Thailand,10.0
+PND53,Corporate,Dividend Income,Dividends / profit sharing (Section 40(4)(b)),Thai company (non-exempt cases),10.0
+PND53,Corporate,Rental Income,Rent of buildings/houses/structures (Section 40(5)),Thai company,5.0
+PND53,Corporate,Ship Rental,Ship lease for international transport,Thai company,1.0
+PND53,Corporate,Professional Services,Law / Medical / Engineering / Architecture / Accounting / Fine Arts (Section 40(6)),Thai company,3.0
+PND53,Corporate,Contracting Services,"Hire of work / contracting (Section 40(7),(8))",Thai company,3.0
+PND53,Corporate,Foreign Contractor Fees,Foreign company without permanent branch in Thailand,,5.0
+PND53,Corporate,Prize & Awards,Contest / competition prizes,Thai company,5.0
+PND53,Corporate,Advertising Income,Advertising fees,Thai company,2.0
+PND53,Corporate,Service Fees,General services excluding transport/hotel/insurance,Thai company,3.0
+PND53,Corporate,Sales Promotion Income,Rewards / discounts / promotion benefits,Thai company,3.0
+PND53,Corporate,Insurance Premiums,Non-life insurance premiums,Thai insurance company,1.0
+PND53,Corporate,Transport Fees,Freight and transport fees (non-public transport),Thai company,1.0
+PND53,Corporate,Agricultural Trading Income,Purchase of rubber/rice/cassava/palm/coffee (exporter/producer only),Thai company,0.75

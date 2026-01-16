@@ -525,6 +525,7 @@ after_install = [
     "print_designer.commands.install_purchase_order_fields.execute",  # Install Purchase Order Thai tax compliance fields
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Install Item Is Service field (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Install Item WHT Income Type field for smart automation
+    "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -569,6 +570,7 @@ after_migrate = [
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
+    "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage

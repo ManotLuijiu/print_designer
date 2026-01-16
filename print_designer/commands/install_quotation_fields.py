@@ -14,6 +14,21 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils import flt, cint
 
 
+def migrate_wht_income_type_field(doctype):
+    """
+    Migrate wht_income_type field from Select to Link type.
+    Frappe doesn't allow changing fieldtype directly, so we need to delete and recreate.
+    """
+    field_name = f"{doctype}-wht_income_type"
+    if frappe.db.exists("Custom Field", field_name):
+        existing_field = frappe.db.get_value("Custom Field", field_name, "fieldtype")
+        if existing_field == "Select":
+            # Delete old Select field to allow creating new Link field
+            frappe.delete_doc("Custom Field", field_name, force=True)
+            frappe.db.commit()
+            print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+
+
 def install_quotation_custom_fields():
     """
     Install all custom fields for Quotation DocType programmatically
@@ -29,6 +44,9 @@ def install_quotation_custom_fields():
 
         # Define custom fields exactly matching fixtures
         custom_fields = get_quotation_custom_fields_definition()
+
+        # Migrate wht_income_type from Select to Link (if exists as Select)
+        migrate_wht_income_type_field("Quotation")
 
         # Install fields using Frappe's standard method
         create_custom_fields(custom_fields, update=True)
@@ -290,10 +308,10 @@ def get_quotation_custom_fields_definition():
             {
                 "fieldname": "wht_income_type",
                 "label": "WHT Income Type",
-                "fieldtype": "Select",
+                "fieldtype": "Link",
                 "insert_after": "subject_to_wht",
                 "depends_on": "eval:doc.subject_to_wht",
-                "options": "\nprofessional_services\nrental\nservice_fees\nconstruction\nadvertising\nother_services",
+                "options": "Thai WHT Income Type",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
