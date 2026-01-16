@@ -38,7 +38,13 @@ This file is imported by install.py and used during:
 Note: Do NOT add Customer/Supplier fields here - use their dedicated installers!
 """
 
-from .signature_fields import get_signature_fields
+# Optional import - signature_fields may be disabled/removed
+try:
+    from .signature_fields import get_signature_fields
+except ImportError:
+    def get_signature_fields():
+        """Fallback when signature_fields module is not available"""
+        return {}
 
 # Print Designer specific custom fields
 PRINT_DESIGNER_CUSTOM_FIELDS = {

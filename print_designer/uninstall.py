@@ -400,34 +400,35 @@ def remove_print_designer_print_formats():
 def before_uninstall():
 	"""Comprehensive print_designer app cleanup"""
 	print("🚀 Starting print_designer app uninstallation...")
-	
+
 	try:
-		# 1. Remove all custom fields (comprehensive approach)
-		delete_all_print_designer_custom_fields()
-		
-		# 2. Also remove fields defined in CUSTOM_FIELDS (fallback)
-		print("\n🔄 Running fallback cleanup for CUSTOM_FIELDS...")
-		delete_custom_fields(CUSTOM_FIELDS)
-		
-		# 3. Remove custom DocTypes
-		print("\n🗑️ Removing custom DocTypes...")
-		remove_print_designer_doctypes()
-		
-		# 4. Remove print formats
+		# 1. Remove print formats FIRST (before custom fields are deleted)
+		# This must happen first because it queries the print_designer field
 		print("\n🖨️ Removing Print Formats...")
 		remove_print_designer_print_formats()
-		
+
+		# 2. Remove all custom fields (comprehensive approach)
+		delete_all_print_designer_custom_fields()
+
+		# 3. Also remove fields defined in CUSTOM_FIELDS (fallback)
+		print("\n🔄 Running fallback cleanup for CUSTOM_FIELDS...")
+		delete_custom_fields(CUSTOM_FIELDS)
+
+		# 4. Remove custom DocTypes
+		print("\n🗑️ Removing custom DocTypes...")
+		remove_print_designer_doctypes()
+
 		# 5. Remove PDF generator option
 		print("\n⚙️ Removing PDF generator settings...")
 		remove_pdf_generator_option()
-		
+
 		# 6. Final cleanup
 		print("\n🧹 Final cleanup...")
 		frappe.clear_cache()
-		
+
 		print("\n✅ Print Designer app uninstallation completed successfully!")
 		print("🔄 Please restart your Frappe services to complete the cleanup")
-		
+
 	except Exception as e:
 		print(f"❌ Error during uninstallation: {str(e)}")
 		frappe.db.rollback()
