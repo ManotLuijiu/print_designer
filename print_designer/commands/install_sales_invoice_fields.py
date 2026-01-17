@@ -386,6 +386,10 @@ def reinstall_sales_invoice_custom_fields():
         # Get field definitions and force installation with update=True
         custom_fields = get_sales_invoice_custom_fields_definition()
 
+        # Migrate wht_income_type from Select to Link (if exists as Select)
+        # This MUST be called before create_custom_fields to avoid fieldtype change error
+        migrate_wht_income_type_field("Sales Invoice")
+
         print(f"📦 Reinstalling {len(custom_fields['Sales Invoice'])} custom fields...")
         create_custom_fields(custom_fields, update=True)
 
