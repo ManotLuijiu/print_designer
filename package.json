@@ -1,5 +1,6 @@
 {
   "name": "print_designer",
+  "version": "1.15.0",
   "author": "Frappe Technologies Pvt. Ltd.",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -11,6 +12,16 @@
     "qrcode.vue": "^3.6.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.1.3"
+    "@biomejs/biome": "2.1.3",
+    "@commitlint/cli": "^20.3.1",
+    "@commitlint/config-conventional": "^20.3.1",
+    "standard-version": "^9.5.0"
+  },
+  "scripts": {
+    "release": "standard-version",
+    "release:patch": "standard-version --release-as patch",
+    "release:minor": "standard-version --release-as minor",
+    "release:major": "standard-version --release-as major",
+    "release:publish": "git push origin develop --follow-tags"
   }
 }
