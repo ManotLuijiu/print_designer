@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, add_days
+from frappe.utils import flt, getdate, add_days, nowdate
 from frappe.utils import money_in_words
 
 class ThaiBilling(Document):
@@ -79,18 +79,33 @@ class ThaiBilling(Document):
 					item.sales_invoice, existing_billing[0][0]))
 
 	def calculate_totals(self):
-		"""Calculate totals from invoice items"""
+		"""Calculate totals from invoice items including payment status"""
 		total_invoices = 0
 		total_amount = 0.0
+		total_outstanding = 0.0
 
 		for item in self.invoice_items:
-			if item.invoice_amount:
-				total_invoices += 1
-				total_amount += flt(item.invoice_amount)
+			if item.sales_invoice:
+				# Fetch fresh values from Sales Invoice
+				invoice_data = frappe.db.get_value(
+					"Sales Invoice",
+					item.sales_invoice,
+					["grand_total", "outstanding_amount"],
+					as_dict=True
+				)
+				if invoice_data:
+					item.invoice_amount = flt(invoice_data.grand_total)
+					item.outstanding_amount = flt(invoice_data.outstanding_amount)
+
+					total_invoices += 1
+					total_amount += flt(item.invoice_amount)
+					total_outstanding += flt(item.outstanding_amount)
 
 		self.total_invoices = total_invoices
 		self.total_amount = total_amount
-		self.grand_total = total_amount  # For now, same as total_amount
+		self.grand_total = total_amount
+		self.total_paid = flt(total_amount) - flt(total_outstanding)
+		self.total_outstanding = total_outstanding
 
 		# Auto-calculate grand_total_in_words
 		self.set_grand_total_in_words()
@@ -114,17 +129,33 @@ class ThaiBilling(Document):
 		if self.customer_name and self.posting_date:
 			self.title = f"{self.customer_name} - {self.posting_date}"
 
-	def set_status(self):
+	def set_status(self, update=False):
 		"""Set document status based on submission and payment status"""
-		if self.docstatus == 0:
-			self.status = "Draft"
-		elif self.docstatus == 1:
-			self.status = "Submitted"
-			# Check if overdue
-			if self.due_date and getdate(self.due_date) < getdate():
-				self.status = "Overdue"
-		elif self.docstatus == 2:
+		if self.docstatus == 2:
 			self.status = "Cancelled"
+		elif self.docstatus == 1:
+			# Check payment status first
+			if flt(self.total_outstanding) <= 0:
+				self.status = "Paid"
+			elif flt(self.total_paid) > 0:
+				self.status = "Partially Paid"
+			# Check if overdue (only for unpaid/partially paid)
+			elif self.due_date and getdate(self.due_date) < getdate(nowdate()):
+				self.status = "Overdue"
+			else:
+				self.status = "Submitted"
+		else:
+			self.status = "Draft"
+
+		if update:
+			self.db_set("status", self.status)
+			self.db_set("total_paid", self.total_paid)
+			self.db_set("total_outstanding", self.total_outstanding)
+
+	def update_status(self):
+		"""Update status based on linked invoices - can be called externally"""
+		self.calculate_totals()
+		self.set_status(update=True)
 
 	def update_invoice_billing_status(self):
 		"""Update Sales Invoice billing status when submitted"""
@@ -238,6 +269,62 @@ def create_billing_from_invoices(customer, invoice_list, due_date=None):
 	billing.save()
 
 	return billing.name
+
+@frappe.whitelist()
+def make_payment_entry(source_name, target_doc=None):
+	"""Create Payment Entry from Thai Billing"""
+	billing = frappe.get_doc("Thai Billing", source_name)
+
+	if billing.status in ("Paid", "Cancelled"):
+		frappe.throw(_("Cannot create payment for {0} Thai Billing").format(billing.status))
+
+	pe = frappe.new_doc("Payment Entry")
+	pe.payment_type = "Receive"
+	pe.party_type = "Customer"
+	pe.party = billing.customer
+	pe.party_name = billing.customer_name
+	pe.company = billing.company
+	pe.posting_date = nowdate()
+	pe.paid_amount = billing.total_outstanding
+	pe.received_amount = billing.total_outstanding
+	pe.custom_thai_billing = billing.name
+
+	# Add references for each outstanding invoice
+	for item in billing.invoice_items:
+		if flt(item.outstanding_amount) > 0:
+			pe.append(
+				"references",
+				{
+					"reference_doctype": "Sales Invoice",
+					"reference_name": item.sales_invoice,
+					"allocated_amount": item.outstanding_amount,
+				},
+			)
+
+	return pe
+
+
+def update_thai_billing_on_payment(doc, method):
+	"""
+	Hook to update Thai Billing status when a Payment Entry is submitted/cancelled.
+	Called via doc_events in hooks.py.
+	"""
+	# Check if this payment is linked to a Thai Billing
+	thai_billing_name = doc.get("custom_thai_billing")
+	if not thai_billing_name:
+		return
+
+	# Verify Thai Billing exists and is submitted
+	if not frappe.db.exists("Thai Billing", thai_billing_name):
+		return
+
+	billing = frappe.get_doc("Thai Billing", thai_billing_name)
+	if billing.docstatus != 1:
+		return
+
+	# Update billing totals and status
+	billing.update_status()
+
 
 # Jinja Methods for Print Formats
 @frappe.whitelist()

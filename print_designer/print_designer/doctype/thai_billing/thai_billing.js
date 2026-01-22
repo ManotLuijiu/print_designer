@@ -33,6 +33,8 @@ frappe.ui.form.on('Thai Billing', {
 					frm.refresh_field('total_invoices');
 					frm.refresh_field('total_amount');
 					frm.refresh_field('grand_total');
+					frm.refresh_field('total_paid');
+					frm.refresh_field('total_outstanding');
 				});
 			});
 
@@ -44,6 +46,24 @@ frappe.ui.form.on('Thai Billing', {
 					frm.trigger('calculate_totals');
 				});
 			});
+		}
+
+		// Add "Create Payment Entry" button for submitted documents with outstanding amount
+		if (frm.doc.docstatus === 1 && flt(frm.doc.total_outstanding) > 0) {
+			frm.add_custom_button(__('Create Payment Entry'), function() {
+				frappe.call({
+					method: 'print_designer.print_designer.doctype.thai_billing.thai_billing.make_payment_entry',
+					args: {
+						'source_name': frm.doc.name
+					},
+					callback: function(r) {
+						if (r.message) {
+							var doc = frappe.model.sync(r.message);
+							frappe.set_route('Form', doc[0].doctype, doc[0].name);
+						}
+					}
+				});
+			}, __('Create'));
 		}
 
 		// Show billing summary button
@@ -61,12 +81,13 @@ frappe.ui.form.on('Thai Billing', {
 			let indicator_color = {
 				"Draft": "red",
 				"Submitted": "blue",
+				"Partially Paid": "yellow",
 				"Paid": "green",
 				"Overdue": "orange",
 				"Cancelled": "gray"
 			};
 			frm.dashboard.set_headline_alert(
-				`<div class="indicator ${indicator_color[frm.doc.status]}">
+				`<div class="indicator ${indicator_color[frm.doc.status] || 'gray'}">
 					${__("Status")}: ${__(frm.doc.status)}
 				</div>`
 			);
@@ -124,17 +145,21 @@ frappe.ui.form.on('Thai Billing', {
 	calculate_totals: function(frm) {
 		let total_invoices = 0;
 		let total_amount = 0.0;
+		let total_outstanding = 0.0;
 
 		frm.doc.invoice_items.forEach(function(item) {
 			if (item.invoice_amount) {
 				total_invoices += 1;
 				total_amount += flt(item.invoice_amount);
+				total_outstanding += flt(item.outstanding_amount || item.invoice_amount);
 			}
 		});
 
 		frm.set_value('total_invoices', total_invoices);
 		frm.set_value('total_amount', total_amount);
 		frm.set_value('grand_total', total_amount);
+		frm.set_value('total_outstanding', total_outstanding);
+		frm.set_value('total_paid', flt(total_amount) - flt(total_outstanding));
 	}
 });
 

@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Billing\"}}]",
+ "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Thai Billing (ใบวางบิล)\",\"level\":4}},{\"type\":\"paragraph\",\"data\":{\"text\":\"Manage customer billing documents for Thai business requirements.\"}}]",
  "creation": "2025-09-17 15:25:03.219432",
  "custom_blocks": [],
  "docstatus": 0,
@@ -11,8 +11,45 @@
  "indicator_color": "green",
  "is_hidden": 0,
  "label": "Billing",
- "links": [],
- "modified": "2025-11-02 16:10:00.606428",
+ "links": [
+  {
+   "label": "Billing Documents",
+   "type": "Card Break"
+  },
+  {
+   "label": "Thai Billing",
+   "link_to": "Thai Billing",
+   "link_type": "DocType",
+   "type": "Link",
+   "description": "Create and manage billing notes for customers"
+  },
+  {
+   "label": "Related Documents",
+   "type": "Card Break"
+  },
+  {
+   "label": "Sales Invoice",
+   "link_to": "Sales Invoice",
+   "link_type": "DocType",
+   "type": "Link",
+   "description": "View sales invoices to include in billing"
+  },
+  {
+   "label": "Payment Entry",
+   "link_to": "Payment Entry",
+   "link_type": "DocType",
+   "type": "Link",
+   "description": "Record payments against billing documents"
+  },
+  {
+   "label": "Customer",
+   "link_to": "Customer",
+   "link_type": "DocType",
+   "type": "Link",
+   "description": "Manage customer information"
+  }
+ ],
+ "modified": "2025-01-22 19:30:00.000000",
  "modified_by": "Administrator",
  "module": "Print Designer",
  "name": "Billing",
@@ -23,6 +60,20 @@
  "quick_lists": [],
  "roles": [],
  "sequence_id": 37.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "label": "Thai Billing",
+   "link_to": "Thai Billing",
+   "type": "DocType",
+   "color": "green"
+  },
+  {
+   "label": "New Billing",
+   "link_to": "Thai Billing",
+   "type": "DocType",
+   "doc_view": "New",
+   "color": "blue"
+  }
+ ],
  "title": "Billing"
 }

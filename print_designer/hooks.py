@@ -104,6 +104,8 @@ commands = [
     "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",
     "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",
     "print_designer.commands.install_employee_thai_tax_fields.check_employee_thai_tax_fields",
+    # Thai Billing link field for Payment Entry
+    "print_designer.commands.install_thai_billing_fields.check_thai_billing_fields",
 ]
 
 # Includes in <head>
@@ -542,6 +544,7 @@ after_install = [
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
     "print_designer.install_utils.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
+    "print_designer.commands.install_thai_billing_fields.execute",  # Install Thai Billing link field for Payment Entry
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
 ]
@@ -586,6 +589,8 @@ after_migrate = [
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage
     "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
+    # Install Thai Billing link field for Payment Entry
+    "print_designer.commands.install_thai_billing_fields.execute",
 ]
 
 # Uninstallation
@@ -605,6 +610,7 @@ before_uninstall = [
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
     "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
+    "print_designer.commands.install_thai_billing_fields.uninstall_thai_billing_fields",  # Remove Thai Billing link field from Payment Entry
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -689,10 +695,12 @@ doc_events = {
         "on_submit": [
             "print_designer.custom.payment_entry_retention.payment_entry_on_submit_thai_compliance",
             "print_designer.custom.payment_entry_server_events.on_submit",
+            "print_designer.print_designer.doctype.thai_billing.thai_billing.update_thai_billing_on_payment",
         ],
         "on_cancel": [
             "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
             "print_designer.custom.payment_entry_server_events.on_cancel",
+            "print_designer.print_designer.doctype.thai_billing.thai_billing.update_thai_billing_on_payment",
         ],
     },
     # Company DocType - Retention sync DISABLED (redundant)
