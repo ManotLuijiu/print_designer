@@ -1,9 +1,29 @@
 # Changelog
 
-All notable changes to Print Designer will be documented in this file.
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.16.0](https://github.com/ManotLuijiu/print_designer/compare/v1.14.0...v1.16.0) (2026-01-22)
+
+
+### 👷 CI/CD
+
+* add auto-merge workflow (develop → main) ([ce92fe0](https://github.com/ManotLuijiu/print_designer/commit/ce92fe03406fbe6111f97a43315e7ecb0ee5f07f))
+* add CodeRabbit AI code review configuration ([855fcf3](https://github.com/ManotLuijiu/print_designer/commit/855fcf38ea25ac91c4502285725b379faade89e1))
+
+
+### 🐛 Bug Fixes
+
+* Restore Chromium PDF support, fix Watermark migration, add Thai defaults ([6234177](https://github.com/ManotLuijiu/print_designer/commit/62341770faeb7b0033ed58714166fb84a502f2af))
+
+
+### ✨ Features
+
+* Add Sales Invoice QR code support with Thai e-Tax format ([e579c9c](https://github.com/ManotLuijiu/print_designer/commit/e579c9c215d64106deaada743953c6369f5c2735))
+
+
+### 🔧 Maintenance
+
+* Add standard-version for automated releases ([3e401e2](https://github.com/ManotLuijiu/print_designer/commit/3e401e2d06b80db566330316cdcdde4bc6cd9485))
 
 ## [1.7.3] - 2025-08-23
 
