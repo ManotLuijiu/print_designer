@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.17.0](https://github.com/ManotLuijiu/print_designer/compare/v1.16.0...v1.17.0) (2026-01-22)
+
+
+### ✨ Features
+
+* **thai-billing:** Add Payment Entry integration and Thai Billing link field ([29414ae](https://github.com/ManotLuijiu/print_designer/commit/29414aebccdb865b8d2b199b33e3698bccd7e950))
+
 ## [1.16.0](https://github.com/ManotLuijiu/print_designer/compare/v1.14.0...v1.16.0) (2026-01-22)
 
 
