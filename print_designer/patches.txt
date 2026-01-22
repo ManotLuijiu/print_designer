@@ -42,3 +42,4 @@ print_designer.patches.v1_8.migrate_branch_code_to_pd_custom
 print_designer.patches.v1_8.normalize_branch_code_zeros
 print_designer.patches.v1_8.remove_custom_branch_code_from_customer
 print_designer.patches.v1_8.remove_custom_branch_code_from_supplier
+print_designer.patches.migrate_watermark_settings

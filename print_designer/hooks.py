@@ -395,6 +395,7 @@ fixtures = [
                 "in",
                 [
                     "Company",
+                    "Customer",
                     "Print Format",
                     "Print Settings",
                     "Global Defaults",
@@ -469,6 +470,16 @@ jinja = {
         "print_designer.utils.delivery_qr_macros.render_delivery_approval_summary",
         "print_designer.utils.delivery_qr_macros.render_delivery_qr_with_instructions",
         "print_designer.utils.delivery_qr_macros.render_legacy_delivery_qr",
+        # Sales Invoice QR code methods (Thai e-Tax format)
+        "print_designer.custom.sales_invoice_qr.generate_sales_invoice_qr",
+        "print_designer.custom.sales_invoice_qr.get_qr_code_for_print",
+        "print_designer.custom.sales_invoice_qr.get_invoice_qr_data",
+        # Sales Invoice QR Jinja macros
+        "print_designer.utils.sales_invoice_qr_macros.render_sales_invoice_qr",
+        "print_designer.utils.sales_invoice_qr_macros.render_sales_invoice_qr_footer",
+        "print_designer.utils.sales_invoice_qr_macros.render_sales_invoice_verification_info",
+        "print_designer.utils.sales_invoice_qr_macros.render_sales_invoice_qr_compact",
+        "print_designer.utils.sales_invoice_qr_macros.get_sales_invoice_qr_data_url",
         # Thai Withholding Tax methods
         "print_designer.custom.withholding_tax.get_wht_certificate_data",
         "print_designer.custom.withholding_tax.determine_income_type",
@@ -708,6 +719,7 @@ doc_events = {
         "before_print": "print_designer.pdf.before_print",
         "before_validate": "print_designer.custom.sales_invoice_calculations.before_validate_sales_invoice",
         "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
+        "on_submit": "print_designer.custom.sales_invoice_qr.add_qr_to_sales_invoice",  # Auto-generate e-Tax QR code
     },
     # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {

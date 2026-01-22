@@ -31,9 +31,7 @@ def install_sales_invoice_custom_fields():
     # Check if fields are already installed
     status = check_sales_invoice_fields_status()
     if status.get("fields_installed") and not status.get("needs_installation"):
-        print(
-            "✅ All Sales Invoice custom fields already installed and properly configured"
-        )
+        print("✅ All Sales Invoice custom fields already installed and properly configured")
         return status
 
     custom_fields = get_sales_invoice_custom_fields_definition()
@@ -50,14 +48,10 @@ def install_sales_invoice_custom_fields():
 
         if validation_result.get("success"):
             print("✅ Sales Invoice custom fields installed successfully!")
-            print(
-                f"📊 Total fields installed: {validation_result.get('field_count', 0)}"
-            )
+            print(f"📊 Total fields installed: {validation_result.get('field_count', 0)}")
             return validation_result
         else:
-            print(
-                f"⚠️ Installation completed with issues: {validation_result.get('message', '')}"
-            )
+            print(f"⚠️ Installation completed with issues: {validation_result.get('message', '')}")
             return validation_result
 
     except Exception as e:
@@ -294,6 +288,73 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "prepared_by_signature",
                 "description": "Signature of person who approved the invoice",
             },
+            # =============================================
+            # Invoice QR Code Fields (Thai e-Tax Format)
+            # For B2B document exchange - scan to import
+            # =============================================
+            {
+                "fieldname": "custom_invoice_qr_section",
+                "fieldtype": "Section Break",
+                "label": "Invoice QR Code",
+                "insert_after": "language",
+                "collapsible": 1,
+            },
+            {
+                "fieldname": "custom_show_qr_on_print",
+                "fieldtype": "Check",
+                "label": "Show QR on Print",
+                "insert_after": "custom_invoice_qr_section",
+                "default": "1",
+                "description": "Enable QR code display on printed invoices",
+            },
+            {
+                "fieldname": "custom_invoice_qr_code",
+                "fieldtype": "Long Text",
+                "label": "Invoice QR Code",
+                "insert_after": "custom_show_qr_on_print",
+                "read_only": 1,
+                "hidden": 1,
+                "description": "Base64 encoded PNG QR code image (internal use)",
+            },
+            {
+                "fieldname": "custom_invoice_qr_image",
+                "fieldtype": "Long Text",
+                "label": "Invoice QR Image",
+                "insert_after": "custom_invoice_qr_code",
+                "read_only": 1,
+                "hidden": 0,
+                "description": "QR code image for Print Designer (drag & drop)",
+            },
+            {
+                "fieldname": "custom_invoice_qr_url",
+                "fieldtype": "Data",
+                "label": "Invoice QR URL",
+                "insert_after": "custom_invoice_qr_image",
+                "read_only": 1,
+                "hidden": 1,
+                "description": "Verification URL for this invoice",
+            },
+            {
+                "fieldname": "custom_invoice_qr_column_break",
+                "fieldtype": "Column Break",
+                "label": "",
+                "insert_after": "custom_invoice_qr_url",
+            },
+            {
+                "fieldname": "custom_invoice_qr_generated_on",
+                "fieldtype": "Datetime",
+                "label": "QR Generated On",
+                "insert_after": "custom_invoice_qr_column_break",
+                "read_only": 1,
+            },
+            {
+                "fieldname": "custom_invoice_qr_data_version",
+                "fieldtype": "Data",
+                "label": "QR Data Version",
+                "insert_after": "custom_invoice_qr_generated_on",
+                "read_only": 1,
+                "default": "1.0",
+            },
         ]
     }
 
@@ -379,9 +440,7 @@ def reinstall_sales_invoice_custom_fields():
 
         # Get current status
         status = check_sales_invoice_fields_status()
-        print(
-            f"Current status: {status['current_count']}/{status['expected_count']} fields"
-        )
+        print(f"Current status: {status['current_count']}/{status['expected_count']} fields")
 
         # Get field definitions and force installation with update=True
         custom_fields = get_sales_invoice_custom_fields_definition()
@@ -397,9 +456,7 @@ def reinstall_sales_invoice_custom_fields():
         validation_result = validate_sales_invoice_fields_installation()
 
         if validation_result.get("success"):
-            print(
-                "✅ Sales Invoice custom fields reinstallation completed successfully!"
-            )
+            print("✅ Sales Invoice custom fields reinstallation completed successfully!")
             print(f"📊 Total fields: {validation_result.get('field_count', 0)}")
             return {
                 "success": True,
