@@ -12,6 +12,7 @@ import requests
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from frappe.utils import get_bench_path
+from frappe.utils.synchronization import filelock
 
 from print_designer.custom_fields import CUSTOM_FIELDS
 from print_designer.default_formats import (
@@ -47,7 +48,7 @@ def after_install():
 
     # Print designer specific setup
     on_print_designer_install()
-    remove_chrome_pdf_generator_option()
+    add_chrome_pdf_generator_option()
     add_weasyprint_pdf_generator_option()
     set_wkhtmltopdf_as_default_for_print_designer()
     setup_enhanced_print_settings()  # Use new consolidated function
@@ -409,16 +410,19 @@ def after_app_install():
     install_default_formats(app="print_designer")
 
 
+@filelock("print_designer_chromium_setup", timeout=1, is_global=True)
 def setup_chromium():
     """Setup Chromium at the bench level."""
     # Load Chromium version from common_site_config.json or use default
 
     try:
         executable = find_or_download_chromium_executable()
-        click.echo(f"Chromium is already set up at {executable}")
     except Exception as e:
         click.echo(f"Failed to setup Chromium: {e}")
         raise RuntimeError(f"Failed to setup Chromium: {e}")
+
+    add_chrome_pdf_generator_option()
+
     return executable
 
 
@@ -689,8 +693,14 @@ def calculate_platform():
     return "<unknown>"
 
 
-def remove_chrome_pdf_generator_option():
-    set_pdf_generator_option("remove")
+# COMMENTED OUT: Keeping for reference/rollback if needed
+# def remove_chrome_pdf_generator_option():
+#     set_pdf_generator_option("remove")
+
+
+def add_chrome_pdf_generator_option():
+    """Add Chrome to PDF Generator options (restored from original Frappe)"""
+    set_pdf_generator_option("add_chrome")
 
 
 def add_weasyprint_pdf_generator_option():
@@ -757,7 +767,7 @@ def set_wkhtmltopdf_for_print_designer_format(doc, method):
             doc.pdf_generator = "wkhtmltopdf"
 
 
-def set_pdf_generator_option(action: Literal["add", "remove"]):
+def set_pdf_generator_option(action: Literal["add", "remove", "add_chrome"]):
     pdf_generator_field = frappe.get_meta("Print Format").get_field("pdf_generator")
     if not pdf_generator_field or not pdf_generator_field.options:
         click.echo("PDF generator field not found or has no options, skipping update.")
@@ -769,6 +779,10 @@ def set_pdf_generator_option(action: Literal["add", "remove"]):
         # Add WeasyPrint if not already present
         if "WeasyPrint" not in options:
             options.append("WeasyPrint")
+    elif action == "add_chrome":
+        # Add chrome if not already present (restored from original Frappe)
+        if "chrome" not in options:
+            options.append("chrome")
     elif action == "remove":
         if "chrome" in options:
             options.remove("chrome")

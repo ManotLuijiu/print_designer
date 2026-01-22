@@ -36,9 +36,12 @@ def create_default_watermark_settings():
         settings.default_font_family = "Sarabun"
         settings.default_color = "#999999"
         settings.default_opacity = 0.6
-        settings.insert()
+        # Use flags to skip doc_events during migration
+        settings.flags.ignore_validate = True
+        settings.flags.ignore_permissions = True
+        settings.insert(ignore_permissions=True)
         frappe.db.commit()
-        print(f"Created default Watermark Settings")
+        print("Created default Watermark Settings")
     except Exception as e:
         print(f"Error creating default settings: {str(e)}")
 
@@ -68,17 +71,16 @@ def migrate_legacy_settings():
 
         if legacy_fields:
             print_settings = frappe.get_single("Print Settings")
-            watermark_settings = frappe.get_single("Watermark Settings")
 
             migrated_count = 0
             for legacy_field, new_field in legacy_fields.items():
                 legacy_value = print_settings.get(legacy_field)
                 if legacy_value is not None:
-                    setattr(watermark_settings, new_field, legacy_value)
+                    # Use db.set_single_value for Single DocType to avoid .save() issues
+                    frappe.db.set_single_value("Watermark Settings", new_field, legacy_value)
                     migrated_count += 1
 
             if migrated_count > 0:
-                watermark_settings.save()
                 frappe.db.commit()
                 print(
                     f"Migrated {migrated_count} legacy settings to Watermark Settings"
@@ -138,19 +140,22 @@ def create_default_templates():
     try:
         watermark_settings = frappe.get_single("Watermark Settings")
 
-        for template_data in templates:
-            # Check if template already exists
-            existing = any(
-                t.template_name == template_data["template_name"]
-                for t in watermark_settings.watermark_templates
-            )
+        # Check existing templates
+        existing_names = [t.template_name for t in watermark_settings.watermark_templates]
+        templates_to_add = [t for t in templates if t["template_name"] not in existing_names]
 
-            if not existing:
+        if templates_to_add:
+            for template_data in templates_to_add:
                 watermark_settings.append("watermark_templates", template_data)
 
-        watermark_settings.save()
-        frappe.db.commit()
-        print(f"Created {len(templates)} default watermark templates")
+            # Use flags to skip doc_events during migration
+            watermark_settings.flags.ignore_validate = True
+            watermark_settings.flags.ignore_permissions = True
+            watermark_settings.save(ignore_permissions=True)
+            frappe.db.commit()
+            print(f"Created {len(templates_to_add)} default watermark templates")
+        else:
+            print("Default watermark templates already exist")
 
     except Exception as e:
         print(f"Error creating default templates: {str(e)}")

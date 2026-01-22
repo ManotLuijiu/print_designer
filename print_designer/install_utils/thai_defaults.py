@@ -20,17 +20,22 @@ def setup_thai_language_defaults():
         if system_settings.language != "th":
             frappe.db.set_value("System Settings", None, "language", "th")
             frappe.log_error("System language set to Thai (th)", "Thai Language Setup")
-        
+
         # Set Print Settings default language to Thai if not already set
         print_settings = frappe.get_single("Print Settings")
         if not hasattr(print_settings, 'language') or print_settings.language != "th":
-            frappe.db.set_value("Print Settings", None, "language", "th") 
-            
+            frappe.db.set_value("Print Settings", None, "language", "th")
+
+        # Set Customer.language default to Thai via Property Setter
+        # This ensures new Customers (and their linked documents like Sales Invoice)
+        # will default to Thai print language
+        setup_customer_language_default()
+
         # Commit the changes
         frappe.db.commit()
-        
+
         print("✅ Thai language defaults setup completed")
-        
+
     except Exception as e:
         frappe.log_error(f"Error setting up Thai language defaults: {str(e)}", "Thai Language Setup Error")
         print(f"❌ Error setting up Thai language defaults: {str(e)}")
@@ -88,6 +93,49 @@ def reset_user_language_preferences():
     except Exception as e:
         frappe.log_error(f"Error resetting user language preferences: {str(e)}", "User Language Reset Error")
         print(f"❌ Error resetting user language preferences: {str(e)}")
+
+
+def setup_customer_language_default():
+    """
+    Set Customer.language field default to Thai via Property Setter.
+    This ensures new customers will have Thai as their default print language,
+    which flows to Sales Invoice and other documents.
+
+    Root cause analysis:
+    - Customer.language has no default in ERPNext
+    - Sales Invoice.language inherits from Customer via party.py
+    - Print sidebar uses doc.language first, bypassing Print Format's default_print_language
+    - This causes print language to show "en" even when system is configured for Thai
+    """
+    try:
+        property_setter_name = "Customer-language-default"
+
+        # Check if Property Setter already exists
+        if frappe.db.exists("Property Setter", property_setter_name):
+            # Update existing
+            frappe.db.set_value("Property Setter", property_setter_name, "value", "th")
+            print(f"✅ Updated Property Setter: {property_setter_name}")
+        else:
+            # Create new Property Setter
+            ps = frappe.get_doc({
+                "doctype": "Property Setter",
+                "name": property_setter_name,
+                "doc_type": "Customer",
+                "doctype_or_field": "DocField",
+                "field_name": "language",
+                "property": "default",
+                "property_type": "Text",
+                "value": "th",
+                "is_system_generated": 0
+            })
+            ps.insert(ignore_permissions=True)
+            print(f"✅ Created Property Setter: {property_setter_name}")
+
+        frappe.db.commit()
+
+    except Exception as e:
+        frappe.log_error(f"Error setting up Customer language default: {str(e)}", "Thai Language Setup Error")
+        print(f"❌ Error setting up Customer language default: {str(e)}")
 
 
 def setup_thai_print_format_defaults():
