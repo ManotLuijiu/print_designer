@@ -547,6 +547,8 @@ after_install = [
     "print_designer.commands.install_thai_billing_fields.execute",  # Install Thai Billing link field for Payment Entry
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
+    # Sync Billing workspace from JSON to database
+    "print_designer.commands.sync_billing_workspace.execute",
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
@@ -591,6 +593,8 @@ after_migrate = [
     "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
     # Install Thai Billing link field for Payment Entry
     "print_designer.commands.install_thai_billing_fields.execute",
+    # Sync Billing workspace from JSON to database
+    "print_designer.commands.sync_billing_workspace.execute",
 ]
 
 # Uninstallation
@@ -611,6 +615,7 @@ before_uninstall = [
     "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
     "print_designer.commands.install_thai_billing_fields.uninstall_thai_billing_fields",  # Remove Thai Billing link field from Payment Entry
+    "print_designer.commands.sync_billing_workspace.remove_billing_workspace",  # Remove Billing workspace from database
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 

@@ -1,7 +1,7 @@
 {
  "charts": [],
- "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Thai Billing (ใบวางบิล)\",\"level\":4}},{\"type\":\"paragraph\",\"data\":{\"text\":\"Manage customer billing documents for Thai business requirements.\"}}]",
- "creation": "2025-09-17 15:25:03.219432",
+ "content": "[{\"type\":\"header\",\"data\":{\"text\":\"Thai Billing (\u0e43\u0e1a\u0e27\u0e32\u0e07\u0e1a\u0e34\u0e25)\",\"level\":4}},{\"type\":\"paragraph\",\"data\":{\"text\":\"Manage customer billing documents for Thai business requirements.\"}}]",
+ "creation": "2026-01-24 05:25:08.889266",
  "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
@@ -13,43 +13,69 @@
  "label": "Billing",
  "links": [
   {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Billing Documents",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
    "type": "Card Break"
   },
   {
+   "description": "Create and manage billing notes for customers",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Thai Billing",
+   "link_count": 0,
    "link_to": "Thai Billing",
    "link_type": "DocType",
-   "type": "Link",
-   "description": "Create and manage billing notes for customers"
+   "onboard": 0,
+   "type": "Link"
   },
   {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Related Documents",
+   "link_count": 0,
+   "link_type": "DocType",
+   "onboard": 0,
    "type": "Card Break"
   },
   {
+   "description": "View sales invoices to include in billing",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Sales Invoice",
+   "link_count": 0,
    "link_to": "Sales Invoice",
    "link_type": "DocType",
-   "type": "Link",
-   "description": "View sales invoices to include in billing"
+   "onboard": 0,
+   "type": "Link"
   },
   {
+   "description": "Record payments against billing documents",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Payment Entry",
+   "link_count": 0,
    "link_to": "Payment Entry",
    "link_type": "DocType",
-   "type": "Link",
-   "description": "Record payments against billing documents"
+   "onboard": 0,
+   "type": "Link"
   },
   {
+   "description": "Manage customer information",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Customer",
+   "link_count": 0,
    "link_to": "Customer",
    "link_type": "DocType",
-   "type": "Link",
-   "description": "Manage customer information"
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-01-22 19:30:00.000000",
+ "modified": "2026-01-24 05:25:08.889266",
  "modified_by": "Administrator",
  "module": "Print Designer",
  "name": "Billing",
@@ -62,17 +88,18 @@
  "sequence_id": 37.0,
  "shortcuts": [
   {
+   "color": "green",
+   "doc_view": "",
    "label": "Thai Billing",
    "link_to": "Thai Billing",
-   "type": "DocType",
-   "color": "green"
+   "type": "DocType"
   },
   {
+   "color": "blue",
+   "doc_view": "New",
    "label": "New Billing",
    "link_to": "Thai Billing",
-   "type": "DocType",
-   "doc_view": "New",
-   "color": "blue"
+   "type": "DocType"
   }
  ],
  "title": "Billing"
