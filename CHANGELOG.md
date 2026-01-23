@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.17.1](https://github.com/ManotLuijiu/print_designer/compare/v1.17.0...v1.17.1) (2026-01-23)
+
+
+### 🐛 Bug Fixes
+
+* resolve 'creation' attribute error in watermark migration ([d4b2344](https://github.com/ManotLuijiu/print_designer/commit/d4b23448700cffa9e2f880c3b49e8176bc9179ef))
+
 ## [1.17.0](https://github.com/ManotLuijiu/print_designer/compare/v1.16.0...v1.17.0) (2026-01-22)
 
 
