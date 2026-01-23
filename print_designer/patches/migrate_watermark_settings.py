@@ -138,7 +138,7 @@ def create_default_templates():
     ]
 
     try:
-        watermark_settings = frappe.get_single("Watermark Settings")
+        watermark_settings = frappe.get_doc("Watermark Settings", "Watermark Settings")
 
         # Check existing templates
         existing_names = [t.template_name for t in watermark_settings.watermark_templates]
@@ -148,9 +148,10 @@ def create_default_templates():
             for template_data in templates_to_add:
                 watermark_settings.append("watermark_templates", template_data)
 
-            # Use flags to skip doc_events during migration
+            # Use flags to skip doc_events and version tracking during migration
             watermark_settings.flags.ignore_validate = True
             watermark_settings.flags.ignore_permissions = True
+            watermark_settings.flags.ignore_version = True
             watermark_settings.save(ignore_permissions=True)
             frappe.db.commit()
             print(f"Created {len(templates_to_add)} default watermark templates")
