@@ -83,7 +83,9 @@ def boot_session(bootinfo):
         }
 
     # Extend Selling workspace with Thai Billing
-    extend_selling_workspace(bootinfo)
+    # NOTE: Commented out for Frappe v16 compatibility - bootinfo.workspaces structure changed
+    # This is not a core function, workspace extension can be handled via workspace JSON instead
+    # extend_selling_workspace(bootinfo)
 
 
 def log_to_print_designer(message, level="INFO"):
