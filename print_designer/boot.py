@@ -112,10 +112,17 @@ def extend_selling_workspace(bootinfo):
     if not hasattr(bootinfo, 'workspaces') or not bootinfo.workspaces:
         return
 
+    # Frappe v16 changed bootinfo.workspaces structure - it's now a list of strings
+    # Skip this function in v16+ as workspace extension is handled differently
+    if bootinfo.workspaces and isinstance(bootinfo.workspaces[0], str):
+        # v16 format: list of workspace names (strings)
+        return
+
+    # v15 format: list of workspace dictionaries
     # Find the Selling workspace
     selling_workspace = None
     for workspace in bootinfo.workspaces:
-        if workspace.get('name') == 'Selling':
+        if isinstance(workspace, dict) and workspace.get('name') == 'Selling':
             selling_workspace = workspace
             break
 
