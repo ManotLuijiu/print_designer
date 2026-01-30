@@ -17,7 +17,7 @@ CUSTOMER_CUSTOM_FIELDS = {
         {
             "fieldname": "pd_custom_branch_code",
             "label": "Branch Code",
-            "fieldtype": "Text",
+            "fieldtype": "Data",
             "insert_after": "tax_id",
             "default": "00000",
             "module": "Print Designer",
