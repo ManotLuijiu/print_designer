@@ -292,11 +292,22 @@ class Page:
 
 		style_sheet_id = result["styleSheetId"]
 
+		# Only include margin in @page if at least one margin is non-zero.
+		# When all margins are 0 (no .print-format margins), omit the margin property
+		# so that template CSS @page margins (e.g. margin: 5mm 0 70mm 0) are not overridden.
+		has_margins = any([
+			self.options.get("marginTop", 0),
+			self.options.get("marginBottom", 0),
+			self.options.get("marginLeft", 0),
+			self.options.get("marginRight", 0),
+		])
+		margin_rule = f"margin: {marginTop} {marginRight} {marginBottom} {marginLeft};" if has_margins else ""
+
 		# Enhanced CSS rule with improved page break controls
 		css_rule = f"""
 			@page {{
 				size: {width} {height};
-				margin: {marginTop} {marginRight} {marginBottom} {marginLeft};
+				{margin_rule}
 			}}
 			
 			/* Enhanced page break controls for Print Designer */

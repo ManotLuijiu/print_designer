@@ -18,7 +18,7 @@ def before_request():
                     "pdf_generator",
                 ),
             )
-            or "wkhtmltopdf"
+            or "chrome"
         )
         if frappe.local.form_dict.pdf_generator == "chrome":
             # Initialize the browser
@@ -39,13 +39,16 @@ def after_request():
 @measure_time
 def get_pdf(print_format, html, options, output, pdf_generator=None):
     print(f"pdf_generator {pdf_generator}")
-    if pdf_generator != "chrome":
-        # Use the default pdf generator
-        return
-    # scrubbing url to expand url is not required as we have set url.
-    # also, planning to remove network requests anyway 🤞
-    generator = FrappePDFGenerator()
-    browser = Browser(generator, print_format, html, options)
-    transformer = PDFTransformer(browser)
-    # transforms and merges header, footer into body pdf and returns merged pdf
-    return transformer.transform_pdf(output=output)
+    if pdf_generator == "chrome":
+        # scrubbing url to expand url is not required as we have set url.
+        # also, planning to remove network requests anyway 🤞
+        generator = FrappePDFGenerator()
+        browser = Browser(generator, print_format, html, options)
+        transformer = PDFTransformer(browser)
+        # transforms and merges header, footer into body pdf and returns merged pdf
+        return transformer.transform_pdf(output=output)
+    elif pdf_generator == "WeasyPrint":
+        from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+        return get_pdf_with_weasyprint(html)
+    # Use the default pdf generator (wkhtmltopdf)
+    return

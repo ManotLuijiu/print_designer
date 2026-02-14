@@ -209,21 +209,11 @@ class Browser:
             self.header_height = self.header_page.get_element_height()
             self.is_header_dynamic = self.is_page_no_used(self.header_content)
             del self.header_content
-        else:
-            # bad implicit setting of margin #backwards-compatibility
-            if not self.is_print_designer:
-                options["margin-top"] = "15mm"
-
         if self.footer_page:
             self.footer_page.wait_for_set_content()
             self.footer_height = self.footer_page.get_element_height()
             self.is_footer_dynamic = self.is_page_no_used(self.footer_content)
             del self.footer_content
-        else:
-            # bad implicit setting of margin #backwards-compatibility
-            if not self.is_print_designer:
-                options["margin-bottom"] = "15mm"
-
         # Remove instances of them from main content for render_template
         for html_id in ["header-html", "footer-html"]:
             for tag in soup.find_all(id=html_id):
@@ -302,14 +292,6 @@ class Browser:
             # Enhanced: Better page break handling
             "displayHeaderFooter": False,  # We handle headers/footers manually for better control
         }
-
-        # bad implicit setting of margin #backwards-compatibility
-        if not self.is_print_designer:
-            if not options.get("margin-right"):
-                options["margin-right"] = "15mm"
-
-            if not options.get("margin-left"):
-                options["margin-left"] = "15mm"
 
         if not options.get("page-height") or not options.get("page-width"):
             if not (page_size := self.options.get("page-size")):
