@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 1.17.2 (2026-02-14)
+
+
+### 🐛 Bug Fixes
+
+* handle missing custom fields in field index ordering patch ([bb0af69](https://github.com/ManotLuijiu/print_designer/commit/bb0af690b4995f9041c5e8f0dcb5f7f71df6dc19))
+
+
+### ✨ Features
+
+* fix customer doctype ([151d71b](https://github.com/ManotLuijiu/print_designer/commit/151d71b6fb9e28b2c46d75a23d51b179e5f7de8e))
+* set Chrome CDP as default PDF generator and remove implicit margins ([1fafed3](https://github.com/ManotLuijiu/print_designer/commit/1fafed31b60eb633f5e7314c8d957e314c1cc387))
+
 ### [1.17.1](https://github.com/ManotLuijiu/print_designer/compare/v1.17.0...v1.17.1) (2026-01-23)
 
 
