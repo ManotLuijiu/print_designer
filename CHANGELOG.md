@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.17.3](https://github.com/ManotLuijiu/print_designer/compare/v1.17.2...v1.17.3) (2026-02-14)
+
+
+### ✨ Features
+
+* route raw printing through TBS Print Agent instead of QZ Tray ([5faed08](https://github.com/ManotLuijiu/print_designer/commit/5faed08e383a6825707bcb0dbff8a9775e10076a))
+
 ### 1.17.2 (2026-02-14)
 
 
