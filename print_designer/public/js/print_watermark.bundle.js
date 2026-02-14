@@ -559,3 +559,182 @@ $(document).ready(() => {
         });
     }
 });
+
+/**
+ * Print button overrides:
+ *
+ * 1. Form Print button (print_doc):
+ *    - Chrome CDP format → open PDF in new tab (preview)
+ *    - Raw printing + TBS agent → submit directly to dot matrix (no preview)
+ *    - Other → original Frappe print preview (window.print)
+ *
+ * 2. Print page Print button (printit):
+ *    - Raw printing + TBS agent → submit to TBS agent (replaces QZ Tray)
+ *    - No TBS agent → fall back to original QZ Tray flow
+ */
+(function() {
+    // ── 1. Override print_doc on Form ──────────────────────────────
+    const _original_print_doc = frappe.ui.form.Form.prototype.print_doc;
+
+    frappe.ui.form.Form.prototype.print_doc = function() {
+        if (this.is_dirty()) {
+            frappe.toast({
+                message: __(
+                    "This document has unsaved changes which might not appear in the output. <br> Consider saving the document before printing."
+                ),
+                indicator: "yellow",
+            });
+        }
+
+        const print_format = this.get_print_format();
+
+        frappe.xcall("print_designer.overrides.print_button.get_print_config", {
+            print_format: print_format,
+        }).then((config) => {
+            if (config.raw_printing && config.tbs_agent_available) {
+                // Raw printing → send directly to dot matrix via TBS agent
+                this._submit_raw_print_via_tbs(print_format, config);
+            } else if (config.pdf_generator === "chrome") {
+                // Chrome CDP → open PDF preview in new tab
+                const params = new URLSearchParams({
+                    doctype: this.doctype,
+                    name: this.doc.name,
+                    format: print_format,
+                    no_letterhead: this.get_letterhead ? 0 : 1,
+                    _lang: frappe.boot.lang || "en",
+                });
+                const pdf_url = `/api/method/frappe.utils.print_format.download_pdf?${params.toString()}`;
+                window.open(pdf_url, "_blank");
+            } else {
+                // Original Frappe print preview
+                _original_print_doc.call(this);
+            }
+        }).catch(() => {
+            _original_print_doc.call(this);
+        });
+    };
+
+    /**
+     * Submit raw print job to TBS Print Agent from the form view.
+     */
+    frappe.ui.form.Form.prototype._submit_raw_print_via_tbs = function(print_format, config) {
+        frappe.show_alert({
+            message: __("Sending to printer..."),
+            indicator: "blue",
+        });
+
+        frappe.xcall("print_designer.overrides.print_button.submit_raw_print", {
+            doc: this.doctype,
+            name: this.doc.name,
+            print_format: print_format,
+            agent: config.default_agent,
+            printer: config.default_printer,
+        }).then((result) => {
+            if (result && result.success) {
+                frappe.show_alert({
+                    message: __("Print job submitted successfully"),
+                    indicator: "green",
+                });
+            }
+        }).catch((err) => {
+            frappe.msgprint({
+                title: __("Print Error"),
+                message: err.message || __("Failed to submit print job"),
+                indicator: "red",
+            });
+        });
+    };
+
+    /**
+     * Helper: get the currently selected print format name.
+     */
+    frappe.ui.form.Form.prototype.get_print_format = function() {
+        const user_settings = frappe.get_user_settings(this.doctype);
+        if (user_settings && user_settings.print_format) {
+            return user_settings.print_format;
+        }
+        const meta = frappe.get_meta(this.doctype);
+        if (meta && meta.default_print_format) {
+            return meta.default_print_format;
+        }
+        return "Standard";
+    };
+
+    // ── 2. Override printit on PrintView (print page) ─────────────
+    // Wait for PrintView class to be available, then patch it
+    const _patch_print_view = function() {
+        if (!frappe.ui.form.PrintView) return;
+
+        const _original_printit = frappe.ui.form.PrintView.prototype.printit;
+
+        frappe.ui.form.PrintView.prototype.printit = function() {
+            const me = this;
+
+            // Only intercept if this is a raw printing format
+            if (!me.is_raw_printing()) {
+                // Not raw printing — use original behavior
+                // (network printer, browser print, etc.)
+                return _original_printit.call(me);
+            }
+
+            // Raw printing — check if TBS agent is available
+            const print_format_name = me.selected_format();
+
+            frappe.xcall("print_designer.overrides.print_button.get_print_config", {
+                print_format: print_format_name,
+            }).then((config) => {
+                if (config.tbs_agent_available) {
+                    // TBS agent available — submit raw print job
+                    me._tbs_raw_print(print_format_name, config);
+                } else {
+                    // No TBS agent — fall back to original QZ Tray flow
+                    _original_printit.call(me);
+                }
+            }).catch(() => {
+                _original_printit.call(me);
+            });
+        };
+
+        /**
+         * Submit raw print via TBS agent from the print page.
+         */
+        frappe.ui.form.PrintView.prototype._tbs_raw_print = function(print_format, config) {
+            frappe.show_alert({
+                message: __("Sending to printer via TBS agent..."),
+                indicator: "blue",
+            });
+
+            frappe.xcall("print_designer.overrides.print_button.submit_raw_print", {
+                doc: this.frm.doctype || this.frm.doc.doctype,
+                name: this.frm.docname || this.frm.doc.name,
+                print_format: print_format,
+                agent: config.default_agent,
+                printer: config.default_printer,
+            }).then((result) => {
+                if (result && result.success) {
+                    frappe.show_alert({
+                        message: __("Print job submitted successfully"),
+                        indicator: "green",
+                    });
+                }
+            }).catch((err) => {
+                frappe.msgprint({
+                    title: __("Print Error"),
+                    message: err.message || __("Failed to submit print job to TBS agent"),
+                    indicator: "red",
+                });
+            });
+        };
+    };
+
+    // Patch immediately if PrintView exists, otherwise defer
+    if (frappe.ui.form.PrintView) {
+        _patch_print_view();
+    } else {
+        $(document).on("page-change", function() {
+            if (frappe.ui.form.PrintView && !frappe.ui.form.PrintView.prototype._tbs_raw_print) {
+                _patch_print_view();
+            }
+        });
+    }
+})();
