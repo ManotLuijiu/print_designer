@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.17.4](https://github.com/ManotLuijiu/print_designer/compare/v1.17.3...v1.17.4) (2026-02-25)
+
+
+### ✨ Features
+
+* show Thai income category in WHT Income Type link fields ([babc61f](https://github.com/ManotLuijiu/print_designer/commit/babc61f5f3c3f73f57956dfed019532322824649))
+
 ### [1.17.3](https://github.com/ManotLuijiu/print_designer/compare/v1.17.2...v1.17.3) (2026-02-14)
 
 
