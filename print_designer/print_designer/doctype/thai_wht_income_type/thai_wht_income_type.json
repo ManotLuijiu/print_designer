@@ -173,10 +173,11 @@
   }
  ],
  "row_format": "Dynamic",
- "search_fields": "income_category,form_type,recipient_type",
+ "search_fields": "income_category,income_category_th,form_type,recipient_type",
+ "show_title_field_in_link": 1,
  "sort_field": "form_type",
  "sort_order": "ASC",
  "states": [],
- "title_field": "income_category",
+ "title_field": "income_category_th",
  "track_changes": 1
 }
