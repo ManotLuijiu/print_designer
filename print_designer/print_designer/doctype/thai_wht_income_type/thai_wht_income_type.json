@@ -10,6 +10,7 @@
   "form_type",
   "recipient_type",
   "column_break_form",
+  "form_type_th",
   "tax_rate",
   "is_active",
   "accounting_section",
@@ -53,6 +54,15 @@
    "fieldtype": "Column Break"
   },
   {
+    "fieldname": "form_type_th",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "in_standard_filter": 1,
+    "label": "Form Type (TH)",
+    "options": "ภงด.3\nภงด.53",
+    "reqd": 1
+   },
+  {
    "default": "0",
    "fieldname": "tax_rate",
    "fieldtype": "Percent",
@@ -95,7 +105,7 @@
   {
    "fieldname": "income_category_th",
    "fieldtype": "Data",
-   "label": "Income Category (Thai)"
+   "label": "Income Category (TH)"
   },
   {
    "fieldname": "column_break_income",
@@ -110,7 +120,7 @@
   {
    "fieldname": "conditions_th",
    "fieldtype": "Data",
-   "label": "Conditions (Thai)"
+   "label": "Conditions (TH)"
   },
   {
    "fieldname": "description_section",
@@ -126,7 +136,7 @@
   {
    "fieldname": "income_description_th",
    "fieldtype": "Small Text",
-   "label": "Income Description (Thai)"
+   "label": "Income Description (TH)"
   }
  ],
  "grid_page_length": 50,
@@ -173,7 +183,7 @@
   }
  ],
  "row_format": "Dynamic",
- "search_fields": "income_category,income_category_th,form_type,recipient_type",
+ "search_fields": "form_type_th,conditions_th,income_category_th,income_description_th",
  "show_title_field_in_link": 1,
  "sort_field": "form_type",
  "sort_order": "ASC",

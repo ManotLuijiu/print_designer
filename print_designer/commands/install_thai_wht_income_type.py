@@ -53,6 +53,35 @@ THAI_TRANSLATIONS = {
     "Thai company (non-exempt cases)": "บริษัทไทย (กรณีไม่ได้รับยกเว้น)",
     "Thai insurance company": "บริษัทประกันภัยไทย",
     "Thai company (exporter/producer only)": "บริษัทไทย (ผู้ส่งออก/ผู้ผลิตเท่านั้น)",
+    # Income Descriptions
+    "Rent or benefits from leasing buildings/houses/structures (Section 40(5))": "ค่าเช่าหรือประโยชน์จากการให้เช่าอาคาร/บ้าน/สิ่งปลูกสร้าง (มาตรา 40(5))",
+    "Ship rental under Maritime Promotion Act (international transport)": "ค่าเช่าเรือตาม พ.ร.บ.ส่งเสริมการพาณิชยนาวี (ขนส่งระหว่างประเทศ)",
+    "Law / Medical / Engineering / Architecture / Accounting / Fine Arts (Section 40(6))": "กฎหมาย / แพทย์ / วิศวกรรม / สถาปัตยกรรม / บัญชี / ประณีตศิลป์ (มาตรา 40(6))",
+    "Contracting / hire of work (Section 40(7),(8))": "รับเหมา / จ้างทำของ (มาตรา 40(7),(8))",
+    "Contest / competition / lucky draw prizes": "รางวัลจากการแข่งขัน / ชิงโชค",
+    "Public performers (actors / singers / musicians / athletes)": "นักแสดงสาธารณะ (นักแสดง / นักร้อง / นักดนตรี / นักกีฬา)",
+    "Advertising fees": "ค่าโฆษณา",
+    "General services excluding transport/hotel/insurance": "ค่าบริการทั่วไป (ไม่รวมขนส่ง/โรงแรม/ประกัน)",
+    "Freight and transport fees (non-public transport)": "ค่าขนส่ง (ไม่ใช่ขนส่งสาธารณะ)",
+    "Rewards / discounts / benefits from promotion": "รางวัล / ส่วนลด / ผลประโยชน์จากการส่งเสริมการขาย",
+    "Commission / goodwill / copyright / rights (Section 40(2),(3))": "ค่านายหน้า / ค่าความนิยม / ลิขสิทธิ์ / สิทธิ (มาตรา 40(2),(3))",
+    "Interest under Section 40(4)(a)": "ดอกเบี้ยตามมาตรา 40(4)(ก)",
+    "Bond or debenture interest": "ดอกเบี้ยพันธบัตรหรือหุ้นกู้",
+    "Dividends / profit sharing (Section 40(4)(b))": "เงินปันผล / ส่วนแบ่งกำไร (มาตรา 40(4)(ข))",
+    "Rent of buildings/houses/structures (Section 40(5))": "ค่าเช่าอาคาร/บ้าน/สิ่งปลูกสร้าง (มาตรา 40(5))",
+    "Ship lease for international transport": "ค่าเช่าเรือสำหรับขนส่งระหว่างประเทศ",
+    "Hire of work / contracting (Section 40(7),(8))": "จ้างทำของ / รับเหมา (มาตรา 40(7),(8))",
+    "Foreign company without permanent branch in Thailand": "บริษัทต่างประเทศไม่มีสาขาถาวรในไทย",
+    "Contest / competition prizes": "รางวัลจากการแข่งขัน",
+    "Rewards / discounts / promotion benefits": "รางวัล / ส่วนลด / ผลประโยชน์ส่งเสริมการขาย",
+    "Non-life insurance premiums": "เบี้ยประกันวินาศภัย",
+    "Purchase of rubber/rice/cassava/palm/coffee (exporter/producer only)": "ซื้อยาง/ข้าว/มันสำปะหลัง/ปาล์ม/กาแฟ (ผู้ส่งออก/ผู้ผลิตเท่านั้น)",
+}
+
+# Thai form type mapping
+FORM_TYPE_TH = {
+    "PND3": "ภงด.3",
+    "PND53": "ภงด.53",
 }
 
 
@@ -123,6 +152,7 @@ def install_thai_wht_income_types():
         doc_data = {
             "doctype": "Thai WHT Income Type",
             "form_type": record["form_type"],
+            "form_type_th": FORM_TYPE_TH.get(record["form_type"], record["form_type"]),
             "recipient_type": record["recipient_type"],
             "income_category": record["income_category"],
             "income_category_th": translate_to_thai(record["income_category"]),
