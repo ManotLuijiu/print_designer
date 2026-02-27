@@ -131,7 +131,7 @@ def get_sales_invoice_custom_fields_definition():
                 "depends_on": "eval:doc.subject_to_wht",
                 "options": "Thai WHT Income Type",
                 "no_copy": 0,
-                "read_only": 1,
+                "read_only": 0,
             },
             {
                 "fieldname": "wht_description",
