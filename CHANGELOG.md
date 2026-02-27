@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.17.6](https://github.com/ManotLuijiu/print_designer/compare/v1.17.5...v1.17.6) (2026-02-27)
+
+
+### 🐛 Bug Fixes
+
+* make wht_income_type editable on direct Sales Invoice ([4853cce](https://github.com/ManotLuijiu/print_designer/commit/4853cceb6570e7e58bb5007882643e724a7eb68d))
+
 ### [1.17.5](https://github.com/ManotLuijiu/print_designer/compare/v1.17.4...v1.17.5) (2026-02-26)
 
 
