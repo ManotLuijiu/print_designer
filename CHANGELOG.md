@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.18.0](https://github.com/ManotLuijiu/print_designer/compare/v1.17.6...v1.18.0) (2026-03-08)
+
+
+### ✨ Features
+
+* rename all custom fields to pd_custom_* prefix convention ([cd779ad](https://github.com/ManotLuijiu/print_designer/commit/cd779ad288fe49f7b7d8dafea37a107dc3e634b6))
+
 ### [1.17.6](https://github.com/ManotLuijiu/print_designer/compare/v1.17.5...v1.17.6) (2026-02-27)
 
 
