@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.19.0](https://github.com/ManotLuijiu/print_designer/compare/v1.18.0...v1.19.0) (2026-03-08)
+
+
+### ✨ Features
+
+* extract VAT treatment helper, auto-set VAT from item service flag ([27f4bf1](https://github.com/ManotLuijiu/print_designer/commit/27f4bf181f2ccff3c16f3f7a6c37f02123edc222))
+
 ## [1.18.0](https://github.com/ManotLuijiu/print_designer/compare/v1.17.6...v1.18.0) (2026-03-08)
 
 
