@@ -21,11 +21,11 @@ def copy_wht_fields_to_sales_order(sales_order_doc, quotation_name):
         
         # List of WHT fields to copy from Quotation to Sales Order
         wht_fields_to_copy = [
-            'wht_income_type',
-            'wht_description',
-            'net_total_after_wht',
-            'net_total_after_wht_in_words',
-            'wht_note'
+            'pd_custom_wht_income_type',
+            'pd_custom_wht_description',
+            'pd_custom_net_total_after_wht',
+            'pd_custom_net_total_after_wht_words',
+            'pd_custom_wht_note'
         ]
         
         # Copy each WHT field if it exists in both documents

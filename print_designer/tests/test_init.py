@@ -49,8 +49,8 @@ class TestPrintDesignerInit(FrappeTestCase):
         """Test that Print Designer custom fields are installed"""
         # Test some key custom fields exist
         key_custom_fields = [
-            ("Sales Invoice", "subject_to_wht"),
-            ("Purchase Invoice", "subject_to_wht"), 
+            ("Sales Invoice", "pd_custom_subject_to_wht"),
+            ("Purchase Invoice", "pd_custom_subject_to_wht"), 
             ("Print Format", "print_designer"),
             ("Print Format", "print_designer_body")
         ]

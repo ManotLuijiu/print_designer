@@ -133,9 +133,9 @@ def check_thai_tax_fields_status():
         pe_fields = [
             "pd_custom_tax_base_amount",
             "pd_custom_apply_withholding_tax",
-            "vat_treatment",
-            "subject_to_wht",
-            "net_total_after_wht"
+            "pd_custom_vat_treatment",
+            "pd_custom_subject_to_wht",
+            "pd_custom_net_total_after_wht"
         ]
 
         print("\n📋 Payment Entry Fields:")
@@ -146,9 +146,9 @@ def check_thai_tax_fields_status():
 
         # Check Sales Invoice fields
         si_fields = [
-            "subject_to_wht",
-            "custom_withholding_tax_amount",
-            "vat_treatment"
+            "pd_custom_subject_to_wht",
+            "pd_custom_withholding_tax_amount",
+            "pd_custom_vat_treatment"
         ]
 
         print("\n📋 Sales Invoice Fields:")

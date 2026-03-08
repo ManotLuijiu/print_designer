@@ -69,19 +69,19 @@ def test_custom_fields():
 
 @frappe.whitelist()
 def check_approved_by_signature():
-    """Check if approved_by_signature fields are installed for transaction DocTypes"""
+    """Check if pd_custom_approved_by_signature fields are installed for transaction DocTypes"""
     try:
-        # Check Sales Invoice approved_by_signature field
+        # Check Sales Invoice pd_custom_approved_by_signature field
         sales_invoice_fields = frappe.get_all(
             'Custom Field',
-            filters={'dt': 'Sales Invoice', 'fieldname': 'approved_by_signature'},
+            filters={'dt': 'Sales Invoice', 'fieldname': 'pd_custom_approved_by_signature'},
             fields=['fieldname', 'label', 'fieldtype', 'dt']
         )
         
-        # Check Purchase Invoice approved_by_signature field  
+        # Check Purchase Invoice pd_custom_approved_by_signature field  
         purchase_invoice_fields = frappe.get_all(
             'Custom Field',
-            filters={'dt': 'Purchase Invoice', 'fieldname': 'approved_by_signature'},
+            filters={'dt': 'Purchase Invoice', 'fieldname': 'pd_custom_approved_by_signature'},
             fields=['fieldname', 'label', 'fieldtype', 'dt']
         )
         
@@ -121,29 +121,29 @@ def check_approved_by_signature():
         }
         
     except Exception as e:
-        frappe.log_error(f"Error checking approved_by_signature: {str(e)}")
+        frappe.log_error(f"Error checking pd_custom_approved_by_signature: {str(e)}")
         return {"error": str(e)}
 
 
 @frappe.whitelist()
 def check_specific_signature_in_api():
-    """Check if approved_by_signature fields appear in get_image_docfields API"""
+    """Check if pd_custom_approved_by_signature fields appear in get_image_docfields API"""
     try:
         from print_designer.print_designer.page.print_designer.print_designer import get_image_docfields
         
         # Get all image fields from API
         image_fields = get_image_docfields()
         
-        # Filter for approved_by_signature specifically
+        # Filter for pd_custom_approved_by_signature specifically
         approved_by_fields = [
             f for f in image_fields 
-            if f.get('fieldname') == 'approved_by_signature'
+            if f.get('fieldname') == 'pd_custom_approved_by_signature'
         ]
         
-        # Filter for prepared_by_signature
+        # Filter for pd_custom_prepared_by_signature
         prepared_by_fields = [
             f for f in image_fields 
-            if f.get('fieldname') == 'prepared_by_signature'
+            if f.get('fieldname') == 'pd_custom_prepared_by_signature'
         ]
         
         # Check Sales Invoice and Purchase Invoice specifically

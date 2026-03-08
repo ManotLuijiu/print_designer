@@ -59,7 +59,7 @@ frappe.ui.form.on('Sales Invoice', {
         setup_retention_fields_from_company(frm);
     },
 
-    custom_retention: function(frm) {
+    pd_custom_retention_pct: function(frm) {
         calculate_retention_amount_simple(frm);
     },
 
@@ -70,7 +70,7 @@ frappe.ui.form.on('Sales Invoice', {
 
 function setup_retention_fields_from_company(frm) {
     if (!frm.doc.company) {
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], false);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], false);
         return;
     }
 
@@ -97,7 +97,7 @@ function setup_retention_fields_from_company(frm) {
         console.log('✅ Cached company retention settings for', company, ':', settings);
     }).catch(err => {
         console.error('Error fetching company:', err);
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], false);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], false);
     });
 }
 
@@ -105,12 +105,12 @@ function apply_retention_settings_from_company(frm, settings) {
     const is_enabled = settings.construction_service_enabled;
 
     // Toggle field visibility
-    frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+    frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
 
     if (is_enabled) {
         // Set default retention rate if field is empty
-        if (!frm.doc.custom_retention && settings.default_retention_rate) {
-            frm.set_value('custom_retention', settings.default_retention_rate);
+        if (!frm.doc.pd_custom_retention_pct && settings.default_retention_rate) {
+            frm.set_value('pd_custom_retention_pct', settings.default_retention_rate);
         }
 
         // Calculate retention amount if needed
@@ -122,21 +122,21 @@ function apply_retention_settings_from_company(frm, settings) {
         }
     } else {
         // Clear retention values if not enabled
-        if (frm.doc.custom_retention) {
-            frm.set_value('custom_retention', 0);
+        if (frm.doc.pd_custom_retention_pct) {
+            frm.set_value('pd_custom_retention_pct', 0);
         }
-        if (frm.doc.custom_retention_amount) {
-            frm.set_value('custom_retention_amount', 0);
+        if (frm.doc.pd_custom_retention_amount) {
+            frm.set_value('pd_custom_retention_amount', 0);
         }
     }
 }
 
 function calculate_retention_amount_simple(frm) {
-    if (frm.doc.custom_retention && frm.doc.base_net_total) {
-        const retention_amount = (frm.doc.base_net_total * frm.doc.custom_retention) / 100;
-        frm.set_value('custom_retention_amount', retention_amount);
+    if (frm.doc.pd_custom_retention_pct && frm.doc.base_net_total) {
+        const retention_amount = (frm.doc.base_net_total * frm.doc.pd_custom_retention_pct) / 100;
+        frm.set_value('pd_custom_retention_amount', retention_amount);
     } else {
-        frm.set_value('custom_retention_amount', 0);
+        frm.set_value('pd_custom_retention_amount', 0);
     }
 }
 """

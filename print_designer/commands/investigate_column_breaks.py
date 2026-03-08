@@ -134,9 +134,9 @@ def propose_fix_plan():
     for i, field in enumerate(analysis['problematic_fields'], 1):
         print(f"\n{i}. Fix field: {field['fieldname']}")
         
-        if field['fieldname'] == 'wht_preview_column_break':
+        if field['fieldname'] == 'pd_custom_wht_preview_cb':
             print(f"   🎯 This appears to be the field mentioned by the user")
-            print(f"   Recommended action: Rename to 'wht_amounts_column_break'")
+            print(f"   Recommended action: Rename to 'pd_custom_wht_amounts_cb'")
             print(f"   Add label: 'WHT Amounts'")
             print(f"   Ensure proper positioning in Thai WHT section")
         
@@ -150,6 +150,6 @@ def propose_fix_plan():
     
     print(f"\n🎯 PRIORITY ACTION:")
     print(f"   Based on user request: Rename the unlabeled Column Break after connections_tab")
-    print(f"   Target: Change to 'wht_amounts_column_break' with label 'WHT Amounts'")
+    print(f"   Target: Change to 'pd_custom_wht_amounts_cb' with label 'WHT Amounts'")
     
     return analysis

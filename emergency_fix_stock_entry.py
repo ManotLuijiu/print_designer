@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-EMERGENCY FIX for Stock Entry watermark_text column error
+EMERGENCY FIX for Stock Entry pd_custom_watermark_text column error
 This script will directly fix the database schema issue
 """
 
@@ -10,40 +10,40 @@ sys.path.insert(0, '/home/frappe/frappe-bench')
 import frappe
 
 def emergency_fix_stock_entry():
-    """Emergency fix for Stock Entry watermark_text column"""
+    """Emergency fix for Stock Entry pd_custom_watermark_text column"""
     
     try:
         frappe.init('tipsiricons.bunchee.online')
         frappe.connect()
         
-        print("🚨 EMERGENCY FIX: Adding watermark_text column to Stock Entry")
+        print("🚨 EMERGENCY FIX: Adding pd_custom_watermark_text column to Stock Entry")
         print("=" * 60)
         
         # Step 1: Check if column exists
-        columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+        columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'")
         
         if not columns:
-            print("❌ watermark_text column is MISSING from Stock Entry table")
-            print("🔧 Adding watermark_text column directly to database...")
+            print("❌ pd_custom_watermark_text column is MISSING from Stock Entry table")
+            print("🔧 Adding pd_custom_watermark_text column directly to database...")
             
             # Add the column directly to the database
             frappe.db.sql("""
                 ALTER TABLE `tabStock Entry` 
-                ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
             """)
             
-            print("✅ watermark_text column added to Stock Entry table")
+            print("✅ pd_custom_watermark_text column added to Stock Entry table")
         else:
-            print("✅ watermark_text column already exists in Stock Entry table")
+            print("✅ pd_custom_watermark_text column already exists in Stock Entry table")
         
         # Step 2: Ensure Custom Field exists
         custom_field_exists = frappe.db.exists("Custom Field", {
             "dt": "Stock Entry",
-            "fieldname": "watermark_text"
+            "fieldname": "pd_custom_watermark_text"
         })
         
         if not custom_field_exists:
-            print("❌ Stock Entry watermark_text Custom Field is MISSING")
+            print("❌ Stock Entry pd_custom_watermark_text Custom Field is MISSING")
             print("🔧 Creating Custom Field...")
             
             from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
@@ -51,7 +51,7 @@ def emergency_fix_stock_entry():
             custom_fields = {
                 "Stock Entry": [
                     {
-                        "fieldname": "watermark_text",
+                        "fieldname": "pd_custom_watermark_text",
                         "fieldtype": "Select",
                         "label": "Document Watermark",
                         "options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -66,9 +66,9 @@ def emergency_fix_stock_entry():
             }
             
             create_custom_fields(custom_fields, update=True)
-            print("✅ Stock Entry watermark_text Custom Field created")
+            print("✅ Stock Entry pd_custom_watermark_text Custom Field created")
         else:
-            print("✅ Stock Entry watermark_text Custom Field already exists")
+            print("✅ Stock Entry pd_custom_watermark_text Custom Field already exists")
         
         # Step 3: Fix other critical DocTypes
         print("\n🔧 Fixing other critical DocTypes...")
@@ -83,7 +83,7 @@ def emergency_fix_stock_entry():
         
         print("\n" + "=" * 60)
         print("🎉 EMERGENCY FIX COMPLETED!")
-        print("✅ Stock Entry watermark_text error should now be resolved")
+        print("✅ Stock Entry pd_custom_watermark_text error should now be resolved")
         print("✅ You can now try saving Stock Entry again")
         
         return True
@@ -116,20 +116,20 @@ def fix_critical_doctypes():
     for doctype in critical_doctypes:
         try:
             # Check if column exists
-            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'pd_custom_watermark_text'")
             
             if not columns:
-                print(f"  🔧 Adding watermark_text column to {doctype}...")
+                print(f"  🔧 Adding pd_custom_watermark_text column to {doctype}...")
                 frappe.db.sql(f"""
                     ALTER TABLE `tab{doctype}` 
-                    ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                    ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
                 """)
                 print(f"  ✅ Added column to {doctype}")
             
             # Ensure Custom Field exists
             custom_field_exists = frappe.db.exists("Custom Field", {
                 "dt": doctype,
-                "fieldname": "watermark_text"
+                "fieldname": "pd_custom_watermark_text"
             })
             
             if not custom_field_exists and doctype in WATERMARK_FIELDS:
@@ -150,11 +150,11 @@ def test_stock_entry_creation():
         # Test creating a Stock Entry document (don't save it)
         stock_entry = frappe.new_doc("Stock Entry")
         stock_entry.stock_entry_type = "Material Transfer"
-        stock_entry.watermark_text = "Test"
+        stock_entry.pd_custom_watermark_text = "Test"
         stock_entry.purpose = "Material Transfer"
         
         # This should not cause an error now
-        print("  ✅ Stock Entry with watermark_text can be created without error")
+        print("  ✅ Stock Entry with pd_custom_watermark_text can be created without error")
         return True
         
     except Exception as e:

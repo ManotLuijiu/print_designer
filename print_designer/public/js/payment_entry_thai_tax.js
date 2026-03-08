@@ -41,8 +41,8 @@ frappe.ui.form.on('Payment Entry', {
         // DEBUG: Log all Thai tax related fields before validate
         console.log('🔍 VALIDATE THAI TAX FIELDS DEBUG:');
         const thai_fields = [
-            'pd_custom_withholding_tax_amount', 'custom_withholding_tax_amount',
-            'pd_custom_apply_withholding_tax', 'subject_to_wht', 'net_total_after_wht',
+            'pd_custom_withholding_tax_amount', 'pd_custom_withholding_tax_amount',
+            'pd_custom_apply_withholding_tax', 'pd_custom_subject_to_wht', 'pd_custom_net_total_after_wht',
             'pd_custom_total_wht_amount', 'pd_custom_net_payment_amount',
             'pd_custom_tax_base_amount'
         ];
@@ -344,12 +344,12 @@ function calculate_thai_tax_totals(frm) {
 
     try {
         // DEBUG: Check field visibility status
-        console.log('🔍 Checking thai_wht_preview_section field visibility:');
+        console.log('🔍 Checking pd_custom_wht_preview_section field visibility:');
         const thai_section_fields = [
-            'vat_treatment', 'subject_to_wht', 'wht_income_type', 'wht_description',
-            'wht_certificate_required', 'net_total_after_wht', 'net_total_after_wht_in_words',
-            'wht_note', 'custom_subject_to_retention', 'custom_net_total_after_wht_retention',
-            'custom_net_total_after_wht_retention_in_words', 'custom_retention_note'
+            'pd_custom_vat_treatment', 'pd_custom_subject_to_wht', 'pd_custom_wht_income_type', 'pd_custom_wht_description',
+            'pd_custom_wht_certificate_required', 'pd_custom_net_total_after_wht', 'pd_custom_net_total_after_wht_words',
+            'pd_custom_wht_note', 'pd_custom_subject_to_retention', 'pd_custom_net_after_wht_retention',
+            'pd_custom_net_after_wht_retention_words', 'pd_custom_retention_note'
         ];
 
         thai_section_fields.forEach(fieldname => {
@@ -415,8 +415,8 @@ function calculate_thai_tax_totals(frm) {
 
     // ADDITIONAL: Check for header-level WHT amounts (Purchase Invoice → Payment Entry scenario)
     // If we don't have reference-level WHT amounts, check header fields
-    if (total_wht === 0 && frm.doc.custom_withholding_tax_amount) {
-        total_wht = frm.doc.custom_withholding_tax_amount;
+    if (total_wht === 0 && frm.doc.pd_custom_withholding_tax_amount) {
+        total_wht = frm.doc.pd_custom_withholding_tax_amount;
         has_thai_taxes = true;
         console.log('📊 Using header-level WHT amount (Purchase Invoice scenario):', total_wht);
     }
@@ -436,9 +436,9 @@ function calculate_thai_tax_totals(frm) {
             console.log('🏛️ Setting pd_custom_withholding_tax_amount:', total_wht);
             frm.set_value('pd_custom_withholding_tax_amount', total_wht);
         }
-        if (frm.fields_dict.custom_withholding_tax_amount) {
-            console.log('🏛️ Setting custom_withholding_tax_amount (mirror field):', total_wht);
-            frm.set_value('custom_withholding_tax_amount', total_wht);
+        if (frm.fields_dict.pd_custom_withholding_tax_amount) {
+            console.log('🏛️ Setting pd_custom_withholding_tax_amount (mirror field):', total_wht);
+            frm.set_value('pd_custom_withholding_tax_amount', total_wht);
         }
 
         // Calculate tax base amount from base_net_total (amount before VAT)
@@ -475,23 +475,23 @@ function calculate_thai_tax_totals(frm) {
         }
 
         // Update Thai Ecosystem Preview fields
-        if (frm.fields_dict.subject_to_wht) {
+        if (frm.fields_dict.pd_custom_subject_to_wht) {
             const new_value = total_wht > 0 ? 1 : 0;
-            console.log('🏛️ Setting subject_to_wht:', new_value, '(current:', frm.doc.subject_to_wht, ')');
-            frm.set_value('subject_to_wht', new_value);
+            console.log('🏛️ Setting pd_custom_subject_to_wht:', new_value, '(current:', frm.doc.pd_custom_subject_to_wht, ')');
+            frm.set_value('pd_custom_subject_to_wht', new_value);
         } else {
-            console.log('❌ subject_to_wht field not found in form');
+            console.log('❌ pd_custom_subject_to_wht field not found in form');
         }
 
-        // Populate wht_description and net_total_after_wht_in_words from references
+        // Populate pd_custom_wht_description and pd_custom_net_total_after_wht_words from references
         if (frm.doc.references && frm.doc.references.length > 0) {
-            // Collect wht_description values from all references
+            // Collect pd_custom_wht_description values from all references
             let wht_descriptions = [];
             let net_totals_in_words = [];
 
             frm.doc.references.forEach(function(ref) {
                 if (ref.reference_doctype === 'Sales Invoice' && ref.reference_name) {
-                    // Get wht_description and net_total_after_wht_in_words from Sales Invoice
+                    // Get pd_custom_wht_description and pd_custom_net_total_after_wht_words from Sales Invoice
                     frappe.call({
                         method: 'print_designer.custom.payment_entry_thai_tax_population.get_invoice_thai_tax_details',
                         args: {
@@ -500,21 +500,21 @@ function calculate_thai_tax_totals(frm) {
                         },
                         callback: function(r) {
                             if (r.message) {
-                                if (r.message.wht_description && wht_descriptions.indexOf(r.message.wht_description) === -1) {
-                                    wht_descriptions.push(r.message.wht_description);
+                                if (r.message.pd_custom_wht_description && wht_descriptions.indexOf(r.message.pd_custom_wht_description) === -1) {
+                                    wht_descriptions.push(r.message.pd_custom_wht_description);
                                 }
-                                if (r.message.net_total_after_wht_in_words && net_totals_in_words.indexOf(r.message.net_total_after_wht_in_words) === -1) {
-                                    net_totals_in_words.push(r.message.net_total_after_wht_in_words);
+                                if (r.message.pd_custom_net_total_after_wht_words && net_totals_in_words.indexOf(r.message.pd_custom_net_total_after_wht_words) === -1) {
+                                    net_totals_in_words.push(r.message.pd_custom_net_total_after_wht_words);
                                 }
 
                                 // Update the form fields with the first unique value
-                                if (frm.fields_dict.wht_description && wht_descriptions.length > 0) {
-                                    frm.set_value('wht_description', wht_descriptions[0]);
-                                    console.log('📝 Setting wht_description:', wht_descriptions[0]);
+                                if (frm.fields_dict.pd_custom_wht_description && wht_descriptions.length > 0) {
+                                    frm.set_value('pd_custom_wht_description', wht_descriptions[0]);
+                                    console.log('📝 Setting pd_custom_wht_description:', wht_descriptions[0]);
                                 }
-                                if (frm.fields_dict.net_total_after_wht_in_words && net_totals_in_words.length > 0) {
-                                    frm.set_value('net_total_after_wht_in_words', net_totals_in_words[0]);
-                                    console.log('📝 Setting net_total_after_wht_in_words:', net_totals_in_words[0]);
+                                if (frm.fields_dict.pd_custom_net_total_after_wht_words && net_totals_in_words.length > 0) {
+                                    frm.set_value('pd_custom_net_total_after_wht_words', net_totals_in_words[0]);
+                                    console.log('📝 Setting pd_custom_net_total_after_wht_words:', net_totals_in_words[0]);
                                 }
                             }
                         }
@@ -523,46 +523,46 @@ function calculate_thai_tax_totals(frm) {
             });
         }
 
-        if (frm.fields_dict.custom_subject_to_retention) {
+        if (frm.fields_dict.pd_custom_subject_to_retention) {
             // For Purchase Invoice scenario: Check header-level retention fields first
             // This preserves values set by server-side Python code
-            const header_retention_amount = frm.doc.custom_retention_amount || 0;
-            const header_has_retention = frm.doc.custom_subject_to_retention || 0;
+            const header_retention_amount = frm.doc.pd_custom_retention_amount || 0;
+            const header_has_retention = frm.doc.pd_custom_subject_to_retention || 0;
 
             let new_value;
             if (header_retention_amount > 0 || header_has_retention === 1) {
                 // Header-level retention exists (Purchase Invoice scenario)
                 // Preserve the server-set checkbox value
                 new_value = 1;
-                console.log('📝 Preserving server-set custom_subject_to_retention: 1 (header retention_amount:', header_retention_amount, ')');
+                console.log('📝 Preserving server-set pd_custom_subject_to_retention: 1 (header retention_amount:', header_retention_amount, ')');
             } else if (total_retention > 0) {
                 // Reference-level retention exists (Sales Invoice scenario)
                 new_value = 1;
-                console.log('📝 Setting custom_subject_to_retention: 1 (reference-level total_retention:', total_retention, ')');
+                console.log('📝 Setting pd_custom_subject_to_retention: 1 (reference-level total_retention:', total_retention, ')');
             } else {
                 // No retention at all
                 new_value = 0;
-                console.log('📝 Setting custom_subject_to_retention: 0 (no retention found)');
+                console.log('📝 Setting pd_custom_subject_to_retention: 0 (no retention found)');
             }
 
-            frm.set_value('custom_subject_to_retention', new_value);
+            frm.set_value('pd_custom_subject_to_retention', new_value);
         } else {
-            console.log('❌ custom_subject_to_retention field not found in form');
+            console.log('❌ pd_custom_subject_to_retention field not found in form');
         }
 
-        if (frm.fields_dict.net_total_after_wht) {
-            const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
-            console.log('💵 Setting net_total_after_wht:', net_total_after_wht, '(current:', frm.doc.net_total_after_wht, ')');
-            frm.set_value('net_total_after_wht', net_total_after_wht);
+        if (frm.fields_dict.pd_custom_net_total_after_wht) {
+            const pd_custom_net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
+            console.log('💵 Setting pd_custom_net_total_after_wht:', pd_custom_net_total_after_wht, '(current:', frm.doc.pd_custom_net_total_after_wht, ')');
+            frm.set_value('pd_custom_net_total_after_wht', pd_custom_net_total_after_wht);
         } else {
-            console.log('❌ net_total_after_wht field not found in form');
+            console.log('❌ pd_custom_net_total_after_wht field not found in form');
         }
 
         // Calculate Net Total after WHT AND Retention
-        if (frm.fields_dict.custom_net_total_after_wht_retention) {
+        if (frm.fields_dict.pd_custom_net_after_wht_retention) {
             // Get retention amount using the same pattern as retention checkbox
             // Priority 1: Header-level retention (Purchase Invoice scenario)
-            const header_retention_amount = frm.doc.custom_retention_amount || 0;
+            const header_retention_amount = frm.doc.pd_custom_retention_amount || 0;
 
             // Priority 2: Reference-level retention (Sales Invoice scenario)
             let retention_amount = header_retention_amount;
@@ -571,35 +571,35 @@ function calculate_thai_tax_totals(frm) {
             }
 
             // Calculate: Net Total after WHT and Retention = Net Total after WHT - Retention Amount
-            const net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
-            const custom_net_total_after_wht_retention = net_total_after_wht - retention_amount;
+            const pd_custom_net_total_after_wht = (frm.doc.total_allocated_amount || 0) - total_wht;
+            const pd_custom_net_after_wht_retention = pd_custom_net_total_after_wht - retention_amount;
 
-            console.log('💵 Calculating custom_net_total_after_wht_retention:');
+            console.log('💵 Calculating pd_custom_net_after_wht_retention:');
             console.log('   📊 total_allocated_amount:', frm.doc.total_allocated_amount);
             console.log('   📊 total_wht:', total_wht);
-            console.log('   📊 net_total_after_wht:', net_total_after_wht);
+            console.log('   📊 pd_custom_net_total_after_wht:', pd_custom_net_total_after_wht);
             console.log('   📊 header_retention_amount:', header_retention_amount);
             console.log('   📊 reference_retention_amount:', total_retention);
             console.log('   📊 final_retention_amount:', retention_amount);
-            console.log('   💰 custom_net_total_after_wht_retention:', custom_net_total_after_wht_retention);
-            console.log('   📋 current value:', frm.doc.custom_net_total_after_wht_retention);
+            console.log('   💰 pd_custom_net_after_wht_retention:', pd_custom_net_after_wht_retention);
+            console.log('   📋 current value:', frm.doc.pd_custom_net_after_wht_retention);
 
-            frm.set_value('custom_net_total_after_wht_retention', custom_net_total_after_wht_retention);
+            frm.set_value('pd_custom_net_after_wht_retention', pd_custom_net_after_wht_retention);
         } else {
-            console.log('❌ custom_net_total_after_wht_retention field not found in form');
+            console.log('❌ pd_custom_net_after_wht_retention field not found in form');
         }
     } catch(e) {
         console.error('Error updating Payment Entry summary fields:', e);
     }
 
-    // Additional debugging: Show all current field values in thai_wht_preview_section
+    // Additional debugging: Show all current field values in pd_custom_wht_preview_section
     try {
-        console.log('📊 Current thai_wht_preview_section field values:');
+        console.log('📊 Current pd_custom_wht_preview_section field values:');
         const debug_fields = [
-            'vat_treatment', 'subject_to_wht', 'wht_income_type', 'wht_description',
-            'wht_certificate_required', 'net_total_after_wht', 'net_total_after_wht_in_words',
-            'wht_note', 'custom_subject_to_retention', 'custom_net_total_after_wht_retention',
-            'custom_net_total_after_wht_retention_in_words', 'custom_retention_note'
+            'pd_custom_vat_treatment', 'pd_custom_subject_to_wht', 'pd_custom_wht_income_type', 'pd_custom_wht_description',
+            'pd_custom_wht_certificate_required', 'pd_custom_net_total_after_wht', 'pd_custom_net_total_after_wht_words',
+            'pd_custom_wht_note', 'pd_custom_subject_to_retention', 'pd_custom_net_after_wht_retention',
+            'pd_custom_net_after_wht_retention_words', 'pd_custom_retention_note'
         ];
         debug_fields.forEach(fieldname => {
             if (frm.fields_dict[fieldname]) {
@@ -619,11 +619,11 @@ function calculate_thai_tax_totals(frm) {
     console.log('   💰 Calculated VAT Undue: ฿', total_vat_undue);
     console.log('   🏛️ pd_custom_apply_withholding_tax:', frm.doc.pd_custom_apply_withholding_tax);
     console.log('   🏛️ pd_custom_withholding_tax_amount:', frm.doc.pd_custom_withholding_tax_amount);
-    console.log('   🏛️ custom_withholding_tax_amount:', frm.doc.custom_withholding_tax_amount);
+    console.log('   🏛️ pd_custom_withholding_tax_amount:', frm.doc.pd_custom_withholding_tax_amount);
     console.log('   💵 pd_custom_net_payment_amount:', frm.doc.pd_custom_net_payment_amount);
-    console.log('   📊 subject_to_wht:', frm.doc.subject_to_wht);
-    console.log('   📊 net_total_after_wht:', frm.doc.net_total_after_wht);
-    console.log('   📝 custom_subject_to_retention:', frm.doc.custom_subject_to_retention);
+    console.log('   📊 pd_custom_subject_to_wht:', frm.doc.pd_custom_subject_to_wht);
+    console.log('   📊 pd_custom_net_total_after_wht:', frm.doc.pd_custom_net_total_after_wht);
+    console.log('   📝 pd_custom_subject_to_retention:', frm.doc.pd_custom_subject_to_retention);
 
     console.log('🧮 =========================== CALCULATE THAI TAX TOTALS END ===========================');
 }

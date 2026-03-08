@@ -62,14 +62,14 @@ def _calculate_wht_amounts(doc):
         if ref.reference_doctype == "Sales Invoice":
             # Check if the invoice is subject to WHT
             invoice = frappe.get_doc("Sales Invoice", ref.reference_name)
-            if invoice.get("subject_to_wht"):
+            if invoice.get("pd_custom_subject_to_wht"):
                 total_wht_base += flt(ref.allocated_amount)
 
     # Calculate WHT amount
     doc.wht_amount = flt((total_wht_base * flt(doc.wht_rate)) / 100, 2)
 
     # Calculate net payment amount
-    doc.net_total_after_wht = flt(doc.paid_amount) - flt(doc.wht_amount)
+    doc.pd_custom_net_total_after_wht = flt(doc.paid_amount) - flt(doc.wht_amount)
 
     # Set WHT account if not already set
     if not doc.wht_account:
@@ -153,11 +153,11 @@ def _update_payment_amounts(doc):
 
     # Update the paid amount to net amount (this affects the cash/bank account)
     original_paid_amount = doc.paid_amount
-    doc.paid_amount = doc.net_total_after_wht
+    doc.paid_amount = doc.pd_custom_net_total_after_wht
 
     # Update received amount if different
     if doc.received_amount == original_paid_amount:
-        doc.received_amount = doc.net_total_after_wht
+        doc.received_amount = doc.pd_custom_net_total_after_wht
 
     # Add a comment explaining the adjustment
     doc.add_comment(
@@ -165,7 +165,7 @@ def _update_payment_amounts(doc):
         _("Payment adjusted for Thailand WHT: Original {0}, WHT {1}, Net {2}").format(
             frappe.format_value(original_paid_amount, {"fieldtype": "Currency"}),
             frappe.format_value(doc.wht_amount, {"fieldtype": "Currency"}),
-            frappe.format_value(doc.net_total_after_wht, {"fieldtype": "Currency"}),
+            frappe.format_value(doc.pd_custom_net_total_after_wht, {"fieldtype": "Currency"}),
         ),
     )
 
@@ -193,7 +193,7 @@ def validate_payment_entry_wht(doc, method=None):
     for ref in doc.references:
         if ref.reference_doctype == "Sales Invoice":
             invoice = frappe.get_doc("Sales Invoice", ref.reference_name)
-            if invoice.get("subject_to_wht"):
+            if invoice.get("pd_custom_subject_to_wht"):
                 has_wht_references = True
                 break
 
@@ -214,7 +214,7 @@ def update_invoice_wht_status(doc, method=None):
     for ref in doc.references:
         if ref.reference_doctype == "Sales Invoice":
             invoice = frappe.get_doc("Sales Invoice", ref.reference_name)
-            if invoice.get("subject_to_wht"):
+            if invoice.get("pd_custom_subject_to_wht"):
                 # Add comment to invoice about WHT payment
                 invoice.add_comment(
                     "Comment",
@@ -329,7 +329,7 @@ def check_invoice_wht_status(reference_type, reference_name):
     try:
         if reference_type == "Sales Invoice":
             return frappe.db.get_value(
-                "Sales Invoice", reference_name, "subject_to_wht"
+                "Sales Invoice", reference_name, "pd_custom_subject_to_wht"
             )
         return False
     except:

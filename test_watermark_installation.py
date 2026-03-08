@@ -43,7 +43,7 @@ def test_watermark_installation(site_name):
         # Test 5: Test Stock Entry specifically (the one that had the error)
         test_stock_entry_watermark_field()
         
-        # Test 6: Test creating a Stock Entry with watermark_text
+        # Test 6: Test creating a Stock Entry with pd_custom_watermark_text
         test_create_stock_entry_with_watermark()
         
         print("\n" + "=" * 60)
@@ -79,21 +79,21 @@ def test_critical_doctype_fields():
         # Check Custom Field exists
         field_exists = frappe.db.exists("Custom Field", {
             "dt": doctype,
-            "fieldname": "watermark_text"
+            "fieldname": "pd_custom_watermark_text"
         })
         
         if field_exists:
-            print(f"  ✅ {doctype}: watermark_text Custom Field exists")
+            print(f"  ✅ {doctype}: pd_custom_watermark_text Custom Field exists")
         else:
-            print(f"  ❌ {doctype}: watermark_text Custom Field MISSING")
+            print(f"  ❌ {doctype}: pd_custom_watermark_text Custom Field MISSING")
         
         # Check database column exists
         try:
-            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'pd_custom_watermark_text'")
             if columns:
-                print(f"  ✅ {doctype}: watermark_text database column exists")
+                print(f"  ✅ {doctype}: pd_custom_watermark_text database column exists")
             else:
-                print(f"  ❌ {doctype}: watermark_text database column MISSING")
+                print(f"  ❌ {doctype}: pd_custom_watermark_text database column MISSING")
         except Exception as e:
             print(f"  ⚠️  {doctype}: Could not verify database column: {str(e)}")
 
@@ -166,16 +166,16 @@ def test_stock_entry_watermark_field():
     # Test Custom Field
     field_exists = frappe.db.exists("Custom Field", {
         "dt": "Stock Entry",
-        "fieldname": "watermark_text"
+        "fieldname": "pd_custom_watermark_text"
     })
     
     if field_exists:
-        print("  ✅ Stock Entry watermark_text Custom Field exists")
+        print("  ✅ Stock Entry pd_custom_watermark_text Custom Field exists")
         
         # Get field details
         field_doc = frappe.get_doc("Custom Field", {
             "dt": "Stock Entry", 
-            "fieldname": "watermark_text"
+            "fieldname": "pd_custom_watermark_text"
         })
         
         print(f"  ✅ Field type: {field_doc.fieldtype}")
@@ -183,18 +183,18 @@ def test_stock_entry_watermark_field():
         print(f"  ✅ Default value: {field_doc.default}")
         
     else:
-        print("  ❌ Stock Entry watermark_text Custom Field MISSING")
+        print("  ❌ Stock Entry pd_custom_watermark_text Custom Field MISSING")
         return False
     
     # Test database column
     try:
-        columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+        columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'")
         if columns:
             column_info = columns[0]
-            print(f"  ✅ Stock Entry watermark_text database column exists")
+            print(f"  ✅ Stock Entry pd_custom_watermark_text database column exists")
             print(f"  ✅ Column type: {column_info[1]}")
         else:
-            print("  ❌ Stock Entry watermark_text database column MISSING")
+            print("  ❌ Stock Entry pd_custom_watermark_text database column MISSING")
             return False
     except Exception as e:
         print(f"  ❌ Error checking Stock Entry database column: {str(e)}")
@@ -204,27 +204,27 @@ def test_stock_entry_watermark_field():
 
 
 def test_create_stock_entry_with_watermark():
-    """Test creating a Stock Entry with watermark_text to ensure no error"""
-    print("\n🧪 Testing Stock Entry creation with watermark_text...")
+    """Test creating a Stock Entry with pd_custom_watermark_text to ensure no error"""
+    print("\n🧪 Testing Stock Entry creation with pd_custom_watermark_text...")
     
     try:
         # Create a test Stock Entry document
         stock_entry = frappe.new_doc("Stock Entry")
         stock_entry.stock_entry_type = "Material Transfer"
-        stock_entry.watermark_text = "Test"  # This should not cause an error now
+        stock_entry.pd_custom_watermark_text = "Test"  # This should not cause an error now
         stock_entry.purpose = "Material Transfer"
         
         # Try to save (this would have failed before the fix)
         # We won't actually save it to avoid creating test data
         # stock_entry.save()
         
-        print("  ✅ Stock Entry with watermark_text field can be created without error")
-        print("  ✅ The original 'Unknown column watermark_text' error should be fixed")
+        print("  ✅ Stock Entry with pd_custom_watermark_text field can be created without error")
+        print("  ✅ The original 'Unknown column pd_custom_watermark_text' error should be fixed")
         
         return True
         
     except Exception as e:
-        print(f"  ❌ Error creating Stock Entry with watermark_text: {str(e)}")
+        print(f"  ❌ Error creating Stock Entry with pd_custom_watermark_text: {str(e)}")
         return False
 
 

@@ -12,41 +12,41 @@ def fix_sales_order_insertion_points():
         
         fixes_applied = []
         
-        # Fix 1: subject_to_wht insertion point
+        # Fix 1: pd_custom_subject_to_wht insertion point
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Order-subject_to_wht", 
+                "Sales Order-pd_custom_subject_to_wht", 
                 "insert_after", 
-                "vat_treatment"
+                "pd_custom_vat_treatment"
             )
-            fixes_applied.append("subject_to_wht: wht_section → vat_treatment")
+            fixes_applied.append("pd_custom_subject_to_wht: wht_section → pd_custom_vat_treatment")
         except Exception as e:
-            print(f"⚠️ Failed to fix subject_to_wht: {e}")
+            print(f"⚠️ Failed to fix pd_custom_subject_to_wht: {e}")
         
-        # Fix 2: net_total_after_wht insertion point
+        # Fix 2: pd_custom_net_total_after_wht insertion point
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Order-net_total_after_wht", 
+                "Sales Order-pd_custom_net_total_after_wht", 
                 "insert_after", 
-                "wht_description"
+                "pd_custom_wht_description"
             )
-            fixes_applied.append("net_total_after_wht: Fixed field reference")
+            fixes_applied.append("pd_custom_net_total_after_wht: Fixed field reference")
         except Exception as e:
-            print(f"⚠️ Failed to fix net_total_after_wht: {e}")
+            print(f"⚠️ Failed to fix pd_custom_net_total_after_wht: {e}")
             
-        # Fix 3: net_total_after_wht_in_words field type change
+        # Fix 3: pd_custom_net_total_after_wht_words field type change
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Order-net_total_after_wht_in_words", 
+                "Sales Order-pd_custom_net_total_after_wht_words", 
                 "fieldtype", 
                 "Data"
             )
-            fixes_applied.append("net_total_after_wht_in_words: Small Text → Data")
+            fixes_applied.append("pd_custom_net_total_after_wht_words: Small Text → Data")
         except Exception as e:
-            print(f"⚠️ Failed to fix net_total_after_wht_in_words: {e}")
+            print(f"⚠️ Failed to fix pd_custom_net_total_after_wht_words: {e}")
         
         # Fix 4: has_deposit typo fix
         try:

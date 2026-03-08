@@ -244,23 +244,23 @@ def sales_invoice_validate(doc, method):
         
         # If construction service is not enabled, clear retention fields
         if not settings.get('construction_service_enabled'):
-            doc.custom_retention = 0
-            doc.custom_retention_amount = 0
+            doc.pd_custom_retention_pct = 0
+            doc.pd_custom_retention_amount = 0
             return
         
         # Auto-calculate if enabled and no manual retention rate set
-        if settings.get('auto_calculate_retention') and not doc.custom_retention:
-            doc.custom_retention = settings.get('default_retention_rate', 5.0)
+        if settings.get('auto_calculate_retention') and not doc.pd_custom_retention_pct:
+            doc.pd_custom_retention_pct = settings.get('default_retention_rate', 5.0)
         
         # Calculate retention amount if retention rate is set
-        if doc.custom_retention and doc.base_net_total:
-            doc.custom_retention_amount = calculate_retention_amount(
+        if doc.pd_custom_retention_pct and doc.base_net_total:
+            doc.pd_custom_retention_amount = calculate_retention_amount(
                 doc.company, 
                 doc.base_net_total, 
-                doc.custom_retention
+                doc.pd_custom_retention_pct
             )
         else:
-            doc.custom_retention_amount = 0
+            doc.pd_custom_retention_amount = 0
             
     except Exception as e:
         frappe.log_error(f"Error in sales_invoice_validate for {doc.name}: {str(e)}")

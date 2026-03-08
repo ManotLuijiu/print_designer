@@ -26,13 +26,13 @@ def execute():
     # Create a mock Purchase Order document
     mock_doc = frappe._dict({
         "name": "TEST-PO-001",
-        "apply_thai_wht_compliance": 1,
-        "subject_to_wht": 1,
+        "pd_custom_apply_thai_wht_compliance": 1,
+        "pd_custom_subject_to_wht": 1,
         "net_total": test_data["net_total"],
         "base_net_total": test_data["net_total"],
         "total": test_data["net_total"],
         "grand_total": test_data["net_total"] * 1.07,  # With 7% VAT
-        "custom_withholding_tax": test_data["wht_rate"],
+        "pd_custom_withholding_tax_pct": test_data["wht_rate"],
         "currency": "THB",
         "items": [
             frappe._dict({"amount": 5000}),
@@ -52,10 +52,10 @@ def execute():
 
     # Test Thai WHT calculation
     calculate_thai_compliant_wht(mock_doc)
-    calculated_wht = flt(mock_doc.custom_withholding_tax_amount)
+    calculated_wht = flt(mock_doc.pd_custom_withholding_tax_amount)
 
     print(f"✅ Thai WHT Calculation: ฿{calculated_wht:,.2f}")
-    print(f"✅ Final Payment Amount: ฿{flt(mock_doc.custom_payment_amount):,.2f}")
+    print(f"✅ Final Payment Amount: ฿{flt(mock_doc.pd_custom_payment_amount):,.2f}")
     print()
 
     # Validation
@@ -81,10 +81,10 @@ def execute():
 
     for scenario in test_scenarios:
         mock_doc.net_total = scenario["amount"]
-        mock_doc.custom_withholding_tax = scenario["rate"]
+        mock_doc.pd_custom_withholding_tax_pct = scenario["rate"]
 
         calculate_thai_compliant_wht(mock_doc)
-        result = flt(mock_doc.custom_withholding_tax_amount)
+        result = flt(mock_doc.pd_custom_withholding_tax_amount)
 
         status = "✅" if result == scenario["expected"] else "❌"
         print(f"   {status} ฿{scenario['amount']:,.2f} × {scenario['rate']}% = ฿{result:,.2f} (expected: ฿{scenario['expected']:,.2f})")
@@ -99,17 +99,17 @@ def test_purchase_order_wht_override():
     # Find a test Purchase Order or create instructions
     purchase_orders = frappe.get_list(
         "Purchase Order",
-        filters={"apply_thai_wht_compliance": 1, "docstatus": 0},
+        filters={"pd_custom_apply_thai_wht_compliance": 1, "docstatus": 0},
         limit=1
     )
 
     if not purchase_orders:
         return {
             "status": "no_test_data",
-            "message": "No Purchase Orders with apply_thai_wht_compliance enabled found. Please create a test Purchase Order with Thai WHT enabled.",
+            "message": "No Purchase Orders with pd_custom_apply_thai_wht_compliance enabled found. Please create a test Purchase Order with Thai WHT enabled.",
             "instructions": [
                 "1. Create a new Purchase Order",
-                "2. Enable 'Apply Thai Withholding Tax Compliance' (apply_thai_wht_compliance)",
+                "2. Enable 'Apply Thai Withholding Tax Compliance' (pd_custom_apply_thai_wht_compliance)",
                 "3. Add items with total amount = 10,000",
                 "4. Set custom WHT rate to 3%",
                 "5. Run this test again"

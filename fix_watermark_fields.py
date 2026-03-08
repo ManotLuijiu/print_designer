@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Emergency fix for watermark fields installation
-This script installs the watermark_text field for Stock Entry and other DocTypes
+This script installs the pd_custom_watermark_text field for Stock Entry and other DocTypes
 """
 
 import sys
@@ -36,13 +36,13 @@ def fix_watermark_fields():
         frappe.db.commit()
         
         print("✅ Watermark fields installed successfully!")
-        print("✅ Stock Entry watermark_text field should now be available")
+        print("✅ Stock Entry pd_custom_watermark_text field should now be available")
         
         # Verify Stock Entry field was created
-        if frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'"):
-            print("✅ Confirmed: watermark_text column exists in Stock Entry table")
+        if frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'"):
+            print("✅ Confirmed: pd_custom_watermark_text column exists in Stock Entry table")
         else:
-            print("❌ Warning: watermark_text column not found in Stock Entry table")
+            print("❌ Warning: pd_custom_watermark_text column not found in Stock Entry table")
             
     except Exception as e:
         print(f"❌ Error: {str(e)}")

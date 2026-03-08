@@ -51,7 +51,7 @@ def list_print_designer_fields():
             "enable_multiple_copies", "default_copy_count", "copy_labels_column", "show_copy_controls_in_toolbar",
             "default_original_label", "default_copy_label", "copy_settings_section", "watermark_settings_section",
             # Signature fields created by print_designer signature system
-            "prepared_by_signature", "approved_by_signature",
+            "pd_custom_prepared_by_signature", "pd_custom_approved_by_signature",
             # Delivery approval QR system (print_designer feature)
             "custom_delivery_approval_section", "customer_approval_status", "customer_signature",
             "customer_approved_by", "customer_approved_on", "approval_qr_code", "custom_approval_url",
@@ -65,21 +65,21 @@ def list_print_designer_fields():
         # Sales Invoice fields SPECIFICALLY created by print_designer install_sales_invoice_fields.py
         print_designer_sales_invoice_fields = [
             # Watermark field
-            "watermark_text",
+            "pd_custom_watermark_text",
             # Thai WHT Preview Section (print_designer specific)
-            "thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break", 
-            "vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
-            "net_total_after_wht", "net_total_after_wht_in_words", "wht_certificate_required", "wht_note",
+            "pd_custom_wht_preview_section", "pd_custom_wht_amounts_cb", "pd_custom_wht_preview_cb", 
+            "pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_wht_income_type", "pd_custom_wht_description",
+            "pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_certificate_required", "pd_custom_wht_note",
             # Retention fields (print_designer construction feature)
-            "custom_subject_to_retention", "custom_net_total_after_wht_retention", 
-            "custom_net_total_after_wht_retention_in_words", "custom_retention_note",
-            "custom_retention", "custom_retention_amount",
+            "pd_custom_subject_to_retention", "pd_custom_net_after_wht_retention", 
+            "pd_custom_net_after_wht_retention_words", "pd_custom_retention_note",
+            "pd_custom_retention_pct", "pd_custom_retention_amount",
             # Construction service (print_designer feature)
             "construction_service",
             # WHT calculation fields (print_designer calculations)
-            "custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
+            "pd_custom_withholding_tax_pct", "pd_custom_withholding_tax_amount", "pd_custom_payment_amount",
             # Signature fields
-            "prepared_by_signature", "approved_by_signature",
+            "pd_custom_prepared_by_signature", "pd_custom_approved_by_signature",
         ]
         
         # Combine all print_designer specific field lists

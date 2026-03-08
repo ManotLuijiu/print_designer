@@ -20,7 +20,7 @@ def override_purchase_order_wht_calculation(doc, method=None):
     """
 
     # Only process if Thai WHT system is enabled
-    if not getattr(doc, 'apply_thai_wht_compliance', 0) or not getattr(doc, 'subject_to_wht', 0):
+    if not getattr(doc, 'pd_custom_apply_thai_wht_compliance', 0) or not getattr(doc, 'pd_custom_subject_to_wht', 0):
         return
 
     # Prevent ERPNext's standard Tax Withholding Category calculation
@@ -68,7 +68,7 @@ def calculate_thai_compliant_wht(doc):
     print(f"{'='*80}")
 
     # Get WHT rate from custom field
-    wht_rate = flt(getattr(doc, 'custom_withholding_tax', 0))
+    wht_rate = flt(getattr(doc, 'pd_custom_withholding_tax_pct', 0))
     print(f"📋 WHT Rate: {wht_rate}%")
 
     if wht_rate <= 0:
@@ -106,20 +106,20 @@ def calculate_thai_compliant_wht(doc):
     wht_amount = flt(wht_base_amount * wht_rate / 100, 2)  # Round to 2 decimal places
 
     # Update custom WHT fields
-    doc.custom_withholding_tax_amount = wht_amount
+    doc.pd_custom_withholding_tax_amount = wht_amount
 
     # Calculate retention amount if retention is enabled
     print("\n" + "="*80)
     print("🔍 RETENTION CALCULATION DEBUG START")
     print("="*80)
 
-    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
-    has_custom_retention = hasattr(doc, 'custom_retention')
-    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
-    print(f"2. has custom_retention attr: {has_custom_retention}")
+    pd_custom_subject_to_retention = getattr(doc, 'pd_custom_subject_to_retention', 0)
+    has_custom_retention = hasattr(doc, 'pd_custom_retention_pct')
+    print(f"1. pd_custom_subject_to_retention: {pd_custom_subject_to_retention}")
+    print(f"2. has pd_custom_retention_pct attr: {has_custom_retention}")
 
-    if custom_subject_to_retention and has_custom_retention:
-        retention_percentage = flt(getattr(doc, 'custom_retention', 0))
+    if pd_custom_subject_to_retention and has_custom_retention:
+        retention_percentage = flt(getattr(doc, 'pd_custom_retention_pct', 0))
         print(f"3. retention_percentage: {retention_percentage}%")
         print(f"4. retention_base_amount (WHOLE INVOICE): {retention_base_amount}")
 
@@ -134,10 +134,10 @@ def calculate_thai_compliant_wht(doc):
             # FIXED: Retention is calculated on WHOLE INVOICE, not just services
             # Example: Total 1,000,000 THB (materials 600k + services 400k) × 5% = 50,000 THB retention
             calculated_retention = flt(retention_base_amount * retention_percentage / 100, 2)
-            doc.custom_retention_amount = calculated_retention
+            doc.pd_custom_retention_amount = calculated_retention
             print(f"5. ✅ Calculated retention_amount: {retention_base_amount} (whole invoice) × {retention_percentage}% = {calculated_retention}")
             frappe.logger().info(
-                f"Retention Calculation: {retention_base_amount} × {retention_percentage}% = {doc.custom_retention_amount}"
+                f"Retention Calculation: {retention_base_amount} × {retention_percentage}% = {doc.pd_custom_retention_amount}"
             )
 
             # Browser debug message
@@ -160,7 +160,7 @@ def calculate_thai_compliant_wht(doc):
     print("🔍 FINAL PAYMENT CALCULATION DEBUG START")
     print("="*80)
 
-    retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
+    retention_amount = flt(getattr(doc, 'pd_custom_retention_amount', 0))
     print(f"1. grand_total: {doc.grand_total}")
     print(f"2. wht_amount: {wht_amount}")
     print(f"3. retention_amount: {retention_amount}")
@@ -178,7 +178,7 @@ def calculate_thai_compliant_wht(doc):
         title="Final Payment Calculation"
     )
 
-    doc.custom_payment_amount = final_payment
+    doc.pd_custom_payment_amount = final_payment
 
     print("="*80)
     print("🔍 FINAL PAYMENT CALCULATION DEBUG END")
@@ -246,22 +246,22 @@ def update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment):
 
     # Update net total after WHT field: grand_total - wht_amount
     # This represents: base_amount + VAT - WHT
-    doc.net_total_after_wht = flt(doc.grand_total) - wht_amount
+    doc.pd_custom_net_total_after_wht = flt(doc.grand_total) - wht_amount
 
     # Update in words fields if they exist
-    if hasattr(doc, 'net_total_after_wht_in_words'):
+    if hasattr(doc, 'pd_custom_net_total_after_wht_words'):
         from frappe.utils import money_in_words
-        doc.net_total_after_wht_in_words = money_in_words(
-            doc.net_total_after_wht,
+        doc.pd_custom_net_total_after_wht_words = money_in_words(
+            doc.pd_custom_net_total_after_wht,
             doc.currency
         )
 
     # Update combined WHT and retention amounts
-    if hasattr(doc, 'custom_net_total_after_wht_retention'):
-        doc.custom_net_total_after_wht_retention = final_payment
+    if hasattr(doc, 'pd_custom_net_after_wht_retention'):
+        doc.pd_custom_net_after_wht_retention = final_payment
 
-        if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
-            doc.custom_net_total_after_wht_retention_in_words = money_in_words(
+        if hasattr(doc, 'pd_custom_net_after_wht_retention_words'):
+            doc.pd_custom_net_after_wht_retention_words = money_in_words(
                 final_payment,
                 doc.currency
             )
@@ -273,20 +273,20 @@ def validate_thai_wht_configuration(doc, method=None):
     Validate Thai WHT configuration to ensure proper setup
     """
 
-    if not getattr(doc, 'apply_thai_wht_compliance', 0):
+    if not getattr(doc, 'pd_custom_apply_thai_wht_compliance', 0):
         return
 
     # Validate required fields for Thai WHT
-    if getattr(doc, 'subject_to_wht', 0):
-        if not getattr(doc, 'wht_income_type'):
+    if getattr(doc, 'pd_custom_subject_to_wht', 0):
+        if not getattr(doc, 'pd_custom_wht_income_type'):
             frappe.throw(_("WHT Income Type is required when Subject to Withholding Tax is enabled"))
 
         # Auto-fetch default WHT rate from Company if not specified
-        if not getattr(doc, 'custom_withholding_tax') or flt(getattr(doc, 'custom_withholding_tax', 0)) == 0:
+        if not getattr(doc, 'pd_custom_withholding_tax_pct') or flt(getattr(doc, 'pd_custom_withholding_tax_pct', 0)) == 0:
             default_wht_rate = frappe.db.get_value("Company", doc.company, "default_wht_rate")
 
             if default_wht_rate and flt(default_wht_rate) > 0:
-                doc.custom_withholding_tax = flt(default_wht_rate)
+                doc.pd_custom_withholding_tax_pct = flt(default_wht_rate)
                 frappe.logger().info(f"Auto-fetched default WHT rate {default_wht_rate}% from Company {doc.company}")
 
                 # Show user-friendly message
@@ -302,17 +302,17 @@ def validate_thai_wht_configuration(doc, method=None):
     print("🔍 RETENTION AUTO-FETCH DEBUG START")
     print("="*80)
 
-    custom_subject_to_retention = getattr(doc, 'custom_subject_to_retention', 0)
-    print(f"1. custom_subject_to_retention: {custom_subject_to_retention}")
+    pd_custom_subject_to_retention = getattr(doc, 'pd_custom_subject_to_retention', 0)
+    print(f"1. pd_custom_subject_to_retention: {pd_custom_subject_to_retention}")
 
     # Browser debug message
     frappe.msgprint(
-        f"🔍 DEBUG Step 1: custom_subject_to_retention = {custom_subject_to_retention}",
+        f"🔍 DEBUG Step 1: pd_custom_subject_to_retention = {pd_custom_subject_to_retention}",
         indicator='orange',
         title="Retention Debug"
     )
 
-    if custom_subject_to_retention:
+    if pd_custom_subject_to_retention:
         print(f"2. Company: {doc.company}")
 
         # Check if construction_service is enabled for this Company
@@ -328,9 +328,9 @@ def validate_thai_wht_configuration(doc, method=None):
 
         if construction_service_enabled:
             # Auto-fetch default retention rate if not specified
-            current_retention = getattr(doc, 'custom_retention', None)
+            current_retention = getattr(doc, 'pd_custom_retention_pct', None)
             current_retention_value = flt(current_retention) if current_retention else 0
-            print(f"4. Current custom_retention: {current_retention} (value: {current_retention_value})")
+            print(f"4. Current pd_custom_retention_pct: {current_retention} (value: {current_retention_value})")
 
             if not current_retention or current_retention_value == 0:
                 print("5. Retention is blank or zero, fetching from Company...")
@@ -346,8 +346,8 @@ def validate_thai_wht_configuration(doc, method=None):
                 )
 
                 if default_retention_rate and flt(default_retention_rate) > 0:
-                    doc.custom_retention = flt(default_retention_rate)
-                    print(f"7. ✅ Set doc.custom_retention to: {doc.custom_retention}")
+                    doc.pd_custom_retention_pct = flt(default_retention_rate)
+                    print(f"7. ✅ Set doc.pd_custom_retention_pct to: {doc.pd_custom_retention_pct}")
                     frappe.logger().info(f"Auto-fetched default retention rate {default_retention_rate}% from Company {doc.company}")
 
                     # Show success message
@@ -367,7 +367,7 @@ def validate_thai_wht_configuration(doc, method=None):
         else:
             print("3. ❌ construction_service is NOT enabled on Company")
     else:
-        print("1. ❌ custom_subject_to_retention is NOT enabled")
+        print("1. ❌ pd_custom_subject_to_retention is NOT enabled")
 
     print("="*80)
     print("🔍 RETENTION AUTO-FETCH DEBUG END")
@@ -375,8 +375,8 @@ def validate_thai_wht_configuration(doc, method=None):
 
     # Validate VAT treatment for TDS transactions
     # Only suggest VAT Undue if document has single item type (not mixed assets + services)
-    vat_treatment = getattr(doc, 'vat_treatment', '')
-    if vat_treatment and vat_treatment not in ['VAT Undue (7%)', 'Exempt from VAT']:
+    pd_custom_vat_treatment = getattr(doc, 'pd_custom_vat_treatment', '')
+    if pd_custom_vat_treatment and pd_custom_vat_treatment not in ['VAT Undue (7%)', 'Exempt from VAT']:
         # Check if document has mixed item types
         has_mixed_item_types = _check_mixed_item_types(doc)
 
@@ -437,9 +437,9 @@ def get_thai_wht_calculation_debug_info(purchase_order_name):
 
     debug_info = {
         "document": purchase_order_name,
-        "apply_thai_wht_compliance": getattr(doc, 'apply_thai_wht_compliance', 0),
-        "subject_to_wht": getattr(doc, 'subject_to_wht', 0),
-        "wht_rate": flt(getattr(doc, 'custom_withholding_tax', 0)),
+        "pd_custom_apply_thai_wht_compliance": getattr(doc, 'pd_custom_apply_thai_wht_compliance', 0),
+        "pd_custom_subject_to_wht": getattr(doc, 'pd_custom_subject_to_wht', 0),
+        "wht_rate": flt(getattr(doc, 'pd_custom_withholding_tax_pct', 0)),
         "amounts": {
             "net_total": flt(getattr(doc, 'net_total', 0)),
             "base_net_total": flt(getattr(doc, 'base_net_total', 0)),
@@ -548,10 +548,10 @@ def test_thai_wht_automation():
         test_po.grand_total = 10000
 
         # Enable Thai WHT Compliance
-        test_po.apply_thai_wht_compliance = 1
-        test_po.subject_to_wht = 1
-        test_po.custom_withholding_tax = 3  # 3%
-        test_po.wht_income_type = "professional_services"
+        test_po.pd_custom_apply_thai_wht_compliance = 1
+        test_po.pd_custom_subject_to_wht = 1
+        test_po.pd_custom_withholding_tax_pct = 3  # 3%
+        test_po.pd_custom_wht_income_type = "professional_services"
 
         # Test our calculation override
         calculate_thai_compliant_wht(test_po)
@@ -560,12 +560,12 @@ def test_thai_wht_automation():
         results = {
             "test_status": "success",
             "base_amount": flt(test_po.net_total),
-            "wht_rate": flt(test_po.custom_withholding_tax),
-            "calculated_wht": flt(getattr(test_po, 'custom_withholding_tax_amount', 0)),
+            "wht_rate": flt(test_po.pd_custom_withholding_tax_pct),
+            "calculated_wht": flt(getattr(test_po, 'pd_custom_withholding_tax_amount', 0)),
             "expected_wht": 300,
-            "calculation_correct": flt(getattr(test_po, 'custom_withholding_tax_amount', 0)) == 300,
-            "final_payment": flt(getattr(test_po, 'custom_payment_amount', 0)),
-            "message": "✅ Thai WHT calculation working correctly!" if flt(getattr(test_po, 'custom_withholding_tax_amount', 0)) == 300 else "❌ Thai WHT calculation issue detected"
+            "calculation_correct": flt(getattr(test_po, 'pd_custom_withholding_tax_amount', 0)) == 300,
+            "final_payment": flt(getattr(test_po, 'pd_custom_payment_amount', 0)),
+            "message": "✅ Thai WHT calculation working correctly!" if flt(getattr(test_po, 'pd_custom_withholding_tax_amount', 0)) == 300 else "❌ Thai WHT calculation issue detected"
         }
 
         return results

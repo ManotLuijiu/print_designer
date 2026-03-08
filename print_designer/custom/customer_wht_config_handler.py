@@ -19,7 +19,7 @@ def handle_customer_wht_config_changes(doc, method=None):
         
         # Check if WHT-related fields changed
         wht_fields = [
-            'subject_to_wht', 'wht_income_type', 'custom_wht_rate', 'is_juristic_person'
+            'pd_custom_subject_to_wht', 'pd_custom_wht_income_type', 'custom_wht_rate', 'is_juristic_person'
         ]
         
         field_changed = False
@@ -121,8 +121,8 @@ def get_customer_wht_summary(customer):
         
         # Get customer WHT config
         wht_config = {
-            'subject_to_wht': getattr(customer_doc, 'subject_to_wht', False),
-            'wht_income_type': getattr(customer_doc, 'wht_income_type', 'service_fees'),
+            'pd_custom_subject_to_wht': getattr(customer_doc, 'pd_custom_subject_to_wht', False),
+            'pd_custom_wht_income_type': getattr(customer_doc, 'pd_custom_wht_income_type', 'service_fees'),
             'custom_wht_rate': getattr(customer_doc, 'custom_wht_rate', 0),
             'is_juristic_person': getattr(customer_doc, 'is_juristic_person', True),
             'tax_id': getattr(customer_doc, 'tax_id', '')

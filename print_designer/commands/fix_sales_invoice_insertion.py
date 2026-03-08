@@ -12,53 +12,53 @@ def fix_sales_invoice_insertion_points():
         
         fixes_applied = []
         
-        # Fix 1: Move wht_certificate_required to proper position in chain
+        # Fix 1: Move pd_custom_wht_certificate_required to proper position in chain
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Invoice-wht_certificate_required", 
+                "Sales Invoice-pd_custom_wht_certificate_required", 
                 "insert_after", 
-                "net_total_after_wht_in_words"
+                "pd_custom_net_total_after_wht_words"
             )
-            fixes_applied.append("wht_certificate_required: wht_description → net_total_after_wht_in_words")
+            fixes_applied.append("pd_custom_wht_certificate_required: pd_custom_wht_description → pd_custom_net_total_after_wht_words")
         except Exception as e:
-            print(f"⚠️ Failed to fix wht_certificate_required: {e}")
+            print(f"⚠️ Failed to fix pd_custom_wht_certificate_required: {e}")
         
-        # Fix 2: net_total_after_wht insertion point
+        # Fix 2: pd_custom_net_total_after_wht insertion point
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Invoice-net_total_after_wht", 
+                "Sales Invoice-pd_custom_net_total_after_wht", 
                 "insert_after", 
-                "wht_description"
+                "pd_custom_wht_description"
             )
-            fixes_applied.append("net_total_after_wht: wht_certificate_required → wht_description")
+            fixes_applied.append("pd_custom_net_total_after_wht: pd_custom_wht_certificate_required → pd_custom_wht_description")
         except Exception as e:
-            print(f"⚠️ Failed to fix net_total_after_wht: {e}")
+            print(f"⚠️ Failed to fix pd_custom_net_total_after_wht: {e}")
             
-        # Fix 3: net_total_after_wht_in_words field type change
+        # Fix 3: pd_custom_net_total_after_wht_words field type change
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Invoice-net_total_after_wht_in_words", 
+                "Sales Invoice-pd_custom_net_total_after_wht_words", 
                 "fieldtype", 
                 "Data"
             )
-            fixes_applied.append("net_total_after_wht_in_words: Small Text → Data")
+            fixes_applied.append("pd_custom_net_total_after_wht_words: Small Text → Data")
         except Exception as e:
-            print(f"⚠️ Failed to fix net_total_after_wht_in_words: {e}")
+            print(f"⚠️ Failed to fix pd_custom_net_total_after_wht_words: {e}")
         
-        # Fix 4: subject_to_wht proper position
+        # Fix 4: pd_custom_subject_to_wht proper position
         try:
             frappe.db.set_value(
                 "Custom Field", 
-                "Sales Invoice-subject_to_wht", 
+                "Sales Invoice-pd_custom_subject_to_wht", 
                 "insert_after", 
-                "vat_treatment"
+                "pd_custom_vat_treatment"
             )
-            fixes_applied.append("subject_to_wht: taxes_and_charges → vat_treatment")
+            fixes_applied.append("pd_custom_subject_to_wht: taxes_and_charges → pd_custom_vat_treatment")
         except Exception as e:
-            print(f"⚠️ Failed to fix subject_to_wht: {e}")
+            print(f"⚠️ Failed to fix pd_custom_subject_to_wht: {e}")
         
         # Commit all changes
         frappe.db.commit()

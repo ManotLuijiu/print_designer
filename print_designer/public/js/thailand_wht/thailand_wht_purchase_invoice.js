@@ -1,5 +1,5 @@
 // Thailand Withholding Tax Client Script for Purchase Invoice
-// Smart automation for better UX when apply_thai_wht_compliance is enabled
+// Smart automation for better UX when pd_custom_apply_thai_wht_compliance is enabled
 
 console.log('🚀 Purchase Invoice TDS Client Script Loaded Successfully');
 
@@ -10,13 +10,13 @@ frappe.ui.form.on('Purchase Invoice', {
             console.log('🔄 DEBUG: Purchase Invoice refresh triggered', {
                 doc_name: frm.doc.name,
                 has_items: frm.doc.items ? frm.doc.items.length : 0,
-                apply_thai_wht_compliance: frm.doc.apply_thai_wht_compliance,
+                pd_custom_apply_thai_wht_compliance: frm.doc.pd_custom_apply_thai_wht_compliance,
                 auto_populated_fields: _count_auto_populated_fields(frm)
             });
         }
 
         // Add custom button for Thai WHT setup if Thai WHT compliance is enabled
-        if (frm.doc.apply_thai_wht_compliance && !frm.is_new()) {
+        if (frm.doc.pd_custom_apply_thai_wht_compliance && !frm.is_new()) {
             frm.add_custom_button(__('Setup TDS Fields'), function() {
                 // Smart setup for common TDS scenarios
                 let d = new frappe.ui.Dialog({
@@ -24,7 +24,7 @@ frappe.ui.form.on('Purchase Invoice', {
                     fields: [
                         {
                             fieldtype: 'Link',
-                            fieldname: 'wht_income_type',
+                            fieldname: 'pd_custom_wht_income_type',
                             label: __('Income Type'),
                             options: 'Thai WHT Income Type',
                             get_query: function() {
@@ -35,37 +35,37 @@ frappe.ui.form.on('Purchase Invoice', {
                                     }
                                 };
                             },
-                            default: frm.doc.wht_income_type || ''
+                            default: frm.doc.pd_custom_wht_income_type || ''
                         },
                         {
                             fieldtype: 'Check',
-                            fieldname: 'subject_to_wht',
+                            fieldname: 'pd_custom_subject_to_wht',
                             label: __('Subject to Withholding Tax'),
-                            default: frm.doc.subject_to_wht || 0
+                            default: frm.doc.pd_custom_subject_to_wht || 0
                         },
                         {
                             fieldtype: 'Check',
                             fieldname: 'subject_to_retention',
                             label: __('Subject to Retention'),
-                            default: frm.doc.custom_subject_to_retention || 0
+                            default: frm.doc.pd_custom_subject_to_retention || 0
                         }
                     ],
                     primary_action_label: __('Apply'),
                     primary_action: function(values) {
                         // Apply selected values
-                        if (values.wht_income_type) {
-                            frm.set_value('wht_income_type', values.wht_income_type);
+                        if (values.pd_custom_wht_income_type) {
+                            frm.set_value('pd_custom_wht_income_type', values.pd_custom_wht_income_type);
                         }
-                        if (values.subject_to_wht) {
-                            frm.set_value('subject_to_wht', values.subject_to_wht);
+                        if (values.pd_custom_subject_to_wht) {
+                            frm.set_value('pd_custom_subject_to_wht', values.pd_custom_subject_to_wht);
                         }
                         if (values.subject_to_retention) {
-                            frm.set_value('custom_subject_to_retention', values.subject_to_retention);
+                            frm.set_value('pd_custom_subject_to_retention', values.subject_to_retention);
                         }
 
                         // Auto-set VAT Undue if not already set
-                        if (!frm.doc.vat_treatment) {
-                            frm.set_value('vat_treatment', 'VAT Undue');
+                        if (!frm.doc.pd_custom_vat_treatment) {
+                            frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
                         }
 
                         d.hide();
@@ -80,40 +80,40 @@ frappe.ui.form.on('Purchase Invoice', {
         }
 
         // Add help text for Thai WHT users
-        if (frm.doc.apply_thai_wht_compliance) {
-            frm.set_df_property('apply_thai_wht_compliance', 'description',
+        if (frm.doc.pd_custom_apply_thai_wht_compliance) {
+            frm.set_df_property('pd_custom_apply_thai_wht_compliance', 'description',
                 'Thai WHT Compliance enabled: VAT Treatment will be auto-set to "VAT Undue" for compliance'
             );
         }
     },
 
-    // Smart automation: When Thai WHT compliance is enabled, auto-select VAT Undue and enable subject_to_wht
-    apply_thai_wht_compliance: function(frm) {
+    // Smart automation: When Thai WHT compliance is enabled, auto-select VAT Undue and enable pd_custom_subject_to_wht
+    pd_custom_apply_thai_wht_compliance: function(frm) {
         console.log('🔥 DEBUG: Purchase Invoice Thai WHT Compliance Script Triggered!', {
-            apply_thai_wht_compliance: frm.doc.apply_thai_wht_compliance,
-            current_vat_treatment: frm.doc.vat_treatment,
-            current_subject_to_wht: frm.doc.subject_to_wht,
+            pd_custom_apply_thai_wht_compliance: frm.doc.pd_custom_apply_thai_wht_compliance,
+            current_vat_treatment: frm.doc.pd_custom_vat_treatment,
+            current_subject_to_wht: frm.doc.pd_custom_subject_to_wht,
             doc_name: frm.doc.name
         });
-        if (frm.doc.apply_thai_wht_compliance) {
-            // Auto-enable subject_to_wht for TDS transactions
-            if (!frm.doc.subject_to_wht) {
-                frm.set_value('subject_to_wht', 1);
+        if (frm.doc.pd_custom_apply_thai_wht_compliance) {
+            // Auto-enable pd_custom_subject_to_wht for TDS transactions
+            if (!frm.doc.pd_custom_subject_to_wht) {
+                frm.set_value('pd_custom_subject_to_wht', 1);
             }
 
             // Auto-select VAT Undue for better UX
             console.log('🎯 Checking VAT Treatment field...', {
-                current_value: frm.doc.vat_treatment,
-                field_exists: !!frm.get_field('vat_treatment'),
-                field_options: frm.get_field('vat_treatment') ? frm.get_field('vat_treatment').df.options : 'field not found'
+                current_value: frm.doc.pd_custom_vat_treatment,
+                field_exists: !!frm.get_field('pd_custom_vat_treatment'),
+                field_options: frm.get_field('pd_custom_vat_treatment') ? frm.get_field('pd_custom_vat_treatment').df.options : 'field not found'
             });
 
             // Auto-change from Standard VAT to VAT Undue for TDS transactions
-            if (!frm.doc.vat_treatment || frm.doc.vat_treatment === '' || frm.doc.vat_treatment === 'Standard VAT') {
+            if (!frm.doc.pd_custom_vat_treatment || frm.doc.pd_custom_vat_treatment === '' || frm.doc.pd_custom_vat_treatment === 'Standard VAT') {
                 console.log('⚡ Setting VAT Treatment to VAT Undue...');
-                frm.set_value('vat_treatment', 'VAT Undue');
+                frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
             } else {
-                console.log('⏭️ VAT Treatment already set to:', frm.doc.vat_treatment);
+                console.log('⏭️ VAT Treatment already set to:', frm.doc.pd_custom_vat_treatment);
             }
 
             // Show user-friendly message
@@ -122,15 +122,15 @@ frappe.ui.form.on('Purchase Invoice', {
                 indicator: 'blue'
             }, 4);
 
-            console.log('Purchase Invoice Thai WHT: Auto-enabled subject_to_wht and VAT Undue');
+            console.log('Purchase Invoice Thai WHT: Auto-enabled pd_custom_subject_to_wht and VAT Undue');
         } else {
             // When Thai WHT compliance is disabled, clear auto-set fields
-            if (frm.doc.subject_to_wht) {
-                frm.set_value('subject_to_wht', 0);
+            if (frm.doc.pd_custom_subject_to_wht) {
+                frm.set_value('pd_custom_subject_to_wht', 0);
             }
 
-            if (frm.doc.vat_treatment === 'VAT Undue') {
-                frm.set_value('vat_treatment', 'Standard VAT');
+            if (frm.doc.pd_custom_vat_treatment === 'VAT Undue') {
+                frm.set_value('pd_custom_vat_treatment', 'Standard VAT');
             }
 
             frappe.show_alert({
@@ -141,34 +141,34 @@ frappe.ui.form.on('Purchase Invoice', {
     },
 
     // Handle WHT income type changes for description updates (language-aware)
-    wht_income_type: function(frm) {
-        if (frm.doc.wht_income_type && frm.doc.subject_to_wht) {
+    pd_custom_wht_income_type: function(frm) {
+        if (frm.doc.pd_custom_wht_income_type && frm.doc.pd_custom_subject_to_wht) {
             // Fetch description from Thai WHT Income Type DocType based on user language
             const lang = frappe.boot.lang || 'en';
             const desc_field = lang === 'th' ? 'income_description_th' : 'income_description';
             const category_field = lang === 'th' ? 'income_category_th' : 'income_category';
 
-            frappe.db.get_value('Thai WHT Income Type', frm.doc.wht_income_type,
+            frappe.db.get_value('Thai WHT Income Type', frm.doc.pd_custom_wht_income_type,
                 [desc_field, category_field, 'tax_rate'], function(r) {
                     if (r) {
                         // Format: "Category (Description)" or just description
                         const category = r[category_field] || '';
                         const description = r[desc_field] || '';
                         const display_text = category ? `${category} - ${description}` : description;
-                        frm.set_value('wht_description', display_text);
+                        frm.set_value('pd_custom_wht_description', display_text);
                     }
                 });
-        } else if (!frm.doc.wht_income_type) {
-            frm.set_value('wht_description', '');
+        } else if (!frm.doc.pd_custom_wht_income_type) {
+            frm.set_value('pd_custom_wht_description', '');
         }
     },
 
-    // Auto-populate WHT note when subject_to_wht is enabled
-    subject_to_wht: function(frm) {
-        if (frm.doc.subject_to_wht && frm.doc.apply_thai_wht_compliance) {
+    // Auto-populate WHT note when pd_custom_subject_to_wht is enabled
+    pd_custom_subject_to_wht: function(frm) {
+        if (frm.doc.pd_custom_subject_to_wht && frm.doc.pd_custom_apply_thai_wht_compliance) {
             // Auto-populate WHT note if empty
-            if (!frm.doc.wht_note || frm.doc.wht_note === '') {
-                frm.set_value('wht_note',
+            if (!frm.doc.pd_custom_wht_note || frm.doc.pd_custom_wht_note === '') {
+                frm.set_value('pd_custom_wht_note',
                     'หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน\n' +
                     'Note: Withholding tax amount will be deducted upon payment'
                 );
@@ -177,10 +177,10 @@ frappe.ui.form.on('Purchase Invoice', {
     },
 
     // Smart validation: Warn if VAT treatment doesn't match Thai WHT settings
-    vat_treatment: function(frm) {
-        if (frm.doc.apply_thai_wht_compliance && frm.doc.vat_treatment) {
+    pd_custom_vat_treatment: function(frm) {
+        if (frm.doc.pd_custom_apply_thai_wht_compliance && frm.doc.pd_custom_vat_treatment) {
             // Recommend VAT Undue for TDS transactions
-            if (frm.doc.vat_treatment !== 'VAT Undue') {
+            if (frm.doc.pd_custom_vat_treatment !== 'VAT Undue') {
                 frappe.show_alert({
                     message: __('Consider using "VAT Undue" for TDS transactions to comply with Thai tax regulations'),
                     indicator: 'yellow'
@@ -193,11 +193,11 @@ frappe.ui.form.on('Purchase Invoice', {
     is_paid: function(frm) {
         console.log('💰 DEBUG: is_paid checkbox changed:', {
             is_paid: frm.doc.is_paid,
-            apply_thai_wht_compliance: frm.doc.apply_thai_wht_compliance,
-            subject_to_wht: frm.doc.subject_to_wht
+            pd_custom_apply_thai_wht_compliance: frm.doc.pd_custom_apply_thai_wht_compliance,
+            pd_custom_subject_to_wht: frm.doc.pd_custom_subject_to_wht
         });
 
-        if (frm.doc.is_paid && frm.doc.apply_thai_wht_compliance && frm.doc.subject_to_wht) {
+        if (frm.doc.is_paid && frm.doc.pd_custom_apply_thai_wht_compliance && frm.doc.pd_custom_subject_to_wht) {
             console.log('🔄 DEBUG: Triggering compliance section population for cash purchase');
 
             // Call server method to populate compliance section
@@ -240,7 +240,7 @@ function _count_auto_populated_fields(frm) {
         'pd_custom_tax_invoice_fax', 'pd_custom_tax_invoice_email', 'pd_custom_tax_invoice_tax_id',
         'pd_custom_tax_invoice_branch_code', 'pd_custom_tax_invoice_bill_to', 'pd_custom_tax_invoice_bill_to_address',
         'pd_custom_wht_certificate_company_name', 'pd_custom_wht_certificate_address', 'pd_custom_wht_certificate_tax_id',
-        'apply_thai_wht_compliance', 'subject_to_wht', 'wht_income_type', 'custom_withholding_tax'
+        'pd_custom_apply_thai_wht_compliance', 'pd_custom_subject_to_wht', 'pd_custom_wht_income_type', 'pd_custom_withholding_tax_pct'
     ];
 
     fields_to_check.forEach(field => {
@@ -264,12 +264,12 @@ frappe.ui.form.on('Purchase Invoice Item', {
             console.log('🔍 DEBUG: Item selected in Purchase Invoice:', {
                 item_code: row.item_code,
                 row_idx: row.idx,
-                current_wht_status: frm.doc.apply_thai_wht_compliance
+                current_wht_status: frm.doc.pd_custom_apply_thai_wht_compliance
             });
 
             // Get item WHT configuration
             frappe.db.get_value('Item', row.item_code, [
-                'wht_income_type',
+                'pd_custom_wht_income_type',
                 'pd_custom_is_service_item'
             ]).then(r => {
                 if (r.message) {
@@ -277,17 +277,17 @@ frappe.ui.form.on('Purchase Invoice Item', {
                         item_code: row.item_code,
                         config: r.message,
                         is_service: r.message.pd_custom_is_service_item,
-                        wht_type: r.message.wht_income_type
+                        wht_type: r.message.pd_custom_wht_income_type
                     });
 
                     // Auto-configure WHT if item is a service with WHT type
-                    if (r.message.pd_custom_is_service_item && r.message.wht_income_type) {
+                    if (r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
                         console.log('🎯 DEBUG: Triggering smart WHT configuration from item');
                         smart_configure_wht_from_item(frm, r.message, row.item_code);
                     } else {
                         console.log('⏭️ DEBUG: Item does not require WHT configuration:', {
                             is_service: r.message.pd_custom_is_service_item,
-                            has_wht_type: !!r.message.wht_income_type
+                            has_wht_type: !!r.message.pd_custom_wht_income_type
                         });
                     }
                 }
@@ -315,61 +315,61 @@ function smart_configure_wht_from_item(frm, item_wht_config, item_code) {
         item_code: item_code,
         item_config: item_wht_config,
         current_doc_state: {
-            apply_thai_wht_compliance: frm.doc.apply_thai_wht_compliance,
-            subject_to_wht: frm.doc.subject_to_wht,
-            wht_income_type: frm.doc.wht_income_type,
-            vat_treatment: frm.doc.vat_treatment
+            pd_custom_apply_thai_wht_compliance: frm.doc.pd_custom_apply_thai_wht_compliance,
+            pd_custom_subject_to_wht: frm.doc.pd_custom_subject_to_wht,
+            pd_custom_wht_income_type: frm.doc.pd_custom_wht_income_type,
+            pd_custom_vat_treatment: frm.doc.pd_custom_vat_treatment
         }
     });
 
     let changes_made = [];
 
     // Auto-enable Thai WHT compliance if not already enabled
-    if (!frm.doc.apply_thai_wht_compliance) {
-        console.log('🔄 DEBUG: Enabling apply_thai_wht_compliance');
-        frm.set_value('apply_thai_wht_compliance', 1);
+    if (!frm.doc.pd_custom_apply_thai_wht_compliance) {
+        console.log('🔄 DEBUG: Enabling pd_custom_apply_thai_wht_compliance');
+        frm.set_value('pd_custom_apply_thai_wht_compliance', 1);
         changes_made.push('Thai WHT compliance enabled');
-        console.log('✅ DEBUG: Auto-enabled apply_thai_wht_compliance');
+        console.log('✅ DEBUG: Auto-enabled pd_custom_apply_thai_wht_compliance');
     } else {
-        console.log('⏭️ DEBUG: apply_thai_wht_compliance already enabled');
+        console.log('⏭️ DEBUG: pd_custom_apply_thai_wht_compliance already enabled');
     }
 
     // Auto-enable subject to WHT if not already enabled
-    if (!frm.doc.subject_to_wht) {
-        console.log('🔄 DEBUG: Enabling subject_to_wht');
-        frm.set_value('subject_to_wht', 1);
+    if (!frm.doc.pd_custom_subject_to_wht) {
+        console.log('🔄 DEBUG: Enabling pd_custom_subject_to_wht');
+        frm.set_value('pd_custom_subject_to_wht', 1);
         changes_made.push('WHT enabled');
-        console.log('✅ DEBUG: Auto-enabled subject_to_wht');
+        console.log('✅ DEBUG: Auto-enabled pd_custom_subject_to_wht');
     } else {
-        console.log('⏭️ DEBUG: subject_to_wht already enabled');
+        console.log('⏭️ DEBUG: pd_custom_subject_to_wht already enabled');
     }
 
     // Set WHT Income Type from item (only if not already set or different)
-    if (item_wht_config.wht_income_type &&
-        (!frm.doc.wht_income_type || frm.doc.wht_income_type !== item_wht_config.wht_income_type)) {
-        console.log('🔄 DEBUG: Setting wht_income_type from item:', {
-            from_item: item_wht_config.wht_income_type,
-            current_value: frm.doc.wht_income_type
+    if (item_wht_config.pd_custom_wht_income_type &&
+        (!frm.doc.pd_custom_wht_income_type || frm.doc.pd_custom_wht_income_type !== item_wht_config.pd_custom_wht_income_type)) {
+        console.log('🔄 DEBUG: Setting pd_custom_wht_income_type from item:', {
+            from_item: item_wht_config.pd_custom_wht_income_type,
+            current_value: frm.doc.pd_custom_wht_income_type
         });
-        frm.set_value('wht_income_type', item_wht_config.wht_income_type);
-        changes_made.push(`WHT type: ${item_wht_config.wht_income_type}`);
-        console.log('✅ DEBUG: Set wht_income_type to:', item_wht_config.wht_income_type);
+        frm.set_value('pd_custom_wht_income_type', item_wht_config.pd_custom_wht_income_type);
+        changes_made.push(`WHT type: ${item_wht_config.pd_custom_wht_income_type}`);
+        console.log('✅ DEBUG: Set pd_custom_wht_income_type to:', item_wht_config.pd_custom_wht_income_type);
     } else {
-        console.log('⏭️ DEBUG: wht_income_type not changed:', {
-            item_has_type: !!item_wht_config.wht_income_type,
-            current_value: frm.doc.wht_income_type,
-            values_match: frm.doc.wht_income_type === item_wht_config.wht_income_type
+        console.log('⏭️ DEBUG: pd_custom_wht_income_type not changed:', {
+            item_has_type: !!item_wht_config.pd_custom_wht_income_type,
+            current_value: frm.doc.pd_custom_wht_income_type,
+            values_match: frm.doc.pd_custom_wht_income_type === item_wht_config.pd_custom_wht_income_type
         });
     }
 
     // Auto-select VAT Undue if Standard VAT is set
-    if (frm.doc.vat_treatment === 'Standard VAT') {
+    if (frm.doc.pd_custom_vat_treatment === 'Standard VAT') {
         console.log('🔄 DEBUG: Converting Standard VAT to VAT Undue');
-        frm.set_value('vat_treatment', 'VAT Undue');
+        frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
         changes_made.push('VAT → VAT Undue');
         console.log('✅ DEBUG: Changed VAT treatment to VAT Undue');
     } else {
-        console.log('⏭️ DEBUG: VAT treatment not changed, current value:', frm.doc.vat_treatment);
+        console.log('⏭️ DEBUG: VAT treatment not changed, current value:', frm.doc.pd_custom_vat_treatment);
     }
 
     // Show intelligent alert with changes made
@@ -393,7 +393,7 @@ function check_remaining_wht_items(frm) {
 
     console.log('🔍 DEBUG: Checking remaining items for WHT requirements:', {
         total_items: frm.doc.items.length,
-        current_wht_status: frm.doc.apply_thai_wht_compliance,
+        current_wht_status: frm.doc.pd_custom_apply_thai_wht_compliance,
         items: frm.doc.items.map(item => ({item_code: item.item_code, qty: item.qty}))
     });
 
@@ -405,13 +405,13 @@ function check_remaining_wht_items(frm) {
         if (item.item_code) {
             promises.push(
                 frappe.db.get_value('Item', item.item_code, [
-                    'wht_income_type',
+                    'pd_custom_wht_income_type',
                     'pd_custom_is_service_item'
                 ]).then(r => {
-                    if (r.message && r.message.pd_custom_is_service_item && r.message.wht_income_type) {
+                    if (r.message && r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
                         wht_items.push({
                             item_code: item.item_code,
-                            wht_income_type: r.message.wht_income_type
+                            pd_custom_wht_income_type: r.message.pd_custom_wht_income_type
                         });
                     }
                 })
@@ -421,16 +421,16 @@ function check_remaining_wht_items(frm) {
 
     // Process results
     Promise.all(promises).then(() => {
-        if (wht_items.length === 0 && frm.doc.apply_thai_wht_compliance) {
+        if (wht_items.length === 0 && frm.doc.pd_custom_apply_thai_wht_compliance) {
             // No WHT items remaining, suggest disabling WHT
             frappe.confirm(
                 __('No items requiring WHT found. Disable WHT settings?'),
                 () => {
-                    frm.set_value('apply_thai_wht_compliance', 0);
-                    frm.set_value('subject_to_wht', 0);
-                    frm.set_value('wht_income_type', '');
-                    if (frm.doc.vat_treatment === 'VAT Undue') {
-                        frm.set_value('vat_treatment', 'Standard VAT');
+                    frm.set_value('pd_custom_apply_thai_wht_compliance', 0);
+                    frm.set_value('pd_custom_subject_to_wht', 0);
+                    frm.set_value('pd_custom_wht_income_type', '');
+                    if (frm.doc.pd_custom_vat_treatment === 'VAT Undue') {
+                        frm.set_value('pd_custom_vat_treatment', 'Standard VAT');
                     }
 
                     frappe.show_alert({

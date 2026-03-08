@@ -44,7 +44,7 @@ frappe.ui.form.on('Sales Invoice', {
 
 function setup_retention_fields(frm) {
     if (!frm.doc.company) {
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], false);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], false);
         return;
     }
     
@@ -53,7 +53,7 @@ function setup_retention_fields(frm) {
     // Use cached value if available
     if (frm.retention_company_cache[company_name] !== undefined) {
         const is_enabled = frm.retention_company_cache[company_name];
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
         console.log('✅ Using cached retention setting:', is_enabled);
         return;
     }
@@ -62,12 +62,12 @@ function setup_retention_fields(frm) {
     frappe.db.get_value('Company', company_name, 'construction_service', function(r) {
         const is_enabled = r && r.construction_service;
         frm.retention_company_cache[company_name] = is_enabled;
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
         console.log('✅ Cached retention setting for', company_name, ':', is_enabled);
         
         if (!is_enabled) {
-            frm.set_value('custom_retention', 0);
-            frm.set_value('custom_retention_amount', 0);
+            frm.set_value('pd_custom_retention_pct', 0);
+            frm.set_value('pd_custom_retention_amount', 0);
         }
     });
 }
@@ -96,16 +96,16 @@ def calculate_retention_on_save(doc, method):
     company_doc = frappe.get_cached_doc('Company', doc.company)
     if not getattr(company_doc, 'construction_service', False):
         # Clear retention fields if construction service is disabled
-        doc.custom_retention = 0
-        doc.custom_retention_amount = 0
+        doc.pd_custom_retention_pct = 0
+        doc.pd_custom_retention_amount = 0
         return
         
     # Calculate retention amount if retention percentage is set
-    if doc.custom_retention and doc.base_net_total:
-        retention_amount = (doc.base_net_total * doc.custom_retention) / 100
-        doc.custom_retention_amount = retention_amount
+    if doc.pd_custom_retention_pct and doc.base_net_total:
+        retention_amount = (doc.base_net_total * doc.pd_custom_retention_pct) / 100
+        doc.pd_custom_retention_amount = retention_amount
     else:
-        doc.custom_retention_amount = 0
+        doc.pd_custom_retention_amount = 0
 
 
 def validate_retention_fields(doc, method):

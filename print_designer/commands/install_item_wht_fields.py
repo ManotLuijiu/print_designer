@@ -7,17 +7,17 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def migrate_wht_income_type_field(doctype):
     """
-    Migrate wht_income_type field from Select to Link type.
+    Migrate pd_custom_wht_income_type field from Select to Link type.
     Frappe doesn't allow changing fieldtype directly, so we need to delete and recreate.
     """
-    field_name = f"{doctype}-wht_income_type"
+    field_name = f"{doctype}-pd_custom_wht_income_type"
     if frappe.db.exists("Custom Field", field_name):
         existing_field = frappe.db.get_value("Custom Field", field_name, "fieldtype")
         if existing_field == "Select":
             # Delete old Select field to allow creating new Link field
             frappe.delete_doc("Custom Field", field_name, force=True)
             frappe.db.commit()
-            print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+            print(f"  Migrated {doctype}.pd_custom_wht_income_type: Select → Link")
 
 
 def execute():
@@ -27,7 +27,7 @@ def execute():
         "Item": [
             # WHT Income Type for Purchase Transactions
             {
-                "fieldname": "wht_income_type",
+                "fieldname": "pd_custom_wht_income_type",
                 "label": _("WHT Income Type"),
                 "fieldtype": "Link",
                 "insert_after": "stock_uom",
@@ -44,7 +44,7 @@ def execute():
     }
 
     print("Installing Item WHT Income Type field...")
-    # Migrate wht_income_type from Select to Link (if exists as Select)
+    # Migrate pd_custom_wht_income_type from Select to Link (if exists as Select)
     migrate_wht_income_type_field("Item")
     create_custom_fields(custom_fields, update=True)
 
@@ -53,7 +53,7 @@ def execute():
 
     print("✅ Successfully installed WHT Income Type field for Item")
     print("✅ Field configuration:")
-    print("   - Fieldname: wht_income_type")
+    print("   - Fieldname: pd_custom_wht_income_type")
     print("   - Depends on: pd_custom_is_service_item (Service Item checkbox)")
     print("   - Location: After stock_uom field")
     print("   - Options: professional_services, rental, service_fees, construction, advertising, other_services")
@@ -65,7 +65,7 @@ def execute():
 def check_item_wht_fields():
     """Check if Item WHT Income Type field is installed."""
 
-    required_field = "wht_income_type"
+    required_field = "pd_custom_wht_income_type"
 
     existing_field = frappe.db.sql("""
         SELECT fieldname, label, depends_on
@@ -94,7 +94,7 @@ def uninstall_item_wht_fields():
         # Delete custom field
         frappe.db.delete("Custom Field", {
             "dt": "Item",
-            "fieldname": "wht_income_type"
+            "fieldname": "pd_custom_wht_income_type"
         })
 
         # Clear cache

@@ -43,9 +43,9 @@ def test_wht_system():
         customer_doc = frappe.get_doc("Customer", test_customer)
         
         # Set WHT configuration
-        if not getattr(customer_doc, 'subject_to_wht', False):
-            customer_doc.subject_to_wht = 1
-            customer_doc.wht_income_type = "professional_services"
+        if not getattr(customer_doc, 'pd_custom_subject_to_wht', False):
+            customer_doc.pd_custom_subject_to_wht = 1
+            customer_doc.pd_custom_wht_income_type = "professional_services"
             customer_doc.is_juristic_person = 1
             customer_doc.custom_wht_rate = 0  # Use default rate
             customer_doc.save()
@@ -83,8 +83,8 @@ def test_wht_system():
                 continue
             
             actual_rate = result.get('estimated_wht_rate', 0)
-            wht_amount = result.get('custom_withholding_tax_amount', 0)
-            net_amount = result.get('net_total_after_wht', 0)
+            wht_amount = result.get('pd_custom_withholding_tax_amount', 0)
+            net_amount = result.get('pd_custom_net_total_after_wht', 0)
             
             print(f"    ✅ Actual Rate: {actual_rate}%")
             print(f"    ✅ WHT Amount: ฿{wht_amount:,.2f}")

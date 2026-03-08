@@ -23,10 +23,10 @@ def sales_order_calculate_thailand_amounts(doc, method=None):
     # DEBUG: Log function entry
     frappe.logger().info(f"🔍 Sales Order Calc: sales_order_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
     print(f"\n🔍 SALES ORDER CALC STARTED for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    print(f"  - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    print(f"  - custom_withholding_tax_amount = {getattr(doc, 'custom_withholding_tax_amount', 'NOT_SET')}")
-    print(f"  - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
-    print(f"  - custom_payment_amount = {getattr(doc, 'custom_payment_amount', 'NOT_SET')}")
+    print(f"  - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}")
+    print(f"  - pd_custom_withholding_tax_amount = {getattr(doc, 'pd_custom_withholding_tax_amount', 'NOT_SET')}")
+    print(f"  - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
+    print(f"  - pd_custom_payment_amount = {getattr(doc, 'pd_custom_payment_amount', 'NOT_SET')}")
     
     # Ensure this function only processes Sales Order DocType
     if doc.doctype != "Sales Order":
@@ -55,10 +55,10 @@ def sales_order_calculate_thailand_amounts(doc, method=None):
     calculate_final_payment_amounts_for_sales_order(doc)
     
     # DEBUG: Log final state
-    frappe.logger().info(f"🔍 Sales Order Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    frappe.logger().info(f"🔍 Sales Order Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Order Calc: AFTER - subject_to_wht = {getattr(doc, 'subject_to_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Order Calc: Final amounts - net_total_after_wht = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}")
+    frappe.logger().info(f"🔍 Sales Order Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
+    print(f"🔍 Sales Order Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}")
+    print(f"🔍 Sales Order Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
 
 
 def apply_company_defaults_for_sales_order(doc):
@@ -73,15 +73,15 @@ def apply_company_defaults_for_sales_order(doc):
         doc.thailand_service_business = company_doc.get('thailand_service_business', 0)
         doc.construction_service = company_doc.get('construction_service', 0)
         
-        # Apply default WHT rate if custom_withholding_tax is not specified
-        if not doc.get('custom_withholding_tax') and company_doc.get('default_wht_rate'):
-            doc.custom_withholding_tax = flt(company_doc.default_wht_rate)
+        # Apply default WHT rate if pd_custom_withholding_tax_pct is not specified
+        if not doc.get('pd_custom_withholding_tax_pct') and company_doc.get('default_wht_rate'):
+            doc.pd_custom_withholding_tax_pct = flt(company_doc.default_wht_rate)
         
-        # Apply default retention rate if custom_retention is not specified  
-        if not doc.get('custom_retention') and company_doc.get('default_retention_rate'):
-            doc.custom_retention = flt(company_doc.default_retention_rate)
+        # Apply default retention rate if pd_custom_retention_pct is not specified  
+        if not doc.get('pd_custom_retention_pct') and company_doc.get('default_retention_rate'):
+            doc.pd_custom_retention_pct = flt(company_doc.default_retention_rate)
             
-        # NOTE: Removed auto-enablement of custom_subject_to_retention
+        # NOTE: Removed auto-enablement of pd_custom_subject_to_retention
         # Field visibility is controlled by depends_on condition: "eval:doc.company && doc.construction_service"
         # Users must manually enable retention when needed
                 
@@ -90,16 +90,16 @@ def apply_company_defaults_for_sales_order(doc):
 
 
 def calculate_withholding_tax_amounts_for_sales_order(doc):
-    """Calculate withholding tax amounts based on custom_withholding_tax percentage"""
+    """Calculate withholding tax amounts based on pd_custom_withholding_tax_pct percentage"""
     try:
-        # Only calculate WHT if user has enabled subject_to_wht
-        if doc.get('subject_to_wht') and doc.custom_withholding_tax and doc.net_total:
-            wht_rate = flt(doc.custom_withholding_tax)  # Already in percentage
+        # Only calculate WHT if user has enabled pd_custom_subject_to_wht
+        if doc.get('pd_custom_subject_to_wht') and doc.pd_custom_withholding_tax_pct and doc.net_total:
+            wht_rate = flt(doc.pd_custom_withholding_tax_pct)  # Already in percentage
             current_net_total = flt(doc.net_total)
             
             # Calculate what the WHT amount SHOULD be based on current net_total
             expected_wht_amount = flt((current_net_total * wht_rate) / 100, 2)
-            current_wht_amount = flt(doc.get('custom_withholding_tax_amount', 0))
+            current_wht_amount = flt(doc.get('pd_custom_withholding_tax_amount', 0))
             
             # Check if current amount is significantly different from expected (more than 0.01 difference)
             amount_mismatch = abs(current_wht_amount - expected_wht_amount) > 0.01
@@ -108,37 +108,37 @@ def calculate_withholding_tax_amounts_for_sales_order(doc):
             # 1. No amount is set yet (new document), OR
             # 2. Current amount doesn't match what it should be based on net_total (after refresh/item changes)
             if not current_wht_amount or amount_mismatch:
-                doc.custom_withholding_tax_amount = expected_wht_amount
+                doc.pd_custom_withholding_tax_amount = expected_wht_amount
                 
                 if amount_mismatch and current_wht_amount > 0:
-                    print(f"  - RECALCULATED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (was {current_wht_amount}, expected {expected_wht_amount} for net_total {current_net_total})")
+                    print(f"  - RECALCULATED pd_custom_withholding_tax_amount = {doc.pd_custom_withholding_tax_amount} (was {current_wht_amount}, expected {expected_wht_amount} for net_total {current_net_total})")
                     frappe.logger().info(f"Sales Order Calc: Recalculated WHT due to mismatch - was {current_wht_amount}, now {expected_wht_amount}")
                 else:
-                    print(f"  - CALCULATED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (net_total {current_net_total} * rate {wht_rate}%)")
-                    frappe.logger().info(f"Sales Order Calc: Calculated custom_withholding_tax_amount = {doc.custom_withholding_tax_amount}")
+                    print(f"  - CALCULATED pd_custom_withholding_tax_amount = {doc.pd_custom_withholding_tax_amount} (net_total {current_net_total} * rate {wht_rate}%)")
+                    frappe.logger().info(f"Sales Order Calc: Calculated pd_custom_withholding_tax_amount = {doc.pd_custom_withholding_tax_amount}")
             else:
-                print(f"  - PRESERVED custom_withholding_tax_amount = {doc.custom_withholding_tax_amount} (matches expected {expected_wht_amount})")
-                frappe.logger().info(f"Sales Order Calc: Preserved WHT amount = {doc.custom_withholding_tax_amount} (correct for net_total {current_net_total})")
+                print(f"  - PRESERVED pd_custom_withholding_tax_amount = {doc.pd_custom_withholding_tax_amount} (matches expected {expected_wht_amount})")
+                frappe.logger().info(f"Sales Order Calc: Preserved WHT amount = {doc.pd_custom_withholding_tax_amount} (correct for net_total {current_net_total})")
         else:
             # Clear amount if conditions not met
-            doc.custom_withholding_tax_amount = 0
+            doc.pd_custom_withholding_tax_amount = 0
             
     except Exception as e:
         frappe.log_error(f"Error calculating withholding tax amounts for Sales Order {doc.name}: {str(e)}")
         # Don't fail validation, just clear WHT fields
-        doc.custom_withholding_tax_amount = 0
+        doc.pd_custom_withholding_tax_amount = 0
 
 
 def calculate_wht_preview_for_sales_order(doc):
     """
     Calculate WHT preview for Sales Order documents
-    Uses existing custom_withholding_tax_amount field (no longer using estimated_wht_amount)
+    Uses existing pd_custom_withholding_tax_amount field (no longer using estimated_wht_amount)
     """
     try:
         # Add informational message if WHT applies (using existing calculated amount)
-        if doc.get('subject_to_wht') and doc.get('custom_withholding_tax_amount'):
-            wht_amount = flt(doc.custom_withholding_tax_amount, 2)
-            net_amount = flt(doc.net_total_after_wht, 2)
+        if doc.get('pd_custom_subject_to_wht') and doc.get('pd_custom_withholding_tax_amount'):
+            wht_amount = flt(doc.pd_custom_withholding_tax_amount, 2)
+            net_amount = flt(doc.pd_custom_net_total_after_wht, 2)
             
             if wht_amount > 0:
                 # Use realtime notification (bottom-right corner) instead of modal popup
@@ -160,20 +160,20 @@ def calculate_wht_preview_for_sales_order(doc):
 
 
 def calculate_retention_amounts_for_sales_order(doc):
-    """Calculate retention amounts when custom_subject_to_retention is enabled"""
+    """Calculate retention amounts when pd_custom_subject_to_retention is enabled"""
     try:
-        if doc.get('custom_subject_to_retention') and doc.get('custom_retention') and doc.net_total:
-            retention_rate = flt(doc.custom_retention)
+        if doc.get('pd_custom_subject_to_retention') and doc.get('pd_custom_retention_pct') and doc.net_total:
+            retention_rate = flt(doc.pd_custom_retention_pct)
             base_amount = flt(doc.net_total)
             
             # Calculate retention amount
-            doc.custom_retention_amount = flt((base_amount * retention_rate) / 100, 2)
+            doc.pd_custom_retention_amount = flt((base_amount * retention_rate) / 100, 2)
         else:
-            doc.custom_retention_amount = 0
+            doc.pd_custom_retention_amount = 0
             
     except Exception as e:
         frappe.log_error(f"Error calculating retention amounts for Sales Order {doc.name}: {str(e)}")
-        doc.custom_retention_amount = 0
+        doc.pd_custom_retention_amount = 0
 
 
 def calculate_final_payment_amounts_for_sales_order(doc):
@@ -185,19 +185,19 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         # DEBUG: Print initial values
         print(f"🔍 Sales Order Payment Calc START:")
         print(f"  - grand_total = {grand_total}")
-        print(f"  - net_total_after_wht (before) = {getattr(doc, 'net_total_after_wht', 'NOT_SET')}")
-        print(f"  - custom_payment_amount (before) = {getattr(doc, 'custom_payment_amount', 'NOT_SET')}")
+        print(f"  - pd_custom_net_total_after_wht (before) = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
+        print(f"  - pd_custom_payment_amount (before) = {getattr(doc, 'pd_custom_payment_amount', 'NOT_SET')}")
         
-        # Get deduction amounts - use correct field name: custom_withholding_tax_amount (not estimated_wht_amount)
-        wht_amount = flt(getattr(doc, 'custom_withholding_tax_amount', 0))
-        retention_amount = flt(getattr(doc, 'custom_retention_amount', 0))
+        # Get deduction amounts - use correct field name: pd_custom_withholding_tax_amount (not estimated_wht_amount)
+        wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+        retention_amount = flt(getattr(doc, 'pd_custom_retention_amount', 0))
         
-        print(f"  - custom_withholding_tax_amount = {wht_amount}")
-        print(f"  - custom_retention_amount = {retention_amount}")
+        print(f"  - pd_custom_withholding_tax_amount = {wht_amount}")
+        print(f"  - pd_custom_retention_amount = {retention_amount}")
         
-        # Calculate what net_total_after_wht SHOULD be based on current grand_total and wht_amount
+        # Calculate what pd_custom_net_total_after_wht SHOULD be based on current grand_total and wht_amount
         expected_net_total_after_wht = flt(grand_total - wht_amount, 2)
-        current_net_total_after_wht = flt(doc.get('net_total_after_wht', 0))
+        current_net_total_after_wht = flt(doc.get('pd_custom_net_total_after_wht', 0))
         
         # Check if current amount is significantly different from expected
         amount_mismatch = abs(current_net_total_after_wht - expected_net_total_after_wht) > 0.01
@@ -206,39 +206,39 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         # 1. No amount is set yet (new document), OR
         # 2. Current amount doesn't match what it should be based on grand_total and wht_amount
         if not current_net_total_after_wht or amount_mismatch:
-            doc.net_total_after_wht = expected_net_total_after_wht
+            doc.pd_custom_net_total_after_wht = expected_net_total_after_wht
             
             if amount_mismatch and current_net_total_after_wht > 0:
-                print(f"  - RECALCULATED net_total_after_wht = {doc.net_total_after_wht} (was {current_net_total_after_wht}, expected {expected_net_total_after_wht})")
-                frappe.logger().info(f"Sales Order Calc: Recalculated net_total_after_wht due to mismatch - was {current_net_total_after_wht}, now {expected_net_total_after_wht}")
+                print(f"  - RECALCULATED pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht} (was {current_net_total_after_wht}, expected {expected_net_total_after_wht})")
+                frappe.logger().info(f"Sales Order Calc: Recalculated pd_custom_net_total_after_wht due to mismatch - was {current_net_total_after_wht}, now {expected_net_total_after_wht}")
             else:
-                print(f"  - CALCULATED net_total_after_wht = {doc.net_total_after_wht} (grand_total {grand_total} - wht_amount {wht_amount})")
-                frappe.logger().info(f"Sales Order Calc: Calculated net_total_after_wht = {doc.net_total_after_wht}")
+                print(f"  - CALCULATED pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht} (grand_total {grand_total} - wht_amount {wht_amount})")
+                frappe.logger().info(f"Sales Order Calc: Calculated pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht}")
         else:
-            print(f"  - PRESERVED net_total_after_wht = {doc.net_total_after_wht} (matches expected {expected_net_total_after_wht})")
-            frappe.logger().info(f"Sales Order Calc: Preserved net_total_after_wht = {doc.net_total_after_wht} (correct for grand_total {grand_total})")
+            print(f"  - PRESERVED pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht} (matches expected {expected_net_total_after_wht})")
+            frappe.logger().info(f"Sales Order Calc: Preserved pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht} (correct for grand_total {grand_total})")
         
         # Calculate payment amount based on retention status
-        print(f"  - custom_subject_to_retention = {doc.get('custom_subject_to_retention')}")
+        print(f"  - pd_custom_subject_to_retention = {doc.get('pd_custom_subject_to_retention')}")
         
-        if doc.get('custom_subject_to_retention') and retention_amount > 0:
-            # custom_net_total_after_wht_retention = grand_total - custom_withholding_tax_amount - custom_retention_amount
-            doc.custom_net_total_after_wht_retention = flt(grand_total - wht_amount - retention_amount, 2)
-            print(f"  - RETENTION ACTIVE: custom_net_total_after_wht_retention = {doc.custom_net_total_after_wht_retention} (grand_total {grand_total} - wht {wht_amount} - retention {retention_amount})")
+        if doc.get('pd_custom_subject_to_retention') and retention_amount > 0:
+            # pd_custom_net_after_wht_retention = grand_total - pd_custom_withholding_tax_amount - pd_custom_retention_amount
+            doc.pd_custom_net_after_wht_retention = flt(grand_total - wht_amount - retention_amount, 2)
+            print(f"  - RETENTION ACTIVE: pd_custom_net_after_wht_retention = {doc.pd_custom_net_after_wht_retention} (grand_total {grand_total} - wht {wht_amount} - retention {retention_amount})")
             
-            # custom_payment_amount = custom_net_total_after_wht_retention
-            doc.custom_payment_amount = doc.custom_net_total_after_wht_retention
-            print(f"  - custom_payment_amount = {doc.custom_payment_amount} (with retention)")
+            # pd_custom_payment_amount = pd_custom_net_after_wht_retention
+            doc.pd_custom_payment_amount = doc.pd_custom_net_after_wht_retention
+            print(f"  - pd_custom_payment_amount = {doc.pd_custom_payment_amount} (with retention)")
         else:
-            # No retention: custom_payment_amount = net_total_after_wht
-            doc.custom_net_total_after_wht_retention = 0
-            doc.custom_payment_amount = doc.net_total_after_wht
-            print(f"  - NO RETENTION: custom_payment_amount = {doc.custom_payment_amount} (equals net_total_after_wht)")
+            # No retention: pd_custom_payment_amount = pd_custom_net_total_after_wht
+            doc.pd_custom_net_after_wht_retention = 0
+            doc.pd_custom_payment_amount = doc.pd_custom_net_total_after_wht
+            print(f"  - NO RETENTION: pd_custom_payment_amount = {doc.pd_custom_payment_amount} (equals pd_custom_net_total_after_wht)")
         
         # Ensure payment amount is not negative
-        if doc.custom_payment_amount < 0:
-            print(f"  - WARNING: Payment amount was negative ({doc.custom_payment_amount}), setting to 0")
-            doc.custom_payment_amount = 0
+        if doc.pd_custom_payment_amount < 0:
+            print(f"  - WARNING: Payment amount was negative ({doc.pd_custom_payment_amount}), setting to 0")
+            doc.pd_custom_payment_amount = 0
             frappe.msgprint(
                 _("Warning: Total deductions exceed sales order amount. Payment amount set to zero."),
                 alert=True, indicator="orange"
@@ -249,59 +249,59 @@ def calculate_final_payment_amounts_for_sales_order(doc):
         
         # DEBUG: Print final summary
         print(f"🔍 Sales Order Payment Calc END:")
-        print(f"  - FINAL net_total_after_wht = {doc.net_total_after_wht}")
-        print(f"  - FINAL custom_payment_amount = {doc.custom_payment_amount}")
-        print(f"  - FINAL custom_net_total_after_wht_retention = {getattr(doc, 'custom_net_total_after_wht_retention', 0)}")
+        print(f"  - FINAL pd_custom_net_total_after_wht = {doc.pd_custom_net_total_after_wht}")
+        print(f"  - FINAL pd_custom_payment_amount = {doc.pd_custom_payment_amount}")
+        print(f"  - FINAL pd_custom_net_after_wht_retention = {getattr(doc, 'pd_custom_net_after_wht_retention', 0)}")
         print("=" * 50)
             
     except Exception as e:
         frappe.log_error(f"Error calculating final payment amounts for Sales Order {doc.name}: {str(e)}")
         # Fallback to grand total
-        doc.net_total_after_wht = flt(doc.grand_total)
-        doc.custom_payment_amount = flt(doc.grand_total)
-        doc.custom_net_total_after_wht_retention = 0
+        doc.pd_custom_net_total_after_wht = flt(doc.grand_total)
+        doc.pd_custom_payment_amount = flt(doc.grand_total)
+        doc.pd_custom_net_after_wht_retention = 0
 
 
 def convert_amounts_to_words_for_sales_order(doc):
     """
     Convert calculated amounts to words for display in Thai documents.
-    Updates the 'in_words' fields for net_total_after_wht and custom_net_total_after_wht_and_retention.
+    Updates the 'in_words' fields for pd_custom_net_total_after_wht and custom_net_total_after_wht_and_retention.
     """
     try:
         from frappe.utils import money_in_words
         
-        # Convert net_total_after_wht to words
-        if doc.net_total_after_wht and hasattr(doc, 'net_total_after_wht_in_words'):
+        # Convert pd_custom_net_total_after_wht to words
+        if doc.pd_custom_net_total_after_wht and hasattr(doc, 'pd_custom_net_total_after_wht_words'):
             try:
-                doc.net_total_after_wht_in_words = money_in_words(doc.net_total_after_wht)
-                print(f"🔍 Sales Order Calc: net_total_after_wht_in_words = {doc.net_total_after_wht_in_words}")
+                doc.pd_custom_net_total_after_wht_words = money_in_words(doc.pd_custom_net_total_after_wht)
+                print(f"🔍 Sales Order Calc: pd_custom_net_total_after_wht_words = {doc.pd_custom_net_total_after_wht_words}")
             except Exception as e:
-                doc.net_total_after_wht_in_words = ""
-                print(f"🔍 Sales Order Calc: Error converting net_total_after_wht to words: {str(e)}")
+                doc.pd_custom_net_total_after_wht_words = ""
+                print(f"🔍 Sales Order Calc: Error converting pd_custom_net_total_after_wht to words: {str(e)}")
         
-        # Convert custom_net_total_after_wht_retention to words (if retention applies)
-        if (doc.get('custom_subject_to_retention') and 
-            doc.get('custom_net_total_after_wht_retention') and 
-            hasattr(doc, 'custom_net_total_after_wht_retention_in_words')):
+        # Convert pd_custom_net_after_wht_retention to words (if retention applies)
+        if (doc.get('pd_custom_subject_to_retention') and 
+            doc.get('pd_custom_net_after_wht_retention') and 
+            hasattr(doc, 'pd_custom_net_after_wht_retention_words')):
             try:
-                doc.custom_net_total_after_wht_retention_in_words = money_in_words(doc.custom_net_total_after_wht_retention)
-                print(f"🔍 Sales Order Calc: custom_net_total_after_wht_retention_in_words = {doc.custom_net_total_after_wht_retention_in_words}")
+                doc.pd_custom_net_after_wht_retention_words = money_in_words(doc.pd_custom_net_after_wht_retention)
+                print(f"🔍 Sales Order Calc: pd_custom_net_after_wht_retention_words = {doc.pd_custom_net_after_wht_retention_words}")
             except Exception as e:
-                doc.custom_net_total_after_wht_retention_in_words = ""
-                print(f"🔍 Sales Order Calc: Error converting custom_net_total_after_wht_retention to words: {str(e)}")
+                doc.pd_custom_net_after_wht_retention_words = ""
+                print(f"🔍 Sales Order Calc: Error converting pd_custom_net_after_wht_retention to words: {str(e)}")
         else:
             # Clear retention in_words field if not applicable
-            if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
-                doc.custom_net_total_after_wht_retention_in_words = ""
-                print(f"🔍 Sales Order Calc: Cleared custom_net_total_after_wht_retention_in_words (no retention)")
+            if hasattr(doc, 'pd_custom_net_after_wht_retention_words'):
+                doc.pd_custom_net_after_wht_retention_words = ""
+                print(f"🔍 Sales Order Calc: Cleared pd_custom_net_after_wht_retention_words (no retention)")
                 
     except Exception as e:
         frappe.log_error(f"Error converting amounts to words for Sales Order {doc.name}: {str(e)}")
         # Clear the in_words fields on error
-        if hasattr(doc, 'net_total_after_wht_in_words'):
-            doc.net_total_after_wht_in_words = ""
-        if hasattr(doc, 'custom_net_total_after_wht_retention_in_words'):
-            doc.custom_net_total_after_wht_retention_in_words = ""
+        if hasattr(doc, 'pd_custom_net_total_after_wht_words'):
+            doc.pd_custom_net_total_after_wht_words = ""
+        if hasattr(doc, 'pd_custom_net_after_wht_retention_words'):
+            doc.pd_custom_net_after_wht_retention_words = ""
         print(f"🔍 Sales Order Calc: Error in convert_amounts_to_words_for_sales_order: {str(e)}")
 
 
@@ -331,8 +331,8 @@ def get_customer_wht_info_for_sales_order(customer):
         customer_doc = frappe.get_cached_doc("Customer", customer)
         
         return {
-            'subject_to_wht': getattr(customer_doc, 'subject_to_wht', False),
-            'wht_income_type': getattr(customer_doc, 'wht_income_type', 'service_fees'),
+            'pd_custom_subject_to_wht': getattr(customer_doc, 'pd_custom_subject_to_wht', False),
+            'pd_custom_wht_income_type': getattr(customer_doc, 'pd_custom_wht_income_type', 'service_fees'),
             'custom_wht_rate': getattr(customer_doc, 'custom_wht_rate', 0),
             'is_juristic_person': getattr(customer_doc, 'is_juristic_person', True),
             'tax_id': getattr(customer_doc, 'tax_id', '')

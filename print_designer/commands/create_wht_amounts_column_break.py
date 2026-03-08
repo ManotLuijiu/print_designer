@@ -2,25 +2,25 @@
 import frappe
 
 def create_wht_amounts_column_break():
-    """Create wht_amounts_column_break field after connections_tab"""
+    """Create pd_custom_wht_amounts_cb field after connections_tab"""
     
-    print("🔧 Creating wht_amounts_column_break field after connections_tab...")
+    print("🔧 Creating pd_custom_wht_amounts_cb field after connections_tab...")
     
     try:
         # First check if field already exists
         existing_field = frappe.get_value('Custom Field', {
             'dt': 'Sales Invoice',
-            'fieldname': 'wht_amounts_column_break'
+            'fieldname': 'pd_custom_wht_amounts_cb'
         })
         
         if existing_field:
-            print(f"❌ Field wht_amounts_column_break already exists: {existing_field}")
+            print(f"❌ Field pd_custom_wht_amounts_cb already exists: {existing_field}")
             return False
         
         # Create the custom field
         custom_field = frappe.new_doc("Custom Field")
         custom_field.dt = "Sales Invoice"
-        custom_field.fieldname = "wht_amounts_column_break"
+        custom_field.fieldname = "pd_custom_wht_amounts_cb"
         custom_field.fieldtype = "Column Break"
         custom_field.label = "WHT Amounts"
         custom_field.insert_after = "connections_tab"
@@ -29,8 +29,8 @@ def create_wht_amounts_column_break():
         custom_field.insert(ignore_permissions=True)
         frappe.db.commit()
         
-        print("✅ Successfully created wht_amounts_column_break field!")
-        print(f"   Fieldname: wht_amounts_column_break")
+        print("✅ Successfully created pd_custom_wht_amounts_cb field!")
+        print(f"   Fieldname: pd_custom_wht_amounts_cb")
         print(f"   Label: WHT Amounts")
         print(f"   Type: Column Break")
         print(f"   Insert After: connections_tab")
@@ -48,16 +48,16 @@ def create_wht_amounts_column_break():
 def verify_field_creation():
     """Verify that the field was created correctly"""
     
-    print("\n🔍 Verifying wht_amounts_column_break field creation...")
+    print("\n🔍 Verifying pd_custom_wht_amounts_cb field creation...")
     
     # Check if field exists
     field_name = frappe.get_value('Custom Field', {
         'dt': 'Sales Invoice',
-        'fieldname': 'wht_amounts_column_break'
+        'fieldname': 'pd_custom_wht_amounts_cb'
     })
     
     if not field_name:
-        print("❌ Field wht_amounts_column_break not found")
+        print("❌ Field pd_custom_wht_amounts_cb not found")
         return False
     
     # Get field details
@@ -76,7 +76,7 @@ def verify_field_creation():
 def create_and_verify():
     """Create the field and verify it was created correctly"""
     
-    print("🎯 Creating wht_amounts_column_break field for Sales Invoice")
+    print("🎯 Creating pd_custom_wht_amounts_cb field for Sales Invoice")
     print("=" * 60)
     
     # Create the field

@@ -47,7 +47,7 @@ def install_enhanced_retention_fields():
         # ],
         "Sales Invoice": [
             {
-                "fieldname": "custom_retention",
+                "fieldname": "pd_custom_retention_pct",
                 "label": "Retention %",
                 "fieldtype": "Percent",
                 "insert_after": "base_in_words",
@@ -56,10 +56,10 @@ def install_enhanced_retention_fields():
                 "precision": 2,
             },
             {
-                "fieldname": "custom_retention_amount",
+                "fieldname": "pd_custom_retention_amount",
                 "label": "Retention Amount",
                 "fieldtype": "Currency",
-                "insert_after": "custom_retention",
+                "insert_after": "pd_custom_retention_pct",
                 "description": "Calculated retention amount",
                 "read_only": 1,
                 "depends_on": "eval:doc.company && doc.construction_service",
@@ -76,8 +76,8 @@ def install_enhanced_retention_fields():
         print("   - Company: construction_service (checkbox)")
         print("   - Company: default_retention_rate (percentage)")
         print("   - Company: default_retention_account (link to Account)")
-        print("   - Sales Invoice: custom_retention (percentage)")
-        print("   - Sales Invoice: custom_retention_amount (currency)")
+        print("   - Sales Invoice: pd_custom_retention_pct (percentage)")
+        print("   - Sales Invoice: pd_custom_retention_amount (currency)")
 
         # Update existing companies with default retention rate
         _set_default_retention_rates()
@@ -275,17 +275,17 @@ def check_enhanced_retention_fields():
     # Check Sales Invoice fields
     si_meta = frappe.get_meta("Sales Invoice")
 
-    retention_field = si_meta.get_field("custom_retention")
+    retention_field = si_meta.get_field("pd_custom_retention_pct")
     if retention_field:
-        print("✅ Sales Invoice.custom_retention field found")
+        print("✅ Sales Invoice.pd_custom_retention_pct field found")
     else:
-        print("❌ Sales Invoice.custom_retention field missing")
+        print("❌ Sales Invoice.pd_custom_retention_pct field missing")
 
-    retention_amount_field = si_meta.get_field("custom_retention_amount")
+    retention_amount_field = si_meta.get_field("pd_custom_retention_amount")
     if retention_amount_field:
-        print("✅ Sales Invoice.custom_retention_amount field found")
+        print("✅ Sales Invoice.pd_custom_retention_amount field found")
     else:
-        print("❌ Sales Invoice.custom_retention_amount field missing")
+        print("❌ Sales Invoice.pd_custom_retention_amount field missing")
 
     return bool(
         company_field

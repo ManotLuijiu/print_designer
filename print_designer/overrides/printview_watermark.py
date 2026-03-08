@@ -585,41 +585,41 @@ def get_html_and_style_with_watermark(
                 position_config = {}  # No custom positioning for fallback
 
         # Get watermark text from multiple sources
-        watermark_text = ""
+        pd_custom_watermark_text = ""
 
         # Priority 1: Use custom text from Watermark Settings if configured
         if custom_watermark_text:
-            watermark_text = frappe._(custom_watermark_text)
-            log_to_print_designer(f"Using custom watermark text from configuration: {watermark_text}")
+            pd_custom_watermark_text = frappe._(custom_watermark_text)
+            log_to_print_designer(f"Using custom watermark text from configuration: {pd_custom_watermark_text}")
         
         # Priority 2: Check configured mode from Watermark Settings
         elif configured_mode and configured_mode != "None":
             if configured_mode == "Original on First Page":
-                watermark_text = frappe._("Original")
+                pd_custom_watermark_text = frappe._("Original")
             elif configured_mode == "Copy on All Pages":
-                watermark_text = frappe._("Copy")
+                pd_custom_watermark_text = frappe._("Copy")
             elif configured_mode == "Original,Copy on Sequence":
                 # For print preview, show "Original" only since preview shows single page
                 # The actual sequence watermarking (Original on page 1, Copy on page 2)
                 # is handled by the Chrome PDF generator for multi-page PDFs
-                watermark_text = frappe._("Original")
+                pd_custom_watermark_text = frappe._("Original")
                 log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
         
         # Priority 3: Fallback to traditional watermark_settings from URL parameter
         elif watermark_settings == "Original on First Page":
-            watermark_text = frappe._("Original")
+            pd_custom_watermark_text = frappe._("Original")
         elif watermark_settings == "Copy on All Pages":
-            watermark_text = frappe._("Copy")
+            pd_custom_watermark_text = frappe._("Copy")
         elif watermark_settings == "Original,Copy on Sequence":
             # For print preview, show "Original" only since preview shows single page
             # The actual sequence watermarking (Original on page 1, Copy on page 2)
             # is handled by the Chrome PDF generator for multi-page PDFs
-            watermark_text = frappe._("Original")
+            pd_custom_watermark_text = frappe._("Original")
             log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
 
         # Then, check for dynamic watermark from document fields (if available)
         # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
-        if not watermark_text and settings_dict and watermark_settings == "None":
+        if not pd_custom_watermark_text and settings_dict and watermark_settings == "None":
             doc_data = settings_dict.get("doc", {})
             log_to_print_designer(f"Document data for dynamic watermark: {doc_data}")
             doctype = settings_dict.get("doctype", "")
@@ -629,16 +629,16 @@ def get_html_and_style_with_watermark(
             if doctype and docname:
                 try:
                     doc = frappe.get_cached_doc(doctype, docname)
-                    dynamic_watermark = doc.get("watermark_text")
+                    dynamic_watermark = doc.get("pd_custom_watermark_text")
                     log_to_print_designer(
                         f"Dynamic watermark from {doctype}/{docname}: {dynamic_watermark}"
                     )
                     if dynamic_watermark and dynamic_watermark != "None":
                         if not isinstance(dynamic_watermark, str):
                             dynamic_watermark = str(dynamic_watermark)
-                        watermark_text = frappe._(dynamic_watermark)
+                        pd_custom_watermark_text = frappe._(dynamic_watermark)
                         log_to_print_designer(
-                            f"Using dynamic watermark for preview: {watermark_text}"
+                            f"Using dynamic watermark for preview: {pd_custom_watermark_text}"
                         )
                 except Exception as e:
                     log_to_print_designer(
@@ -646,11 +646,11 @@ def get_html_and_style_with_watermark(
                     )
 
         watermark_html = ""
-        if watermark_text:
+        if pd_custom_watermark_text:
             # Calculate position CSS based on selection (CSS 2.1 compatible only)
             # Position it below page numbers with consistent positioning for both preview and PDF
             log_to_print_designer(
-                f"Creating watermark HTML with text: {watermark_text}, font: {font_family}"
+                f"Creating watermark HTML with text: {pd_custom_watermark_text}, font: {font_family}"
             )
             # Calculate position CSS based on Watermark Settings configuration
             log_to_print_designer(f"WATERMARK POSITION DEBUG: position={watermark_position}, config={position_config}")
@@ -680,7 +680,7 @@ def get_html_and_style_with_watermark(
                     text-transform: uppercase;
                 }}
             </style>
-            <div class="watermark">{watermark_text}</div>
+            <div class="watermark">{pd_custom_watermark_text}</div>
             """
 
         # Insert watermark HTML if any watermark was generated
@@ -705,7 +705,7 @@ def get_html_and_style_with_watermark(
 
             result["html"] = html
             log_to_print_designer(
-                f"Watermark added to print preview HTML. Final watermark text: {watermark_text}"
+                f"Watermark added to print preview HTML. Final watermark text: {pd_custom_watermark_text}"
             )
 
     return result

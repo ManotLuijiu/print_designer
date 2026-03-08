@@ -16,8 +16,8 @@ def fix_retention_custom_fields():
     # Fields that have problematic depends_on expressions
     problematic_fields = [
         # "Sales Invoice-retention_section",  # Field already deleted
-        "Sales Invoice-custom_retention", 
-        "Sales Invoice-custom_retention_amount"
+        "Sales Invoice-pd_custom_retention_pct", 
+        "Sales Invoice-pd_custom_retention_amount"
     ]
     
     fixed_count = 0

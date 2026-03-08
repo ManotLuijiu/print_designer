@@ -143,7 +143,7 @@ def _install_print_settings_watermark_fields():
 
 
 def _install_document_watermark_fields():
-    """Install watermark_text fields on document types"""
+    """Install pd_custom_watermark_text fields on document types"""
     try:
         from print_designer.watermark_fields import get_watermark_custom_fields
         from frappe.custom.doctype.custom_field.custom_field import create_custom_fields

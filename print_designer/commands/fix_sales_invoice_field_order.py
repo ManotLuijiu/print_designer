@@ -13,19 +13,19 @@ def fix_sales_invoice_field_order():
     # Define the correct insert_after chain
     field_order_fixes = [
         # WHT Chain - Left Column
-        ("subject_to_wht", "vat_treatment"),
-        ("wht_income_type", "subject_to_wht"), 
-        ("wht_description", "wht_income_type"),
-        ("wht_certificate_required", "wht_description"),
-        ("net_total_after_wht", "wht_certificate_required"),
-        ("net_total_after_wht_in_words", "net_total_after_wht"),
-        ("wht_note", "net_total_after_wht_in_words"),
+        ("pd_custom_subject_to_wht", "pd_custom_vat_treatment"),
+        ("pd_custom_wht_income_type", "pd_custom_subject_to_wht"), 
+        ("pd_custom_wht_description", "pd_custom_wht_income_type"),
+        ("pd_custom_wht_certificate_required", "pd_custom_wht_description"),
+        ("pd_custom_net_total_after_wht", "pd_custom_wht_certificate_required"),
+        ("pd_custom_net_total_after_wht_words", "pd_custom_net_total_after_wht"),
+        ("pd_custom_wht_note", "pd_custom_net_total_after_wht_words"),
         # Right Column  
-        ("wht_preview_column_break", "wht_note"),
-        ("custom_subject_to_retention", "wht_preview_column_break"),
-        ("custom_net_total_after_wht_retention", "custom_subject_to_retention"),
-        ("custom_net_total_after_wht_retention_in_words", "custom_net_total_after_wht_retention"), 
-        ("custom_retention_note", "custom_net_total_after_wht_retention_in_words"),
+        ("pd_custom_wht_preview_cb", "pd_custom_wht_note"),
+        ("pd_custom_subject_to_retention", "pd_custom_wht_preview_cb"),
+        ("pd_custom_net_after_wht_retention", "pd_custom_subject_to_retention"),
+        ("pd_custom_net_after_wht_retention_words", "pd_custom_net_after_wht_retention"), 
+        ("pd_custom_retention_note", "pd_custom_net_after_wht_retention_words"),
     ]
     
     try:
@@ -72,12 +72,12 @@ def validate_field_order_fix():
         
         print("🔍 Current field insertion chain:")
         wht_preview_fields = [
-            "wht_amounts_column_break", "vat_treatment", "subject_to_wht", 
-            "wht_income_type", "wht_description", "wht_certificate_required",
-            "net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
-            "wht_preview_column_break", "custom_subject_to_retention",
-            "custom_net_total_after_wht_retention", "custom_net_total_after_wht_retention_in_words",
-            "custom_retention_note"
+            "pd_custom_wht_amounts_cb", "pd_custom_vat_treatment", "pd_custom_subject_to_wht", 
+            "pd_custom_wht_income_type", "pd_custom_wht_description", "pd_custom_wht_certificate_required",
+            "pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_note",
+            "pd_custom_wht_preview_cb", "pd_custom_subject_to_retention",
+            "pd_custom_net_after_wht_retention", "pd_custom_net_after_wht_retention_words",
+            "pd_custom_retention_note"
         ]
         
         for field in fields:

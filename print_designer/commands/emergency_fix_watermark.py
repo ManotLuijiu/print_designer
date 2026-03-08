@@ -7,7 +7,7 @@ from frappe.commands import get_site, pass_context
 @click.option('--site', help='Site name')
 @pass_context
 def emergency_fix_watermark(context, site=None):
-    """Emergency fix for watermark_text column missing error"""
+    """Emergency fix for pd_custom_watermark_text column missing error"""
     
     if not site:
         site = get_site(context)
@@ -16,25 +16,25 @@ def emergency_fix_watermark(context, site=None):
         frappe.connect()
         
         try:
-            click.echo("🚨 EMERGENCY FIX: Adding watermark_text column to Stock Entry")
+            click.echo("🚨 EMERGENCY FIX: Adding pd_custom_watermark_text column to Stock Entry")
             click.echo("=" * 60)
             
             # Step 1: Check if column exists in Stock Entry
-            columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+            columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'")
             
             if not columns:
-                click.echo("❌ watermark_text column is MISSING from Stock Entry table")
-                click.echo("🔧 Adding watermark_text column directly to database...")
+                click.echo("❌ pd_custom_watermark_text column is MISSING from Stock Entry table")
+                click.echo("🔧 Adding pd_custom_watermark_text column directly to database...")
                 
                 # Add the column directly to the database
                 frappe.db.sql("""
                     ALTER TABLE `tabStock Entry` 
-                    ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                    ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
                 """)
                 
-                click.echo("✅ watermark_text column added to Stock Entry table")
+                click.echo("✅ pd_custom_watermark_text column added to Stock Entry table")
             else:
-                click.echo("✅ watermark_text column already exists in Stock Entry table")
+                click.echo("✅ pd_custom_watermark_text column already exists in Stock Entry table")
             
             # Step 2: Fix other critical DocTypes
             critical_doctypes = [
@@ -52,17 +52,17 @@ def emergency_fix_watermark(context, site=None):
             for doctype in critical_doctypes:
                 try:
                     # Check if column exists
-                    columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+                    columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'pd_custom_watermark_text'")
                     
                     if not columns:
-                        click.echo(f"  🔧 Adding watermark_text column to {doctype}...")
+                        click.echo(f"  🔧 Adding pd_custom_watermark_text column to {doctype}...")
                         frappe.db.sql(f"""
                             ALTER TABLE `tab{doctype}` 
-                            ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                            ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
                         """)
                         click.echo(f"  ✅ Added column to {doctype}")
                     else:
-                        click.echo(f"  ✅ {doctype} already has watermark_text column")
+                        click.echo(f"  ✅ {doctype} already has pd_custom_watermark_text column")
                         
                 except Exception as e:
                     click.echo(f"  ⚠️  Could not fix {doctype}: {str(e)}")
@@ -79,7 +79,7 @@ def emergency_fix_watermark(context, site=None):
             
             click.echo("\n" + "=" * 60)
             click.echo("🎉 EMERGENCY FIX COMPLETED!")
-            click.echo("✅ Stock Entry watermark_text error should now be resolved")
+            click.echo("✅ Stock Entry pd_custom_watermark_text error should now be resolved")
             click.echo("✅ You can now try saving Stock Entry again")
             click.echo("✅ All critical DocTypes have been fixed")
             

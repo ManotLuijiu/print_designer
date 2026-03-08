@@ -6,17 +6,17 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def migrate_wht_income_type_field(doctype):
     """
-    Migrate wht_income_type field from Select to Link type.
+    Migrate pd_custom_wht_income_type field from Select to Link type.
     Frappe doesn't allow changing fieldtype directly, so we need to delete and recreate.
     """
-    field_name = f"{doctype}-wht_income_type"
+    field_name = f"{doctype}-pd_custom_wht_income_type"
     if frappe.db.exists("Custom Field", field_name):
         existing_field = frappe.db.get_value("Custom Field", field_name, "fieldtype")
         if existing_field == "Select":
             # Delete old Select field to allow creating new Link field
             frappe.delete_doc("Custom Field", field_name, force=True)
             frappe.db.commit()
-            print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+            print(f"  Migrated {doctype}.pd_custom_wht_income_type: Select → Link")
 
 
 def execute():
@@ -26,7 +26,7 @@ def execute():
         "Purchase Order": [
             # Thai WHT Compliance - Independent system
             {
-                "fieldname": "apply_thai_wht_compliance",
+                "fieldname": "pd_custom_apply_thai_wht_compliance",
                 "label": "Apply Thai Withholding Tax Compliance",
                 "fieldtype": "Check",
                 "insert_after": "tax_withholding_category",
@@ -38,10 +38,10 @@ def execute():
                 "length": 0,
                 "bold": 0,
             },
-            # Thai Ecosystem Preview (ภาษีหัก ณ ที่จ่าย/เงินประกันผลงาน)
+            # Thai Ecosystem (Withholding Tax & Retention)
             {
-                "fieldname": "thai_wht_preview_section",
-                "label": "Thai Ecosystem Preview (ภาษีหัก ณ ที่จ่าย/เงินประกันผลงาน)",
+                "fieldname": "pd_custom_wht_preview_section",
+                "label": "Thai Ecosystem (Withholding Tax & Retention)",
                 "fieldtype": "Section Break",
                 "insert_after": "named_place",
                 "read_only": 1,
@@ -52,10 +52,10 @@ def execute():
             },
             # Left Column
             {
-                "fieldname": "wht_amounts_column_break",
+                "fieldname": "pd_custom_wht_amounts_cb",
                 "label": None,
                 "fieldtype": "Column Break",
-                "insert_after": "thai_wht_preview_section",
+                "insert_after": "pd_custom_wht_preview_section",
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
@@ -63,10 +63,10 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "vat_treatment",
+                "fieldname": "pd_custom_vat_treatment",
                 "label": "VAT Treatment",
                 "fieldtype": "Select",
-                "insert_after": "wht_amounts_column_break",
+                "insert_after": "pd_custom_wht_amounts_cb",
                 "default": "Standard VAT",
                 "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
                 "read_only": 0,
@@ -78,11 +78,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "subject_to_wht",
+                "fieldname": "pd_custom_subject_to_wht",
                 "label": "Subject to Withholding Tax",
                 "fieldtype": "Check",
-                "insert_after": "vat_treatment",
-                "depends_on": "eval:doc.apply_thai_wht_compliance",
+                "insert_after": "pd_custom_vat_treatment",
+                "depends_on": "eval:doc.pd_custom_apply_thai_wht_compliance",
                 "default": "0",
                 "read_only": 0,
                 "hidden": 0,
@@ -91,11 +91,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "wht_income_type",
+                "fieldname": "pd_custom_wht_income_type",
                 "label": "WHT Income Type",
                 "fieldtype": "Link",
-                "insert_after": "subject_to_wht",
-                "depends_on": "eval:doc.subject_to_wht",
+                "insert_after": "pd_custom_subject_to_wht",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "options": "Thai WHT Income Type",
                 "read_only": 0,
                 "hidden": 0,
@@ -104,11 +104,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "wht_description",
+                "fieldname": "pd_custom_wht_description",
                 "label": "WHT Description",
                 "fieldtype": "Data",
-                "insert_after": "wht_income_type",
-                "depends_on": "eval:doc.wht_income_type",
+                "insert_after": "pd_custom_wht_income_type",
+                "depends_on": "eval:doc.pd_custom_wht_income_type",
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
@@ -116,11 +116,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "net_total_after_wht",
+                "fieldname": "pd_custom_net_total_after_wht",
                 "label": "Net Total (After WHT)",
                 "fieldtype": "Currency",
-                "insert_after": "wht_description",
-                "depends_on": "eval:doc.subject_to_wht",
+                "insert_after": "pd_custom_wht_description",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -129,11 +129,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "net_total_after_wht_in_words",
+                "fieldname": "pd_custom_net_total_after_wht_words",
                 "label": "Net Total (After WHT) in Words",
                 "fieldtype": "Data",
-                "insert_after": "net_total_after_wht",
-                "depends_on": "eval:doc.subject_to_wht && doc.net_total_after_wht",
+                "insert_after": "pd_custom_net_total_after_wht",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht && doc.pd_custom_net_total_after_wht",
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
@@ -141,11 +141,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "wht_note",
+                "fieldname": "pd_custom_wht_note",
                 "label": "WHT Note",
                 "fieldtype": "Small Text",
-                "insert_after": "net_total_after_wht_in_words",
-                "depends_on": "eval:doc.wht_income_type",
+                "insert_after": "pd_custom_net_total_after_wht_words",
+                "depends_on": "eval:doc.pd_custom_wht_income_type",
                 "default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน\nNote: Withholding tax amount will be deducted upon payment",
                 "read_only": 1,
                 "hidden": 0,
@@ -155,10 +155,10 @@ def execute():
             },
             # Right Column
             {
-                "fieldname": "wht_preview_column_break",
+                "fieldname": "pd_custom_wht_preview_cb",
                 "label": None,
                 "fieldtype": "Column Break",
-                "insert_after": "wht_note",
+                "insert_after": "pd_custom_wht_note",
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
@@ -166,11 +166,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_subject_to_retention",
+                "fieldname": "pd_custom_subject_to_retention",
                 "label": "Subject to Retention",
                 "fieldtype": "Check",
-                "insert_after": "wht_preview_column_break",
-                "depends_on": "eval:doc.apply_thai_wht_compliance",
+                "insert_after": "pd_custom_wht_preview_cb",
+                "depends_on": "eval:doc.pd_custom_apply_thai_wht_compliance",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -179,11 +179,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_net_total_after_wht_retention",
+                "fieldname": "pd_custom_net_after_wht_retention",
                 "label": "Net Total (After WHT & Retention)",
                 "fieldtype": "Currency",
-                "insert_after": "custom_subject_to_retention",
-                "depends_on": "eval:doc.custom_subject_to_retention",
+                "insert_after": "pd_custom_subject_to_retention",
+                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -192,12 +192,12 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_net_total_after_wht_retention_in_words",
+                "fieldname": "pd_custom_net_after_wht_retention_words",
                 "label": "Net Total (After WHT and Retention) in Words",
                 "fieldtype": "Data",
-                "insert_after": "custom_net_total_after_wht_retention",
+                "insert_after": "pd_custom_net_after_wht_retention",
                 "description": "Net total amount in Thai words (After WHT & Retention)",
-                "depends_on": "eval:doc.custom_subject_to_retention",
+                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "translatable": 1,
                 "read_only": 1,
                 "hidden": 0,
@@ -206,11 +206,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_retention_note",
+                "fieldname": "pd_custom_retention_note",
                 "label": "Retention Note",
                 "fieldtype": "Small Text",
-                "insert_after": "custom_net_total_after_wht_retention_in_words",
-                "depends_on": "eval:doc.custom_subject_to_retention",
+                "insert_after": "pd_custom_net_after_wht_retention_words",
+                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "default": "หมายเหตุ: จำนวนเงินประกันผลงาน  จะถูกหักเมื่อชำระเงิน\nNote: Retention amount will be deducted upon payment",
                 "read_only": 1,
                 "hidden": 0,
@@ -220,11 +220,11 @@ def execute():
             },
             # Insert at Totals Section
             {
-                "fieldname": "custom_retention",
+                "fieldname": "pd_custom_retention_pct",
                 "label": "Retention (%)",
                 "fieldtype": "Percent",
                 "insert_after": "base_rounded_total",
-                "depends_on": "eval:doc.custom_subject_to_retention",
+                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -232,11 +232,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_retention_amount",
+                "fieldname": "pd_custom_retention_amount",
                 "label": "Retention Amount",
                 "fieldtype": "Currency",
-                "insert_after": "custom_retention",
-                "depends_on": "eval:doc.custom_subject_to_retention",
+                "insert_after": "pd_custom_retention_pct",
+                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -245,11 +245,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_withholding_tax",
+                "fieldname": "pd_custom_withholding_tax_pct",
                 "label": "Withholding Tax (%)",
                 "fieldtype": "Percent",
-                "insert_after": "custom_retention_amount",
-                "depends_on": "eval:doc.subject_to_wht",
+                "insert_after": "pd_custom_retention_amount",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -257,11 +257,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_withholding_tax_amount",
+                "fieldname": "pd_custom_withholding_tax_amount",
                 "label": "Withholding Tax Amount",
                 "fieldtype": "Currency",
-                "insert_after": "custom_withholding_tax",
-                "depends_on": "eval:doc.subject_to_wht",
+                "insert_after": "pd_custom_withholding_tax_pct",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -270,11 +270,11 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "custom_payment_amount",
+                "fieldname": "pd_custom_payment_amount",
                 "label": "Payment Amount",
                 "fieldtype": "Currency",
-                "insert_after": "custom_withholding_tax_amount",
-                "depends_on": "eval:doc.subject_to_wht || doc.custom_subject_to_retention",
+                "insert_after": "pd_custom_withholding_tax_amount",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht || doc.pd_custom_subject_to_retention",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -286,7 +286,7 @@ def execute():
     }
 
     print("Creating custom fields for Purchase Order...")
-    # Migrate wht_income_type from Select to Link (if exists as Select)
+    # Migrate pd_custom_wht_income_type from Select to Link (if exists as Select)
     migrate_wht_income_type_field("Purchase Order")
     create_custom_fields(custom_fields, update=True)
 
@@ -307,24 +307,24 @@ def check_purchase_order_fields():
     """Check if Purchase Order Thai tax fields are installed."""
 
     required_fields = [
-        "apply_thai_wht_compliance",
-        "thai_wht_preview_section",
-        "vat_treatment",
-        "subject_to_wht",
-        "wht_income_type",
-        "wht_description",
-        "net_total_after_wht",
-        "net_total_after_wht_in_words",
-        "wht_note",
-        "custom_subject_to_retention",
-        "custom_net_total_after_wht_retention",
-        "custom_net_total_after_wht_retention_in_words",
-        "custom_retention_note",
-        "custom_retention",
-        "custom_retention_amount",
-        "custom_withholding_tax",
-        "custom_withholding_tax_amount",
-        "custom_payment_amount",
+        "pd_custom_apply_thai_wht_compliance",
+        "pd_custom_wht_preview_section",
+        "pd_custom_vat_treatment",
+        "pd_custom_subject_to_wht",
+        "pd_custom_wht_income_type",
+        "pd_custom_wht_description",
+        "pd_custom_net_total_after_wht",
+        "pd_custom_net_total_after_wht_words",
+        "pd_custom_wht_note",
+        "pd_custom_subject_to_retention",
+        "pd_custom_net_after_wht_retention",
+        "pd_custom_net_after_wht_retention_words",
+        "pd_custom_retention_note",
+        "pd_custom_retention_pct",
+        "pd_custom_retention_amount",
+        "pd_custom_withholding_tax_pct",
+        "pd_custom_withholding_tax_amount",
+        "pd_custom_payment_amount",
     ]
 
     existing_fields = frappe.db.sql("""
@@ -351,26 +351,26 @@ def uninstall_purchase_order_fields():
     """Remove all Purchase Order Thai tax fields during app uninstall."""
 
     fields_to_remove = [
-        "apply_thai_wht_compliance",
-        "thai_wht_preview_section",
-        "wht_amounts_column_break",
-        "vat_treatment",
-        "subject_to_wht",
-        "wht_income_type",
-        "wht_description",
-        "net_total_after_wht",
-        "net_total_after_wht_in_words",
-        "wht_note",
-        "wht_preview_column_break",
-        "custom_subject_to_retention",
-        "custom_net_total_after_wht_retention",
-        "custom_net_total_after_wht_retention_in_words",
-        "custom_retention_note",
-        "custom_retention",
-        "custom_retention_amount",
-        "custom_withholding_tax",
-        "custom_withholding_tax_amount",
-        "custom_payment_amount",
+        "pd_custom_apply_thai_wht_compliance",
+        "pd_custom_wht_preview_section",
+        "pd_custom_wht_amounts_cb",
+        "pd_custom_vat_treatment",
+        "pd_custom_subject_to_wht",
+        "pd_custom_wht_income_type",
+        "pd_custom_wht_description",
+        "pd_custom_net_total_after_wht",
+        "pd_custom_net_total_after_wht_words",
+        "pd_custom_wht_note",
+        "pd_custom_wht_preview_cb",
+        "pd_custom_subject_to_retention",
+        "pd_custom_net_after_wht_retention",
+        "pd_custom_net_after_wht_retention_words",
+        "pd_custom_retention_note",
+        "pd_custom_retention_pct",
+        "pd_custom_retention_amount",
+        "pd_custom_withholding_tax_pct",
+        "pd_custom_withholding_tax_amount",
+        "pd_custom_payment_amount",
     ]
 
     try:

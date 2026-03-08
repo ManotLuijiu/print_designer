@@ -185,7 +185,7 @@ def get_supplier_wht_history(supplier, from_date=None, to_date=None):
             },
             fields=[
                 "name", "reference_date", "paid_amount", "custom_withholding_tax_rate",
-                "custom_withholding_tax_amount", "custom_wht_certificate_number",
+                "pd_custom_withholding_tax_amount", "custom_wht_certificate_number",
                 "custom_wht_certificate_generated"
             ]
         )
@@ -200,15 +200,15 @@ def get_supplier_wht_history(supplier, from_date=None, to_date=None):
             },
             fields=[
                 "name", "posting_date", "grand_total", "custom_withholding_tax_rate",
-                "custom_withholding_tax_amount", "custom_supplier_tax_id"
+                "pd_custom_withholding_tax_amount", "custom_supplier_tax_id"
             ]
         )
         
         # Calculate totals
         total_payments = sum(flt(pe.paid_amount) for pe in payment_entries)
         total_invoices = sum(flt(pi.grand_total) for pi in purchase_invoices)
-        total_wht = sum(flt(pe.custom_withholding_tax_amount) for pe in payment_entries) + \
-                   sum(flt(pi.custom_withholding_tax_amount) for pi in purchase_invoices)
+        total_wht = sum(flt(pe.pd_custom_withholding_tax_amount) for pe in payment_entries) + \
+                   sum(flt(pi.pd_custom_withholding_tax_amount) for pi in purchase_invoices)
         
         # Get supplier details
         supplier_doc = frappe.get_doc("Supplier", supplier)
@@ -322,22 +322,22 @@ def get_wht_dashboard_data(company=None):
                 "party_type": "Supplier",
                 "reference_date": ["between", [year_start, year_end]]
             }),
-            fields=["paid_amount", "custom_withholding_tax_amount"]
+            fields=["paid_amount", "pd_custom_withholding_tax_amount"]
         )
         
         ytd_invoices = frappe.get_all("Purchase Invoice",
             filters=dict(filters, **{
                 "posting_date": ["between", [year_start, year_end]]
             }),
-            fields=["grand_total", "custom_withholding_tax_amount"]
+            fields=["grand_total", "pd_custom_withholding_tax_amount"]
         )
         
         # Calculate totals
         ytd_total_base = sum(flt(p.paid_amount) for p in ytd_payments) + \
                         sum(flt(i.grand_total) for i in ytd_invoices)
         
-        ytd_total_wht = sum(flt(p.custom_withholding_tax_amount) for p in ytd_payments) + \
-                       sum(flt(i.custom_withholding_tax_amount) for i in ytd_invoices)
+        ytd_total_wht = sum(flt(p.pd_custom_withholding_tax_amount) for p in ytd_payments) + \
+                       sum(flt(i.pd_custom_withholding_tax_amount) for i in ytd_invoices)
         
         # Month-to-date data
         mtd_payments = frappe.get_all("Payment Entry",
@@ -345,18 +345,18 @@ def get_wht_dashboard_data(company=None):
                 "party_type": "Supplier", 
                 "reference_date": [">=", current_month_start]
             }),
-            fields=["custom_withholding_tax_amount"]
+            fields=["pd_custom_withholding_tax_amount"]
         )
         
         mtd_invoices = frappe.get_all("Purchase Invoice",
             filters=dict(filters, **{
                 "posting_date": [">=", current_month_start]
             }),
-            fields=["custom_withholding_tax_amount"]
+            fields=["pd_custom_withholding_tax_amount"]
         )
         
-        mtd_total_wht = sum(flt(p.custom_withholding_tax_amount) for p in mtd_payments) + \
-                       sum(flt(i.custom_withholding_tax_amount) for i in mtd_invoices)
+        mtd_total_wht = sum(flt(p.pd_custom_withholding_tax_amount) for p in mtd_payments) + \
+                       sum(flt(i.pd_custom_withholding_tax_amount) for i in mtd_invoices)
         
         # Top suppliers by WHT amount
         top_suppliers = get_top_suppliers_by_wht(year_start, year_end, company)
@@ -403,7 +403,7 @@ def get_top_suppliers_by_wht(from_date, to_date, company=None):
             SELECT 
                 party as supplier,
                 party_name as supplier_name,
-                SUM(custom_withholding_tax_amount) as total_wht,
+                SUM(pd_custom_withholding_tax_amount) as total_wht,
                 COUNT(*) as transaction_count,
                 SUM(paid_amount) as total_payments
             FROM `tabPayment Entry`

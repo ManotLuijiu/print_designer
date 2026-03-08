@@ -48,7 +48,7 @@ frappe.ui.form.on('Sales Invoice', {
 function setup_retention_fields(frm) {
     if (!frm.doc.company) {
         // Hide retention fields if no company
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], false);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], false);
         return;
     }
     
@@ -58,7 +58,7 @@ function setup_retention_fields(frm) {
     // Use cached value if available
     if (frm.retention_company_cache[company_name] !== undefined) {
         const is_enabled = frm.retention_company_cache[company_name];
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
         console.log('✅ Using cached retention setting:', is_enabled);
         return;
     }
@@ -71,14 +71,14 @@ function setup_retention_fields(frm) {
         frm.retention_company_cache[company_name] = is_enabled;
         
         // Show/hide fields
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
         
         console.log('✅ Cached retention setting for', company_name, ':', is_enabled);
         
         // Clear retention values if not enabled
         if (!is_enabled) {
-            frm.set_value('custom_retention', 0);
-            frm.set_value('custom_retention_amount', 0);
+            frm.set_value('pd_custom_retention_pct', 0);
+            frm.set_value('pd_custom_retention_amount', 0);
         }
     });
 }

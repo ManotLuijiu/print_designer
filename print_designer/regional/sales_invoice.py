@@ -6,7 +6,7 @@ This module handles VAT account selection for Sales Invoice based on VAT Treatme
 Key Concept:
 - Sales Taxes and Charges Template ALWAYS has a VAT account (required field)
 - Default template VAT account = Company's default_output_vat_account
-- User intent is expressed via 'vat_treatment' field on Sales Invoice
+- User intent is expressed via 'pd_custom_vat_treatment' field on Sales Invoice
 - Regional GL entries OVERRIDE the template's VAT account based on VAT Treatment value
 
 VAT Treatment Logic:
@@ -37,8 +37,8 @@ def make_regional_gl_entries(gl_entries, doc):
         return gl_entries
 
     # Check if VAT Treatment field is set
-    vat_treatment = getattr(doc, "vat_treatment", None)
-    if not vat_treatment:
+    pd_custom_vat_treatment = getattr(doc, "pd_custom_vat_treatment", None)
+    if not pd_custom_vat_treatment:
         # No VAT Treatment specified, use template's default behavior
         return gl_entries
 
@@ -64,25 +64,25 @@ def make_regional_gl_entries(gl_entries, doc):
     # Determine which VAT account to use based on VAT Treatment
     target_vat_account = None
 
-    if "VAT Undue" in vat_treatment or "Undue" in vat_treatment:
+    if "VAT Undue" in pd_custom_vat_treatment or "Undue" in pd_custom_vat_treatment:
         # VAT not yet occurred (services, payment not received)
         # Use VAT Undue account
         target_vat_account = output_vat_undue_account
         frappe.logger().debug(
-            f"[Sales Invoice {doc.name}] VAT Treatment: {vat_treatment} → Using VAT Undue account: {target_vat_account}"
+            f"[Sales Invoice {doc.name}] VAT Treatment: {pd_custom_vat_treatment} → Using VAT Undue account: {target_vat_account}"
         )
-    elif "Standard VAT" in vat_treatment or "Standard" in vat_treatment:
+    elif "Standard VAT" in pd_custom_vat_treatment or "Standard" in pd_custom_vat_treatment:
         # VAT point occurred (goods, immediate VAT)
         # Use standard VAT account
         target_vat_account = output_vat_account
         frappe.logger().debug(
-            f"[Sales Invoice {doc.name}] VAT Treatment: {vat_treatment} → Using Standard VAT account: {target_vat_account}"
+            f"[Sales Invoice {doc.name}] VAT Treatment: {pd_custom_vat_treatment} → Using Standard VAT account: {target_vat_account}"
         )
 
     # If no target VAT account determined, return unchanged GL entries
     if not target_vat_account:
         frappe.logger().warning(
-            f"[Sales Invoice {doc.name}] Could not determine target VAT account for VAT Treatment: {vat_treatment}"
+            f"[Sales Invoice {doc.name}] Could not determine target VAT account for VAT Treatment: {pd_custom_vat_treatment}"
         )
         return gl_entries
 
@@ -119,12 +119,12 @@ def make_regional_gl_entries(gl_entries, doc):
     if vat_entries_modified > 0:
         frappe.logger().info(
             f"[Sales Invoice {doc.name}] Modified {vat_entries_modified} VAT GL entries "
-            f"based on VAT Treatment: {vat_treatment}"
+            f"based on VAT Treatment: {pd_custom_vat_treatment}"
         )
     else:
         frappe.logger().warning(
             f"[Sales Invoice {doc.name}] No VAT GL entries found to modify. "
-            f"VAT Treatment: {vat_treatment}, Target account: {target_vat_account}"
+            f"VAT Treatment: {pd_custom_vat_treatment}, Target account: {target_vat_account}"
         )
 
     return gl_entries

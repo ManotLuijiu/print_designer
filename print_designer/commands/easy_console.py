@@ -76,7 +76,7 @@ frappe.init("moo.localhost")
 frappe.connect()
 
 # Check Thai tax fields status
-pe_fields = ["vat_treatment", "subject_to_wht", "net_total_after_wht"]
+pe_fields = ["pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_net_total_after_wht"]
 
 print("🔍 Payment Entry Thai Tax Fields Status:")
 for field in pe_fields:

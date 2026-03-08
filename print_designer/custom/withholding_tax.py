@@ -36,7 +36,7 @@ def calculate_withholding_tax(doc, method=None):
         wht_amount = (base_amount * wht_rate) / 100
         
         # Update withholding tax amount
-        doc.custom_withholding_tax_amount = flt(wht_amount, 2)
+        doc.pd_custom_withholding_tax_amount = flt(wht_amount, 2)
         
         # Handle DocType-specific updates
         if doc.doctype == "Purchase Invoice":
@@ -207,7 +207,7 @@ def get_wht_certificate_data(document_name, doctype="Payment Entry"):
             "certificate_date": getdate(doc.posting_date if hasattr(doc, 'posting_date') else doc.reference_date),
             "certificate_number": doc.custom_wht_certificate_number or generate_certificate_number(doc),
             "total_amount": get_base_amount_for_wht(doc),
-            "wht_amount": doc.custom_withholding_tax_amount,
+            "wht_amount": doc.pd_custom_withholding_tax_amount,
             "wht_rate": doc.custom_withholding_tax_rate,
             "income_type": determine_income_type(doc),
             "tax_year": getdate().year,
@@ -270,8 +270,8 @@ def get_tax_breakdown(doc):
             "income_type_code": get_income_type_code(income_type),
             "amount_paid": flt(get_base_amount_for_wht(doc)),
             "tax_rate": flt(doc.custom_withholding_tax_rate),
-            "tax_withheld": flt(doc.custom_withholding_tax_amount),
-            "tax_submitted": flt(doc.custom_withholding_tax_amount),  # Assume submitted same as withheld
+            "tax_withheld": flt(doc.pd_custom_withholding_tax_amount),
+            "tax_submitted": flt(doc.pd_custom_withholding_tax_amount),  # Assume submitted same as withheld
             "period": get_tax_period(doc),
             "description": get_service_description(doc)
         }
@@ -434,7 +434,7 @@ def create_wht_journal_entry(document_name, doctype="Payment Entry"):
     try:
         doc = frappe.get_doc(doctype, document_name)
         
-        if not doc.custom_is_withholding_tax or not doc.custom_withholding_tax_amount:
+        if not doc.custom_is_withholding_tax or not doc.pd_custom_withholding_tax_amount:
             frappe.throw(_("No withholding tax to process"))
         
         # Check if JE already exists
@@ -471,7 +471,7 @@ def create_wht_journal_entry(document_name, doctype="Payment Entry"):
         # Credit WHT Payable (Government Liability)
         je.append("accounts", {
             "account": wht_payable_account,
-            "credit_in_account_currency": doc.custom_withholding_tax_amount,
+            "credit_in_account_currency": doc.pd_custom_withholding_tax_amount,
             "party_type": "",
             "party": "",
             "reference_type": doctype,
@@ -482,7 +482,7 @@ def create_wht_journal_entry(document_name, doctype="Payment Entry"):
         # Debit Supplier Account (Reduce supplier liability)
         je.append("accounts", {
             "account": supplier_account,
-            "debit_in_account_currency": doc.custom_withholding_tax_amount,
+            "debit_in_account_currency": doc.pd_custom_withholding_tax_amount,
             "party_type": party_type,
             "party": party,
             "reference_type": doctype, 
@@ -617,7 +617,7 @@ def get_wht_summary_report(from_date, to_date, company=None, supplier=None):
             fields=[
                 "name", "reference_date as posting_date", "party as supplier", "party_name as supplier_name", 
                 "paid_amount as grand_total", "custom_withholding_tax_rate", 
-                "custom_withholding_tax_amount", "custom_supplier_tax_id", "custom_wht_certificate_number",
+                "pd_custom_withholding_tax_amount", "custom_supplier_tax_id", "custom_wht_certificate_number",
                 "'Payment Entry' as doctype"
             ]
         )
@@ -627,7 +627,7 @@ def get_wht_summary_report(from_date, to_date, company=None, supplier=None):
             fields=[
                 "name", "posting_date", "supplier", "supplier_name", 
                 "grand_total", "custom_withholding_tax_rate", 
-                "custom_withholding_tax_amount", "custom_supplier_tax_id", "custom_wht_certificate_number",
+                "pd_custom_withholding_tax_amount", "custom_supplier_tax_id", "custom_wht_certificate_number",
                 "'Purchase Invoice' as doctype"
             ]
         )
@@ -643,7 +643,7 @@ def get_wht_summary_report(from_date, to_date, company=None, supplier=None):
         
         for doc in all_documents:
             base_amount = flt(doc.grand_total)
-            wht_amount = flt(doc.custom_withholding_tax_amount)
+            wht_amount = flt(doc.pd_custom_withholding_tax_amount)
             rate = flt(doc.custom_withholding_tax_rate)
             supplier_name = doc.supplier_name or doc.supplier
             
@@ -712,7 +712,7 @@ def get_wht_tax_filing_data(tax_year, company):
             
             income_type_summary[income_type]["count"] += 1
             income_type_summary[income_type]["total_payments"] += flt(doc["grand_total"])
-            income_type_summary[income_type]["total_wht"] += flt(doc["custom_withholding_tax_amount"])
+            income_type_summary[income_type]["total_wht"] += flt(doc["pd_custom_withholding_tax_amount"])
             income_type_summary[income_type]["documents"].append(doc)
         
         return {

@@ -42,9 +42,9 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{%- macro render_watermark_text(watermark_text, position="top-right", font_size="24px", font_family="Arial", additional_css="") -%}
-{%- if watermark_text and watermark_text != "None" -%}
-    {%- set translated_text = frappe._(watermark_text) -%}
+{%- macro render_watermark_text(pd_custom_watermark_text, position="top-right", font_size="24px", font_family="Arial", additional_css="") -%}
+{%- if pd_custom_watermark_text and pd_custom_watermark_text != "None" -%}
+    {%- set translated_text = frappe._(pd_custom_watermark_text) -%}
     {%- set position_style = "" -%}
 
     {%- if position == "top-right" -%}

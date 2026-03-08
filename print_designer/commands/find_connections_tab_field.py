@@ -94,9 +94,9 @@ def find_connections_tab_column_break():
         return None
 
 def rename_column_break_to_wht_amounts():
-    """Rename the unlabeled Column Break to wht_amounts_column_break"""
+    """Rename the unlabeled Column Break to pd_custom_wht_amounts_cb"""
     
-    print("🔧 Renaming unlabeled Column Break to wht_amounts_column_break...")
+    print("🔧 Renaming unlabeled Column Break to pd_custom_wht_amounts_cb...")
     
     target_field = find_connections_tab_column_break()
     
@@ -114,11 +114,11 @@ def rename_column_break_to_wht_amounts():
             if custom_field_name:
                 # Update the fieldname
                 frappe.db.set_value('Custom Field', custom_field_name, {
-                    'fieldname': 'wht_amounts_column_break',
+                    'fieldname': 'pd_custom_wht_amounts_cb',
                     'label': 'WHT Amounts'
                 })
                 
-                print(f"✅ Successfully renamed {target_field['fieldname']} to wht_amounts_column_break")
+                print(f"✅ Successfully renamed {target_field['fieldname']} to pd_custom_wht_amounts_cb")
                 
         elif target_field['source'] == 'DocField':
             print(f"❌ Cannot rename DocField {target_field['fieldname']} - it's a standard field")

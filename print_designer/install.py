@@ -1473,7 +1473,7 @@ def _ensure_watermark_fields():
 
         # Check if any watermark fields exist
         existing_watermark_field = frappe.db.get_value(
-            "Custom Field", {"fieldname": "watermark_text"}, "name"
+            "Custom Field", {"fieldname": "pd_custom_watermark_text"}, "name"
         )
 
         if not existing_watermark_field:
@@ -1918,14 +1918,14 @@ def emergency_watermark_fix_fallback():
         for doctype in critical_doctypes:
             try:
                 # Check if database column exists
-                columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+                columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'pd_custom_watermark_text'")
                 
                 if not columns:
-                    frappe.logger().warning(f"🔧 Emergency fix: Adding watermark_text column to {doctype}...")
+                    frappe.logger().warning(f"🔧 Emergency fix: Adding pd_custom_watermark_text column to {doctype}...")
                     # Use direct SQL ALTER TABLE for maximum reliability
                     frappe.db.sql(f"""
                         ALTER TABLE `tab{doctype}` 
-                        ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                        ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
                     """)
                     frappe.logger().info(f"✅ Emergency fix: Added column to {doctype}")
                         
@@ -1959,7 +1959,7 @@ def emergency_watermark_fix_fallback():
 
 
 def install_document_watermark_fields_comprehensive():
-    """Install watermark_text fields on all document types"""
+    """Install pd_custom_watermark_text fields on all document types"""
     try:
         from print_designer.watermark_fields import get_watermark_custom_fields
         
@@ -2011,11 +2011,11 @@ def verify_single_doctype_watermark_field(doctype):
         # Step 1: Check if Custom Field exists
         field_exists = frappe.db.exists("Custom Field", {
             "dt": doctype,
-            "fieldname": "watermark_text"
+            "fieldname": "pd_custom_watermark_text"
         })
         
         if not field_exists:
-            frappe.logger().warning(f"⚠️ {doctype} missing watermark_text Custom Field - creating...")
+            frappe.logger().warning(f"⚠️ {doctype} missing pd_custom_watermark_text Custom Field - creating...")
             
             from print_designer.watermark_fields import WATERMARK_FIELDS
             
@@ -2023,19 +2023,19 @@ def verify_single_doctype_watermark_field(doctype):
                 create_custom_fields({
                     doctype: WATERMARK_FIELDS[doctype]
                 }, update=True)
-                frappe.logger().info(f"✅ Created watermark_text Custom Field for {doctype}")
+                frappe.logger().info(f"✅ Created pd_custom_watermark_text Custom Field for {doctype}")
         
         # Step 2: Check if database column exists  
         try:
-            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'watermark_text'")
+            columns = frappe.db.sql(f"SHOW COLUMNS FROM `tab{doctype}` LIKE 'pd_custom_watermark_text'")
             if not columns:
-                frappe.logger().warning(f"⚠️ {doctype} missing watermark_text database column - adding...")
+                frappe.logger().warning(f"⚠️ {doctype} missing pd_custom_watermark_text database column - adding...")
                 # Use direct SQL ALTER TABLE for more reliability (emergency fix approach)
                 frappe.db.sql(f"""
                     ALTER TABLE `tab{doctype}` 
-                    ADD COLUMN `watermark_text` varchar(140) DEFAULT 'None'
+                    ADD COLUMN `pd_custom_watermark_text` varchar(140) DEFAULT 'None'
                 """)
-                frappe.logger().info(f"✅ Added watermark_text database column to {doctype}")
+                frappe.logger().info(f"✅ Added pd_custom_watermark_text database column to {doctype}")
         except Exception as col_e:
             frappe.logger().error(f"Could not verify/add column for {doctype}: {str(col_e)}")
         
@@ -2181,21 +2181,21 @@ def perform_final_watermark_verification():
         # Check Stock Entry specifically (the one that caused the original error)
         stock_entry_field = frappe.db.exists("Custom Field", {
             "dt": "Stock Entry",
-            "fieldname": "watermark_text"
+            "fieldname": "pd_custom_watermark_text"
         })
         
         if stock_entry_field:
-            frappe.logger().info("✅ Stock Entry watermark_text field verified")
+            frappe.logger().info("✅ Stock Entry pd_custom_watermark_text field verified")
         else:
-            frappe.logger().error("❌ Stock Entry watermark_text field still missing after installation")
+            frappe.logger().error("❌ Stock Entry pd_custom_watermark_text field still missing after installation")
         
         # Check if database column exists
         try:
-            columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+            columns = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'")
             if columns:
-                frappe.logger().info("✅ Stock Entry watermark_text database column verified")
+                frappe.logger().info("✅ Stock Entry pd_custom_watermark_text database column verified")
             else:
-                frappe.logger().error("❌ Stock Entry watermark_text database column still missing")
+                frappe.logger().error("❌ Stock Entry pd_custom_watermark_text database column still missing")
         except:
             frappe.logger().warning("⚠️ Could not verify Stock Entry database column")
         

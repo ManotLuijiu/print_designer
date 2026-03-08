@@ -46,7 +46,7 @@ def search_estimated_wht_amount_field():
     print("\n📋 Context from print_designer codebase:")
     print("Based on search results, estimated_wht_amount appears to be DEPRECATED:")
     print("- Comments indicate it's 'no longer using estimated_wht_amount'")
-    print("- Replaced with 'custom_withholding_tax_amount'")
+    print("- Replaced with 'pd_custom_withholding_tax_amount'")
     print("- Was removed from Quotation (mentioned in QUOTATION_CUSTOM_FIELDS.md)")
     
     return custom_fields + doc_fields if custom_fields or doc_fields else []
@@ -109,7 +109,7 @@ def complete_search():
     if fields:
         print(f"   Field EXISTS in database with {len(fields)} entries")
         print(f"   However, print_designer code indicates it's DEPRECATED")
-        print(f"   Replaced by 'custom_withholding_tax_amount'")
+        print(f"   Replaced by 'pd_custom_withholding_tax_amount'")
     else:
         print(f"   Field NOT FOUND in current database")
         print(f"   Likely was removed or never installed")

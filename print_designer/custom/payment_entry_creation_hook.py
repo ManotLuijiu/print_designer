@@ -64,68 +64,68 @@ def _get_sales_invoice_thai_tax_data(invoice_name):
             "Sales Invoice",
             invoice_name,
             [
-                "custom_subject_to_retention",
-                "custom_retention_amount", 
-                "custom_retention",
-                "subject_to_wht",
+                "pd_custom_subject_to_retention",
+                "pd_custom_retention_amount", 
+                "pd_custom_retention_pct",
+                "pd_custom_subject_to_wht",
                 "grand_total",
-                "net_total_after_wht",
-                "custom_withholding_tax",
-                "custom_withholding_tax_amount",
+                "pd_custom_net_total_after_wht",
+                "pd_custom_withholding_tax_pct",
+                "pd_custom_withholding_tax_amount",
                 "taxes_and_charges",
-                "vat_treatment"
+                "pd_custom_vat_treatment"
             ],
             as_dict=True
         )
         
         print(f"DEBUG: Raw Sales Invoice data for {invoice_name}:")
-        print(f"  - custom_withholding_tax (percentage): {invoice_data.get('custom_withholding_tax')}")
-        print(f"  - custom_withholding_tax_amount (amount): {invoice_data.get('custom_withholding_tax_amount')}")
+        print(f"  - pd_custom_withholding_tax_pct (percentage): {invoice_data.get('pd_custom_withholding_tax_pct')}")
+        print(f"  - pd_custom_withholding_tax_amount (amount): {invoice_data.get('pd_custom_withholding_tax_amount')}")
         print(f"  - grand_total: {invoice_data.get('grand_total')}")
-        print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
-        print(f"  - subject_to_wht: {invoice_data.get('subject_to_wht')}")
-        print(f"  - vat_treatment: {invoice_data.get('vat_treatment')}")
+        print(f"  - pd_custom_net_total_after_wht: {invoice_data.get('pd_custom_net_total_after_wht')}")
+        print(f"  - pd_custom_subject_to_wht: {invoice_data.get('pd_custom_subject_to_wht')}")
+        print(f"  - pd_custom_vat_treatment: {invoice_data.get('pd_custom_vat_treatment')}")
         print(f"  - taxes_and_charges: {invoice_data.get('taxes_and_charges')}")
-        print(f"  - custom_subject_to_retention: {invoice_data.get('custom_subject_to_retention')}")
-        print(f"  - custom_retention_amount: {invoice_data.get('custom_retention_amount')}")
-        print(f"  - custom_retention: {invoice_data.get('custom_retention')}")
+        print(f"  - pd_custom_subject_to_retention: {invoice_data.get('pd_custom_subject_to_retention')}")
+        print(f"  - pd_custom_retention_amount: {invoice_data.get('pd_custom_retention_amount')}")
+        print(f"  - pd_custom_retention_pct: {invoice_data.get('pd_custom_retention_pct')}")
 
         if not invoice_data:
             print(f"ERROR: No invoice data found for {invoice_name}")
             return None
         
-        # Check if custom_withholding_tax_amount exists and use it directly
-        stored_wht_amount = invoice_data.get("custom_withholding_tax_amount", 0)
+        # Check if pd_custom_withholding_tax_amount exists and use it directly
+        stored_wht_amount = invoice_data.get("pd_custom_withholding_tax_amount", 0)
         
         if stored_wht_amount and stored_wht_amount > 0:
             # Use the stored amount directly
             wht_amount = stored_wht_amount
-            wht_percentage = invoice_data.get("custom_withholding_tax", 0)
+            wht_percentage = invoice_data.get("pd_custom_withholding_tax_pct", 0)
             print(f"DEBUG WHT Direct: Invoice {invoice_name}, Using stored WHT amount = {wht_amount}, WHT% = {wht_percentage}")
         else:
             # Fallback: Calculate from percentage
-            wht_percentage = invoice_data.get("custom_withholding_tax", 0)
-            net_total_after_wht = invoice_data.get("net_total_after_wht", 0)
+            wht_percentage = invoice_data.get("pd_custom_withholding_tax_pct", 0)
+            pd_custom_net_total_after_wht = invoice_data.get("pd_custom_net_total_after_wht", 0)
             wht_amount = 0
-            if wht_percentage > 0 and net_total_after_wht > 0:
-                wht_amount = net_total_after_wht * (wht_percentage / 100)
-                print(f"DEBUG WHT Calculated: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}, Calculated WHT Amount = {wht_amount}")
+            if wht_percentage > 0 and pd_custom_net_total_after_wht > 0:
+                wht_amount = pd_custom_net_total_after_wht * (wht_percentage / 100)
+                print(f"DEBUG WHT Calculated: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {pd_custom_net_total_after_wht}, Calculated WHT Amount = {wht_amount}")
             else:
-                print(f"DEBUG WHT Skip: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {net_total_after_wht}")
+                print(f"DEBUG WHT Skip: Invoice {invoice_name}, WHT% = {wht_percentage}%, Net Total After WHT = {pd_custom_net_total_after_wht}")
         
         # Calculate VAT Undue amount from taxes_and_charges with VAT treatment context
-        vat_undue_amount = _calculate_vat_undue_amount(invoice_name, invoice_data.get("taxes_and_charges", ""), invoice_data.get("vat_treatment", ""))
+        vat_undue_amount = _calculate_vat_undue_amount(invoice_name, invoice_data.get("taxes_and_charges", ""), invoice_data.get("pd_custom_vat_treatment", ""))
         
         # Convert to Payment Entry Reference field format
         thai_tax_data = {
-            "has_retention": invoice_data.get("custom_subject_to_retention", 0),
-            "retention_amount": invoice_data.get("custom_retention_amount", 0),
-            "retention_percentage": invoice_data.get("custom_retention", 0),
-            "has_wht": invoice_data.get("subject_to_wht", 0),
+            "has_retention": invoice_data.get("pd_custom_subject_to_retention", 0),
+            "retention_amount": invoice_data.get("pd_custom_retention_amount", 0),
+            "retention_percentage": invoice_data.get("pd_custom_retention_pct", 0),
+            "has_wht": invoice_data.get("pd_custom_subject_to_wht", 0),
             "wht_amount": wht_amount,
             "wht_percentage": wht_percentage,
             "vat_undue_amount": vat_undue_amount,
-            "vat_treatment": invoice_data.get("vat_treatment", "")  # Include VAT treatment info
+            "pd_custom_vat_treatment": invoice_data.get("pd_custom_vat_treatment", "")  # Include VAT treatment info
         }
 
         print(f"DEBUG: Final thai_tax_data being returned for {invoice_name}:")
@@ -157,33 +157,33 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
             "Purchase Invoice",
             invoice_name,
             [
-                "subject_to_wht",
-                "vat_treatment",
-                "net_total_after_wht",
-                "custom_withholding_tax",
-                "custom_withholding_tax_amount",
-                "apply_thai_wht_compliance",
-                "wht_income_type",
-                "wht_description",
+                "pd_custom_subject_to_wht",
+                "pd_custom_vat_treatment",
+                "pd_custom_net_total_after_wht",
+                "pd_custom_withholding_tax_pct",
+                "pd_custom_withholding_tax_amount",
+                "pd_custom_apply_thai_wht_compliance",
+                "pd_custom_wht_income_type",
+                "pd_custom_wht_description",
                 "grand_total",
                 "net_total",  # Add net_total for tax base calculation
                 "taxes_and_charges",
-                "custom_subject_to_retention",  # Add retention checkbox
-                "custom_retention",  # Add retention percentage
-                "custom_retention_amount"  # Add retention amount
+                "pd_custom_subject_to_retention",  # Add retention checkbox
+                "pd_custom_retention_pct",  # Add retention percentage
+                "pd_custom_retention_amount"  # Add retention amount
             ],
             as_dict=True
         )
 
         print(f"DEBUG: Raw Purchase Invoice data for {invoice_name}:")
-        print(f"  - subject_to_wht: {invoice_data.get('subject_to_wht')}")
-        print(f"  - vat_treatment: {invoice_data.get('vat_treatment')}")
-        print(f"  - net_total_after_wht: {invoice_data.get('net_total_after_wht')}")
-        print(f"  - custom_withholding_tax_amount: {invoice_data.get('custom_withholding_tax_amount')}")
-        print(f"  - apply_thai_wht_compliance: {invoice_data.get('apply_thai_wht_compliance')}")
-        print(f"  - custom_subject_to_retention: {invoice_data.get('custom_subject_to_retention')}")
-        print(f"  - custom_retention: {invoice_data.get('custom_retention')}")
-        print(f"  - custom_retention_amount: {invoice_data.get('custom_retention_amount')}")
+        print(f"  - pd_custom_subject_to_wht: {invoice_data.get('pd_custom_subject_to_wht')}")
+        print(f"  - pd_custom_vat_treatment: {invoice_data.get('pd_custom_vat_treatment')}")
+        print(f"  - pd_custom_net_total_after_wht: {invoice_data.get('pd_custom_net_total_after_wht')}")
+        print(f"  - pd_custom_withholding_tax_amount: {invoice_data.get('pd_custom_withholding_tax_amount')}")
+        print(f"  - pd_custom_apply_thai_wht_compliance: {invoice_data.get('pd_custom_apply_thai_wht_compliance')}")
+        print(f"  - pd_custom_subject_to_retention: {invoice_data.get('pd_custom_subject_to_retention')}")
+        print(f"  - pd_custom_retention_pct: {invoice_data.get('pd_custom_retention_pct')}")
+        print(f"  - pd_custom_retention_amount: {invoice_data.get('pd_custom_retention_amount')}")
 
         if not invoice_data:
             print(f"ERROR: No Purchase Invoice data found for {invoice_name}")
@@ -191,29 +191,29 @@ def _get_purchase_invoice_thai_tax_data(invoice_name):
 
         # Convert to Payment Entry field format
         thai_tax_data = {
-            "subject_to_wht": invoice_data.get("subject_to_wht", 0),
-            "vat_treatment": invoice_data.get("vat_treatment", ""),
-            "net_total_after_wht": invoice_data.get("net_total_after_wht", 0),
-            "wht_amount": invoice_data.get("custom_withholding_tax_amount", 0),
-            "wht_percentage": invoice_data.get("custom_withholding_tax", 0),
-            "apply_thai_wht_compliance": invoice_data.get("apply_thai_wht_compliance", 0),
-            "wht_income_type": invoice_data.get("wht_income_type", ""),
-            "wht_description": invoice_data.get("wht_description", ""),
+            "pd_custom_subject_to_wht": invoice_data.get("pd_custom_subject_to_wht", 0),
+            "pd_custom_vat_treatment": invoice_data.get("pd_custom_vat_treatment", ""),
+            "pd_custom_net_total_after_wht": invoice_data.get("pd_custom_net_total_after_wht", 0),
+            "wht_amount": invoice_data.get("pd_custom_withholding_tax_amount", 0),
+            "wht_percentage": invoice_data.get("pd_custom_withholding_tax_pct", 0),
+            "pd_custom_apply_thai_wht_compliance": invoice_data.get("pd_custom_apply_thai_wht_compliance", 0),
+            "pd_custom_wht_income_type": invoice_data.get("pd_custom_wht_income_type", ""),
+            "pd_custom_wht_description": invoice_data.get("pd_custom_wht_description", ""),
             "grand_total": invoice_data.get("grand_total", 0),
             "net_total": invoice_data.get("net_total", 0),  # Use net_total for tax base (before VAT)
-            "custom_subject_to_retention": invoice_data.get("custom_subject_to_retention", 0),
-            "custom_retention": invoice_data.get("custom_retention", 0),
-            "custom_retention_amount": invoice_data.get("custom_retention_amount", 0)
+            "pd_custom_subject_to_retention": invoice_data.get("pd_custom_subject_to_retention", 0),
+            "pd_custom_retention_pct": invoice_data.get("pd_custom_retention_pct", 0),
+            "pd_custom_retention_amount": invoice_data.get("pd_custom_retention_amount", 0)
         }
 
         print(f"DEBUG: Final Purchase Invoice thai_tax_data for {invoice_name}:")
-        print(f"  - subject_to_wht: {thai_tax_data['subject_to_wht']}")
-        print(f"  - vat_treatment: {thai_tax_data['vat_treatment']}")
-        print(f"  - net_total_after_wht: {thai_tax_data['net_total_after_wht']}")
+        print(f"  - pd_custom_subject_to_wht: {thai_tax_data['pd_custom_subject_to_wht']}")
+        print(f"  - pd_custom_vat_treatment: {thai_tax_data['pd_custom_vat_treatment']}")
+        print(f"  - pd_custom_net_total_after_wht: {thai_tax_data['pd_custom_net_total_after_wht']}")
         print(f"  - wht_amount: {thai_tax_data['wht_amount']}")
-        print(f"  - custom_subject_to_retention: {thai_tax_data['custom_subject_to_retention']}")
-        print(f"  - custom_retention: {thai_tax_data['custom_retention']}")
-        print(f"  - custom_retention_amount: {thai_tax_data['custom_retention_amount']}")
+        print(f"  - pd_custom_subject_to_retention: {thai_tax_data['pd_custom_subject_to_retention']}")
+        print(f"  - pd_custom_retention_pct: {thai_tax_data['pd_custom_retention_pct']}")
+        print(f"  - pd_custom_retention_amount: {thai_tax_data['pd_custom_retention_amount']}")
 
         return thai_tax_data
 
@@ -234,51 +234,51 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
         return
 
     print(f"DEBUG: Populating Payment Entry header fields with Purchase Invoice data:")
-    print(f"  - subject_to_wht: {thai_tax_data.get('subject_to_wht')}")
-    print(f"  - vat_treatment: {thai_tax_data.get('vat_treatment')}")
+    print(f"  - pd_custom_subject_to_wht: {thai_tax_data.get('pd_custom_subject_to_wht')}")
+    print(f"  - pd_custom_vat_treatment: {thai_tax_data.get('pd_custom_vat_treatment')}")
     print(f"  - wht_amount: {thai_tax_data.get('wht_amount')}")
     print(f"  - wht_percentage: {thai_tax_data.get('wht_percentage')}")
 
     # Set the main Thai tax fields in Payment Entry (ERPNext standard fields)
-    if hasattr(pe, 'subject_to_wht'):
-        pe.subject_to_wht = thai_tax_data.get("subject_to_wht", 0)
-        print(f"  - Set pe.subject_to_wht = {pe.subject_to_wht}")
+    if hasattr(pe, 'pd_custom_subject_to_wht'):
+        pe.pd_custom_subject_to_wht = thai_tax_data.get("pd_custom_subject_to_wht", 0)
+        print(f"  - Set pe.pd_custom_subject_to_wht = {pe.pd_custom_subject_to_wht}")
 
-    if hasattr(pe, 'vat_treatment'):
-        pe.vat_treatment = thai_tax_data.get("vat_treatment", "")
-        print(f"  - Set pe.vat_treatment = '{pe.vat_treatment}'")
+    if hasattr(pe, 'pd_custom_vat_treatment'):
+        pe.pd_custom_vat_treatment = thai_tax_data.get("pd_custom_vat_treatment", "")
+        print(f"  - Set pe.pd_custom_vat_treatment = '{pe.pd_custom_vat_treatment}'")
 
-    if hasattr(pe, 'net_total_after_wht'):
-        pe.net_total_after_wht = thai_tax_data.get("net_total_after_wht", 0)
-        print(f"  - Set pe.net_total_after_wht = {pe.net_total_after_wht}")
+    if hasattr(pe, 'pd_custom_net_total_after_wht'):
+        pe.pd_custom_net_total_after_wht = thai_tax_data.get("pd_custom_net_total_after_wht", 0)
+        print(f"  - Set pe.pd_custom_net_total_after_wht = {pe.pd_custom_net_total_after_wht}")
 
     # Set WHT fields (newly added custom fields)
-    if hasattr(pe, 'custom_withholding_tax'):
-        pe.custom_withholding_tax = thai_tax_data.get("wht_percentage", 0)
-        print(f"  - Set pe.custom_withholding_tax = {pe.custom_withholding_tax}%")
+    if hasattr(pe, 'pd_custom_withholding_tax_pct'):
+        pe.pd_custom_withholding_tax_pct = thai_tax_data.get("wht_percentage", 0)
+        print(f"  - Set pe.pd_custom_withholding_tax_pct = {pe.pd_custom_withholding_tax_pct}%")
 
-    if hasattr(pe, 'custom_withholding_tax_amount'):
-        pe.custom_withholding_tax_amount = thai_tax_data.get("wht_amount", 0)
-        print(f"  - Set pe.custom_withholding_tax_amount = {pe.custom_withholding_tax_amount}")
+    if hasattr(pe, 'pd_custom_withholding_tax_amount'):
+        pe.pd_custom_withholding_tax_amount = thai_tax_data.get("wht_amount", 0)
+        print(f"  - Set pe.pd_custom_withholding_tax_amount = {pe.pd_custom_withholding_tax_amount}")
 
     # Set income type and description from Purchase Invoice
-    if hasattr(pe, 'wht_income_type') and thai_tax_data.get("wht_income_type"):
-        pe.wht_income_type = thai_tax_data.get("wht_income_type", "")
-        print(f"  - Set pe.wht_income_type = '{pe.wht_income_type}'")
+    if hasattr(pe, 'pd_custom_wht_income_type') and thai_tax_data.get("pd_custom_wht_income_type"):
+        pe.pd_custom_wht_income_type = thai_tax_data.get("pd_custom_wht_income_type", "")
+        print(f"  - Set pe.pd_custom_wht_income_type = '{pe.pd_custom_wht_income_type}'")
 
-    if hasattr(pe, 'wht_description') and thai_tax_data.get("wht_description"):
-        pe.wht_description = thai_tax_data.get("wht_description", "")
-        print(f"  - Set pe.wht_description = '{pe.wht_description}'")
+    if hasattr(pe, 'pd_custom_wht_description') and thai_tax_data.get("pd_custom_wht_description"):
+        pe.pd_custom_wht_description = thai_tax_data.get("pd_custom_wht_description", "")
+        print(f"  - Set pe.pd_custom_wht_description = '{pe.pd_custom_wht_description}'")
 
     # Set WHT certificate required flag
-    if hasattr(pe, 'wht_certificate_required'):
-        pe.wht_certificate_required = 1 if thai_tax_data.get("subject_to_wht", 0) else 0
-        print(f"  - Set pe.wht_certificate_required = {pe.wht_certificate_required}")
+    if hasattr(pe, 'pd_custom_wht_certificate_required'):
+        pe.pd_custom_wht_certificate_required = 1 if thai_tax_data.get("pd_custom_subject_to_wht", 0) else 0
+        print(f"  - Set pe.pd_custom_wht_certificate_required = {pe.pd_custom_wht_certificate_required}")
 
     # Set Thai compliance application flags if they exist
-    if hasattr(pe, 'apply_thai_wht_compliance'):
-        pe.apply_thai_wht_compliance = thai_tax_data.get("apply_thai_wht_compliance", 0)
-        print(f"  - Set pe.apply_thai_wht_compliance = {pe.apply_thai_wht_compliance}")
+    if hasattr(pe, 'pd_custom_apply_thai_wht_compliance'):
+        pe.pd_custom_apply_thai_wht_compliance = thai_tax_data.get("pd_custom_apply_thai_wht_compliance", 0)
+        print(f"  - Set pe.pd_custom_apply_thai_wht_compliance = {pe.pd_custom_apply_thai_wht_compliance}")
 
     # Set Thai Compliance Tab fields (pd_custom_* fields)
 
@@ -308,7 +308,7 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
         pe.pd_custom_withholding_tax_rate = thai_tax_data.get("wht_percentage", 0)
         print(f"  - Set pe.pd_custom_withholding_tax_rate = {pe.pd_custom_withholding_tax_rate}%")
 
-    # WHT Amount - Already handled above via custom_withholding_tax_amount
+    # WHT Amount - Already handled above via pd_custom_withholding_tax_amount
     if hasattr(pe, 'pd_custom_withholding_tax_amount'):
         pe.pd_custom_withholding_tax_amount = thai_tax_data.get("wht_amount", 0)
         print(f"  - Set pe.pd_custom_withholding_tax_amount = {pe.pd_custom_withholding_tax_amount}")
@@ -322,12 +322,12 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
 
     # Apply Withholding Tax flag
     if hasattr(pe, 'pd_custom_apply_withholding_tax'):
-        pe.pd_custom_apply_withholding_tax = 1 if thai_tax_data.get("subject_to_wht", 0) else 0
+        pe.pd_custom_apply_withholding_tax = 1 if thai_tax_data.get("pd_custom_subject_to_wht", 0) else 0
         print(f"  - Set pe.pd_custom_apply_withholding_tax = {pe.pd_custom_apply_withholding_tax}")
 
     # Income Type for Thai Compliance Tab
-    if hasattr(pe, 'pd_custom_income_type') and thai_tax_data.get("wht_income_type"):
-        pe.pd_custom_income_type = thai_tax_data.get("wht_income_type", "")
+    if hasattr(pe, 'pd_custom_income_type') and thai_tax_data.get("pd_custom_wht_income_type"):
+        pe.pd_custom_income_type = thai_tax_data.get("pd_custom_wht_income_type", "")
         print(f"  - Set pe.pd_custom_income_type = '{pe.pd_custom_income_type}'")
 
     # Mark for WHT certificate creation if WHT amount exists
@@ -346,24 +346,24 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     print("="*80)
     
     # Get the raw value from thai_tax_data
-    checkbox_value_raw = thai_tax_data.get("custom_subject_to_retention")
-    retention_rate_raw = thai_tax_data.get("custom_retention")
-    retention_amount_raw = thai_tax_data.get("custom_retention_amount")
+    checkbox_value_raw = thai_tax_data.get("pd_custom_subject_to_retention")
+    retention_rate_raw = thai_tax_data.get("pd_custom_retention_pct")
+    retention_amount_raw = thai_tax_data.get("pd_custom_retention_amount")
     
     print(f"1. Raw values from Purchase Invoice:")
-    print(f"   - custom_subject_to_retention (checkbox): {checkbox_value_raw} (type: {type(checkbox_value_raw)})")
-    print(f"   - custom_retention (rate): {retention_rate_raw} (type: {type(retention_rate_raw)})")
-    print(f"   - custom_retention_amount: {retention_amount_raw} (type: {type(retention_amount_raw)})")
+    print(f"   - pd_custom_subject_to_retention (checkbox): {checkbox_value_raw} (type: {type(checkbox_value_raw)})")
+    print(f"   - pd_custom_retention_pct (rate): {retention_rate_raw} (type: {type(retention_rate_raw)})")
+    print(f"   - pd_custom_retention_amount: {retention_amount_raw} (type: {type(retention_amount_raw)})")
     
     # Check if Payment Entry has the retention fields
-    has_checkbox = hasattr(pe, 'custom_subject_to_retention')
-    has_rate = hasattr(pe, 'custom_retention')
-    has_amount = hasattr(pe, 'custom_retention_amount')
+    has_checkbox = hasattr(pe, 'pd_custom_subject_to_retention')
+    has_rate = hasattr(pe, 'pd_custom_retention_pct')
+    has_amount = hasattr(pe, 'pd_custom_retention_amount')
     
     print(f"\n2. Payment Entry field availability:")
-    print(f"   - hasattr(pe, 'custom_subject_to_retention'): {has_checkbox}")
-    print(f"   - hasattr(pe, 'custom_retention'): {has_rate}")
-    print(f"   - hasattr(pe, 'custom_retention_amount'): {has_amount}")
+    print(f"   - hasattr(pe, 'pd_custom_subject_to_retention'): {has_checkbox}")
+    print(f"   - hasattr(pe, 'pd_custom_retention_pct'): {has_rate}")
+    print(f"   - hasattr(pe, 'pd_custom_retention_amount'): {has_amount}")
     
     # Browser debug message for field availability
     frappe.msgprint(
@@ -387,28 +387,28 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
         
         print(f"\n3. Setting checkbox field:")
         print(f"   - Converting {checkbox_value_raw} to integer: {checkbox_value}")
-        print(f"   - Before setting: pe.custom_subject_to_retention = {getattr(pe, 'custom_subject_to_retention', 'NOT SET')}")
+        print(f"   - Before setting: pe.pd_custom_subject_to_retention = {getattr(pe, 'pd_custom_subject_to_retention', 'NOT SET')}")
         
         # Set the value
-        pe.custom_subject_to_retention = checkbox_value
+        pe.pd_custom_subject_to_retention = checkbox_value
         
-        print(f"   - After setting: pe.custom_subject_to_retention = {pe.custom_subject_to_retention}")
-        print(f"   - Verification: getattr(pe, 'custom_subject_to_retention') = {getattr(pe, 'custom_subject_to_retention', 'FAILED')}")
+        print(f"   - After setting: pe.pd_custom_subject_to_retention = {pe.pd_custom_subject_to_retention}")
+        print(f"   - Verification: getattr(pe, 'pd_custom_subject_to_retention') = {getattr(pe, 'pd_custom_subject_to_retention', 'FAILED')}")
         
         # Browser message for checkbox setting
         frappe.msgprint(
             f"📝 CHECKBOX SETTING:<br><br>"
             f"• Raw value: {checkbox_value_raw}<br>"
             f"• Converted to: {checkbox_value}<br>"
-            f"• Set pe.custom_subject_to_retention = {checkbox_value}<br>"
-            f"• After setting: {getattr(pe, 'custom_subject_to_retention', 'FAILED')}",
+            f"• Set pe.pd_custom_subject_to_retention = {checkbox_value}<br>"
+            f"• After setting: {getattr(pe, 'pd_custom_subject_to_retention', 'FAILED')}",
             indicator='blue',
             title="Checkbox Setting"
         )
     else:
         print(f"\n3. ❌ CHECKBOX FIELD NOT FOUND on Payment Entry")
         frappe.msgprint(
-            f"❌ ERROR: Payment Entry does not have 'custom_subject_to_retention' field!<br>"
+            f"❌ ERROR: Payment Entry does not have 'pd_custom_subject_to_retention' field!<br>"
             f"Field availability check returned: {has_checkbox}",
             indicator='red',
             title="Missing Field Error"
@@ -417,41 +417,41 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     # Set retention rate from Purchase Invoice
     if has_rate:
         print(f"\n4. Setting retention rate field:")
-        print(f"   - Before: pe.custom_retention = {getattr(pe, 'custom_retention', 'NOT SET')}")
-        pe.custom_retention = thai_tax_data.get("custom_retention", 0)
-        print(f"   - After: pe.custom_retention = {pe.custom_retention}%")
+        print(f"   - Before: pe.pd_custom_retention_pct = {getattr(pe, 'pd_custom_retention_pct', 'NOT SET')}")
+        pe.pd_custom_retention_pct = thai_tax_data.get("pd_custom_retention_pct", 0)
+        print(f"   - After: pe.pd_custom_retention_pct = {pe.pd_custom_retention_pct}%")
     else:
         print(f"\n4. ❌ RATE FIELD NOT FOUND on Payment Entry")
 
     # Set retention amount from Purchase Invoice
     if has_amount:
         print(f"\n5. Setting retention amount field:")
-        print(f"   - Before: pe.custom_retention_amount = {getattr(pe, 'custom_retention_amount', 'NOT SET')}")
-        pe.custom_retention_amount = thai_tax_data.get("custom_retention_amount", 0)
-        print(f"   - After: pe.custom_retention_amount = {pe.custom_retention_amount}")
+        print(f"   - Before: pe.pd_custom_retention_amount = {getattr(pe, 'pd_custom_retention_amount', 'NOT SET')}")
+        pe.pd_custom_retention_amount = thai_tax_data.get("pd_custom_retention_amount", 0)
+        print(f"   - After: pe.pd_custom_retention_amount = {pe.pd_custom_retention_amount}")
     else:
         print(f"\n5. ❌ AMOUNT FIELD NOT FOUND on Payment Entry")
     
     # Final verification
     print(f"\n6. FINAL VERIFICATION - All retention fields after setting:")
-    print(f"   - custom_subject_to_retention: {getattr(pe, 'custom_subject_to_retention', 'NOT FOUND')}")
-    print(f"   - custom_retention: {getattr(pe, 'custom_retention', 'NOT FOUND')}%")
-    print(f"   - custom_retention_amount: {getattr(pe, 'custom_retention_amount', 'NOT FOUND')}")
+    print(f"   - pd_custom_subject_to_retention: {getattr(pe, 'pd_custom_subject_to_retention', 'NOT FOUND')}")
+    print(f"   - pd_custom_retention_pct: {getattr(pe, 'pd_custom_retention_pct', 'NOT FOUND')}%")
+    print(f"   - pd_custom_retention_amount: {getattr(pe, 'pd_custom_retention_amount', 'NOT FOUND')}")
     print("="*80 + "\n")
     
     # Final browser message
     frappe.msgprint(
         f"✅ FINAL RETENTION VALUES:<br><br>"
         f"<b>Payment Entry After Setting:</b><br>"
-        f"• Checkbox: {getattr(pe, 'custom_subject_to_retention', 'NOT FOUND')}<br>"
-        f"• Rate: {getattr(pe, 'custom_retention', 'NOT FOUND')}%<br>"
-        f"• Amount: {getattr(pe, 'custom_retention_amount', 'NOT FOUND')} THB",
+        f"• Checkbox: {getattr(pe, 'pd_custom_subject_to_retention', 'NOT FOUND')}<br>"
+        f"• Rate: {getattr(pe, 'pd_custom_retention_pct', 'NOT FOUND')}%<br>"
+        f"• Amount: {getattr(pe, 'pd_custom_retention_amount', 'NOT FOUND')} THB",
         indicator='green',
         title="Final Retention Values"
     )
 
 
-def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_treatment=""):
+def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, pd_custom_vat_treatment=""):
     """
     Calculate VAT Undue amount from Sales Invoice taxes.
     
@@ -462,7 +462,7 @@ def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_tr
     Args:
         invoice_name: Sales Invoice name
         taxes_and_charges_template: Template name from taxes_and_charges field
-        vat_treatment: VAT treatment status (VAT 7%, VAT 0%, VAT Exempt)
+        pd_custom_vat_treatment: VAT treatment status (VAT 7%, VAT 0%, VAT Exempt)
     
     Returns:
         float: Total VAT Undue amount
@@ -472,7 +472,7 @@ def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_tr
     
     print(f"DEBUG VAT UNDUE: Processing invoice {invoice_name}")
     print(f"  - taxes_and_charges_template: '{taxes_and_charges_template}'")
-    print(f"  - vat_treatment: '{vat_treatment}'")
+    print(f"  - pd_custom_vat_treatment: '{pd_custom_vat_treatment}'")
 
     # Thai VAT Undue keywords
     vat_undue_keywords = ['undue', 'ภาษีขายตั้งพัก', 'ภาษีขายที่ไม่ถึงกำหนด']
@@ -489,8 +489,8 @@ def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_tr
     
     # Additional validation: Check VAT treatment status
     # Only process VAT Undue if VAT is applicable (not VAT Exempt or Zero-rated)
-    if vat_treatment:
-        vat_treatment_lower = vat_treatment.lower()
+    if pd_custom_vat_treatment:
+        vat_treatment_lower = pd_custom_vat_treatment.lower()
         if "exempt" in vat_treatment_lower or "zero-rated" in vat_treatment_lower:
             return 0  # No VAT Undue for VAT Exempt or Zero-rated Export invoices
     
@@ -508,8 +508,8 @@ def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, vat_tr
         total_vat_undue = 0
         
         # Log VAT treatment for debugging
-        if vat_treatment:
-            frappe.logger().debug(f"Processing VAT Undue for {invoice_name}: VAT Treatment = {vat_treatment}")
+        if pd_custom_vat_treatment:
+            frappe.logger().debug(f"Processing VAT Undue for {invoice_name}: VAT Treatment = {pd_custom_vat_treatment}")
         
         for tax in tax_rows:
             # Check if this tax row is VAT (contains VAT keywords in account or description)

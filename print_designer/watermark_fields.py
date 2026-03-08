@@ -6,7 +6,7 @@ WATERMARK_FIELDS = {
 	# Sales Module - Transaction Documents
 	"Sales Invoice": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nCancelled\nPaid\nDuplicate",
@@ -21,7 +21,7 @@ WATERMARK_FIELDS = {
 	
 	"Sales Order": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark", 
 			"options": "None\nOriginal\nCopy\nDraft\nConfirmed\nCancelled\nDuplicate",
@@ -36,7 +36,7 @@ WATERMARK_FIELDS = {
 	
 	"Quotation": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nOrdered\nExpired\nDuplicate",
@@ -51,7 +51,7 @@ WATERMARK_FIELDS = {
 	
 	"Delivery Note": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -67,7 +67,7 @@ WATERMARK_FIELDS = {
 	# Purchase Module - Transaction Documents
 	"Purchase Invoice": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nPaid\nCancelled\nDuplicate",
@@ -82,7 +82,7 @@ WATERMARK_FIELDS = {
 	
 	"Purchase Order": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate", 
@@ -97,7 +97,7 @@ WATERMARK_FIELDS = {
 	
 	"Purchase Receipt": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -112,7 +112,7 @@ WATERMARK_FIELDS = {
 	
 	"Request for Quotation": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -128,7 +128,7 @@ WATERMARK_FIELDS = {
 	# Stock Module
 	"Stock Entry": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -144,7 +144,7 @@ WATERMARK_FIELDS = {
 	# Accounting Module  
 	"Payment Entry": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -159,7 +159,7 @@ WATERMARK_FIELDS = {
 	
 	"Journal Entry": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCancelled\nDuplicate",
@@ -175,7 +175,7 @@ WATERMARK_FIELDS = {
 	# HR Module
 	"Salary Slip": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nPaid\nDuplicate",
@@ -190,7 +190,7 @@ WATERMARK_FIELDS = {
 	
 	"Job Offer": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSent\nAccepted\nRejected\nDuplicate",
@@ -205,7 +205,7 @@ WATERMARK_FIELDS = {
 	
 	"Appraisal": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nCompleted\nCancelled\nDuplicate",
@@ -221,7 +221,7 @@ WATERMARK_FIELDS = {
 	# Project Module
 	"Project": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nActive\nCompleted\nCancelled\nDuplicate",
@@ -237,7 +237,7 @@ WATERMARK_FIELDS = {
 	# Quality Module
 	"Quality Inspection": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nAccepted\nRejected\nDuplicate",
@@ -253,7 +253,7 @@ WATERMARK_FIELDS = {
 	# Maintenance Module
 	"Maintenance Schedule": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nActive\nCompleted\nCancelled\nDuplicate",
@@ -269,7 +269,7 @@ WATERMARK_FIELDS = {
 	# Asset Module
 	"Asset": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nSubmitted\nActive\nSold\nScrapped\nDuplicate",
@@ -285,7 +285,7 @@ WATERMARK_FIELDS = {
 	# Custom DocTypes (if they exist)
 	"Contract": [
 		{
-			"fieldname": "watermark_text",
+			"fieldname": "pd_custom_watermark_text",
 			"fieldtype": "Select",
 			"label": "Document Watermark",
 			"options": "None\nOriginal\nCopy\nDraft\nActive\nExpired\nCancelled\nDuplicate",
@@ -335,7 +335,7 @@ def get_watermark_options_for_doctype(doctype):
 	fields = get_watermark_fields_for_doctype(doctype)
 	if fields:
 		for field in fields:
-			if field.get("fieldname") == "watermark_text":
+			if field.get("fieldname") == "pd_custom_watermark_text":
 				return field.get("options", "").split("\n")
 	return []
 
@@ -397,12 +397,12 @@ def get_watermark_text_from_doc(doctype, docname):
 		
 	try:
 		doc = frappe.get_doc(doctype, docname)
-		return doc.get("watermark_text")
+		return doc.get("pd_custom_watermark_text")
 	except:
 		return None
 
 # Function to set watermark text for document  
-def set_watermark_text_for_doc(doctype, docname, watermark_text):
+def set_watermark_text_for_doc(doctype, docname, pd_custom_watermark_text):
 	"""
 	Set watermark text for a specific document
 	"""
@@ -413,7 +413,7 @@ def set_watermark_text_for_doc(doctype, docname, watermark_text):
 		
 	try:
 		doc = frappe.get_doc(doctype, docname)
-		doc.watermark_text = watermark_text
+		doc.pd_custom_watermark_text = pd_custom_watermark_text
 		doc.save()
 		return True
 	except:

@@ -5,7 +5,7 @@ To run this fix:
 1. Go to your site: https://tipsiricons.bunchee.online/app/dev-console
 2. Paste this entire code block and press Enter
 
-This will install the missing watermark_text field on Stock Entry and other DocTypes.
+This will install the missing pd_custom_watermark_text field on Stock Entry and other DocTypes.
 """
 
 # Install watermark fields directly through console
@@ -32,11 +32,11 @@ def fix_watermark_fields():
         
         # Verify Stock Entry field was created
         try:
-            result = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'watermark_text'")
+            result = frappe.db.sql("SHOW COLUMNS FROM `tabStock Entry` LIKE 'pd_custom_watermark_text'")
             if result:
-                print("✅ Confirmed: watermark_text column exists in Stock Entry table")
+                print("✅ Confirmed: pd_custom_watermark_text column exists in Stock Entry table")
             else:
-                print("❌ Warning: watermark_text column not found in Stock Entry table")
+                print("❌ Warning: pd_custom_watermark_text column not found in Stock Entry table")
         except:
             print("ℹ️  Could not verify column creation")
             

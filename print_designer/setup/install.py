@@ -178,7 +178,7 @@ def add_custom_fields():
         {
             "doctype": "Custom Field",
             "dt": "Payment Entry",
-            "fieldname": "custom_withholding_tax_amount",
+            "fieldname": "pd_custom_withholding_tax_amount",
             "label": "Withholding Tax Amount",
             "fieldtype": "Currency",
             "read_only": 1,
@@ -191,7 +191,7 @@ def add_custom_fields():
             "fieldname": "custom_supplier_tax_id",
             "label": "Supplier Tax ID",
             "fieldtype": "Data",
-            "insert_after": "custom_withholding_tax_amount",
+            "insert_after": "pd_custom_withholding_tax_amount",
             "description": "13-digit Thai Tax ID for supplier"
         },
         {
@@ -467,7 +467,7 @@ def calculate_withholding_tax(doc, method):
             base_amount = doc.received_amount
             
         wht_amount = flt(base_amount * doc.custom_withholding_tax_rate / 100, 2)
-        doc.custom_withholding_tax_amount = wht_amount
+        doc.pd_custom_withholding_tax_amount = wht_amount
         
         # Generate certificate number if not exists
         if not doc.custom_wht_certificate_number:
@@ -564,7 +564,7 @@ def check_payment_entry_fields():
         "custom_thai_withholding_tax_section",
         "custom_is_withholding_tax",
         "custom_withholding_tax_rate", 
-        "custom_withholding_tax_amount",
+        "pd_custom_withholding_tax_amount",
         "custom_supplier_tax_id",
         "custom_wht_certificate_number",
         "custom_wht_certificate_generated"

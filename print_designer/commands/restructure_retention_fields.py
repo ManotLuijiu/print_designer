@@ -29,8 +29,8 @@ def restructure_retention_fields():
         
         # Retention Details section (already removed)
         # 'retention_section',  # Field already deleted
-        'custom_retention',
-        'custom_retention_amount'
+        'pd_custom_retention_pct',
+        'pd_custom_retention_amount'
     ]
     
     removed_count = 0
@@ -59,7 +59,7 @@ def restructure_retention_fields():
             "description": "Retention percentage to be withheld from payment"
         },
         {
-            "fieldname": "custom_retention_amount", 
+            "fieldname": "pd_custom_retention_amount", 
             "label": "Retention Amount",
             "fieldtype": "Currency",
             "insert_after": "custom_retention_percent",
@@ -71,12 +71,12 @@ def restructure_retention_fields():
             "fieldname": "custom_withholding_tax_percent",
             "label": "Withholding Tax (%)",
             "fieldtype": "Percent",
-            "insert_after": "custom_retention_amount", 
+            "insert_after": "pd_custom_retention_amount", 
             "depends_on": "eval:doc.company",
             "description": "Withholding tax percentage"
         },
         {
-            "fieldname": "custom_withholding_tax_amount",
+            "fieldname": "pd_custom_withholding_tax_amount",
             "label": "Withholding Tax Amount",
             "fieldtype": "Currency", 
             "insert_after": "custom_withholding_tax_percent",
@@ -85,10 +85,10 @@ def restructure_retention_fields():
             "description": "Calculated withholding tax amount"
         },
         {
-            "fieldname": "custom_payment_amount",
+            "fieldname": "pd_custom_payment_amount",
             "label": "Payment Amount", 
             "fieldtype": "Currency",
-            "insert_after": "custom_withholding_tax_amount",
+            "insert_after": "pd_custom_withholding_tax_amount",
             "depends_on": "eval:doc.company",
             "read_only": 1,
             "bold": 1,
@@ -153,7 +153,7 @@ def check_restructure_status():
     problematic_fields = [
         'withholding_tax_details_section',
         # 'retention_section',  # Field already deleted
-        'custom_retention'
+        'pd_custom_retention_pct'
     ]
     
     old_fields_exist = []
@@ -164,10 +164,10 @@ def check_restructure_status():
     # Check for new Totals fields
     new_fields = [
         'custom_retention_percent',
-        'custom_retention_amount',
+        'pd_custom_retention_amount',
         'custom_withholding_tax_percent', 
-        'custom_withholding_tax_amount',
-        'custom_payment_amount'
+        'pd_custom_withholding_tax_amount',
+        'pd_custom_payment_amount'
     ]
     
     new_fields_exist = []

@@ -60,7 +60,7 @@ def delete_all_print_designer_custom_fields():
 			"enable_multiple_copies", "default_copy_count", "copy_labels", "show_copy_controls",
 			"default_original_label", "default_copy_label",
 			# Signature fields created by print_designer signature system
-			"prepared_by_signature", "approved_by_signature",
+			"pd_custom_prepared_by_signature", "pd_custom_approved_by_signature",
 			# Delivery approval QR system (print_designer feature)
 			"custom_delivery_approval_section", "customer_approval_status", "customer_signature",
 			"customer_approved_by", "customer_approved_on", "approval_qr_code", "custom_approval_url",
@@ -101,13 +101,13 @@ def delete_all_print_designer_custom_fields():
 			"pd_custom_vat_undue_amount", "vat_undue_amount",
 			"pd_custom_net_payable_amount", "net_payable_amount",
 			# Payment Entry Thai WHT Preview Section fields (install_payment_entry_fields.py)
-			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
-			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
-			"wht_certificate_required", "net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
-			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
-			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
-			"custom_retention", "custom_retention_amount",  # Recently added fields
-			"custom_withholding_tax", "custom_withholding_tax_amount",  # Recently added fields
+			"pd_custom_wht_preview_section", "pd_custom_wht_amounts_cb", "pd_custom_wht_preview_cb",
+			"pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_wht_income_type", "pd_custom_wht_description",
+			"pd_custom_wht_certificate_required", "pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_note",
+			"pd_custom_subject_to_retention", "pd_custom_net_after_wht_retention",
+			"pd_custom_net_after_wht_retention_words", "pd_custom_retention_note",
+			"pd_custom_retention_pct", "pd_custom_retention_amount",  # Recently added fields
+			"pd_custom_withholding_tax_pct", "pd_custom_withholding_tax_amount",  # Recently added fields
 			# WHT Certificate link fields (install_wht_certificate_link_field.py)
 			"pd_custom_wht_certificate", "pd_custom_needs_wht_certificate",
 			# Thai Compliance Tab fields (Payment Entry Pay scenario)
@@ -121,41 +121,41 @@ def delete_all_print_designer_custom_fields():
 		# Sales Invoice fields SPECIFICALLY created by print_designer install_sales_invoice_fields.py
 		print_designer_sales_invoice_fields = [
 			# Watermark field
-			"watermark_text",
+			"pd_custom_watermark_text",
 			# Thai WHT Preview Section (print_designer specific)
-			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
-			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
-			"net_total_after_wht", "net_total_after_wht_in_words", "wht_certificate_required", "wht_note",
+			"pd_custom_wht_preview_section", "pd_custom_wht_amounts_cb", "pd_custom_wht_preview_cb",
+			"pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_wht_income_type", "pd_custom_wht_description",
+			"pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_certificate_required", "pd_custom_wht_note",
 			# Retention fields (print_designer construction feature)
-			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
-			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
-			"custom_retention", "custom_retention_amount",
+			"pd_custom_subject_to_retention", "pd_custom_net_after_wht_retention",
+			"pd_custom_net_after_wht_retention_words", "pd_custom_retention_note",
+			"pd_custom_retention_pct", "pd_custom_retention_amount",
 			# Construction service (print_designer feature)
 			"construction_service",
 			# WHT calculation fields (print_designer calculations)
-			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
+			"pd_custom_withholding_tax_pct", "pd_custom_withholding_tax_amount", "pd_custom_payment_amount",
 			# Signature fields
-			"prepared_by_signature", "approved_by_signature",
+			"pd_custom_prepared_by_signature", "pd_custom_approved_by_signature",
 		]
 
 		# Purchase Order fields SPECIFICALLY created by print_designer install_purchase_order_fields.py
 		print_designer_purchase_order_fields = [
 			# Thai WHT Preview Section (print_designer specific)
-			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
-			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
-			"net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
+			"pd_custom_wht_preview_section", "pd_custom_wht_amounts_cb", "pd_custom_wht_preview_cb",
+			"pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_wht_income_type", "pd_custom_wht_description",
+			"pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_note",
 			# Retention fields (print_designer construction feature)
-			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
-			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
-			"custom_retention", "custom_retention_amount",
+			"pd_custom_subject_to_retention", "pd_custom_net_after_wht_retention",
+			"pd_custom_net_after_wht_retention_words", "pd_custom_retention_note",
+			"pd_custom_retention_pct", "pd_custom_retention_amount",
 			# WHT calculation fields (print_designer calculations)
-			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
+			"pd_custom_withholding_tax_pct", "pd_custom_withholding_tax_amount", "pd_custom_payment_amount",
 		]
 
 		# Purchase Invoice fields SPECIFICALLY created by print_designer install_purchase_invoice_fields.py
 		print_designer_purchase_invoice_fields = [
 			# Thai Tax Compliance Tab fields
-			"thai_tax_compliance_section",
+			"pd_custom_tax_compliance_section",
 			"pd_custom_tax_invoice_number", "pd_custom_tax_invoice_date",
 			"pd_custom_income_type", "pd_custom_tax_base_amount",
 			"pd_custom_column_break_thai_tax",
@@ -163,15 +163,15 @@ def delete_all_print_designer_custom_fields():
 			"pd_custom_wht_certificate_date", "pd_custom_withholding_tax_rate",
 			"pd_custom_withholding_tax_amount", "pd_custom_net_payment_amount",
 			# Thai WHT Preview Section (shared fields)
-			"thai_wht_preview_section", "wht_amounts_column_break", "wht_preview_column_break",
-			"vat_treatment", "subject_to_wht", "wht_income_type", "wht_description",
-			"net_total_after_wht", "net_total_after_wht_in_words", "wht_note",
+			"pd_custom_wht_preview_section", "pd_custom_wht_amounts_cb", "pd_custom_wht_preview_cb",
+			"pd_custom_vat_treatment", "pd_custom_subject_to_wht", "pd_custom_wht_income_type", "pd_custom_wht_description",
+			"pd_custom_net_total_after_wht", "pd_custom_net_total_after_wht_words", "pd_custom_wht_note",
 			# Retention fields (print_designer construction feature)
-			"custom_subject_to_retention", "custom_net_total_after_wht_retention",
-			"custom_net_total_after_wht_retention_in_words", "custom_retention_note",
-			"custom_retention", "custom_retention_amount",
+			"pd_custom_subject_to_retention", "pd_custom_net_after_wht_retention",
+			"pd_custom_net_after_wht_retention_words", "pd_custom_retention_note",
+			"pd_custom_retention_pct", "pd_custom_retention_amount",
 			# WHT calculation fields (print_designer calculations)
-			"custom_withholding_tax", "custom_withholding_tax_amount", "custom_payment_amount",
+			"pd_custom_withholding_tax_pct", "pd_custom_withholding_tax_amount", "pd_custom_payment_amount",
 		]
 
 		# Company Thai Tax fields SPECIFICALLY created by print_designer install_company_thai_tax_fields.py

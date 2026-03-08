@@ -32,11 +32,11 @@ def add_regional_gl_entries(gl_entries, doc):
     print(f"🔍 DEBUGGING ALL THAI TAX FIELDS:")
 
     # Check primary flag - Use multiple possible fields that indicate Thai tax compliance
-    has_thai_taxes = (getattr(doc, 'subject_to_wht', 0) or
+    has_thai_taxes = (getattr(doc, 'pd_custom_subject_to_wht', 0) or
                      getattr(doc, 'pd_custom_apply_withholding_tax', 0))
                      # COMMENTED OUT: pd_custom_has_thai_taxes field removed
                      # or getattr(doc, 'pd_custom_has_thai_taxes', 0))
-    print(f"   📋 subject_to_wht: {getattr(doc, 'subject_to_wht', 0)} (type: {type(getattr(doc, 'subject_to_wht', 0))})")
+    print(f"   📋 pd_custom_subject_to_wht: {getattr(doc, 'pd_custom_subject_to_wht', 0)} (type: {type(getattr(doc, 'pd_custom_subject_to_wht', 0))})")
     print(f"   📋 pd_custom_apply_withholding_tax: {getattr(doc, 'pd_custom_apply_withholding_tax', 0)} (type: {type(getattr(doc, 'pd_custom_apply_withholding_tax', 0))})")
     # COMMENTED OUT: pd_custom_has_thai_taxes field removed from debug logging
     # print(f"   📋 pd_custom_has_thai_taxes: {getattr(doc, 'pd_custom_has_thai_taxes', 0)} (type: {type(getattr(doc, 'pd_custom_has_thai_taxes', 0))})")
@@ -58,7 +58,7 @@ def add_regional_gl_entries(gl_entries, doc):
     # Check total amounts - Use the actual fields that are being populated by JavaScript
     # Try multiple field naming patterns to find the correct values
     total_wht = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                   getattr(doc, 'custom_withholding_tax_amount', 0) or
+                   getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
                    getattr(doc, 'pd_custom_total_wht_amount', 0))
     total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
     total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))
@@ -70,16 +70,16 @@ def add_regional_gl_entries(gl_entries, doc):
     # Check other WHT fields that might be relevant - Use the correct prefixed fields
     apply_wht = getattr(doc, 'pd_custom_apply_withholding_tax', 0)
     tax_base = getattr(doc, 'pd_custom_tax_base_amount', 0)
-    net_payment = getattr(doc, 'net_total_after_wht', 0)  # This field exists from the console log
+    net_payment = getattr(doc, 'pd_custom_net_total_after_wht', 0)  # This field exists from the console log
     print(f"   🏛️ pd_custom_apply_withholding_tax: {apply_wht} (type: {type(apply_wht)})")
     print(f"   💵 pd_custom_tax_base_amount: {tax_base} (type: {type(tax_base)})")
-    print(f"   💵 net_total_after_wht: {net_payment} (type: {type(net_payment)})")
+    print(f"   💵 pd_custom_net_total_after_wht: {net_payment} (type: {type(net_payment)})")
 
     # Check Thai WHT preview section fields
-    subject_to_wht = getattr(doc, 'subject_to_wht', 0)
-    net_total_after_wht = getattr(doc, 'net_total_after_wht', 0)
-    print(f"   📊 subject_to_wht: {subject_to_wht} (type: {type(subject_to_wht)})")
-    print(f"   📊 net_total_after_wht: {net_total_after_wht} (type: {type(net_total_after_wht)})")
+    pd_custom_subject_to_wht = getattr(doc, 'pd_custom_subject_to_wht', 0)
+    pd_custom_net_total_after_wht = getattr(doc, 'pd_custom_net_total_after_wht', 0)
+    print(f"   📊 pd_custom_subject_to_wht: {pd_custom_subject_to_wht} (type: {type(pd_custom_subject_to_wht)})")
+    print(f"   📊 pd_custom_net_total_after_wht: {pd_custom_net_total_after_wht} (type: {type(pd_custom_net_total_after_wht)})")
 
     # Fetch account configurations from Company doctype (default accounts)
     company = getattr(doc, 'company', None)
@@ -218,7 +218,7 @@ def _adjust_cash_gl_entry_for_thai_compliance(gl_entries, doc):
 
     # Get Thai tax deduction amounts - Use correct field names that match client script population
     wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                    getattr(doc, 'custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
                     getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     total_deductions = wht_amount + retention_amount
@@ -312,7 +312,7 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
     # Get Thai tax amounts - use the actual field names populated by client scripts
     # Check both possible field naming patterns (individual fields and consolidated fields)
     wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                    getattr(doc, 'custom_withholding_tax_amount', 0) or
+                    getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
                     getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
@@ -376,14 +376,14 @@ def _get_vat_undue_from_linked_sales_invoices(doc, company_doc):
         print(f"   📄 Processing Sales Invoice: {ref_name} (Allocated: ฿{allocated_amount})")
 
         try:
-            # Fetch Sales Invoice to check vat_treatment
+            # Fetch Sales Invoice to check pd_custom_vat_treatment
             si_doc = frappe.get_doc("Sales Invoice", ref_name)
-            vat_treatment = getattr(si_doc, 'vat_treatment', None)
+            pd_custom_vat_treatment = getattr(si_doc, 'pd_custom_vat_treatment', None)
 
-            print(f"      VAT Treatment: {vat_treatment}")
+            print(f"      VAT Treatment: {pd_custom_vat_treatment}")
 
             # Check if this Sales Invoice used VAT Undue treatment
-            if not vat_treatment or "Undue" not in vat_treatment:
+            if not pd_custom_vat_treatment or "Undue" not in pd_custom_vat_treatment:
                 print(f"      ⏭️ Sales Invoice does not use VAT Undue treatment, skipping")
                 continue
 

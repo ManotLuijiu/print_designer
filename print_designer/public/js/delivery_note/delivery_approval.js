@@ -647,7 +647,7 @@ function handle_withholding_tax_toggle(frm) {
 		});
 	} else {
 		// Clear tax amount when disabled
-		frm.set_value("custom_withholding_tax_amount", 0);
+		frm.set_value("pd_custom_withholding_tax_amount", 0);
 	}
 	calculate_withholding_tax_amount(frm);
 }
@@ -669,7 +669,7 @@ function calculate_withholding_tax_amount(frm) {
 		if (base_amount > 0) {
 			const wht_amount =
 				(base_amount * frm.doc.custom_withholding_tax_rate) / 100;
-			frm.set_value("custom_withholding_tax_amount", wht_amount);
+			frm.set_value("pd_custom_withholding_tax_amount", wht_amount);
 
 			// Show calculation preview
 			frappe.show_alert({
@@ -766,10 +766,10 @@ function update_wht_status_indicator(frm) {
 			frm.dashboard.add_indicator(__("WHT Certificate: Pending"), "orange");
 		}
 
-		if (frm.doc.custom_withholding_tax_amount && frm.dashboard.add_comment) {
+		if (frm.doc.pd_custom_withholding_tax_amount && frm.dashboard.add_comment) {
 			frm.dashboard.add_comment(
 				__("WHT Amount: ") +
-					format_currency(frm.doc.custom_withholding_tax_amount),
+					format_currency(frm.doc.pd_custom_withholding_tax_amount),
 				"blue",
 			);
 		}

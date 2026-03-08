@@ -271,41 +271,41 @@ def download_pdf_with_signature_stamp(
             font_family = "Sarabun"
 
         # Get watermark text from multiple sources
-        watermark_text = ""
+        pd_custom_watermark_text = ""
 
         log_to_print_designer(f"Watermark settings: {watermark_settings}")
         log_to_print_designer(f"Print settings loaded: font_size={font_size}, position={position}, font_family={font_family}")
 
         # First, check the traditional watermark_settings from Print Settings
         if watermark_settings == "Original on First Page":
-            watermark_text = _("Original")
-            # watermark_text = "Original"
+            pd_custom_watermark_text = _("Original")
+            # pd_custom_watermark_text = "Original"
         elif watermark_settings == "Copy on All Pages":
-            watermark_text = _("Copy")
-            # watermark_text = "Copy"
+            pd_custom_watermark_text = _("Copy")
+            # pd_custom_watermark_text = "Copy"
         elif watermark_settings == "Original,Copy on Sequence":
             # For sequence watermarks, we'll use CSS to handle different text per page
-            watermark_text = "sequence"  # Special marker for sequence handling
+            pd_custom_watermark_text = "sequence"  # Special marker for sequence handling
             log_to_print_designer("Sequence watermarks detected - implementing page-specific watermarks")
 
         # Then, check for dynamic watermark from document field (if available)
         # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
-        if not watermark_text and watermark_settings == "None":
+        if not pd_custom_watermark_text and watermark_settings == "None":
             try:
                 doc = frappe.get_cached_doc(doctype, name)
                 log_to_print_designer(f"Checking document {doctype}/{name} for dynamic watermark")
-                dynamic_watermark = doc.get("watermark_text")
+                dynamic_watermark = doc.get("pd_custom_watermark_text")
                 if dynamic_watermark and dynamic_watermark != "None":
                     if isinstance(dynamic_watermark, (list, tuple)):
                         dynamic_watermark = ", ".join(
                             str(item) for item in dynamic_watermark
                         )
-                    watermark_text = frappe._(str(dynamic_watermark))
-                    log_to_print_designer(f"Using dynamic watermark: {watermark_text}")
+                    pd_custom_watermark_text = frappe._(str(dynamic_watermark))
+                    log_to_print_designer(f"Using dynamic watermark: {pd_custom_watermark_text}")
             except Exception as e:
                 log_to_print_designer(f"Error getting dynamic watermark: {e}")
 
-        if watermark_text:
+        if pd_custom_watermark_text:
             # Calculate position CSS based on selection (CSS 2.1 compatible only)
             # Use same positioning as print preview for consistency
             position_css = ""
@@ -323,7 +323,7 @@ def download_pdf_with_signature_stamp(
                 position_css = "top: 45%; left: 45%; width: 100px; margin-left: -50px;"
 
             # Add watermark CSS and HTML (CSS 2.1 compatible only)
-            if watermark_text == "sequence":
+            if pd_custom_watermark_text == "sequence":
                 # Special handling for sequence watermarks
                 # We'll inject multiple watermarks strategically placed in the HTML
                 watermark_html = f"""
@@ -353,12 +353,12 @@ def download_pdf_with_signature_stamp(
                         font-family: {font_family}, sans-serif;
                     }}
                 </style>
-                <div class="watermark">{watermark_text}</div>
+                <div class="watermark">{pd_custom_watermark_text}</div>
                 """
 
             # Insert watermark HTML inside header-html div where page numbers are located
             if isinstance(html_content, str):
-                if watermark_text == "sequence":
+                if pd_custom_watermark_text == "sequence":
                     # Special handling for sequence watermarks
                     # Insert CSS first
                     if '<div id="header-html">' in html_content:
@@ -500,7 +500,7 @@ def download_pdf_with_signature_stamp(
         frappe.local.response.filecontent = pdf_file
         frappe.local.response.type = "pdf"
 
-        log_to_print_designer(f"PDF generated successfully with watermark: {watermark_text}")
+        log_to_print_designer(f"PDF generated successfully with watermark: {pd_custom_watermark_text}")
         return pdf_file
 
     # If no watermarks needed, use original function

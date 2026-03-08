@@ -97,10 +97,10 @@ def analyze_connections_tab_content():
         position_desc = f"Position {cb['position']}/{len(connections_tab_fields)}"
         
         if i == 1:
-            expected_name = "wht_amounts_column_break"
+            expected_name = "pd_custom_wht_amounts_cb"
             status = "✅ CORRECT" if field['fieldname'] == expected_name else f"❌ SHOULD BE: {expected_name}"
         elif i == 2:
-            expected_name = "wht_preview_column_break"  
+            expected_name = "pd_custom_wht_preview_cb"  
             status = "✅ CORRECT" if field['fieldname'] == expected_name else f"❌ SHOULD BE: {expected_name}"
         else:
             status = "⚠️  UNEXPECTED"
@@ -115,10 +115,10 @@ def analyze_connections_tab_content():
     for i, cb in enumerate(column_breaks_in_tab, 1):
         field = cb['field']
         
-        if i == 1 and field['fieldname'] != 'wht_amounts_column_break':
+        if i == 1 and field['fieldname'] != 'pd_custom_wht_amounts_cb':
             needs_fixing.append({
                 'current_name': field['fieldname'],
-                'correct_name': 'wht_amounts_column_break',
+                'correct_name': 'pd_custom_wht_amounts_cb',
                 'action': 'rename',
                 'field_info': field
             })
@@ -129,9 +129,9 @@ def analyze_connections_tab_content():
                 'action': 'add_label',
                 'field_info': field
             }
-            if field['fieldname'] == 'wht_amounts_column_break' or (i == 1):
+            if field['fieldname'] == 'pd_custom_wht_amounts_cb' or (i == 1):
                 label_action['correct_label'] = 'WHT Amounts'
-            elif field['fieldname'] == 'wht_preview_column_break' or (i == 2):
+            elif field['fieldname'] == 'pd_custom_wht_preview_cb' or (i == 2):
                 label_action['correct_label'] = 'WHT Preview'
             
             needs_fixing.append(label_action)

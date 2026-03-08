@@ -147,7 +147,7 @@ def check_connections_tab_area():
     return []
 
 def fix_blank_fieldname():
-    """Fix the blank fieldname by setting it to wht_amounts_column_break"""
+    """Fix the blank fieldname by setting it to pd_custom_wht_amounts_cb"""
     
     blank_fields = check_connections_tab_area()
     
@@ -176,7 +176,7 @@ def fix_blank_fieldname():
     try:
         # Update the fieldname
         frappe.db.set_value('Custom Field', target_field['name'], {
-            'fieldname': 'wht_amounts_column_break',
+            'fieldname': 'pd_custom_wht_amounts_cb',
             'label': 'WHT Amounts'
         })
         
@@ -184,7 +184,7 @@ def fix_blank_fieldname():
         
         print(f"✅ Successfully updated:")
         print(f"   Record: {target_field['name']}")
-        print(f"   Fieldname: (blank) → 'wht_amounts_column_break'")
+        print(f"   Fieldname: (blank) → 'pd_custom_wht_amounts_cb'")
         print(f"   Label: (blank) → 'WHT Amounts'")
         
         # Clear cache

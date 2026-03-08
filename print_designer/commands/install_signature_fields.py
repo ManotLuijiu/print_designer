@@ -244,39 +244,39 @@ SIGNATURE_CUSTOM_FIELDS = {
     # ============================================================
     "Sales Invoice": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "sales_team",
             "description": "Signature of person who prepared the invoice",
         },
         {
-            "fieldname": "approved_by_signature",
+            "fieldname": "pd_custom_approved_by_signature",
             "fieldtype": "Attach Image",
             "label": "Approved By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of person who approved the invoice",
         },
     ],
     "Sales Order": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "sales_team",
             "description": "Signature of person who prepared the sales order",
         },
         {
-            "fieldname": "approved_by_signature",
+            "fieldname": "pd_custom_approved_by_signature",
             "fieldtype": "Attach Image",
             "label": "Approved By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of person who approved the sales order",
         },
     ],
     "Quotation": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "sales_team",
@@ -288,39 +288,39 @@ SIGNATURE_CUSTOM_FIELDS = {
     # ============================================================
     "Purchase Invoice": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "buying_price_list",
             "description": "Signature of person who prepared the purchase invoice",
         },
         {
-            "fieldname": "approved_by_signature",
+            "fieldname": "pd_custom_approved_by_signature",
             "fieldtype": "Attach Image",
             "label": "Approved By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of person who approved the purchase invoice",
         },
     ],
     "Purchase Order": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "buying_price_list",
             "description": "Signature of person who prepared the purchase order",
         },
         {
-            "fieldname": "approved_by_signature",
+            "fieldname": "pd_custom_approved_by_signature",
             "fieldtype": "Attach Image",
             "label": "Approved By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of person who approved the purchase order",
         },
     ],
     "Request for Quotation": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "buying_price_list",
@@ -332,7 +332,7 @@ SIGNATURE_CUSTOM_FIELDS = {
     # ============================================================
     "Delivery Note": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "shipping_address_name",
@@ -342,7 +342,7 @@ SIGNATURE_CUSTOM_FIELDS = {
             "fieldname": "delivered_by_signature",
             "fieldtype": "Attach Image",
             "label": "Delivered By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of delivery person",
         },
         {
@@ -355,7 +355,7 @@ SIGNATURE_CUSTOM_FIELDS = {
     ],
     "Purchase Receipt": [
         {
-            "fieldname": "prepared_by_signature",
+            "fieldname": "pd_custom_prepared_by_signature",
             "fieldtype": "Attach Image",
             "label": "Prepared By Signature",
             "insert_after": "shipping_address",
@@ -365,7 +365,7 @@ SIGNATURE_CUSTOM_FIELDS = {
             "fieldname": "received_by_signature",
             "fieldtype": "Attach Image",
             "label": "Received By Signature",
-            "insert_after": "prepared_by_signature",
+            "insert_after": "pd_custom_prepared_by_signature",
             "description": "Signature of person who received the items",
         },
     ],

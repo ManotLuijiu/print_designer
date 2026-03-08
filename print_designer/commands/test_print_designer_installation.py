@@ -51,11 +51,11 @@ def test_complete_print_designer_installation():
     retention_fields = [
         ("Company", "default_retention_rate"),
         ("Company", "default_retention_account"),
-        ("Sales Invoice", "custom_subject_to_retention"),
-        ("Sales Invoice", "custom_retention"),
-        ("Sales Invoice", "custom_retention_amount"),
-        ("Quotation", "custom_subject_to_retention"),
-        ("Sales Order", "custom_subject_to_retention"),
+        ("Sales Invoice", "pd_custom_subject_to_retention"),
+        ("Sales Invoice", "pd_custom_retention_pct"),
+        ("Sales Invoice", "pd_custom_retention_amount"),
+        ("Quotation", "pd_custom_subject_to_retention"),
+        ("Sales Order", "pd_custom_subject_to_retention"),
     ]
     
     retention_found = 0
@@ -72,13 +72,13 @@ def test_complete_print_designer_installation():
     # Test 3: WHT (Withholding Tax) Fields
     click.echo("\n3️⃣ Testing WHT Fields...")
     wht_fields = [
-        ("Sales Invoice", "thai_wht_preview_section"),
-        ("Sales Invoice", "subject_to_wht"),
-        ("Sales Invoice", "wht_income_type"),
-        ("Sales Invoice", "net_total_after_wht"),
-        ("Sales Invoice", "custom_withholding_tax_amount"),
-        ("Quotation", "subject_to_wht"),
-        ("Sales Order", "subject_to_wht"),
+        ("Sales Invoice", "pd_custom_wht_preview_section"),
+        ("Sales Invoice", "pd_custom_subject_to_wht"),
+        ("Sales Invoice", "pd_custom_wht_income_type"),
+        ("Sales Invoice", "pd_custom_net_total_after_wht"),
+        ("Sales Invoice", "pd_custom_withholding_tax_amount"),
+        ("Quotation", "pd_custom_subject_to_wht"),
+        ("Sales Order", "pd_custom_subject_to_wht"),
     ]
     
     wht_found = 0
@@ -95,11 +95,11 @@ def test_complete_print_designer_installation():
     # Test 4: Signature Fields
     click.echo("\n4️⃣ Testing Signature Fields...")
     signature_fields = [
-        ("Sales Invoice", "prepared_by_signature"),
-        ("Sales Invoice", "approved_by_signature"),
-        ("Quotation", "prepared_by_signature"),
-        ("Sales Order", "prepared_by_signature"),
-        ("Sales Order", "approved_by_signature"),
+        ("Sales Invoice", "pd_custom_prepared_by_signature"),
+        ("Sales Invoice", "pd_custom_approved_by_signature"),
+        ("Quotation", "pd_custom_prepared_by_signature"),
+        ("Sales Order", "pd_custom_prepared_by_signature"),
+        ("Sales Order", "pd_custom_approved_by_signature"),
     ]
     
     signature_found = 0
@@ -119,7 +119,7 @@ def test_complete_print_designer_installation():
         ("Print Format", "watermark_settings"),
         ("Print Settings", "watermark_settings_section"),
         ("Print Settings", "watermark_font_size"),
-        ("Sales Invoice", "watermark_text"),
+        ("Sales Invoice", "pd_custom_watermark_text"),
     ]
     
     watermark_found = 0

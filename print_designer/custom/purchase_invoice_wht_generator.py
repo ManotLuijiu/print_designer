@@ -30,12 +30,12 @@ def is_cash_services_with_wht(purchase_invoice):
     Check if Purchase Invoice qualifies for automatic WHT Certificate creation.
     Requirements:
     1. is_paid = 1 (Cash purchase)
-    2. apply_thai_wht_compliance = 1 (Thai WHT enabled)
+    2. pd_custom_apply_thai_wht_compliance = 1 (Thai WHT enabled)
     3. Contains service items (not goods)
     """
     # Check cash purchase and Thai WHT compliance flags
     is_paid = purchase_invoice.get('is_paid', 0)
-    apply_thai_wht = purchase_invoice.get('apply_thai_wht_compliance', 0)
+    apply_thai_wht = purchase_invoice.get('pd_custom_apply_thai_wht_compliance', 0)
 
     if not is_paid or not apply_thai_wht:
         return False

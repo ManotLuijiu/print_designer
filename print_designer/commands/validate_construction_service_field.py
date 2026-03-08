@@ -118,11 +118,11 @@ def check_construction_service_dependencies():
         dependent_fields = [
             ("Company", "default_retention_rate"),
             ("Company", "default_retention_account"),
-            ("Sales Invoice", "custom_subject_to_retention"),
-            ("Sales Invoice", "custom_retention"),
-            ("Sales Invoice", "custom_retention_amount"),
-            ("Quotation", "custom_subject_to_retention"),
-            ("Sales Order", "custom_subject_to_retention"),
+            ("Sales Invoice", "pd_custom_subject_to_retention"),
+            ("Sales Invoice", "pd_custom_retention_pct"),
+            ("Sales Invoice", "pd_custom_retention_amount"),
+            ("Quotation", "pd_custom_subject_to_retention"),
+            ("Sales Order", "pd_custom_subject_to_retention"),
         ]
         
         click.echo("📋 Checking dependent fields:")
@@ -148,9 +148,9 @@ def check_construction_service_dependencies():
         click.echo(f"\n🔗 Checking depends_on conditions:")
         
         retention_fields = [
-            ("Sales Invoice", "custom_subject_to_retention"),
-            ("Quotation", "custom_subject_to_retention"),
-            ("Sales Order", "custom_subject_to_retention"),
+            ("Sales Invoice", "pd_custom_subject_to_retention"),
+            ("Quotation", "pd_custom_subject_to_retention"),
+            ("Sales Order", "pd_custom_subject_to_retention"),
         ]
         
         for doctype, fieldname in retention_fields:
@@ -213,7 +213,7 @@ def test_construction_service_functionality():
         test_invoice.company = test_company
         
         # Check if retention fields are accessible
-        retention_fields = ["custom_subject_to_retention", "custom_retention", "custom_retention_amount"]
+        retention_fields = ["pd_custom_subject_to_retention", "pd_custom_retention_pct", "pd_custom_retention_amount"]
         accessible_fields = []
         
         for field in retention_fields:

@@ -272,10 +272,10 @@ print_designer.watermark = {
         const print_area = $('.print-format-container, .print-preview-wrapper').first();
         if (!print_area.length) return;
 
-        const watermark_text = this.get_watermark_text();
+        const pd_custom_watermark_text = this.get_watermark_text();
         const position_style = this.get_position_style();
 
-        if (watermark_text === 'sequence') {
+        if (pd_custom_watermark_text === 'sequence') {
             // Special handling for sequence watermarks in preview
             // Show both Original and Copy to indicate sequence mode
             this.watermark_element = $(`
@@ -308,7 +308,7 @@ print_designer.watermark = {
                     font-weight: bold;
                     text-transform: uppercase;
                     ${position_style}
-                ">${watermark_text}</div>
+                ">${pd_custom_watermark_text}</div>
             `);
         }
 

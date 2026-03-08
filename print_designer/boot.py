@@ -58,7 +58,7 @@ def boot_session(bootinfo):
         "enabled": frappe.get_system_settings("enable_thai_tax_compliance") or 0,
         "vat_rate": 7.0,
         "wht_rates": get_wht_rates(),
-        "required_fields": ["subject_to_wht", "is_paid"],
+        "required_fields": ["pd_custom_subject_to_wht", "is_paid"],
     }
 
     # Purchase Invoice business rules (enabled)

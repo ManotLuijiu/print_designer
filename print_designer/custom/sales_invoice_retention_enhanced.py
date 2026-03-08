@@ -47,7 +47,7 @@ frappe.ui.form.on('Sales Invoice', {
         setup_retention_fields(frm);
     },
     
-    custom_retention: function(frm) {
+    pd_custom_retention_pct: function(frm) {
         calculate_retention_amount(frm);
     },
     
@@ -58,7 +58,7 @@ frappe.ui.form.on('Sales Invoice', {
 
 function setup_retention_fields(frm) {
     if (!frm.doc.company) {
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], false);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], false);
         return;
     }
     
@@ -69,11 +69,11 @@ function setup_retention_fields(frm) {
         const is_enabled = frm.retention_company_cache[company_name];
         const default_rate = frm.retention_rate_cache[company_name];
         
-        frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+        frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
         
         // Set default retention rate if field is empty and construction service is enabled
-        if (is_enabled && !frm.doc.custom_retention && default_rate) {
-            frm.set_value('custom_retention', default_rate);
+        if (is_enabled && !frm.doc.pd_custom_retention_pct && default_rate) {
+            frm.set_value('pd_custom_retention_pct', default_rate);
         }
         
         console.log('✅ Using cached retention settings:', is_enabled, 'Default rate:', default_rate);
@@ -91,19 +91,19 @@ function setup_retention_fields(frm) {
             frm.retention_rate_cache[company_name] = default_rate;
             
             // Toggle field visibility
-            frm.toggle_display(['custom_retention', 'custom_retention_amount'], is_enabled);
+            frm.toggle_display(['pd_custom_retention_pct', 'pd_custom_retention_amount'], is_enabled);
             
             console.log('✅ Cached retention settings for', company_name, ':', is_enabled, 'Default rate:', default_rate);
             
             // Set default retention rate if field is empty and construction service is enabled
-            if (is_enabled && !frm.doc.custom_retention) {
-                frm.set_value('custom_retention', default_rate);
+            if (is_enabled && !frm.doc.pd_custom_retention_pct) {
+                frm.set_value('pd_custom_retention_pct', default_rate);
             }
             
             // Clear retention values if not enabled
-            if (!is_enabled && frm.doc.custom_retention) {
-                frm.set_value('custom_retention', 0);
-                frm.set_value('custom_retention_amount', 0);
+            if (!is_enabled && frm.doc.pd_custom_retention_pct) {
+                frm.set_value('pd_custom_retention_pct', 0);
+                frm.set_value('pd_custom_retention_amount', 0);
             }
         })
         .catch(err => {
@@ -112,11 +112,11 @@ function setup_retention_fields(frm) {
 }
 
 function calculate_retention_amount(frm) {
-    if (frm.doc.custom_retention && frm.doc.base_net_total) {
-        const retention_amount = (frm.doc.base_net_total * frm.doc.custom_retention) / 100;
-        frm.set_value('custom_retention_amount', retention_amount);
+    if (frm.doc.pd_custom_retention_pct && frm.doc.base_net_total) {
+        const retention_amount = (frm.doc.base_net_total * frm.doc.pd_custom_retention_pct) / 100;
+        frm.set_value('pd_custom_retention_amount', retention_amount);
     } else {
-        frm.set_value('custom_retention_amount', 0);
+        frm.set_value('pd_custom_retention_amount', 0);
     }
 }
 """
@@ -148,26 +148,26 @@ def calculate_retention_on_save(doc, method):
         
         if not company_data or not company_data.construction_service:
             # Clear retention fields if construction service is disabled
-            doc.custom_retention = 0
-            doc.custom_retention_amount = 0
+            doc.pd_custom_retention_pct = 0
+            doc.pd_custom_retention_amount = 0
             return
         
         # If retention percentage is not set, use company default
-        if not doc.custom_retention and company_data.default_retention_rate:
-            doc.custom_retention = company_data.default_retention_rate
+        if not doc.pd_custom_retention_pct and company_data.default_retention_rate:
+            doc.pd_custom_retention_pct = company_data.default_retention_rate
         
         # Calculate retention amount if retention percentage is set
-        if doc.custom_retention and doc.base_net_total:
-            retention_amount = (doc.base_net_total * doc.custom_retention) / 100
-            doc.custom_retention_amount = retention_amount
+        if doc.pd_custom_retention_pct and doc.base_net_total:
+            retention_amount = (doc.base_net_total * doc.pd_custom_retention_pct) / 100
+            doc.pd_custom_retention_amount = retention_amount
         else:
-            doc.custom_retention_amount = 0
+            doc.pd_custom_retention_amount = 0
             
     except Exception as e:
         frappe.log_error(f"Error calculating retention for Sales Invoice {doc.name}: {str(e)}", "Retention Calculation Error")
         # Fallback: clear retention fields on error
-        doc.custom_retention = 0
-        doc.custom_retention_amount = 0
+        doc.pd_custom_retention_pct = 0
+        doc.pd_custom_retention_amount = 0
 
 
 def validate_retention_fields(doc, method):
