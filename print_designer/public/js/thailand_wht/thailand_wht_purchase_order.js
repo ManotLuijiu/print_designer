@@ -189,32 +189,26 @@ frappe.ui.form.on('Purchase Order Item', {
     item_code: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         if (row.item_code) {
-            console.log('🔍 Item selected:', row.item_code);
+            // Auto-set VAT Treatment based on service item flag
+            pd_check_single_item_vat(frm, row.item_code);
 
-            // Get item WHT configuration
+            // Get item WHT configuration for WHT automation
             frappe.db.get_value('Item', row.item_code, [
                 'pd_custom_wht_income_type',
                 'pd_custom_is_service_item'
             ]).then(r => {
-                if (r.message) {
-                    console.log('📋 Item WHT config:', r.message);
-
-                    // Auto-configure WHT if item is a service with WHT type
-                    if (r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
-                        smart_configure_wht_from_item(frm, r.message, row.item_code);
-                    }
+                if (r.message && r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
+                    smart_configure_wht_from_item(frm, r.message, row.item_code);
                 }
-            }).catch(err => {
-                console.log('⚠️ Error fetching item WHT config:', err);
             });
         }
     },
 
     // Also trigger on item removal to check if WHT should be disabled
     items_remove: function(frm) {
-        // Small delay to let DOM update
         setTimeout(() => {
             check_remaining_wht_items(frm);
+            pd_check_vat_treatment_from_items(frm);
         }, 100);
     }
 });

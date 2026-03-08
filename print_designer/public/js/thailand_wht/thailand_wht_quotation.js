@@ -66,3 +66,16 @@ frappe.ui.form.on('Quotation', {
         }
     }
 });
+
+// Auto-set VAT Treatment from item service flag
+frappe.ui.form.on('Quotation Item', {
+    item_code: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.item_code) {
+            pd_check_single_item_vat(frm, row.item_code);
+        }
+    },
+    items_remove: function(frm) {
+        setTimeout(() => pd_check_vat_treatment_from_items(frm), 100);
+    }
+});

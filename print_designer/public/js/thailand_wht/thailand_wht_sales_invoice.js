@@ -301,10 +301,15 @@ function monitorModelEvents() {
 // Initialize monitoring
 monitorModelEvents();
 
-/*
-Original Thailand WHT functionality disabled to prevent excessive API calls to:
-- frappe.db.get_value('Company', company, 'thailand_service_business')
-
-This was causing performance issues and interfering with form operations.
-The Thailand WHT integration needs to be properly configured before re-enabling.
-*/
+// Auto-set VAT Treatment from item service flag
+frappe.ui.form.on('Sales Invoice Item', {
+    item_code: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.item_code) {
+            pd_check_single_item_vat(frm, row.item_code);
+        }
+    },
+    items_remove: function(frm) {
+        setTimeout(() => pd_check_vat_treatment_from_items(frm), 100);
+    }
+});

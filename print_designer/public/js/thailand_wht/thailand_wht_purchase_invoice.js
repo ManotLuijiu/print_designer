@@ -261,50 +261,26 @@ frappe.ui.form.on('Purchase Invoice Item', {
     item_code: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         if (row.item_code) {
-            console.log('🔍 DEBUG: Item selected in Purchase Invoice:', {
-                item_code: row.item_code,
-                row_idx: row.idx,
-                current_wht_status: frm.doc.pd_custom_apply_thai_wht_compliance
-            });
+            // Auto-set VAT Treatment based on service item flag
+            pd_check_single_item_vat(frm, row.item_code);
 
-            // Get item WHT configuration
+            // Get item WHT configuration for WHT automation
             frappe.db.get_value('Item', row.item_code, [
                 'pd_custom_wht_income_type',
                 'pd_custom_is_service_item'
             ]).then(r => {
-                if (r.message) {
-                    console.log('📋 DEBUG: Item WHT config fetched:', {
-                        item_code: row.item_code,
-                        config: r.message,
-                        is_service: r.message.pd_custom_is_service_item,
-                        wht_type: r.message.pd_custom_wht_income_type
-                    });
-
-                    // Auto-configure WHT if item is a service with WHT type
-                    if (r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
-                        console.log('🎯 DEBUG: Triggering smart WHT configuration from item');
-                        smart_configure_wht_from_item(frm, r.message, row.item_code);
-                    } else {
-                        console.log('⏭️ DEBUG: Item does not require WHT configuration:', {
-                            is_service: r.message.pd_custom_is_service_item,
-                            has_wht_type: !!r.message.pd_custom_wht_income_type
-                        });
-                    }
+                if (r.message && r.message.pd_custom_is_service_item && r.message.pd_custom_wht_income_type) {
+                    smart_configure_wht_from_item(frm, r.message, row.item_code);
                 }
-            }).catch(err => {
-                console.log('⚠️ DEBUG: Error fetching item WHT config:', {
-                    item_code: row.item_code,
-                    error: err
-                });
             });
         }
     },
 
     // Also trigger on item removal to check if WHT should be disabled
     items_remove: function(frm) {
-        // Small delay to let DOM update
         setTimeout(() => {
             check_remaining_wht_items(frm);
+            pd_check_vat_treatment_from_items(frm);
         }, 100);
     }
 });

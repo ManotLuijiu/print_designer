@@ -153,7 +153,10 @@ doctype_js = {
     "Client Script": "print_designer/client_scripts/client_script.js",
     # "Global Defaults": "print_designer/client_scripts/global_defaults.js",
     # Corrected path for doctype_js
-    "Quotation": "public/js/thailand_wht/thailand_wht_quotation.js",
+    "Quotation": [
+        "public/js/thailand_wht/thailand_wht_vat_helper.js",
+        "public/js/thailand_wht/thailand_wht_quotation.js",
+    ],
     "Item": "public/js/thailand_wht/thailand_wht_item.js",
     "Payment Entry": [
         "public/js/delivery_approval.js",
@@ -162,11 +165,21 @@ doctype_js = {
         "public/js/payment_entry_wht_certificate.js",
     ],
     "Sales Invoice": [
+        "public/js/thailand_wht/thailand_wht_vat_helper.js",
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
     ],
-    "Sales Order": "public/js/thailand_wht/thailand_wht_sales_order.js",
-    "Purchase Order": "public/js/thailand_wht/thailand_wht_purchase_order.js",
-    "Purchase Invoice": "public/js/thailand_wht/thailand_wht_purchase_invoice.js",
+    "Sales Order": [
+        "public/js/thailand_wht/thailand_wht_vat_helper.js",
+        "public/js/thailand_wht/thailand_wht_sales_order.js",
+    ],
+    "Purchase Order": [
+        "public/js/thailand_wht/thailand_wht_vat_helper.js",
+        "public/js/thailand_wht/thailand_wht_purchase_order.js",
+    ],
+    "Purchase Invoice": [
+        "public/js/thailand_wht/thailand_wht_vat_helper.js",
+        "public/js/thailand_wht/thailand_wht_purchase_invoice.js",
+    ],
     "Print Settings": "public/js/print_format/print_settings.js",
     "Signature Basic Information": "public/js/stamps_signatures/signature_basic_information.js",
     "Delivery Note": "public/js/delivery_note/delivery_approval.js",
