@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.19.1](https://github.com/ManotLuijiu/print_designer/compare/v1.19.0...v1.19.1) (2026-03-11)
+
+
+### 🐛 Bug Fixes
+
+* remove mixed Thai from WHT Note default value ([b7ce489](https://github.com/ManotLuijiu/print_designer/commit/b7ce489273d4a394831d586c179c45abd6604450))
+
 ## [1.19.0](https://github.com/ManotLuijiu/print_designer/compare/v1.18.0...v1.19.0) (2026-03-08)
 
 
