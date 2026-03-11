@@ -178,7 +178,7 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "pd_custom_net_total_after_wht_words",
                 "description": "Important note about WHT deduction timing",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักเมื่อชำระเงิน\\nNote: Withholding tax amount will be deducted upon payment",
+                "default": "Note: Withholding tax amount will be deducted upon payment",
                 "no_copy": 0,
                 "read_only": 1,
                 "translatable": 1,
