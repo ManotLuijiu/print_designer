@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.19.2](https://github.com/ManotLuijiu/print_designer/compare/v1.19.1...v1.19.2) (2026-03-20)
+
+
+### 🔧 Maintenance
+
+* move Thai Billing hooks to thai_business_suite ([5df4586](https://github.com/ManotLuijiu/print_designer/commit/5df458643b548efa9c4588810d51d593ad5ca254))
+
 ### [1.19.1](https://github.com/ManotLuijiu/print_designer/compare/v1.19.0...v1.19.1) (2026-03-11)
 
 
