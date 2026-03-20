@@ -104,8 +104,7 @@ commands = [
     "print_designer.commands.install_employee_thai_tax_fields.install_employee_thai_tax_fields",
     "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",
     "print_designer.commands.install_employee_thai_tax_fields.check_employee_thai_tax_fields",
-    # Thai Billing link field for Payment Entry
-    "print_designer.commands.install_thai_billing_fields.check_thai_billing_fields",
+    # Thai Billing link field moved to thai_business_suite
 ]
 
 # Includes in <head>
@@ -502,8 +501,7 @@ jinja = {
         "print_designer.custom.withholding_tax.get_suggested_wht_rate",
         # Thai WHT Override and Debug methods
         "print_designer.regional.purchase_order_wht_override.get_thai_wht_calculation_debug_info",
-        # Thai Billing amount conversion methods
-        "print_designer.print_designer.doctype.thai_billing.thai_billing.get_thai_billing_amount_in_words",
+        # Thai Billing amount conversion moved to thai_business_suite
     ]
 }
 
@@ -557,11 +555,9 @@ after_install = [
     # "print_designer.api.global_typography.after_install",
     # "print_designer.custom.company_tab.create_company_stamps_signatures_tab",
     "print_designer.install_utils.thai_defaults.setup_thai_language_defaults",  # Setup Thai as default language for Thai users
-    "print_designer.commands.install_thai_billing_fields.execute",  # Install Thai Billing link field for Payment Entry
+    # Thai Billing fields + workspace moved to thai_business_suite
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
-    # Sync Billing workspace from JSON to database
-    "print_designer.commands.sync_billing_workspace.execute",
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
@@ -604,10 +600,7 @@ after_migrate = [
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage
     "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
-    # Install Thai Billing link field for Payment Entry
-    "print_designer.commands.install_thai_billing_fields.execute",
-    # Sync Billing workspace from JSON to database
-    "print_designer.commands.sync_billing_workspace.execute",
+    # Thai Billing fields + workspace moved to thai_business_suite
 ]
 
 # Uninstallation
@@ -627,8 +620,7 @@ before_uninstall = [
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
     "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
-    "print_designer.commands.install_thai_billing_fields.uninstall_thai_billing_fields",  # Remove Thai Billing link field from Payment Entry
-    "print_designer.commands.sync_billing_workspace.remove_billing_workspace",  # Remove Billing workspace from database
+    # Thai Billing uninstall moved to thai_business_suite
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -713,12 +705,12 @@ doc_events = {
         "on_submit": [
             "print_designer.custom.payment_entry_retention.payment_entry_on_submit_thai_compliance",
             "print_designer.custom.payment_entry_server_events.on_submit",
-            "print_designer.print_designer.doctype.thai_billing.thai_billing.update_thai_billing_on_payment",
+            # Thai Billing hook moved to thai_business_suite
         ],
         "on_cancel": [
             "print_designer.custom.payment_entry_retention.payment_entry_on_cancel_reverse_retention_entries",
             "print_designer.custom.payment_entry_server_events.on_cancel",
-            "print_designer.print_designer.doctype.thai_billing.thai_billing.update_thai_billing_on_payment",
+            # Thai Billing hook moved to thai_business_suite
         ],
     },
     # Company DocType - Retention sync DISABLED (redundant)
