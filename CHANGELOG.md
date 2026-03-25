@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.20.0](https://github.com/ManotLuijiu/print_designer/compare/v1.19.2...v1.20.0) (2026-03-25)
+
+
+### ✨ Features
+
+* install_watermark_fields fixed ([2ab19ca](https://github.com/ManotLuijiu/print_designer/commit/2ab19ca918eba0901230284eebcdb77c817255b1))
+* watermark sidebar margin 4-directional fields, position tooltips, sidebar injection ([65f24b7](https://github.com/ManotLuijiu/print_designer/commit/65f24b729a50d7630a8c65d46eb4947f21abf25d))
+
 ### [1.19.2](https://github.com/ManotLuijiu/print_designer/compare/v1.19.1...v1.19.2) (2026-03-20)
 
 
