@@ -129,8 +129,8 @@ def _install_print_settings_watermark_fields():
                 "label": "Watermark Font Family",
                 "fieldname": "watermark_font_family",
                 "fieldtype": "Select",
-                "options": "Arial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri",
-                "default": "Arial",
+                "options": "Kanit\nSarabun\nArial\nHelvetica\nTimes New Roman\nCourier New\nVerdana\nGeorgia\nTahoma\nCalibri",
+                "default": "Kanit",
                 "insert_after": "watermark_position",
                 "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
                 "description": "Font family for watermark text",
@@ -164,7 +164,7 @@ def _set_watermark_defaults():
         defaults = {
             'watermark_font_size': 24,
             'watermark_position': 'Top Right',
-            'watermark_font_family': 'Arial',
+            'watermark_font_family': 'Kanit',
             'watermark_settings': 'None',
             'enable_multiple_copies': 0,
             'show_copy_controls_in_toolbar': 1

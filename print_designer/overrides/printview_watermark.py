@@ -478,11 +478,24 @@ def get_html_and_style_with_watermark(
     settings_dict = frappe.parse_json(settings) if settings else {}
     watermark_settings = settings_dict.get("watermark_settings", "None")
     watermark_template = settings_dict.get("watermark_template")
-    
+
     # Also check for new watermark fields from our Print Settings override
     watermark_font_size = settings_dict.get("watermark_font_size")
     watermark_position = settings_dict.get("watermark_position")
     watermark_font_family = settings_dict.get("watermark_font_family")
+
+    # Frappe's print view JS does NOT pass custom Print Format fields in the settings dict.
+    # The sidebar shows the values visually but never sends them to the server.
+    # Fix: read directly from the Print Format document as authoritative source.
+    if print_format_doc and (not watermark_settings or watermark_settings == "None"):
+        watermark_settings = print_format_doc.get("watermark_settings") or "None"
+        watermark_font_size = watermark_font_size or print_format_doc.get("watermark_font_size")
+        watermark_position = watermark_position or print_format_doc.get("watermark_position")
+        watermark_font_family = watermark_font_family or print_format_doc.get("watermark_font_family")
+        log_to_print_designer(
+            f"Watermark settings read from Print Format doc: settings={watermark_settings}, "
+            f"font_size={watermark_font_size}, position={watermark_position}, font_family={watermark_font_family}"
+        )
 
     log_to_print_designer(
         f"Print preview watermark request - settings: {watermark_settings}, template: {watermark_template}, font_size: {watermark_font_size}, position: {watermark_position}, font_family: {watermark_font_family}"
@@ -541,8 +554,9 @@ def get_html_and_style_with_watermark(
                         "position_custom": watermark_config.get("position_custom")
                     }
                 else:
-                    # Watermark system disabled, skip watermark generation
-                    return result
+                    # Watermark Settings DocType not configured for this format.
+                    # Raise so the except block falls back to Print Settings.
+                    raise Exception(f"No Watermark Settings configured for '{print_format}', using Print Settings fallback")
             else:
                 # No template and no print format, use defaults
                 raise Exception("No watermark configuration available")
@@ -551,23 +565,21 @@ def get_html_and_style_with_watermark(
             # Fallback to Print Settings for backward compatibility
             log_to_print_designer(f"Failed to get Watermark Settings, using fallback: {str(e)}")
             try:
-                # Try to use sidebar settings first
-                if watermark_font_size or watermark_position or watermark_font_family:
-                    log_to_print_designer("Using watermark settings from sidebar")
-                    font_size = watermark_font_size or "12px"
-                    # Remove px suffix if present for numeric processing
-                    if isinstance(font_size, str) and font_size.endswith('px'):
-                        font_size = font_size[:-2]
-                    font_family = watermark_font_family or "Sarabun"
-                    watermark_position = watermark_position or "Top Right"
-                else:
-                    # Fall back to Print Settings DocType
-                    print_settings = frappe.get_single("Print Settings")
-                    font_size = print_settings.get("watermark_font_size", "12px")
-                    if isinstance(font_size, str) and font_size.endswith('px'):
-                        font_size = font_size[:-2]
-                    font_family = print_settings.get("watermark_font_family", "Sarabun")
-                    watermark_position = print_settings.get("watermark_position", "Top Right")
+                # Read Print Settings as base, then override with any sidebar values
+                print_settings = frappe.get_single("Print Settings")
+                ps_font_size = print_settings.get("watermark_font_size") or 24
+                ps_font_family = print_settings.get("watermark_font_family") or "Kanit"
+                ps_position = print_settings.get("watermark_position") or "Top Right"
+
+                font_size = watermark_font_size or ps_font_size
+                # Remove px suffix if present for numeric processing
+                if isinstance(font_size, str) and font_size.endswith('px'):
+                    font_size = font_size[:-2]
+                font_family = watermark_font_family or ps_font_family
+                watermark_position = watermark_position or ps_position
+                log_to_print_designer(
+                    f"Using Print Settings fallback: font_size={font_size}, font_family={font_family}, position={watermark_position}"
+                )
                 
                 watermark_color = "#999999"
                 watermark_opacity = 0.6
@@ -669,7 +681,7 @@ def get_html_and_style_with_watermark(
 				}}
 
                 .watermark {{
-                    position: absolute;
+                    position: fixed;
                     {position_css}
                     font-size: {font_size}px;
                     color: {watermark_color};
