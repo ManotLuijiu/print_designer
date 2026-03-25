@@ -35,19 +35,24 @@ def get_print_settings_to_show(doctype, docname):
     # Always add Print Designer watermark fields to the sidebar
     watermark_fields = [
         "watermark_settings",
-        "watermark_font_size", 
+        "watermark_font_size",
         "watermark_position",
-        "watermark_font_family"
+        "watermark_margin_top",
+        "watermark_margin_right",
+        "watermark_margin_bottom",
+        "watermark_margin_left",
+        "watermark_font_family",
     ]
-    
+
     # Add watermark fields to the sidebar
     for fieldname in watermark_fields:
         df = print_settings.meta.get_field(fieldname)
         if df:
             df.default = print_settings.get(fieldname)
             fields_to_show.append(df)
-    
-    # Log for debugging purposes
-    frappe.logger().debug(f"Print Settings fields for {doctype}: {[f.fieldname for f in fields_to_show]}")
+        else:
+            frappe.logger("print_designer").warning(f"[WATERMARK SIDEBAR] field '{fieldname}' not found in Print Settings meta")
+
+    frappe.logger("print_designer").info(f"[WATERMARK SIDEBAR] returning fields: {[f.fieldname for f in fields_to_show]}")
     
     return fields_to_show
