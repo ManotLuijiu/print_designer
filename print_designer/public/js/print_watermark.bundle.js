@@ -20,6 +20,48 @@ print_designer.watermark = {
         this.load_watermark_config();
         this.load_available_templates();
         this.setup_sidebar_controls();
+        this.inject_sidebar_tooltips();
+    },
+
+    /**
+     * Inject "?" Bootstrap tooltip icons after labels in the native Frappe print sidebar.
+     * Safe to call multiple times — skips labels already injected.
+     */
+    inject_sidebar_tooltips: function() {
+        const tooltip_map = {
+            'Watermark per Page': __('None=off | Original on First Page=first page only | Copy on All Pages=every page | Original,Copy on Sequence=alternating per page'),
+        };
+
+        const try_inject = () => {
+            const sidebar = $('.print-format-sidebar');
+            if (!sidebar.length) return;
+
+            sidebar.find('label').each(function() {
+                const label = $(this);
+                // Strip any injected "?" before comparing text
+                const text = label.clone().find('.watermark-help').remove().end().text().trim();
+                if (tooltip_map[text] && !label.find('.watermark-help').length) {
+                    const $tip = $(
+                        `<span class="watermark-help"
+                            style="cursor:help; color:var(--text-muted); font-weight:bold;
+                                   border-bottom:1px dotted currentColor; margin-left:4px;
+                                   font-size:0.85em; display:inline-block;">?</span>`
+                    );
+                    label.append($tip);
+                    // Bootstrap 4 tooltip (Frappe ships Bootstrap 4)
+                    $tip.tooltip({
+                        title: tooltip_map[text],
+                        placement: 'right',
+                        trigger: 'hover',
+                        container: 'body',
+                    });
+                }
+            });
+        };
+
+        // Try after sidebar renders; retry for slow render
+        setTimeout(try_inject, 800);
+        setTimeout(try_inject, 2500);
     },
 
     /**
@@ -107,6 +149,19 @@ print_designer.watermark = {
                         </select>
                     </div>
                     <div class="form-group">
+                        <label>${__('Margin (mm)')}</label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 8px;">
+                            <div><small class="text-muted">${__('Top')}</small>
+                                <input type="number" class="form-control watermark-margin-top" min="0" max="100" value="0"></div>
+                            <div><small class="text-muted">${__('Right')}</small>
+                                <input type="number" class="form-control watermark-margin-right" min="0" max="100" value="0"></div>
+                            <div><small class="text-muted">${__('Bottom')}</small>
+                                <input type="number" class="form-control watermark-margin-bottom" min="0" max="100" value="0"></div>
+                            <div><small class="text-muted">${__('Left')}</small>
+                                <input type="number" class="form-control watermark-margin-left" min="0" max="100" value="0"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>${__('Font Size')}</label>
                         <input type="number" class="form-control watermark-font-size" min="8" max="72" value="24">
                     </div>
@@ -165,7 +220,7 @@ print_designer.watermark = {
         });
 
         // Real-time preview updates
-        $('.watermark-position-select, .watermark-font-size, .watermark-color, .watermark-custom-text').on('change input', () => {
+        $('.watermark-position-select, .watermark-margin-top, .watermark-margin-right, .watermark-margin-bottom, .watermark-margin-left, .watermark-font-size, .watermark-color, .watermark-custom-text').on('change input', () => {
             this.update_config_from_controls();
             this.apply_watermark();
         });
@@ -235,6 +290,10 @@ print_designer.watermark = {
         $('.watermark-template-select').val(this.current_config.template_name || '');
         $('.watermark-mode-select').val(this.current_config.watermark_mode || 'None');
         $('.watermark-position-select').val(this.current_config.position || 'Top Right');
+        $('.watermark-margin-top').val(this.current_config.margin_top ?? 0);
+        $('.watermark-margin-right').val(this.current_config.margin_right ?? 0);
+        $('.watermark-margin-bottom').val(this.current_config.margin_bottom ?? 0);
+        $('.watermark-margin-left').val(this.current_config.margin_left ?? 0);
         $('.watermark-font-size').val(this.current_config.font_size || 24);
         $('.watermark-color').val(this.current_config.color || '#999999');
         $('.watermark-opacity').val(this.current_config.opacity || 0.6);
@@ -252,6 +311,10 @@ print_designer.watermark = {
 
         this.current_config.watermark_mode = $('.watermark-mode-select').val();
         this.current_config.position = $('.watermark-position-select').val();
+        this.current_config.margin_top    = parseInt($('.watermark-margin-top').val())    || 0;
+        this.current_config.margin_right   = parseInt($('.watermark-margin-right').val())   || 0;
+        this.current_config.margin_bottom  = parseInt($('.watermark-margin-bottom').val())  || 0;
+        this.current_config.margin_left    = parseInt($('.watermark-margin-left').val())    || 0;
         this.current_config.font_size = parseInt($('.watermark-font-size').val()) || 24;
         this.current_config.color = $('.watermark-color').val();
         this.current_config.opacity = parseFloat($('.watermark-opacity').val()) || 0.6;
@@ -344,17 +407,23 @@ print_designer.watermark = {
      */
     get_position_style: function() {
         const position = this.current_config.position || 'Top Right';
-        
+        // Convert mm to px for browser preview (1mm ≈ 3.7795px)
+        const to_px = (mm) => Math.round((parseInt(mm) || 0) * 3.7795) + 'px';
+        const mt = to_px(this.current_config.margin_top);
+        const mr = to_px(this.current_config.margin_right);
+        const mb = to_px(this.current_config.margin_bottom);
+        const ml = to_px(this.current_config.margin_left);
+
         const positions = {
-            'Top Left': 'top: 10px; left: 10px;',
-            'Top Center': 'top: 10px; left: 50%; transform: translateX(-50%);',
-            'Top Right': 'top: 10px; right: 10px;',
-            'Middle Left': 'top: 50%; left: 10px; transform: translateY(-50%);',
+            'Top Left':      `top: ${mt}; left: ${ml};`,
+            'Top Center':    `top: ${mt}; left: 50%; transform: translateX(-50%);`,
+            'Top Right':     `top: ${mt}; right: ${mr};`,
+            'Middle Left':   `top: 50%; left: ${ml}; transform: translateY(-50%);`,
             'Middle Center': 'top: 50%; left: 50%; transform: translate(-50%, -50%);',
-            'Middle Right': 'top: 50%; right: 10px; transform: translateY(-50%);',
-            'Bottom Left': 'bottom: 10px; left: 10px;',
-            'Bottom Center': 'bottom: 10px; left: 50%; transform: translateX(-50%);',
-            'Bottom Right': 'bottom: 10px; right: 10px;'
+            'Middle Right':  `top: 50%; right: ${mr}; transform: translateY(-50%);`,
+            'Bottom Left':   `bottom: ${mb}; left: ${ml};`,
+            'Bottom Center': `bottom: ${mb}; left: 50%; transform: translateX(-50%);`,
+            'Bottom Right':  `bottom: ${mb}; right: ${mr};`,
         };
 
         return positions[position] || positions['Top Right'];
@@ -550,12 +619,26 @@ print_designer.watermark = {
 
 // Auto-initialize when print designer loads
 $(document).ready(() => {
-    // Hook into print designer initialization
+    // On Print Format form: full watermark init (preview overlay + sidebar controls)
     if (window.cur_frm && cur_frm.doctype === 'Print Format') {
         frappe.after_ajax(() => {
             if (cur_frm.doc.name) {
                 print_designer.watermark.init(cur_frm.doc.name);
             }
         });
+    }
+
+    // On print preview page (/app/print/): inject "?" tooltips into native Frappe sidebar
+    const maybe_inject_tooltips = () => {
+        const route = frappe.get_route ? frappe.get_route() : [];
+        if (route && route[0] === 'print') {
+            print_designer.watermark.inject_sidebar_tooltips();
+        }
+    };
+
+    // Run on initial load and on every route change
+    setTimeout(maybe_inject_tooltips, 1000);
+    if (frappe.router) {
+        frappe.router.on('change', () => setTimeout(maybe_inject_tooltips, 1000));
     }
 });

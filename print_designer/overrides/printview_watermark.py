@@ -300,75 +300,57 @@ def get_print_designer_style(print_format_doc):
         return ""
 
 
-def get_watermark_position_css(position, position_config=None):
+def get_watermark_position_css(position, position_config=None, margin_top="0mm", margin_right="0mm", margin_bottom="0mm", margin_left="0mm"):
     """
     Get CSS positioning styles based on Watermark Settings position configuration
-    
+
     Args:
         position: Position string from Watermark Settings
-        position_config: Dictionary containing custom position values 
+        position_config: Dictionary containing custom position values
                         (position_top, position_right, position_bottom, position_left)
-        
+        margin_top/right/bottom/left: Independent edge offsets (default "0mm")
+
     Returns:
         str: CSS positioning properties
     """
-    log_to_print_designer(f"get_watermark_position_css called with position='{position}', config={position_config}")
-    # Check if custom positioning is requested
+    log_to_print_designer(f"get_watermark_position_css called with position='{position}', config={position_config}, margins=T{margin_top}/R{margin_right}/B{margin_bottom}/L{margin_left}")
+    # Check if custom positioning is requested (keeps px-based custom values as-is)
     if position == "Custom" and position_config:
         custom_css = []
-        
+
         # Handle top/bottom positioning (top takes precedence)
         if position_config.get("position_top") is not None:
             custom_css.append(f"top: {position_config['position_top']}px;")
         elif position_config.get("position_bottom") is not None:
             custom_css.append(f"bottom: {position_config['position_bottom']}px;")
         else:
-            # Default to top if neither specified
-            custom_css.append("top: 10px;")
-        
+            custom_css.append(f"top: {margin_top};")
+
         # Handle left/right positioning (right takes precedence)
         if position_config.get("position_right") is not None:
             custom_css.append(f"right: {position_config['position_right']}px;")
         elif position_config.get("position_left") is not None:
             custom_css.append(f"left: {position_config['position_left']}px;")
         else:
-            # Default to right if neither specified
-            custom_css.append("right: 10px;")
-        
-        # Add transform if needed for centering
-        if (position_config.get("position_left") is not None and 
-            position_config.get("position_right") is not None):
-            # Both left and right specified - this is unusual but we'll use right
-            pass
-        elif (position_config.get("position_top") is not None and 
-              position_config.get("position_bottom") is not None):
-            # Both top and bottom specified - this is unusual but we'll use top
-            pass
-        
+            custom_css.append(f"right: {margin_right};")
+
         return " ".join(custom_css)
-    
-    # Use predefined positions
+
+    # Use predefined positions with independent per-edge margins
     position_map = {
-        "Top Left": "top: 10px; left: 10px;",
-        "Top Center": "top: 10px; left: 50%; transform: translateX(-50%);",
-        "Top Right": "top: 10px; right: 10px;",
-        "Middle Left": "top: 50%; left: 10px; transform: translateY(-50%);",
+        "Top Left":      f"top: {margin_top}; left: {margin_left};",
+        "Top Center":    f"top: {margin_top}; left: 50%; transform: translateX(-50%);",
+        "Top Right":     f"top: {margin_top}; right: {margin_right};",
+        "Middle Left":   f"top: 50%; left: {margin_left}; transform: translateY(-50%);",
         "Middle Center": "top: 50%; left: 50%; transform: translate(-50%, -50%);",
-        "Middle Right": "top: 50%; right: 10px; transform: translateY(-50%);",
-        "Bottom Left": "bottom: 10px; left: 10px;",
-        "Bottom Center": "bottom: 10px; left: 50%; transform: translateX(-50%);",
-        "Bottom Right": "bottom: 10px; right: 10px;",
+        "Middle Right":  f"top: 50%; right: {margin_right}; transform: translateY(-50%);",
+        "Bottom Left":   f"bottom: {margin_bottom}; left: {margin_left};",
+        "Bottom Center": f"bottom: {margin_bottom}; left: 50%; transform: translateX(-50%);",
+        "Bottom Right":  f"bottom: {margin_bottom}; right: {margin_right};",
     }
-    
-    # Default to top right if position not found
+
     result_css = position_map.get(position, position_map["Top Right"])
     log_to_print_designer(f"Position mapping result: '{position}' -> '{result_css}'")
-    
-    # TEMPORARY FIX: Force Top Right position
-    if position == "Middle Left":
-        log_to_print_designer("FORCING Top Right instead of Middle Left")
-        return "top: 10px; right: 10px;"
-    
     return result_css
 
 
@@ -570,6 +552,10 @@ def get_html_and_style_with_watermark(
                 ps_font_size = print_settings.get("watermark_font_size") or 24
                 ps_font_family = print_settings.get("watermark_font_family") or "Kanit"
                 ps_position = print_settings.get("watermark_position") or "Top Right"
+                ps_margin_top = print_settings.get("watermark_margin_top") or 0
+                ps_margin_right = print_settings.get("watermark_margin_right") or 0
+                ps_margin_bottom = print_settings.get("watermark_margin_bottom") or 0
+                ps_margin_left = print_settings.get("watermark_margin_left") or 0
 
                 font_size = watermark_font_size or ps_font_size
                 # Remove px suffix if present for numeric processing
@@ -577,8 +563,12 @@ def get_html_and_style_with_watermark(
                     font_size = font_size[:-2]
                 font_family = watermark_font_family or ps_font_family
                 watermark_position = watermark_position or ps_position
+                watermark_margin_top = int(settings_dict.get("watermark_margin_top") or ps_margin_top)
+                watermark_margin_right = int(settings_dict.get("watermark_margin_right") or ps_margin_right)
+                watermark_margin_bottom = int(settings_dict.get("watermark_margin_bottom") or ps_margin_bottom)
+                watermark_margin_left = int(settings_dict.get("watermark_margin_left") or ps_margin_left)
                 log_to_print_designer(
-                    f"Using Print Settings fallback: font_size={font_size}, font_family={font_family}, position={watermark_position}"
+                    f"Using Print Settings fallback: font_size={font_size}, font_family={font_family}, position={watermark_position}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
                 )
                 
                 watermark_color = "#999999"
@@ -592,6 +582,10 @@ def get_html_and_style_with_watermark(
                 watermark_color = "#999999"
                 watermark_opacity = 0.6
                 watermark_position = "Top Right"
+                watermark_margin_top = 0
+                watermark_margin_right = 0
+                watermark_margin_bottom = 0
+                watermark_margin_left = 0
                 custom_watermark_text = None
                 configured_mode = None
                 position_config = {}  # No custom positioning for fallback
@@ -657,18 +651,29 @@ def get_html_and_style_with_watermark(
                         f"Error getting dynamic watermark for preview: {e}"
                     )
 
+        # Initialize pd_custom_watermark_text from watermark_text for the 4-directional margin feature
+        pd_custom_watermark_text = watermark_text
+
         watermark_html = ""
-        if watermark_text:
-            # Calculate position CSS based on selection (CSS 2.1 compatible only)
-            # Position it below page numbers with consistent positioning for both preview and PDF
+        if pd_custom_watermark_text:
+            # "Original on First Page" → position: absolute (document flow, page 1 only)
+            # All other modes → position: fixed (repeats on every page via CSS)
+            effective_mode = configured_mode or watermark_settings or "None"
+            position_type = "absolute" if effective_mode == "Original on First Page" else "fixed"
+
             log_to_print_designer(
-                f"Creating watermark HTML with text: {watermark_text}, font: {font_family}"
+                f"Creating watermark HTML: text={pd_custom_watermark_text}, font={font_family}, "
+                f"position_type={position_type}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
             )
-            # Calculate position CSS based on Watermark Settings configuration
-            log_to_print_designer(f"WATERMARK POSITION DEBUG: position={watermark_position}, config={position_config}")
-            position_css = get_watermark_position_css(watermark_position, position_config)
-            log_to_print_designer(f"WATERMARK CSS DEBUG: {position_css}")
-            
+            position_css = get_watermark_position_css(
+                watermark_position, position_config,
+                margin_top=f"{watermark_margin_top}mm",
+                margin_right=f"{watermark_margin_right}mm",
+                margin_bottom=f"{watermark_margin_bottom}mm",
+                margin_left=f"{watermark_margin_left}mm",
+            )
+            log_to_print_designer(f"Watermark CSS: position={position_type}, {position_css}")
+
             watermark_html = f"""
             <style>
             	@font-face {{
@@ -676,12 +681,8 @@ def get_html_and_style_with_watermark(
     				src: url('/assets/print_designer/fonts/thai/Sarabun/Sarabun-Regular.ttf') format('truetype');
 				}}
 
-				body {{
-					font-family: 'Sarabun', sans-serif;
-				}}
-
                 .watermark {{
-                    position: fixed;
+                    position: {position_type};
                     {position_css}
                     font-size: {font_size}px;
                     color: {watermark_color};
@@ -692,32 +693,31 @@ def get_html_and_style_with_watermark(
                     text-transform: uppercase;
                 }}
             </style>
-            <div class="watermark">{watermark_text}</div>
+            <div class="watermark">{pd_custom_watermark_text}</div>
             """
 
         # Insert watermark HTML if any watermark was generated
         if watermark_html:
             html = result["html"]
 
-            # Try to insert watermark inside header-html div where page numbers are located
-            if '<div id="header-html">' in html:
-                # Insert watermark right after the header-html opening tag
+            # Only insert into #header-html (Chrome CDP repeating header) when watermark
+            # should appear on every page. "Original on First Page" must stay in body flow.
+            use_header = (position_type == "fixed") and ('<div id="header-html">' in html)
+            if use_header:
                 html = html.replace(
                     '<div id="header-html">', f'<div id="header-html">{watermark_html}'
                 )
             elif '<div class="print-format' in html:
-                # Fallback: insert before print-format div
                 html = html.replace(
                     '<div class="print-format',
                     f'{watermark_html}\n<div class="print-format',
                 )
             else:
-                # Last resort: append at the end
                 html += watermark_html
 
             result["html"] = html
             log_to_print_designer(
-                f"Watermark added to print preview HTML. Final watermark text: {watermark_text}"
+                f"Watermark added to print preview HTML. text={pd_custom_watermark_text}, mode={effective_mode}"
             )
 
     return result
