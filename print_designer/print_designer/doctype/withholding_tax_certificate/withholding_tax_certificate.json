@@ -1,6 +1,7 @@
 {
 	"actions": [],
 	"autoname": "field:certificate_number",
+	"istable": 0,
 	"creation": "2025-09-16 18:59:25.995532",
 	"doctype": "DocType",
 	"engine": "InnoDB",
@@ -78,7 +79,7 @@
 			"description": "Buddhist Era year (auto-calculated)",
 			"fieldname": "tax_year",
 			"fieldtype": "Data",
-			"label": "Tax Year (\u0e1e.\u0e28.)",
+			"label": "Tax Year (พ.ศ.)",
 			"read_only": 1
 		},
 		{
@@ -86,7 +87,7 @@
 			"fieldtype": "Select",
 			"in_standard_filter": 1,
 			"label": "Tax Month",
-			"options": "\n01 - \u0e21\u0e01\u0e23\u0e32\u0e04\u0e21 (January)\n02 - \u0e01\u0e38\u0e21\u0e20\u0e32\u0e1e\u0e31\u0e19\u0e18\u0e4c (February)\n03 - \u0e21\u0e35\u0e19\u0e32\u0e04\u0e21 (March)\n04 - \u0e40\u0e21\u0e29\u0e32\u0e22\u0e19 (April)\n05 - \u0e1e\u0e24\u0e29\u0e20\u0e32\u0e04\u0e21 (May)\n06 - \u0e21\u0e34\u0e16\u0e38\u0e19\u0e32\u0e22\u0e19 (June)\n07 - \u0e01\u0e23\u0e01\u0e0e\u0e32\u0e04\u0e21 (July)\n08 - \u0e2a\u0e34\u0e07\u0e2b\u0e32\u0e04\u0e21 (August)\n09 - \u0e01\u0e31\u0e19\u0e22\u0e32\u0e22\u0e19 (September)\n10 - \u0e15\u0e38\u0e25\u0e32\u0e04\u0e21 (October)\n11 - \u0e1e\u0e24\u0e28\u0e08\u0e34\u0e01\u0e32\u0e22\u0e19 (November)\n12 - \u0e18\u0e31\u0e19\u0e27\u0e32\u0e04\u0e21 (December)",
+			"options": "\n01 - มกราคม (January)\n02 - กุมภาพันธ์ (February)\n03 - มีนาคม (March)\n04 - เมษายน (April)\n05 - พฤษภาคม (May)\n06 - มิถุนายน (June)\n07 - กรกฎาคม (July)\n08 - สิงหาคม (August)\n09 - กันยายน (September)\n10 - ตุลาคม (October)\n11 - พฤศจิกายน (November)\n12 - ธันวาคม (December)",
 			"reqd": 1
 		},
 		{
@@ -104,23 +105,23 @@
 			"read_only": 1
 		},
 		{
-			"description": "\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e07\u0e43\u0e2b\u0e49\u0e01\u0e23\u0e21\u0e2a\u0e23\u0e23\u0e1e\u0e32\u0e01\u0e23",
+			"description": "วันที่ส่งให้กรมสรรพากร",
 			"fieldname": "submission_date",
 			"fieldtype": "Date",
 			"label": "Submission Date to Revenue Dept"
 		},
 		{
-			"description": "\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e41\u0e1a\u0e1a\u0e41\u0e2a\u0e14\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e20\u0e32\u0e29\u0e35\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22",
+			"description": "ประเภทแบบแสดงรายการภาษีเงินได้หัก ณ ที่จ่าย",
 			"fieldname": "pnd_form_type",
 			"fieldtype": "Link",
-			"label": "PND Form Type (\u0e41\u0e1a\u0e1a \u0e20.\u0e07.\u0e14.)",
+			"label": "PND Form Type (แบบ ภ.ง.ด.)",
 			"options": "DocType",
 			"search_index": 1
 		},
 		{
 			"fieldname": "supplier_section",
 			"fieldtype": "Section Break",
-			"label": "Supplier Information (\u0e1c\u0e39\u0e49\u0e16\u0e39\u0e01\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)"
+			"label": "Supplier Information (ผู้ถูกหักภาษี)"
 		},
 		{
 			"fieldname": "supplier",
@@ -139,7 +140,7 @@
 			"read_only": 1
 		},
 		{
-			"description": "\u0e40\u0e25\u0e02\u0e1b\u0e23\u0e30\u0e08\u0e33\u0e15\u0e31\u0e27\u0e1c\u0e39\u0e49\u0e40\u0e2a\u0e35\u0e22\u0e20\u0e32\u0e29\u0e35",
+			"description": "เลขประจำตัวผู้เสียภาษี",
 			"fetch_from": "supplier.tax_id",
 			"fieldname": "supplier_tax_id",
 			"fieldtype": "Data",
@@ -159,13 +160,13 @@
 		},
 		{
 			"default": "00000",
-			"description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48 (Head Office)",
+			"description": "00000 = สำนักงานใหญ่ (Head Office)",
 			"fieldname": "supplier_branch_code",
 			"fieldtype": "Data",
-			"label": "Supplier Branch Code (\u0e23\u0e2b\u0e31\u0e2a\u0e2a\u0e32\u0e02\u0e32)"
+			"label": "Supplier Branch Code (รหัสสาขา)"
 		},
 		{
-			"description": "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e32\u0e02\u0e32 (\u0e16\u0e49\u0e32\u0e21\u0e35)",
+			"description": "ชื่อสาขา (ถ้ามี)",
 			"fieldname": "supplier_branch_name",
 			"fieldtype": "Data",
 			"label": "Supplier Branch Name"
@@ -213,14 +214,14 @@
 			"fetch_from": "payment_entry.company",
 			"fieldname": "company",
 			"fieldtype": "Link",
-			"label": "Company (\u0e1c\u0e39\u0e49\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35)",
+			"label": "Company (ผู้หักภาษี)",
 			"options": "Company",
 			"read_only": 1,
 			"reqd": 1
 		},
 		{
 			"default": "00000",
-			"description": "00000 = \u0e2a\u0e33\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e43\u0e2b\u0e0d\u0e48",
+			"description": "00000 = สำนักงานใหญ่",
 			"fieldname": "company_branch",
 			"fieldtype": "Data",
 			"label": "Company Branch"
@@ -228,21 +229,21 @@
 		{
 			"fieldname": "wht_details_section",
 			"fieldtype": "Section Break",
-			"label": "Withholding Tax Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)"
+			"label": "Withholding Tax Details (รายละเอียดภาษีหัก ณ ที่จ่าย)"
 		},
 		{
 			"fieldname": "income_type",
 			"fieldtype": "Select",
 			"in_list_view": 1,
-			"label": "Income Type (\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49)",
-			"options": "\n1. \u0e40\u0e07\u0e34\u0e19\u0e40\u0e14\u0e37\u0e2d\u0e19 \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07 \u0e2f\u0e25\u0e2f 40(1) - Salary\n2. \u0e04\u0e48\u0e32\u0e18\u0e23\u0e23\u0e21\u0e40\u0e19\u0e35\u0e22\u0e21 \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 \u0e2f\u0e25\u0e2f 40(2) - Fee/Commission\n40 (2) \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 - \u0e2a\u0e21\u0e32\u0e04\u0e21 (10%)\n3. \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c \u0e2f\u0e25\u0e2f 40(3) - Royalty\n40 (3) \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e01\u0e39\u0e49\u0e14\u0e27\u0e34\u0e25\u0e25\u0e4c \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c \u0e2b\u0e23\u0e37\u0e2d\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e2d\u0e37\u0e48\u0e19 - \u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17 (3%)\n40 (3) \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e01\u0e39\u0e49\u0e14\u0e27\u0e34\u0e25\u0e25\u0e4c \u0e04\u0e48\u0e32\u0e41\u0e2b\u0e48\u0e07\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c \u0e2b\u0e23\u0e37\u0e2d\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e2d\u0e37\u0e48\u0e19 - \u0e2a\u0e21\u0e32\u0e04\u0e21 (10%)\n4. (\u0e01) \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22 \u0e2f\u0e25\u0e2f 40(4)\u0e01 - Interest\n40 (4)(\u0e01) \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22 - \u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17 (1%)\n40 (4)(\u0e01) \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22 - \u0e2a\u0e21\u0e32\u0e04\u0e21 (10%)\n4. (\u0e02) \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25 \u0e40\u0e07\u0e34\u0e19\u0e2a\u0e48\u0e27\u0e19\u0e41\u0e1a\u0e48\u0e07\u0e01\u0e33\u0e44\u0e23 \u0e2f\u0e25\u0e2f 40(4)\u0e02 - Dividend\n40 (4)(\u0e02) \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25 - \u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17\u0e15\u0e48\u0e32\u0e07\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28 \u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e01\u0e32\u0e23\u0e43\u0e19\u0e44\u0e17\u0e22 (10%)\n40 (5)(\u0e01) \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e2d\u0e2a\u0e31\u0e07\u0e2b\u0e32\u0e2f - \u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17 (5%)\n40 (5)(\u0e01) \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e2d\u0e2a\u0e31\u0e07\u0e2b\u0e32\u0e2f - \u0e21\u0e39\u0e25\u0e19\u0e34\u0e18\u0e34 (10%)\n40 (5) \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\u0e40\u0e23\u0e37\u0e2d \u0e15\u0e32\u0e21\u0e01\u0e0e\u0e2b\u0e21\u0e32\u0e22\u0e27\u0e48\u0e32\u0e14\u0e49\u0e27\u0e22\u0e01\u0e32\u0e23\u0e2a\u0e48\u0e07\u0e40\u0e2a\u0e23\u0e34\u0e21\u0e1e\u0e32\u0e13\u0e34\u0e0a\u0e22\u0e4c\u0e19\u0e32\u0e27\u0e35\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e43\u0e19\u0e01\u0e32\u0e23\u0e02\u0e19\u0e2a\u0e48\u0e07\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28 (1%)\n40 (5) \u0e1c\u0e39\u0e49\u0e21\u0e35\u0e2b\u0e19\u0e49\u0e32\u0e17\u0e35\u0e48\u0e40\u0e2a\u0e35\u0e22\u0e20\u0e32\u0e29\u0e35\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49\u0e1a\u0e38\u0e04\u0e04\u0e25\u0e18\u0e23\u0e23\u0e21\u0e14\u0e32\u0e17\u0e35\u0e48\u0e21\u0e34\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28\u0e44\u0e17\u0e22 (15%)\n5. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07 \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23 \u0e2f\u0e25\u0e2f 3 \u0e40\u0e15\u0e23\u0e2a - Service\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e01\u0e0e\u0e2b\u0e21\u0e32\u0e22\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e41\u0e1e\u0e17\u0e22\u0e4c(\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e30\u0e01\u0e2d\u0e1a\u0e42\u0e23\u0e04\u0e28\u0e34\u0e25\u0e1b\u0e30)\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e27\u0e34\u0e28\u0e27\u0e01\u0e23\u0e23\u0e21\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e2a\u0e16\u0e32\u0e1b\u0e31\u0e15\u0e22\u0e32\u0e01\u0e23\u0e23\u0e21\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e01\u0e32\u0e23\u0e1a\u0e31\u0e0d\u0e0a\u0e35\n40 (6) \u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e1b\u0e23\u0e30\u0e13\u0e35\u0e15\u0e28\u0e34\u0e25\u0e1b\u0e01\u0e23\u0e23\u0e21\n40 (6) \u0e1c\u0e39\u0e49\u0e21\u0e35\u0e2b\u0e19\u0e49\u0e32\u0e17\u0e35\u0e48\u0e40\u0e2a\u0e35\u0e22\u0e20\u0e32\u0e29\u0e35\u0e40\u0e07\u0e34\u0e19\u0e44\u0e14\u0e49\u0e1a\u0e38\u0e04\u0e04\u0e25\u0e18\u0e23\u0e23\u0e21\u0e14\u0e32\u0e17\u0e35\u0e48\u0e21\u0e34\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28\u0e44\u0e17\u0e22 (15%)\n40 (7) \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07(\u0e23\u0e31\u0e1a\u0e40\u0e2b\u0e21\u0e32) (3%)\n40 (8) \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07(\u0e2d\u0e37\u0e48\u0e19\u0e46) (3%)\n40 (8) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e30\u0e01\u0e27\u0e14 (5%)\n40 (8) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e41\u0e02\u0e48\u0e07\u0e02\u0e31\u0e19 (5%)\n40 (8) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e0a\u0e34\u0e07\u0e42\u0e0a\u0e04 (5%)\n40 (8) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e2d\u0e37\u0e48\u0e19\u0e43\u0e14\u0e21\u0e35\u0e48\u0e21\u0e35\u0e25\u0e31\u0e01\u0e29\u0e13\u0e30\u0e0a\u0e34\u0e07\u0e42\u0e0a\u0e04 (5%)\n40 (8) \u0e04\u0e48\u0e32\u0e41\u0e2a\u0e14\u0e07\u0e43\u0e2b\u0e49\u0e41\u0e01\u0e48\u0e19\u0e31\u0e01\u0e41\u0e2a\u0e14\u0e07\u0e2a\u0e32\u0e18\u0e32\u0e23\u0e13\u0e30 - \u0e15\u0e48\u0e32\u0e07\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28 (\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e01\u0e49\u0e32\u0e27\u0e2b\u0e19\u0e49\u0e32)\n40 (8) \u0e04\u0e48\u0e32\u0e41\u0e2a\u0e14\u0e07\u0e43\u0e2b\u0e49\u0e41\u0e01\u0e48\u0e19\u0e31\u0e01\u0e41\u0e2a\u0e14\u0e07\u0e2a\u0e32\u0e18\u0e32\u0e23\u0e13\u0e30 - \u0e43\u0e19\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28 (5%)\n40 (8) \u0e04\u0e48\u0e32\u0e41\u0e2a\u0e14\u0e07\u0e43\u0e2b\u0e49\u0e41\u0e01\u0e48\u0e19\u0e31\u0e01\u0e41\u0e2a\u0e14\u0e07\u0e2a\u0e32\u0e18\u0e32\u0e23\u0e13\u0e30 - \u0e15\u0e48\u0e32\u0e07\u0e1b\u0e23\u0e30\u0e40\u0e17\u0e28\u0e44\u0e14\u0e49\u0e02\u0e2d\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15\u0e16\u0e48\u0e32\u0e22\u0e17\u0e33 (10%)\n40 (8) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25 \u0e2a\u0e48\u0e27\u0e19\u0e25\u0e14 \u0e2b\u0e23\u0e37\u0e2d\u0e1b\u0e23\u0e30\u0e42\u0e22\u0e0a\u0e19\u0e4c\u0e43\u0e14 \u0e46 \u0e40\u0e19\u0e37\u0e48\u0e2d\u0e07\u0e08\u0e32\u0e01\u0e01\u0e32\u0e23\u0e2a\u0e48\u0e07\u0e40\u0e2a\u0e23\u0e34\u0e21\u0e01\u0e32\u0e23\u0e02\u0e32\u0e22 (3%)\n40 (8) \u0e04\u0e48\u0e32\u0e40\u0e1a\u0e35\u0e49\u0e22\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19\u0e27\u0e34\u0e19\u0e32\u0e28\u0e20\u0e31\u0e22 (1%)\n40 (8) \u0e0b\u0e37\u0e49\u0e2d\u0e22\u0e32\u0e07\u0e41\u0e1c\u0e48\u0e19 \u0e21\u0e31\u0e19\u0e2a\u0e33\u0e1b\u0e30\u0e2b\u0e25\u0e31\u0e07 \u0e1b\u0e2d \u0e02\u0e49\u0e32\u0e27 \u0e02\u0e49\u0e32\u0e27\u0e42\u0e1e\u0e14 \u0e2d\u0e49\u0e2d\u0e22 \u0e40\u0e21\u0e25\u0e47\u0e14\u0e01\u0e32\u0e41\u0e1f \u0e1c\u0e25\u0e1b\u0e32\u0e25\u0e4c\u0e21\u0e19\u0e49\u0e33\u0e21\u0e31\u0e19 - \u0e1a\u0e23\u0e34\u0e29\u0e31\u0e17 (0.75%)\n6. \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23/\u0e04\u0e48\u0e32\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32\u0e20\u0e32\u0e04\u0e23\u0e31\u0e10 - Government Service\n7. \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e41\u0e23\u0e07\u0e07\u0e32\u0e19 - Labor\n8. \u0e04\u0e48\u0e32\u0e42\u0e06\u0e29\u0e13\u0e32 - Advertising\n9. \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32 - Rent\n10. \u0e04\u0e48\u0e32\u0e02\u0e19\u0e2a\u0e48\u0e07 - Transportation\n11. \u0e04\u0e48\u0e32\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19\u0e20\u0e31\u0e22 - Insurance\n12. \u0e2d\u0e37\u0e48\u0e19\u0e46 - Others",
+			"label": "Income Type (ประเภทเงินได้)",
+			"options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1) - Salary\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2) - Fee/Commission\n40 (2) ค่านายหน้า - สมาคม (10%)\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3) - Royalty\n40 (3) ค่าแห่งกู้ดวิลล์ ค่าแห่งลิขสิทธิ์ หรือสิทธิอย่างอื่น - บริษัท (3%)\n40 (3) ค่าแห่งกู้ดวิลล์ ค่าแห่งลิขสิทธิ์ หรือสิทธิอย่างอื่น - สมาคม (10%)\n4. (ก) ดอกเบี้ย ฯลฯ 40(4)ก - Interest\n40 (4)(ก) ดอกเบี้ย - บริษัท (1%)\n40 (4)(ก) ดอกเบี้ย - สมาคม (10%)\n4. (ข) เงินปันผล เงินส่วนแบ่งกำไร ฯลฯ 40(4)ข - Dividend\n40 (4)(ข) เงินปันผล - บริษัทต่างประเทศ ประกอบการในไทย (10%)\n40 (5)(ก) ค่าเช่าอสังหาฯ - บริษัท (5%)\n40 (5)(ก) ค่าเช่าอสังหาฯ - มูลนิธิ (10%)\n40 (5) ค่าเช่าเรือ ตามกฎหมายว่าด้วยการส่งเสริมพาณิชย์นาวีที่ใช้ในการขนส่งสินค้าระหว่างประเทศ (1%)\n40 (5) ผู้มีหน้าที่เสียภาษีเงินได้บุคคลธรรมดาที่มิได้อยู่ในประเทศไทย (15%)\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส - Service\n40 (6) วิชาชีพกฎหมาย\n40 (6) วิชาชีพแพทย์(การประกอบโรคศิลปะ)\n40 (6) วิชาชีพวิศวกรรม\n40 (6) วิชาชีพสถาปัตยากรรม\n40 (6) วิชาชีพการบัญชี\n40 (6) วิชาชีพประณีตศิลปกรรม\n40 (6) ผู้มีหน้าที่เสียภาษีเงินได้บุคคลธรรมดาที่มิได้อยู่ในประเทศไทย (15%)\n40 (7) ค่าจ้างทำของ(รับเหมา) (3%)\n40 (8) ค่าจ้างทำของ(อื่นๆ) (3%)\n40 (8) รางวัลจากการประกวด (5%)\n40 (8) รางวัลจากการแข่งขัน (5%)\n40 (8) รางวัลจากการชิงโชค (5%)\n40 (8) รางวัลจากการอื่นใดมี่มีลักษณะชิงโชค (5%)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ต่างประเทศ (อัตราก้าวหน้า)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ในประเทศ (5%)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ต่างประเทศได้ขออนุญาตถ่ายทำ (10%)\n40 (8) รางวัล ส่วนลด หรือประโยชน์ใด ๆ เนื่องจากการส่งเสริมการขาย (3%)\n40 (8) ค่าเบี้ยประกันวินาศภัย (1%)\n40 (8) ซื้อยางแผ่น มันสำปะหลัง ปอ ข้าว ข้าวโพด อ้อย เมล็ดกาแฟ ผลปาล์มน้ำมัน - บริษัท (0.75%)\n6. ค่าบริการ/ค่าสินค้าภาครัฐ - Government Service\n7. ค่าจ้างแรงงาน - Labor\n8. ค่าโฆษณา - Advertising\n9. ค่าเช่า - Rent\n10. ค่าขนส่ง - Transportation\n11. ค่าประกันภัย - Insurance\n12. อื่นๆ - Others",
 			"reqd": 1
 		},
 		{
-			"description": "\u0e23\u0e30\u0e1a\u0e38\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e02\u0e2d\u0e07\u0e23\u0e32\u0e22\u0e44\u0e14\u0e49",
+			"description": "ระบุรายละเอียดของรายได้",
 			"fieldname": "income_description",
 			"fieldtype": "Data",
-			"label": "Income Description (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14)",
+			"label": "Income Description (รายละเอียด)",
 			"reqd": 1
 		},
 		{
@@ -253,38 +254,38 @@
 			"fieldname": "wht_rate",
 			"fieldtype": "Percent",
 			"in_list_view": 1,
-			"label": "WHT Rate (\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e20\u0e32\u0e29\u0e35 %)",
+			"label": "WHT Rate (อัตราภาษี %)",
 			"precision": "2",
 			"reqd": 1
 		},
 		{
-			"default": "1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)",
+			"default": "1. หัก ณ ที่จ่าย (Withhold at Source)",
 			"fieldname": "wht_condition",
 			"fieldtype": "Select",
-			"label": "WHT Condition (\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e01\u0e32\u0e23\u0e2b\u0e31\u0e01)",
-			"options": "\n1. \u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22 (Withhold at Source)\n2. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e15\u0e25\u0e2d\u0e14\u0e44\u0e1b (Permanent)\n3. \u0e2d\u0e2d\u0e01\u0e43\u0e2b\u0e49\u0e04\u0e23\u0e31\u0e49\u0e07\u0e40\u0e14\u0e35\u0e22\u0e27 (One Time)\n4. \u0e2d\u0e37\u0e48\u0e19\u0e46 (Others)"
+			"label": "WHT Condition (เงื่อนไขการหัก)",
+			"options": "\n1. หัก ณ ที่จ่าย (Withhold at Source)\n2. ออกให้ตลอดไป (Permanent)\n3. ออกให้ครั้งเดียว (One Time)\n4. อื่นๆ (Others)"
 		},
 		{
 			"fieldname": "amount_section",
 			"fieldtype": "Section Break",
-			"label": "Amount Details (\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19)"
+			"label": "Amount Details (รายละเอียดจำนวนเงิน)"
 		},
 		{
-			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e04\u0e33\u0e19\u0e27\u0e13\u0e20\u0e32\u0e29\u0e35 (\u0e44\u0e21\u0e48\u0e23\u0e27\u0e21 VAT)",
+			"description": "จำนวนเงินที่ใช้คำนวณภาษี (ไม่รวม VAT)",
 			"fieldname": "tax_base_amount",
 			"fieldtype": "Currency",
 			"in_list_view": 1,
-			"label": "Tax Base Amount (\u0e22\u0e2d\u0e14\u0e40\u0e07\u0e34\u0e19\u0e01\u0e48\u0e2d\u0e19 VAT)",
+			"label": "Tax Base Amount (ยอดเงินก่อน VAT)",
 			"options": "Company:company:default_currency",
 			"reqd": 1
 		},
 		{
 			"bold": 1,
-			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e20\u0e32\u0e29\u0e35\u0e17\u0e35\u0e48\u0e2b\u0e31\u0e01",
+			"description": "จำนวนภาษีที่หัก",
 			"fieldname": "wht_amount",
 			"fieldtype": "Currency",
 			"in_list_view": 1,
-			"label": "WHT Amount (\u0e20\u0e32\u0e29\u0e35\u0e2b\u0e31\u0e01 \u0e13 \u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22)",
+			"label": "WHT Amount (ภาษีหัก ณ ที่จ่าย)",
 			"options": "Company:company:default_currency",
 			"reqd": 1
 		},
@@ -293,20 +294,26 @@
 			"fieldtype": "Column Break"
 		},
 		{
-			"description": "\u0e08\u0e33\u0e19\u0e27\u0e19\u0e40\u0e07\u0e34\u0e19\u0e17\u0e35\u0e48\u0e08\u0e48\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07\u0e2b\u0e31\u0e01\u0e20\u0e32\u0e29\u0e35",
+			"description": "จำนวนเงินที่จ่ายหลังหักภาษี",
 			"fieldname": "net_payment_amount",
 			"fieldtype": "Currency",
-			"label": "Net Payment Amount (\u0e08\u0e48\u0e32\u0e22\u0e2a\u0e38\u0e17\u0e18\u0e34)",
+			"label": "Net Payment Amount (จ่ายสุทธิ)",
 			"options": "Company:company:default_currency",
 			"read_only": 1
 		},
 		{
-			"description": "\u0e22\u0e2d\u0e14\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 (\u0e23\u0e27\u0e21 VAT)",
+			"description": "ยอดรวมทั้งหมด (รวม VAT)",
 			"fieldname": "total_payment_amount",
 			"fieldtype": "Currency",
-			"label": "Total Amount (\u0e23\u0e27\u0e21\u0e17\u0e31\u0e49\u0e07\u0e2a\u0e34\u0e49\u0e19)",
+			"label": "Total Amount (รวมทั้งสิ้น)",
 			"options": "Company:company:default_currency",
 			"read_only": 1
+		},
+		{
+			"fieldname": "income_items",
+			"fieldtype": "Table",
+			"label": "Income Items",
+			"options": "Withholding Tax Item"
 		},
 		{
 			"fieldname": "notes_section",
@@ -316,7 +323,7 @@
 		{
 			"fieldname": "remarks",
 			"fieldtype": "Small Text",
-			"label": "Remarks (\u0e2b\u0e21\u0e32\u0e22\u0e40\u0e2b\u0e15\u0e38)"
+			"label": "Remarks (หมายเหตุ)"
 		},
 		{
 			"fieldname": "amended_from",

@@ -7,6 +7,25 @@ from frappe.utils import flt, getdate
 
 
 class WithholdingTaxCertificate(Document):
+	def validate(self):
+		self.aggregate_income_items()
+
+	def aggregate_income_items(self):
+		"""Compute totals from income_items child table and sync to parent summary fields."""
+		if not self.get("income_items"):
+			return
+
+		total_base = 0
+		total_wht = 0
+		for item in self.income_items:
+			total_base += flt(item.gross_amount)
+			total_wht += flt(item.tax_amount)
+
+		self.tax_base_amount = flt(total_base, self.precision("tax_base_amount"))
+		self.wht_amount = flt(total_wht, self.precision("wht_amount"))
+		self.net_payment_amount = flt(total_base - total_wht, self.precision("net_payment_amount"))
+		self.total_payment_amount = flt(total_base, self.precision("total_payment_amount"))
+
 	def after_insert(self):
 		"""Auto-create PND form item entry when certificate is created"""
 		self.create_or_update_pnd_form_item()

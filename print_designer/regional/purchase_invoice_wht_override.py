@@ -5,7 +5,7 @@ and provides precise Thai-compliant WHT calculations
 """
 
 import frappe
-from frappe.utils import flt, cint
+from frappe.utils import flt, cint, getdate
 from frappe import _
 
 
@@ -20,6 +20,11 @@ def override_purchase_invoice_wht_calculation(doc, method=None):
         doc: Purchase Invoice document
         method: Hook method name
     """
+
+    # STEP 0: Set default for credit purchases — assume Tax Invoice received at PI stage
+    # User can uncheck if Tax Invoice hasn't arrived yet
+    if not getattr(doc, "is_paid", 0) and not getattr(doc, "pd_custom_tax_invoice_received", None):
+        doc.pd_custom_tax_invoice_received = 1
 
     # STEP 1: Auto-populate fields from Purchase Order and bill fields
     auto_populate_from_purchase_order(doc)
@@ -46,6 +51,9 @@ def override_purchase_invoice_wht_calculation(doc, method=None):
     if getattr(doc, "is_paid", 0):
         _populate_compliance_section_fields(doc)
 
+    # STEP 5: Auto-create Withholding Tax Certificate for cash purchase + WHT compliance
+    _auto_create_wht_certificate(doc)
+
 
 @frappe.whitelist()
 def populate_compliance_section_from_preview(doc=None, docname=None):
@@ -70,6 +78,111 @@ def populate_compliance_section_from_preview(doc=None, docname=None):
     _populate_compliance_section_fields(doc)
 
     return {"message": "Compliance section populated successfully"}
+
+
+def _auto_create_wht_certificate(doc):
+    """
+    Auto-create Withholding Tax Certificate for cash purchase PIs with WHT compliance.
+    Creates in Draft state so user can review before submitting.
+    Only runs on docstatus=0 (draft) to avoid re-creating on every save.
+    """
+    # Only run when PI is in draft (first save), not on subsequent saves
+    if doc.docstatus != 0:
+        return
+
+    # Only cash purchases with WHT compliance
+    if not getattr(doc, "is_paid", 0):
+        return
+    if not getattr(doc, "pd_custom_apply_thai_wht_compliance", 0):
+        return
+
+    # Check if already created
+    existing = frappe.db.exists("Withholding Tax Certificate", {
+        "purchase_invoice": doc.name,
+        "docstatus": ("!=", 2),
+    })
+    if existing:
+        return
+
+    print(f"🏷️ DEBUG: Auto-creating WHT Certificate for PI {doc.name}")
+
+    try:
+        cert = frappe.new_doc("Withholding Tax Certificate")
+        cert.purchase_invoice = doc.name
+        cert.company = doc.company
+
+        # Supplier info
+        cert.supplier = doc.supplier
+        cert.supplier_name = doc.supplier_name
+
+        # Supplier tax ID and branch
+        cert.supplier_tax_id = getattr(doc, "pd_custom_supplier_tax_id", None) or \
+            frappe.db.get_value("Supplier", doc.supplier, "tax_id") if doc.supplier else None
+
+        if doc.supplier:
+            supplier_doc = frappe.get_doc("Supplier", doc.supplier)
+            cert.supplier_branch_code = getattr(supplier_doc, "branch_code", None) or "00000"
+
+            # Get primary supplier address
+            addr = frappe.db.get_value("Address", {
+                "link_doctype": "Supplier",
+                "link_name": doc.supplier,
+                "is_your_company_address": 0,
+            }, "address_line1", order_by="is_primary_address desc")
+            if addr:
+                cert.supplier_address = addr
+
+        # Tax period from PI posting date (Buddhist calendar year)
+        posting_date = getdate(doc.posting_date)
+        cert.tax_year = str(posting_date.year + 543)
+        cert.tax_month = f"{posting_date.month:02d} - {posting_date.strftime('%B')}"
+
+        # Income type and description from PI
+        if getattr(doc, "pd_custom_wht_income_type", None):
+            cert.income_type = doc.pd_custom_wht_income_type
+        cert.income_description = getattr(doc, "pd_custom_wht_description", "") or \
+            getattr(doc, "pd_custom_wht_note", "")
+
+        # WHT rate
+        cert.wht_rate = getattr(doc, "pd_custom_withholding_tax_pct", None) or \
+            getattr(doc, "pd_custom_withholding_tax_rate", None)
+
+        # Amounts
+        cert.tax_base_amount = getattr(doc, "pd_custom_tax_base_amount", None) or doc.net_total
+        cert.wht_amount = getattr(doc, "pd_custom_withholding_tax_amount", None)
+        cert.net_payment_amount = doc.grand_total
+        cert.total_payment_amount = doc.grand_total
+
+        # Set certificate_number from PI's pd_custom_wht_certificate_no if already generated
+        pi_cert_no = getattr(doc, "pd_custom_wht_certificate_no", None)
+        if pi_cert_no:
+            cert.certificate_number = pi_cert_no
+
+        # Add income item row from PI header-level WHT data
+        cert.append("income_items", {
+            "payment_date": doc.posting_date,
+            "income_type": getattr(doc, "pd_custom_wht_income_type", None),
+            "income_type_description": getattr(doc, "pd_custom_wht_description", "") or "",
+            "tax_rate": getattr(doc, "pd_custom_withholding_tax_pct", None) or \
+                getattr(doc, "pd_custom_withholding_tax_rate", None) or 0,
+            "gross_amount": getattr(doc, "pd_custom_tax_base_amount", None) or doc.net_total or 0,
+            "tax_amount": getattr(doc, "pd_custom_withholding_tax_amount", None) or 0,
+            "net_amount": (flt(getattr(doc, "pd_custom_tax_base_amount", None) or doc.net_total)
+                           - flt(getattr(doc, "pd_custom_withholding_tax_amount", None))),
+            "remarks": getattr(doc, "pd_custom_wht_note", "") or "",
+        })
+
+        cert.insert(ignore_permissions=True)
+
+        # Store cert name on PI for lookup
+        doc.pd_custom_wht_certificate_no = cert.name
+
+        frappe.logger().info(f"Auto-created WHT Certificate {cert.name} for PI {doc.name}")
+        print(f"✅ DEBUG: Created WHT Certificate {cert.name} for PI {doc.name}")
+
+    except Exception as e:
+        frappe.logger().error(f"Error creating WHT Certificate for PI {doc.name}: {str(e)}")
+        print(f"❌ DEBUG: Error creating WHT Certificate: {str(e)}")
 
 
 def _populate_compliance_section_fields(doc):
@@ -285,22 +398,31 @@ def auto_populate_from_purchase_order(doc):
 
 def _populate_tax_invoice_from_bill_fields(doc):
     """
-    Auto-populate tax invoice fields from Purchase Invoice's bill_no, bill_date, net_total
-    Logic: If user doesn't enter value, fetch from existing fields
+    Auto-populate tax invoice fields from Purchase Invoice's bill_no, bill_date, net_total.
+
+    - Cash purchase (is_paid=1): Tax Invoice always received at PI stage → auto-populate.
+    - Credit purchase (is_paid=0): Only populate if pd_custom_tax_invoice_received == 1
+      (user confirmed Tax Invoice was received at this PI stage).
     """
 
     print(f"🏷️ DEBUG: Checking tax invoice fields for Purchase Invoice {doc.name}")
 
-    # Only populate tax invoice fields for cash purchases (is_paid = 1)
-    if not getattr(doc, "is_paid", 0):
-        print(
-            f"❌ DEBUG: Not a cash purchase (is_paid = 0), skipping tax invoice fields auto-population"
-        )
+    # Cash purchase: Tax Invoice always received at PI stage
+    if getattr(doc, "is_paid", 0):
+        print(f"💰 DEBUG: Cash purchase — auto-populating tax invoice fields")
+        _do_populate_tax_invoice(doc)
         return
 
-    print(f"💰 DEBUG: Cash purchase detected (is_paid = 1), proceeding with tax invoice fields")
+    # Credit purchase: only populate if user confirmed Tax Invoice received
+    if getattr(doc, "pd_custom_tax_invoice_received", 0):
+        print(f"💰 DEBUG: Credit purchase + Tax Invoice Received — populating tax invoice fields")
+        _do_populate_tax_invoice(doc)
+    else:
+        print(f"💰 DEBUG: Credit purchase, Tax Invoice not yet received — skipping auto-populate")
 
-    # Tax Invoice Number ← bill_no
+
+def _do_populate_tax_invoice(doc):
+    """Shared population logic for both cash and credit paths."""
     if not getattr(doc, "pd_custom_tax_invoice_number", None) and getattr(doc, "bill_no", None):
         doc.pd_custom_tax_invoice_number = doc.bill_no
         print(f"📝 DEBUG: Auto-populated tax invoice number: {doc.bill_no}")
@@ -308,7 +430,6 @@ def _populate_tax_invoice_from_bill_fields(doc):
     else:
         print(f"📝 DEBUG: Tax invoice number already set or bill_no missing")
 
-    # Tax Invoice Date ← bill_date
     if not getattr(doc, "pd_custom_tax_invoice_date", None) and getattr(doc, "bill_date", None):
         doc.pd_custom_tax_invoice_date = doc.bill_date
         print(f"📅 DEBUG: Auto-populated tax invoice date: {doc.bill_date}")
@@ -316,7 +437,6 @@ def _populate_tax_invoice_from_bill_fields(doc):
     else:
         print(f"📅 DEBUG: Tax invoice date already set or bill_date missing")
 
-    # Tax Base Amount ← net_total
     if not getattr(doc, "pd_custom_tax_base_amount", None) and getattr(doc, "net_total", None):
         doc.pd_custom_tax_base_amount = doc.net_total
         print(f"💰 DEBUG: Auto-populated tax base amount: {doc.net_total}")
