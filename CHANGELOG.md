@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.22.0](https://github.com/ManotLuijiu/print_designer/compare/v1.21.0...v1.22.0) (2026-04-01)
+
+
+### ✨ Features
+
+* add Print WHT Cert button and auto-create WHT Certificate on PI submit ([f001677](https://github.com/ManotLuijiu/print_designer/commit/f001677eb755fe94fc14b6c9584d6ac069e4aa00))
+
+
+### 🔧 Maintenance
+
+* **release:** 1.21.0 ([876fbd7](https://github.com/ManotLuijiu/print_designer/commit/876fbd70b2bf80f076fb8338e2c71ddb25c6c8b9))
+
 ## [1.20.0](https://github.com/ManotLuijiu/print_designer/compare/v1.19.2...v1.20.0) (2026-03-25)
 
 
