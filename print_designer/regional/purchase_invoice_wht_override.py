@@ -24,6 +24,12 @@ def override_purchase_invoice_wht_calculation(doc, method=None):
     # STEP 1: Auto-populate fields from Purchase Order and bill fields
     auto_populate_from_purchase_order(doc)
 
+    # STEP 1b: If PO didn't provide WHT values, fetch from Supplier's Tax Withholding Category
+    _populate_defaults_from_supplier(doc)
+
+    # STEP 1c: Apply contract installment WHT rule (Thai law: >= 1,000 total = WHT on each installment)
+    _apply_contract_installment_wht(doc)
+
     # STEP 2: Only process WHT calculation if Thai WHT system is enabled
     if not getattr(doc, "pd_custom_apply_thai_wht_compliance", 0) or not getattr(doc, "pd_custom_subject_to_wht", 0):
         return
@@ -115,6 +121,148 @@ def _populate_compliance_section_fields(doc):
     frappe.logger().info(
         f"Populated {populated_count} pd_custom_tax_compliance_section fields from preview for cash purchase PI {doc.name}"
     )
+
+
+def _populate_defaults_from_supplier(doc):
+    """Auto-fetch WHT defaults from Supplier's Tax Withholding Category when PO didn't provide them."""
+
+    # Skip if values already populated (from PO or user entry)
+    if getattr(doc, "pd_custom_withholding_tax_pct", None) and getattr(doc, "pd_custom_wht_income_type", None):
+        return
+
+    supplier = getattr(doc, "supplier", None)
+    if not supplier:
+        return
+
+    twc_name = frappe.db.get_value("Supplier", supplier, "tax_withholding_category")
+    if not twc_name:
+        return
+
+    twc_doc = frappe.get_doc("Tax Withholding Category", twc_name)
+
+    # Fetch WHT rate from rates child table (match posting_date)
+    if not getattr(doc, "pd_custom_withholding_tax_pct", None):
+        posting_date = getattr(doc, "posting_date", None)
+        if posting_date:
+            for rate_row in twc_doc.rates:
+                if rate_row.from_date <= posting_date <= rate_row.to_date:
+                    doc.pd_custom_withholding_tax_pct = rate_row.tax_withholding_rate
+                    break
+
+    # Fetch income type from linked Thai WHT Income Type (not from TWC - that field is redundant)
+    if not getattr(doc, "pd_custom_wht_income_type", None):
+        # TWC links to Thai WHT Income Type via its name field or dedicated link
+        # Try to find the linked Thai WHT Income Type by matching rate/category
+        income_type = _get_income_type_from_twc(twc_doc, twc_name)
+        if income_type:
+            doc.pd_custom_wht_income_type = income_type
+
+    # Auto-set subject_to_wht when WHT compliance enabled and TWC exists
+    if getattr(doc, "pd_custom_apply_thai_wht_compliance", 0) and twc_name:
+        if not getattr(doc, "pd_custom_subject_to_wht", None):
+            doc.pd_custom_subject_to_wht = 1
+
+
+def _get_income_type_from_twc(twc_doc, twc_name):
+    """
+    Get income type by finding the linked Thai WHT Income Type that maps to this TWC.
+    TWC links to Thai WHT Income Type via the tax_withholding_category field.
+    """
+    # Try direct link field on Thai WHT Income Type
+    linked_wht = frappe.get_all(
+        "Thai WHT Income Type",
+        filters={"tax_withholding_category": twc_name},
+        fields=["name", "income_category"]
+    )
+    if linked_wht:
+        return linked_wht[0].income_category
+
+    # Fallback: parse TWC name pattern "WHT {rate}% {short_name} - {recipient} ({form_type})"
+    # and match by rate + recipient_type to reduce ambiguity
+    if twc_doc and twc_doc.rates:
+        rate = twc_doc.rates[0].tax_withholding_rate if twc_doc.rates else 0
+        if rate:
+            # Try to extract recipient type from TWC name for more precise matching
+            filters = {"tax_rate": rate}
+            if "Individual" in twc_name:
+                filters["recipient_type"] = "Individual"
+            elif "Corporate" in twc_name:
+                filters["recipient_type"] = "Corporate"
+
+            matched = frappe.get_all(
+                "Thai WHT Income Type",
+                filters=filters,
+                fields=["name", "income_category"],
+                limit=1
+            )
+            if matched:
+                return matched[0].income_category
+
+    return None
+
+
+def _apply_contract_installment_wht(doc):
+    """
+    Thai WHT for contracts: when Company has thailand_apply_wht_to_contracts=1
+    and TWC has pd_custom_apply_wht_to_contract_installments=1, apply WHT to
+    every installment when total contract >= 1,000 THB.
+
+    This overrides ERPNext's single_threshold behavior which skips early installments.
+    """
+
+    # Only applies when Company + TWC both enable contract installment WHT
+    if not getattr(doc, "pd_custom_apply_thai_wht_compliance", 0):
+        return
+
+    company = getattr(doc, "company", None)
+    if not company:
+        return
+
+    # Check Company flag
+    company_contract_flag = frappe.db.get_value(
+        "Company", company, "thailand_apply_wht_to_contracts"
+    )
+    if not company_contract_flag:
+        return
+
+    # Check TWC flag on Supplier
+    supplier = getattr(doc, "supplier", None)
+    if not supplier:
+        return
+
+    twc_name = frappe.db.get_value("Supplier", supplier, "tax_withholding_category")
+    if not twc_name:
+        return
+
+    twc_doc = frappe.get_doc("Tax Withholding Category", twc_name)
+    if not getattr(twc_doc, "pd_custom_apply_wht_to_contract_installments", 0):
+        return
+
+    # Thai law: if recurring payments to same supplier total >= 1,000 THB within
+    # a fiscal year (e.g., 300 THB/month phone bill × 12 = 3,600 THB), WHT must
+    # be deducted from every installment even if individual amount < 1,000 THB.
+
+    # Get the rate from TWC (already set or fetch it)
+    wht_rate = flt(getattr(doc, "pd_custom_withholding_tax_pct", 0))
+    if not wht_rate:
+        posting_date = getattr(doc, "posting_date", None)
+        if posting_date:
+            for rate_row in twc_doc.rates:
+                if rate_row.from_date <= posting_date <= rate_row.to_date:
+                    wht_rate = flt(rate_row.tax_withholding_rate)
+                    break
+
+    if not wht_rate:
+        return
+
+    # Set WHT flags — apply to this installment
+    doc.pd_custom_subject_to_wht = 1
+    doc.pd_custom_withholding_tax_pct = wht_rate
+
+    if not getattr(doc, "pd_custom_wht_income_type", None):
+        income_type = _get_income_type_from_twc(twc_doc, twc_name)
+        if income_type:
+            doc.pd_custom_wht_income_type = income_type
 
 
 def auto_populate_from_purchase_order(doc):

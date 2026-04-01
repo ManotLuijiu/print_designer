@@ -4,8 +4,18 @@
 console.log('🚀 Purchase Invoice TDS Client Script Loaded Successfully');
 
 frappe.ui.form.on('Purchase Invoice', {
+    // Ensure the WHT compliance checkbox stays editable after all render passes
+    onload_post_render: function(frm) {
+        _unlock_wht_compliance_field(frm);
+    },
+
     // Form refresh: Check for auto-populated fields + setup buttons
     refresh: function(frm) {
+        // Always unlock pd_custom_apply_thai_wht_compliance so Accounting can manually
+        // override it on PI even when it was auto-populated from PO.
+        // Frappe locks fetched/auto-populated fields by default.
+        _unlock_wht_compliance_field(frm);
+
         if (!frm.is_new()) {
             console.log('🔄 DEBUG: Purchase Invoice refresh triggered', {
                 doc_name: frm.doc.name,
@@ -204,7 +214,7 @@ frappe.ui.form.on('Purchase Invoice', {
             frappe.call({
                 method: 'print_designer.regional.purchase_invoice_wht_override.populate_compliance_section_from_preview',
                 args: {
-                    doc: frm.doc
+                    docname: frm.doc.name
                 },
                 callback: function(r) {
                     if (r.message) {
@@ -231,6 +241,14 @@ frappe.ui.form.on('Purchase Invoice', {
         }
     }
 });
+
+// Unlock the WHT compliance checkbox so Accounting dept can tick it at PI stage
+// even when the field was fetched/auto-populated from PO (Frappe locks fetched fields).
+function _unlock_wht_compliance_field(frm) {
+    if (frm.doc.docstatus === 0) {
+        frm.set_df_property('pd_custom_apply_thai_wht_compliance', 'read_only', 0);
+    }
+}
 
 // Helper function to count auto-populated fields for debugging
 function _count_auto_populated_fields(frm) {

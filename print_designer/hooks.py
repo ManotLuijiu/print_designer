@@ -550,6 +550,8 @@ after_install = [
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Install Item Is Service field (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Install Item WHT Income Type field for smart automation
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data
+    "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
+    "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -596,6 +598,8 @@ after_migrate = [
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
     "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
+    "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
+    "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage
@@ -620,6 +624,7 @@ before_uninstall = [
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
     "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
+    "print_designer.commands.install_tax_withholding_category_fields.uninstall_tax_withholding_category_fields",  # Remove contract installment WHT flag field
     # Thai Billing uninstall moved to thai_business_suite
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"

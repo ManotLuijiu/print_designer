@@ -60,12 +60,22 @@ def install_company_thai_tax_fields():
                 "description": "Enable Thailand withholding tax features for service businesses",
                 "default": "0",
             },
+            # Apply WHT to Contract Installments (Thai law)
+            {
+                "fieldname": "thailand_apply_wht_to_contracts",
+                "fieldtype": "Check",
+                "label": "Apply WHT to All Contract Installments >= 1,000 THB",
+                "insert_after": "thailand_service_business",
+                "depends_on": "eval:doc.thailand_service_business",
+                "description": "When enabled alongside Thailand Service Business, WHT is deducted from every installment when total contract value exceeds 1,000 THB. Per Thai Revenue Department regulations.",
+                "default": "0",
+            },
             # WHT Rate field
             {
                 "fieldname": "default_wht_rate",
                 "fieldtype": "Percent",
                 "label": "Default WHT Rate (%)",
-                "insert_after": "thailand_service_business",
+                "insert_after": "thailand_apply_wht_to_contracts",
                 "depends_on": "eval:doc.thailand_service_business",
                 "description": "Default withholding tax rate for services (e.g., 3% for most services)",
                 "default": "3",
@@ -258,7 +268,8 @@ def _fix_field_positioning():
         ("enable_thai_accounting_translation", "thai_accounting_column_left"),
         ("auto_populate_thai_accounts", "enable_thai_accounting_translation"),
         ("thailand_service_business", "auto_populate_thai_accounts"),
-        ("default_wht_rate", "thailand_service_business"),
+        ("thailand_apply_wht_to_contracts", "thailand_service_business"),
+        ("default_wht_rate", "thailand_apply_wht_to_contracts"),
         ("default_wht_account", "default_wht_rate"),
         ("construction_service", "default_wht_account"),
         ("default_retention_rate", "construction_service"),
@@ -437,6 +448,7 @@ def remove_company_thai_tax_fields():
         "thai_accounting_column_right",
         # WHT (Withholding Tax) Fields
         "thailand_service_business",
+        "thailand_apply_wht_to_contracts",
         "default_wht_rate",
         "default_wht_account",
         # Construction Service & Retention Fields
@@ -497,6 +509,7 @@ def check_company_thai_tax_fields():
         "thai_accounting_column_right",
         # WHT (Withholding Tax) Fields
         "thailand_service_business",
+        "thailand_apply_wht_to_contracts",
         "default_wht_rate",
         "default_wht_account",
         # Construction Service & Retention Fields
