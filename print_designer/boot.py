@@ -5,7 +5,7 @@ from frappe import _
 
 
 def boot_session(bootinfo):
-    """Consolidated boot session with Print Designer + Thai Billing workspace"""
+    """Consolidated boot session with Print Designer"""
 
     # === IMPORTED FROM signature_stamp.py ===
     # Add print designer settings to boot info (copied from signature_stamp.py boot_session)
@@ -82,11 +82,6 @@ def boot_session(bootinfo):
             "fiscal_year": frappe.defaults.get_user_default("fiscal_year"),
         }
 
-    # Extend Selling workspace with Thai Billing
-    # NOTE: Commented out for Frappe v16 compatibility - bootinfo.workspaces structure changed
-    # This is not a core function, workspace extension can be handled via workspace JSON instead
-    # extend_selling_workspace(bootinfo)
-
 
 def log_to_print_designer(message, level="INFO"):
     """Log messages to Print Designer specific log file (copied from signature_stamp.py)"""
@@ -105,58 +100,6 @@ def log_to_print_designer(message, level="INFO"):
     except Exception as e:
         # Fallback to frappe logger if file logging fails
         frappe.logger("print_designer").info(f"Log write failed: {e}, Original message: {message}")
-
-
-def extend_selling_workspace(bootinfo):
-    """Extend the Selling workspace to include Thai Billing after Sales Invoice"""
-
-    # Get the current workspaces from bootinfo
-    if not hasattr(bootinfo, 'workspaces') or not bootinfo.workspaces:
-        return
-
-    # Frappe v16 changed bootinfo.workspaces structure - it's now a list of strings
-    # Skip this function in v16+ as workspace extension is handled differently
-    if bootinfo.workspaces and isinstance(bootinfo.workspaces[0], str):
-        # v16 format: list of workspace names (strings)
-        return
-
-    # v15 format: list of workspace dictionaries
-    # Find the Selling workspace
-    selling_workspace = None
-    for workspace in bootinfo.workspaces:
-        if isinstance(workspace, dict) and workspace.get('name') == 'Selling':
-            selling_workspace = workspace
-            break
-
-    if not selling_workspace or not selling_workspace.get('links'):
-        return
-
-    # Find the Sales Invoice link and insert Thai Billing after it
-    links = selling_workspace['links']
-    sales_invoice_index = -1
-
-    # Find the index of Sales Invoice
-    for i, link in enumerate(links):
-        if link.get('link_to') == 'Sales Invoice' and link.get('type') == 'Link':
-            sales_invoice_index = i
-            break
-
-    # If Sales Invoice found, insert Thai Billing after it
-    if sales_invoice_index >= 0:
-        billing_link = {
-            "dependencies": "Customer, Sales Invoice",
-            "hidden": 0,
-            "is_query_report": 0,
-            "label": "Billing",
-            "link_count": 0,
-            "link_to": "Thai Billing",
-            "link_type": "DocType",
-            "onboard": 0,
-            "type": "Link"
-        }
-
-        # Insert after Sales Invoice (index + 1)
-        links.insert(sales_invoice_index + 1, billing_link)
 
 
 def get_wht_rates():
