@@ -38,7 +38,9 @@ def after_request():
 
 @measure_time
 def get_pdf(print_format, html, options, output, pdf_generator=None):
-    print(f"pdf_generator {pdf_generator}")
+    if pdf_generator == "WeasyPrint":
+        from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+        return get_pdf_with_weasyprint(html, options)
     if pdf_generator != "chrome":
         # Use the default pdf generator
         return
