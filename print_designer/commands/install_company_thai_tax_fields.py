@@ -203,13 +203,13 @@ def install_company_thai_tax_fields():
             {
                 "fieldname": "pd_custom_company_register_name",
                 "fieldtype": "Data",
-                "label": "Thai Register Name",
+                "label": "Register Name (TH)",
                 "insert_after": "registration_details",
             },
             {
                 "fieldname": "pd_custom_company_name_en",
                 "fieldtype": "Data",
-                "label": "Thai Register Name (EN)",
+                "label": "Register Name (EN)",
                 "insert_after": "pd_custom_company_register_name",
             },
         ]
