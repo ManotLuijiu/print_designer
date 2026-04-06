@@ -199,6 +199,19 @@ def install_company_thai_tax_fields():
                 "insert_after": "tbs_custom_require_export_documentation",
                 "description": "Default income account for export sales transactions",
             },
+            # Thai Register Name
+            {
+                "fieldname": "pd_custom_company_register_name",
+                "fieldtype": "Data",
+                "label": "Thai Register Name",
+                "insert_after": "registration_details",
+            },
+            {
+                "fieldname": "pd_custom_company_name_en",
+                "fieldtype": "Data",
+                "label": "Thai Register Name (EN)",
+                "insert_after": "pd_custom_company_register_name",
+            },
         ]
     }
 
@@ -465,6 +478,9 @@ def remove_company_thai_tax_fields():
         # Export Fields (from thai_business_suite)
         "tbs_custom_require_export_documentation",
         "tbs_custom_default_export_account",
+        # Company Register Name Fields
+        "pd_custom_company_register_name",
+        "pd_custom_company_name_en",
     ]
 
     try:
@@ -526,6 +542,9 @@ def check_company_thai_tax_fields():
         # Export Fields (from thai_business_suite)
         "tbs_custom_require_export_documentation",
         "tbs_custom_default_export_account",
+        # Company Register Name Fields
+        "pd_custom_company_register_name",
+        "pd_custom_company_name_en",
     ]
 
     all_fields_exist = True
