@@ -110,7 +110,7 @@ def get_account_thai_custom_fields():
                 "fieldtype": "Check",
                 "label": "Auto Translate to Thai",
                 "insert_after": "account_name_th",
-                "default": 1,
+                "default": "1",
                 "description": "Automatically populate Thai name based on common accounting terms",
                 "module": "Print Designer",
             },
@@ -476,11 +476,6 @@ class ThaiAccountTranslationManager:
 
 
 # Bench Commands
-def install_account_thai_fields():
-    """Bench command: install-account-thai-fields"""
-    install_account_thai_translation_fields()
-
-
 def check_account_thai_fields_status():
     """Bench command: check-account-thai-fields"""
     check_account_thai_fields()
