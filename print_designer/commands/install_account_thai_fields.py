@@ -101,7 +101,7 @@ def get_account_thai_custom_fields():
                 "fieldtype": "Data",
                 "label": "Account Name (TH)",
                 "insert_after": "account_name",
-                "in_list_view": 1,
+                "in_list_view": "1",
                 "description": "Thai translation of account name for localized Chart of Accounts display",
                 "module": "Print Designer",
             },
