@@ -162,6 +162,7 @@ doctype_js = {
         "public/js/thailand_wht/thailand_wht_payment_entry.js",
         "public/js/payment_entry_thai_tax.js",
         "public/js/payment_entry_wht_certificate.js",
+        "public/js/payment_entry.js",
     ],
     "Sales Invoice": [
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
@@ -551,7 +552,10 @@ after_install = [
     "print_designer.commands.install_item_wht_fields.execute",  # Install Item WHT Income Type field for smart automation
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data
     "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
+    "print_designer.commands.install_wht_account_child_fields.execute",  # Install WHT Liability Account field on TWC accounts child table
+    "print_designer.commands.install_twx_gross_amount_field.execute",  # Install Gross Amount field on Tax Withholding Entry
     "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
+    "print_designer.setup.install_tax_withholding_category_data.apply_tax_deduction_basis_descriptions",  # Update tax_deduction_basis field description for Thai users
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -599,7 +603,10 @@ after_migrate = [
     "print_designer.commands.install_item_wht_fields.execute",  # Ensure Item WHT Income Type field is installed during migration
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
     "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
+    "print_designer.commands.install_wht_account_child_fields.execute",  # Install WHT Liability Account field on TWC accounts child table
+    "print_designer.commands.install_twx_gross_amount_field.execute",  # Install Gross Amount field on Tax Withholding Entry
     "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
+    "print_designer.setup.install_tax_withholding_category_data.apply_tax_deduction_basis_descriptions",  # Update tax_deduction_basis field description for Thai users
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage
@@ -625,7 +632,9 @@ before_uninstall = [
     "print_designer.commands.install_item_wht_fields.uninstall_item_wht_fields",  # Remove Item WHT Income Type field (must be before service field)
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field
     "print_designer.commands.install_tax_withholding_category_fields.uninstall_tax_withholding_category_fields",  # Remove contract installment WHT flag field
-    # Thai Billing uninstall moved to thai_business_suite
+    "print_designer.commands.install_wht_account_child_fields.remove_wht_account_child_fields",  # Remove WHT Liability Account field from TWC accounts child table
+    "print_designer.commands.install_twx_gross_amount_field.remove_twx_custom_fields",  # Remove Gross Amount field from Tax Withholding Entry
+    "print_designer.setup.install_tax_withholding_category_data.cleanup_tax_deduction_basis_descriptions",  # Remove tax_deduction_basis description Property Setter
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -700,6 +709,8 @@ doc_events = {
     # Thai Withholding Tax events - Updated for GL entry modification approach
     "Payment Entry": {
         "before_print": "print_designer.pdf.before_print",
+        "before_validate": "print_designer.custom.payment_tax_withholding.patch_payment_tax_withholding",
+        "before_save": "print_designer.custom.payment_entry_tax_events.patch_twc_tax_accounts",
         "validate": [
             "print_designer.custom.payment_entry_retention.payment_entry_validate_thai_compliance",
             "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",

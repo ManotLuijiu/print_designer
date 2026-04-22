@@ -7,6 +7,7 @@ This script:
 3. Auto-detects current fiscal year from Fiscal Year doctype for rate row dates
 4. Creates Tax Withholding Category records with:
    - category_name (e.g., "WHT 3% Services - Individual (PND3)")
+   - tax_deduction_basis = "Gross Total" (Thai WHT calculated before VAT)
    - Rate row: fiscal year dates, rate, single_threshold=1000
    - pd_custom_apply_wht_to_contract_installments = 1
 5. Updates Thai WHT Income Type records to link to their corresponding TWC
@@ -17,6 +18,7 @@ Usage:
 
 import frappe
 from frappe import _
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 
 # Single threshold for Thai WHT (per Revenue Department regulation)
@@ -62,7 +64,7 @@ def get_existing_thai_wht_income_types():
 
     return frappe.get_all(
         "Thai WHT Income Type",
-        fields=["name", "form_type", "recipient_type", "income_category", "tax_rate"]
+        fields=["name", "form_type", "recipient_type", "income_category", "income_category_th", "tax_rate"]
     )
 
 
@@ -135,12 +137,18 @@ def seed_tax_withholding_categories():
 
     # Create TWCs and track link mappings
     twc_name_by_key = {}
+    twc_key_to_first_wht = {}  # key -> first WHT record for bilingual name
     twc_created = 0
     twc_updated = 0
 
     for key, wht_names in twc_key_to_wht_names.items():
         income_category, rate, recipient_type, form_type = key
         twc_name = build_twc_name(income_category, rate, recipient_type, form_type)
+
+        # Track first WHT record for bilingual name population
+        first_wht_name = wht_names[0]
+        first_wht = next((r for r in thai_wht_records if r.name == first_wht_name), None)
+        twc_key_to_first_wht[key] = first_wht
 
         # Check if TWC already exists
         if frappe.db.exists("Tax Withholding Category", twc_name):
@@ -162,8 +170,18 @@ def seed_tax_withholding_categories():
         # Set contract installment flag
         twc.pd_custom_apply_wht_to_contract_installments = 1
 
+        # Set tax deduction basis — Thai WHT is calculated on gross amount (before VAT)
+        twc.tax_deduction_basis = "Gross Total"
+
         # Populate mandatory accounts child table (preserve existing, add missing companies)
         _ensure_accounts_rows(twc, company_wht_accounts)
+
+        # Populate combined label: Thai name + rate + PND form type
+        if first_wht:
+            thai_form = "ภงด." + form_type[3:]  # PND3 → ภงด.3 | PND53 → ภงด.53
+            category_name_th = first_wht.get("income_category_th") or income_category
+            twc.category_name = f"{category_name_th} {rate:g}% ({thai_form})"
+            twc.category_name_en = first_wht.get("income_category") or income_category
 
         twc.save(ignore_permissions=True)
 
@@ -201,31 +219,47 @@ def seed_tax_withholding_categories():
 def _get_company_wht_accounts():
     """
     Get all companies that have a default_wht_account configured.
-    Returns list of dicts: [{"company": "...", "account": "..."}]
+    Returns list of dicts with asset account and liability account.
     """
     companies = frappe.get_all(
         "Company",
         filters={"default_wht_account": ["is", "set"]},
-        fields=["name", "default_wht_account"]
+        fields=["name", "default_wht_account", "default_wht_debt_account"]
     )
-    return [{"company": c.name, "account": c.default_wht_account} for c in companies]
+    return [
+        {
+            "company": c.name,
+            "account": c.default_wht_account,
+            "liability_account": c.default_wht_debt_account,
+        }
+        for c in companies
+    ]
 
 
 def _ensure_accounts_rows(twc, company_wht_accounts):
     """
     Ensure the TWC has account rows for all companies with WHT accounts.
     Preserves existing rows (user may have customized the account), adds missing companies.
+    Populates both asset account (from default_wht_account) and liability account
+    (from default_wht_debt_account) on each row.
     """
-    existing_companies = set()
-    if twc.get("accounts"):
-        existing_companies = {row.company for row in twc.accounts}
+    company_account_map = {entry["company"]: entry for entry in company_wht_accounts}
 
+    for row in twc.get("accounts") or []:
+        entry = company_account_map.get(row.company)
+        if entry and entry.get("liability_account"):
+            row.pd_custom_wht_liability_account = entry["liability_account"]
+
+    existing_companies = {row.company for row in twc.get("accounts") or []}
     for entry in company_wht_accounts:
         if entry["company"] not in existing_companies:
-            twc.append("accounts", {
+            row = twc.append("accounts", {
                 "company": entry["company"],
                 "account": entry["account"],
             })
+            # Populate liability account from Company.default_wht_debt_account
+            if entry.get("liability_account"):
+                row.pd_custom_wht_liability_account = entry["liability_account"]
 
 
 def _update_rate_row(twc, from_date, to_date, rate):
@@ -285,5 +319,73 @@ def check_tax_withholding_categories():
     print(f"Thai WHT Income Types: {len(linked)}/{total_wht} linked to TWC")
 
     return len(linked) > 0
+
+
+def apply_tax_deduction_basis_descriptions():
+    """
+    Add Thai-localized descriptions to tax_deduction_basis select options via Property Setter.
+    This helps Thai users understand the difference without needing to read ERPNext docs.
+    Also sets title_field on Tax Withholding Category so category_name shows in Link fields,
+    and enables show_title_field_in_link on the Payment Entry tax_withholding_category field.
+    """
+    # Description for "Gross Total" option
+    make_property_setter(
+        "Tax Withholding Category",
+        "tax_deduction_basis",
+        "description",
+        "Thai WHT: Gross Total = tax_base × WHT_rate | Net Total = tax_base × (1 + VAT%) × WHT_rate. "
+        "Use Gross Total for most Thai WHT (services, commissions). Use Net Total for dividends, interest.",
+        "Text",
+    )
+
+    # Custom options description - append Thai explanation
+    make_property_setter(
+        "Tax Withholding Category",
+        "tax_deduction_basis",
+        "options",
+        "\nGross Total\nNet Total",
+        "Select",
+    )
+
+    # Set title_field on Tax Withholding Category so Frappe shows category_name
+    # as the human-readable title in all Link fields pointing to this doctype
+    make_property_setter(
+        "Tax Withholding Category",
+        "",
+        "title_field",
+        "category_name",
+        "Data",
+    )
+
+    # Enable show_title_field_in_link on Payment Entry's tax_withholding_category field
+    # so the Thai category_name appears beneath the TWC name after selection
+    make_property_setter(
+        "Payment Entry",
+        "tax_withholding_category",
+        "show_title_field_in_link",
+        "1",
+        "Check",
+    )
+
+    frappe.db.commit()
+    print("✓ Updated tax_deduction_basis descriptions for Thai users")
+    print("✓ Set title_field=category_name on Tax Withholding Category")
+    print("✓ Enabled show_title_field_in_link on Payment Entry.tax_withholding_category")
+
+
+def cleanup_tax_deduction_basis_descriptions():
+    """Remove the Property Setters on uninstall."""
+    for filters in [
+        {"doc_type": "Tax Withholding Category", "field_name": "tax_deduction_basis", "property": "description"},
+        {"doc_type": "Tax Withholding Category", "field_name": "", "property": "title_field"},
+        {"doc_type": "Payment Entry", "field_name": "tax_withholding_category", "property": "show_title_field_in_link"},
+    ]:
+        ps = frappe.db.exists("Property Setter", filters)
+        if ps:
+            frappe.delete_doc("Property Setter", ps, force=True)
+            print(f"  ✓ Removed Property Setter: {filters}")
+
+    frappe.db.commit()
+    print("✓ Cleaned up tax_deduction_basis descriptions")
 
 
