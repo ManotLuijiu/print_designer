@@ -50,10 +50,15 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
             print(f"[Thai WHT] category taxable_amount after standard: {category.get('taxable_amount')}")
             return
 
-        # Advance case - check if Gross-up type is set in taxes
+        # Advance case - check if any tax row uses Gross-up type.
+        # NOTE: do NOT filter by is_tax_withholding_account here. The system-generated WHT row
+        # has is_tax_withholding_account=1 but charge_type="Actual"; the user's Gross-up trigger
+        # row typically has charge_type="Gross-up" but is_tax_withholding_account=0. Requiring
+        # both on the same row means gross_up_rows is always empty → falls back to standard
+        # calculation (taxable = 9700) → withholding = 291 instead of 300.
         gross_up_rows = [
             t for t in self.doc.taxes
-            if t.get("charge_type") == "Gross-up" and t.get("is_tax_withholding_account")
+            if t.get("charge_type") == "Gross-up"
         ]
         print(f"[Thai WHT] Gross-up rows count: {len(gross_up_rows)}")
 

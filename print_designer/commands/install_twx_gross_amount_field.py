@@ -28,7 +28,7 @@ TWX_CUSTOM_FIELDS = {
             "translatable": 0,
             "insert_after": "tax_withholding_group",
             "description": "Gross amount before WHT deduction. For Thai gross-up: if net=9700 and rate=3%, gross=10000, WHT=300.",
-            "in_list_view": 1,
+            "in_list_view": 0,
             "module": "Print Designer",
             "precision": 2,
         },
