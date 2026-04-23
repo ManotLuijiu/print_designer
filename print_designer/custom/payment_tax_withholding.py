@@ -22,6 +22,16 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
     in the Advance Taxes and Charges child table.
     """
 
+    def _get_category_names(self):
+        result = super()._get_category_names()
+        print(f"[Thai WHT] _get_category_names returned: {result}")
+        return result
+
+    def _get_category_details(self):
+        result = super()._get_category_details()
+        print(f"[Thai WHT] _get_category_details returned: {list(result.keys()) if result else None}")
+        return result
+
     def _update_taxable_amounts(self):
         """
         Override for Thai WHT on advance payments.
@@ -37,6 +47,13 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         print(f"[Thai WHT] payment_type: {self.doc.payment_type}")
         print(f"[Thai WHT] base_paid_amount: {self.doc.base_paid_amount}")
         print(f"[Thai WHT] base_received_amount: {self.doc.base_received_amount}")
+        print(f"[Thai WHT] items count: {len(self.doc.items) if hasattr(self.doc, 'items') else 0}")
+        print(f"[Thai WHT] taxes count: {len(self.doc.taxes)}")
+
+        if not self.category_details:
+            print(f"[Thai WHT] WARNING: category_details is EMPTY — no categories found")
+        else:
+            print(f"[Thai WHT] category_details keys: {list(self.category_details.keys())}")
 
         category = next(iter(self.category_details.values()))
         print(f"[Thai WHT] category name: {category.get('name')}")
