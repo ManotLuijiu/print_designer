@@ -106,6 +106,12 @@ frappe.ui.form.on('Purchase Order', {
 
     // Form refresh: Apply smart defaults
     refresh: function(frm) {
+        // Collapse pd_custom_wht_preview_section after save (keep clean UI)
+        // Only collapse for non-new documents (after initial save)
+        if (!frm.is_new() && frm.fields_dict['pd_custom_wht_preview_section']) {
+            console.log('📂 Collapsing Thai Ecosystem section after save');
+            frm.fields_dict['pd_custom_wht_preview_section'].collapse();
+        }
         // Add custom button for Thai WHT setup if Thai WHT compliance is enabled
         if (frm.doc.pd_custom_apply_thai_wht_compliance && !frm.is_new()) {
             frm.add_custom_button(__('Setup TDS Fields'), function() {

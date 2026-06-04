@@ -1,3 +1,4 @@
+from print_designer.utils.thai_wht_helper import get_thai_wht_details_from_twc
 """
 Thai WHT Calculation Override for Purchase Invoice
 Prevents ERPNext standard Tax Withholding Category interference
@@ -8,8 +9,6 @@ import frappe
 from frappe.utils import flt, cint, getdate
 from frappe import _
 
-
-@frappe.whitelist()
 def override_purchase_invoice_wht_calculation(doc, method=None):
     """
     Override ERPNext's standard WHT calculation for Thai compliance.
@@ -21,10 +20,6 @@ def override_purchase_invoice_wht_calculation(doc, method=None):
         method: Hook method name
     """
 
-    # STEP 0: Set default for credit purchases — assume Tax Invoice received at PI stage
-    # User can uncheck if Tax Invoice hasn't arrived yet
-    if not getattr(doc, "is_paid", 0) and not getattr(doc, "pd_custom_tax_invoice_received", None):
-        doc.pd_custom_tax_invoice_received = 1
 
     # STEP 1: Auto-populate fields from Purchase Order and bill fields
     auto_populate_from_purchase_order(doc)
@@ -201,9 +196,12 @@ def _populate_compliance_section_fields(doc):
         return
 
     # Map preview fields to compliance fields
+    # DEPRECATED: pd_custom_income_type - Use pd_custom_wht_income_type (Link to Tax Withholding Category) instead
+    # This Select field caused validation errors when copying Tax Withholding Category names to it
+    # Removed pd_custom_wht_income_type → pd_custom_income_type mapping since pd_custom_income_type is deprecated
     field_mapping = {
         # From preview section → To compliance section
-        "pd_custom_wht_income_type": "pd_custom_income_type",
+        # "pd_custom_wht_income_type": "pd_custom_income_type",  # DEPRECATED - removed
         "pd_custom_withholding_tax_pct": "pd_custom_withholding_tax_rate",
         "pd_custom_withholding_tax_amount": "pd_custom_withholding_tax_amount",
         "pd_custom_wht_description": "pd_custom_wht_description",
@@ -262,13 +260,11 @@ def _populate_defaults_from_supplier(doc):
                     doc.pd_custom_withholding_tax_pct = rate_row.tax_withholding_rate
                     break
 
-    # Fetch income type from linked Thai WHT Income Type (not from TWC - that field is redundant)
-    if not getattr(doc, "pd_custom_wht_income_type", None):
-        # TWC links to Thai WHT Income Type via its name field or dedicated link
-        # Try to find the linked Thai WHT Income Type by matching rate/category
-        income_type = _get_income_type_from_twc(twc_doc, twc_name)
-        if income_type:
-            doc.pd_custom_wht_income_type = income_type
+    # Now pd_custom_wht_income_type links to Tax Withholding Category (bilingual)
+    # Return TWC name directly - no need to look up Thai WHT Income Type for the field value
+    # For Thai-specific details (form_type, conditions_th), use get_thai_wht_details_from_twc()
+    if not getattr(doc, "pd_custom_wht_income_type", None) and twc_name:
+        doc.pd_custom_wht_income_type = twc_name
 
     # Auto-set subject_to_wht when WHT compliance enabled and TWC exists
     if getattr(doc, "pd_custom_apply_thai_wht_compliance", 0) and twc_name:
@@ -372,10 +368,9 @@ def _apply_contract_installment_wht(doc):
     doc.pd_custom_subject_to_wht = 1
     doc.pd_custom_withholding_tax_pct = wht_rate
 
-    if not getattr(doc, "pd_custom_wht_income_type", None):
-        income_type = _get_income_type_from_twc(twc_doc, twc_name)
-        if income_type:
-            doc.pd_custom_wht_income_type = income_type
+    # pd_custom_wht_income_type now stores TWC name directly (bilingual field)
+    if not getattr(doc, "pd_custom_wht_income_type", None) and twc_name:
+        doc.pd_custom_wht_income_type = twc_name
 
 
 def auto_populate_from_purchase_order(doc):
@@ -399,10 +394,11 @@ def auto_populate_from_purchase_order(doc):
 def _populate_tax_invoice_from_bill_fields(doc):
     """
     Auto-populate tax invoice fields from Purchase Invoice's bill_no, bill_date, net_total.
-
+    
+    Cash vs Credit behavior:
     - Cash purchase (is_paid=1): Tax Invoice always received at PI stage → auto-populate.
-    - Credit purchase (is_paid=0): Only populate if pd_custom_tax_invoice_received == 1
-      (user confirmed Tax Invoice was received at this PI stage).
+    - Credit purchase (is_paid=0): User must manually check pd_custom_tax_invoice_received
+      since supplier habits vary (some at PI, some at Payment) — NOT auto-checked.
     """
 
     print(f"🏷️ DEBUG: Checking tax invoice fields for Purchase Invoice {doc.name}")
@@ -933,7 +929,6 @@ def update_thai_wht_preview_fields(doc, base_amount, wht_amount, final_payment):
             )
 
 
-@frappe.whitelist()
 def validate_thai_wht_configuration(doc, method=None):
     """
     Validate Thai WHT configuration to ensure proper setup
@@ -1096,13 +1091,15 @@ def validate_thai_wht_configuration(doc, method=None):
                 )
             )
 
-        # MANDATORY: pd_custom_income_type for Revenue Department compliance
-        if not getattr(doc, "pd_custom_income_type"):
-            frappe.throw(
-                _(
-                    "Income Type (Revenue Department classification) is required when Subject to Withholding Tax is enabled for cash purchases"
-                )
-            )
+        # DEPRECATED: pd_custom_income_type validation removed
+        # Use pd_custom_wht_income_type (Link to Tax Withholding Category) instead
+        # The pd_custom_income_type Select field caused validation errors when copying Tax Withholding Category names
+        # if not getattr(doc, "pd_custom_income_type"):
+        #     frappe.throw(
+        #         _(
+        #             "Income Type (Revenue Department classification) is required when Subject to Withholding Tax is enabled for cash purchases"
+        #         )
+        #     )
 
     # Validate VAT treatment for TDS transactions
     # Only suggest VAT Undue if document has single item type (not mixed assets + services)
@@ -1111,7 +1108,6 @@ def validate_thai_wht_configuration(doc, method=None):
         # Check if document has mixed item types
         has_mixed_item_types = _check_mixed_item_types(doc)
 
-        # Only show VAT Undue suggestion for single-item-type documents
         if not has_mixed_item_types:
             frappe.msgprint(
                 _(

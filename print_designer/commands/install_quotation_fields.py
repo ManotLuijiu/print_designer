@@ -311,7 +311,7 @@ def get_quotation_custom_fields_definition():
                 "fieldtype": "Link",
                 "insert_after": "pd_custom_subject_to_wht",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "options": "Thai WHT Income Type",
+                "options": "Tax Withholding Category",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,

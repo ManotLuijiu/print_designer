@@ -29,8 +29,8 @@ def execute():
                 "fieldname": "pd_custom_apply_thai_wht_compliance",
                 "label": "Apply Thai Withholding Tax Compliance",
                 "fieldtype": "Check",
-                "insert_after": "tax_withholding_category",
-                "description": "TDS enabled: VAT Treatment will be auto-set to \"VAT Undue (7%)\" for compliance",
+                "insert_after": "is_subcontracted",
+                "description": 'TDS enabled: VAT Treatment will be auto-set to "VAT Undue (7%)" for compliance',
                 "default": "0",
                 "read_only": 0,
                 "hidden": 0,
@@ -38,6 +38,7 @@ def execute():
                 "length": 0,
                 "bold": 0,
             },
+            # Thai Ecosystem (Withholding Tax & Retention)
             # Thai Ecosystem (Withholding Tax & Retention)
             {
                 "fieldname": "pd_custom_wht_preview_section",
@@ -47,6 +48,7 @@ def execute():
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 1,
+                "collapsible_depends_on": "eval:doc.pd_custom_apply_thai_wht_compliance",
                 "length": 0,
                 "bold": 0,
             },
@@ -96,7 +98,7 @@ def execute():
                 "fieldtype": "Link",
                 "insert_after": "pd_custom_subject_to_wht",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "options": "Thai WHT Income Type",
+                "options": "Tax Withholding Category",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -219,11 +221,38 @@ def execute():
                 "bold": 0,
             },
             # Insert at Totals Section
+            # WHT
+            {
+                "fieldname": "pd_custom_withholding_tax_pct",
+                "label": "Withholding Tax (%)",
+                "fieldtype": "Percent",
+                "insert_after": "base_in_words",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
+                "read_only": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_withholding_tax_amount",
+                "label": "Withholding Tax Amount",
+                "fieldtype": "Currency",
+                "insert_after": "pd_custom_withholding_tax_pct",
+                "depends_on": "eval:doc.pd_custom_subject_to_wht",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # Retention
             {
                 "fieldname": "pd_custom_retention_pct",
                 "label": "Retention (%)",
                 "fieldtype": "Percent",
-                "insert_after": "base_rounded_total",
+                "insert_after": "pd_custom_withholding_tax_amount",
                 "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "read_only": 0,
                 "hidden": 0,
@@ -245,35 +274,10 @@ def execute():
                 "bold": 0,
             },
             {
-                "fieldname": "pd_custom_withholding_tax_pct",
-                "label": "Withholding Tax (%)",
-                "fieldtype": "Percent",
-                "insert_after": "pd_custom_retention_amount",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "read_only": 0,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_withholding_tax_amount",
-                "label": "Withholding Tax Amount",
-                "fieldtype": "Currency",
-                "insert_after": "pd_custom_withholding_tax_pct",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "options": "Company:company:default_currency",
-                "read_only": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
                 "fieldname": "pd_custom_payment_amount",
                 "label": "Payment Amount",
                 "fieldtype": "Currency",
-                "insert_after": "pd_custom_withholding_tax_amount",
+                "insert_after": "base_rounded_total",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht || doc.pd_custom_subject_to_retention",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
@@ -327,12 +331,18 @@ def check_purchase_order_fields():
         "pd_custom_payment_amount",
     ]
 
-    existing_fields = frappe.db.sql("""
+    existing_fields = frappe.db.sql(
+        """
         SELECT fieldname
         FROM `tabCustom Field`
         WHERE dt = 'Purchase Order'
         AND fieldname IN ({})
-    """.format(','.join(['%s'] * len(required_fields))), required_fields, as_dict=True)
+    """.format(
+            ",".join(["%s"] * len(required_fields))
+        ),
+        required_fields,
+        as_dict=True,
+    )
 
     existing_field_names = [f.fieldname for f in existing_fields]
     missing_fields = [f for f in required_fields if f not in existing_field_names]
@@ -375,10 +385,9 @@ def uninstall_purchase_order_fields():
 
     try:
         # Delete custom fields
-        frappe.db.delete("Custom Field", {
-            "dt": "Purchase Order",
-            "fieldname": ("in", fields_to_remove)
-        })
+        frappe.db.delete(
+            "Custom Field", {"dt": "Purchase Order", "fieldname": ("in", fields_to_remove)}
+        )
 
         # Clear cache
         frappe.clear_cache(doctype="Purchase Order")

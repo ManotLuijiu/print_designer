@@ -206,13 +206,17 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
             raise insert_error
 
         # Create a link back to Payment Entry
-        if not hasattr(payment_entry_doc, 'pd_custom_wht_certificate'):
+        if not hasattr(payment_entry_doc, 'pd_custom_wht_certificate_details'):
             # Add custom field to Payment Entry if it doesn't exist
             _ensure_wht_certificate_link_field()
 
         # Update Payment Entry with certificate link
         print(f"DEBUG: Linking WHT Certificate {wht_cert.name} to Payment Entry {payment_entry_doc.name}")
-        frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate", wht_cert.name)
+        frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate_details", wht_cert.name)
+        # Update Payment Entry with certificate NUMBER for Pay scenario
+        # This makes the certificate number visible in the PE UI (_details fields)
+        print(f"DEBUG: Setting pd_custom_wht_number_details = {wht_cert.certificate_number}")
+        frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_number_details", wht_cert.certificate_number)
 
         # Submit the certificate to finalize it
         print(f"DEBUG: Submitting WHT Certificate {wht_cert.name}")
@@ -223,7 +227,7 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         print(f"DEBUG: All changes committed to database")
 
         # Verify the link was created successfully
-        linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate")
+        linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate_details")
         print(f"DEBUG: Verification - Payment Entry {payment_entry_doc.name} now linked to certificate: {linked_cert}")
 
         if linked_cert != wht_cert.name:
@@ -373,10 +377,10 @@ def _get_pnd_form_and_classification(supplier_name):
 def _ensure_wht_certificate_link_field():
     """Ensure WHT Certificate link field exists in Payment Entry"""
     try:
-        if not frappe.db.exists("Custom Field", {"dt": "Payment Entry", "fieldname": "pd_custom_wht_certificate"}):
+        if not frappe.db.exists("Custom Field", {"dt": "Payment Entry", "fieldname": "pd_custom_wht_certificate_details"}):
             custom_field = frappe.new_doc("Custom Field")
             custom_field.dt = "Payment Entry"
-            custom_field.fieldname = "pd_custom_wht_certificate"
+            custom_field.fieldname = "pd_custom_wht_certificate_details"
             custom_field.fieldtype = "Link"
             custom_field.options = "Withholding Tax Certificate"
             custom_field.label = "WHT Certificate"

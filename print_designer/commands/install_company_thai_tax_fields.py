@@ -199,6 +199,15 @@ def install_company_thai_tax_fields():
                 "insert_after": "tbs_custom_require_export_documentation",
                 "description": "Default income account for export sales transactions",
             },
+            # Disable Default ERPNext's TDS
+            {
+                "fieldname": "pd_custom_disable_erpnext_tds",
+                "fieldtype": "Check",
+                "label": "Disable ERPNext default TDS",
+                "insert_after": "tbs_custom_default_export_account",
+                "default": "1",
+                "description": "Need to disable ERPNext's default TDS if using in Thailand",
+            },
             # Thai Register Name
             {
                 "fieldname": "pd_custom_company_register_name",

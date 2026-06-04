@@ -1,0 +1,350 @@
+{
+ "actions": [],
+ "autoname": "format:THVAT-PI-{purchase_invoice}",
+ "creation": "2025-09-10 00:55:18.555230",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company_details_section",
+  "purchase_for_company",
+  "column_break_company",
+  "purchase_for_branch",
+  "purchase_invoice_section",
+  "purchase_invoice",
+  "supplier",
+  "supplier_name",
+  "column_break_4",
+  "posting_date",
+  "bill_date",
+  "tax_invoice_details_section",
+  "bill_no",
+  "tax_invoice_number",
+  "tax_invoice_date",
+  "tax_base_amount",
+  "bill_series",
+  "column_break_9",
+  "supplier_tax_id",
+  "supplier_branch",
+  "payment_entry",
+  "vat_period_section",
+  "vat_month",
+  "column_break_vat_period",
+  "vat_year",
+  "vat_details_section",
+  "base_amount",
+  "vat_amount",
+  "column_break_14",
+  "total_amount",
+  "is_vat_exempt",
+  "input_vat_usage_section",
+  "is_input_vat_used",
+  "column_break_input_vat",
+  "input_vat_used_month",
+  "input_vat_used_year",
+  "workflow_state"
+ ],
+ "fields": [
+  {
+   "fieldname": "company_details_section",
+   "fieldtype": "Section Break",
+   "label": "Company Details"
+  },
+  {
+   "fieldname": "purchase_for_company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Purchase For Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_company",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "00000",
+   "fieldname": "purchase_for_branch",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Purchase For Branch",
+   "length": 5
+  },
+  {
+   "fieldname": "purchase_invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Invoice"
+  },
+  {
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 0,
+   "label": "Purchase Invoice",
+   "options": "Purchase Invoice",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "purchase_invoice.supplier",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 0,
+   "label": "Supplier",
+   "options": "Supplier",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "purchase_invoice.supplier_name",
+   "fieldname": "supplier_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "purchase_invoice.posting_date",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "purchase_invoice.bill_date",
+   "fieldname": "bill_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Bill Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_invoice_details_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Invoice Details"
+  },
+  {
+   "fetch_from": "purchase_invoice.bill_no",
+   "fieldname": "bill_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bill No. (Plain Invoice)",
+   "read_only": 1
+  },
+  {
+   "description": "Tax Invoice Number from Purchase Invoice (Goods/Cash) or Payment Entry (Services/Credit)",
+   "fieldname": "tax_invoice_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tax Invoice Number"
+  },
+  {
+   "description": "Tax Invoice Date from Purchase Invoice (Goods/Cash) or Payment Entry (Services/Credit)",
+   "fieldname": "tax_invoice_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Tax Invoice Date"
+  },
+  {
+   "description": "Tax Base Amount (Amount before VAT)",
+   "fieldname": "tax_base_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Tax Base Amount"
+  },
+  {
+   "description": "Book number of the tax invoice",
+   "fieldname": "bill_series",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bill Series"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "supplier.tax_id",
+   "fieldname": "supplier_tax_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Tax ID",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "supplier.pd_custom_branch_code",
+   "fieldname": "supplier_branch",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Supplier Branch",
+   "read_only": 1
+  },
+  {
+   "description": "Related Payment Entry for Service Purchase (Credit)",
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry"
+  },
+  {
+   "fieldname": "vat_period_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Period"
+  },
+  {
+   "fieldname": "vat_month",
+   "fieldtype": "Select",
+   "in_list_view": 0,
+   "label": "VAT Month",
+   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vat_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vat_year",
+   "fieldtype": "Data",
+   "in_list_view": 0,
+   "label": "VAT Year",
+   "length": 4,
+   "reqd": 1
+  },
+  {
+   "fieldname": "vat_details_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Details"
+  },
+  {
+   "fetch_from": "purchase_invoice.base_net_total",
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Base Amount",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "purchase_invoice.base_total_taxes_and_charges",
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "VAT Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_14",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "purchase_invoice.base_grand_total",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_vat_exempt",
+   "fieldtype": "Check",
+   "label": "Is VAT Exempt"
+  },
+  {
+   "fieldname": "input_vat_usage_section",
+   "fieldtype": "Section Break",
+   "label": "Input VAT Usage"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_input_vat_used",
+   "fieldtype": "Check",
+   "label": "Is Input VAT Used"
+  },
+  {
+   "fieldname": "column_break_input_vat",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "is_input_vat_used",
+   "fieldname": "input_vat_used_month",
+   "fieldtype": "Select",
+   "label": "Input VAT Used Month",
+   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"
+  },
+  {
+   "depends_on": "is_input_vat_used",
+   "fieldname": "input_vat_used_year",
+   "fieldtype": "Link",
+   "label": "Input VAT Used Year",
+   "options": "Fiscal Year"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "workflow_state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Workflow State",
+   "options": "Draft\nValidated\nAvailable\nUsed\nExpired\nCancelled",
+   "read_only": 1
+  }
+ ],
+ "default_print_format": "Thai Input VAT Report",
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 0,
+ "links": [],
+ "modified": "2026-06-03 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai Purchase VAT",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 0,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "bill_date",
+ "track_changes": 1
+}

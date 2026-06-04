@@ -113,7 +113,6 @@ commands = [
 # include js, css files in header of desk.html
 app_include_js = [
     "print_watermark.bundle.js",
-    # Other JS files are loaded via doctype_js for specific DocTypes
 ]
 
 app_include_css = [
@@ -163,6 +162,7 @@ doctype_js = {
         "public/js/payment_entry_thai_tax.js",
         "public/js/payment_entry_wht_certificate.js",
         "public/js/payment_entry.js",
+        "public/js/payment_entry_receive_wht_register.js",
     ],
     "Sales Invoice": [
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
@@ -612,6 +612,8 @@ after_migrate = [
     # Apply Account Thai translations after migration to ensure complete coverage
     "print_designer.commands.apply_account_thai_translations.apply_account_thai_translations",
     # Thai Billing fields + workspace moved to thai_business_suite
+    # Fix Thailand Address Template to include county (อำเภอ/District) with Thai labels
+    "print_designer.commands.fix_thai_address_template.execute",
 ]
 
 # Uninstallation
@@ -672,10 +674,19 @@ doc_events = {
     # Sales Invoice events - consolidated in doc_events section below
     "Purchase Invoice": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.regional.purchase_invoice_wht_override.validate_thai_wht_configuration",
+        "validate": [
+            "print_designer.regional.purchase_invoice_wht_override.validate_thai_wht_configuration",
+            "print_designer.regional.purchase_invoice_tax_override.override_service_credit_tax_account",
+            "print_designer.custom.erpnext_tds_disabler.disable_tds_for_thai_wht",
+        ],
         "before_save": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
         "on_update": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
-        "on_submit": "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice",
+        "on_submit": [
+            "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice",
+            "print_designer.custom.erpnext_tds_disabler.block_tds_gl_entries",
+            "print_designer.regional.thai_purchase_vat.create_purchase_vat_records",
+        ],
+        "on_cancel": "print_designer.regional.thai_purchase_vat.handle_purchase_invoice_cancellation",
     },
     # Sales Order and Quotation events - consolidated in doc_events section below
     "Purchase Order": {
@@ -716,6 +727,7 @@ doc_events = {
             "print_designer.custom.payment_entry_retention.payment_entry_calculate_retention_amounts",
             "print_designer.custom.payment_entry_retention.payment_entry_validate_retention",
             "print_designer.custom.payment_entry_server_events.validate",
+            "print_designer.regional.thai_purchase_vat.update_vat_from_payment_entry",
         ],
         "after_insert": "print_designer.custom.payment_entry_server_events.after_insert",
         "on_submit": [
@@ -728,6 +740,7 @@ doc_events = {
             "print_designer.custom.payment_entry_server_events.on_cancel",
             # Thai Billing hook moved to thai_business_suite
         ],
+        "on_update_after_submit": "print_designer.custom.payment_entry_server_events.on_update_after_submit",
     },
     # Company DocType - Retention sync DISABLED (redundant)
     # Retention settings are read directly from Company fields (construction_service,
@@ -752,8 +765,11 @@ doc_events = {
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
         "before_validate": "print_designer.custom.sales_invoice_calculations.before_validate_sales_invoice",
-        "validate": "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-        "on_submit": "print_designer.custom.sales_invoice_qr.add_qr_to_sales_invoice",  # Auto-generate e-Tax QR code
+        "validate": [
+            "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
+            "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.update_output_vat_on_tax_invoice",
+        ],
+        "on_submit": "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.create_output_vat_undue_record",
     },
     # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {

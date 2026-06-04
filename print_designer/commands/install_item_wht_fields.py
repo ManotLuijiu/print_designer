@@ -32,7 +32,7 @@ def execute():
                 "fieldtype": "Link",
                 "insert_after": "stock_uom",
                 "depends_on": "eval:doc.pd_custom_is_service_item",
-                "options": "Thai WHT Income Type",
+                "options": "Tax Withholding Category",
                 "description": _("Default WHT income type for this item when used in purchase transactions"),
                 "read_only": 0,
                 "hidden": 0,

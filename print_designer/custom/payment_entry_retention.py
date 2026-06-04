@@ -1269,18 +1269,20 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
             'pd_custom_net_payment_amount': sum(ref.allocated_amount for ref in references) - total_withholding_amount - total_retention_amount
         }
 
-        # Add income type mapping to Thai text
-        if wht_income_types:
-            income_type = list(wht_income_types)[0]
-            # Map common service types to Thai options
-            income_type_map = {
-                "service_fees": "5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส",
-                "professional_fees": "2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2)",
-                "salary": "1. เงินเดือน ค่าจ้าง ฯลฯ 40(1)",
-                "interest": "4. ดอกเบี้ย ฯลฯ 40(4)ก",
-                "royalty": "3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3)"
-            }
-            pd_fields['pd_custom_income_type'] = income_type_map.get(income_type, "5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส")
+        # DEPRECATED: pd_custom_income_type - Use pd_custom_wht_income_type (Link to Tax Withholding Category) instead
+        # This Select field caused validation errors when copying Tax Withholding Category names to it
+        # No longer mapping income types to pd_custom_income_type since pd_custom_income_type is deprecated
+        # if wht_income_types:
+        #     income_type = list(wht_income_types)[0]
+        #     # Map common service types to Thai options
+        #     income_type_map = {
+        #         "service_fees": "5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส",
+        #         "professional_fees": "2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2)",
+        #         "salary": "1. เงินเดือน ค่าจ้าง ฯลฯ 40(1)",
+        #         "interest": "4. ดอกเบี้ย ฯลฯ 40(4)ก",
+        #         "royalty": "3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3)"
+        #     }
+        #     pd_fields['pd_custom_income_type'] = income_type_map.get(income_type, "5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส")
 
         # Add pd_custom fields to update
         for field, value in pd_fields.items():

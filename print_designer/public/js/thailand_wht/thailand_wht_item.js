@@ -14,10 +14,14 @@ frappe.ui.form.on("Item", {
 
 	pd_custom_is_service_item: function (frm) {
 		if (frm.doc.pd_custom_is_service_item) {
+			// Automatically uncheck is_stock_item when service item is checked
+			frm.set_value('is_stock_item', 0);
 			show_wht_service_info(frm);
 		} else {
 			hide_wht_service_info(frm);
 		}
+		// Note: When user unchecks service item, do NOT auto-check is_stock_item back
+		// Leave it to user's discretion
 	},
 
 	item_group: function (frm) {

@@ -156,21 +156,36 @@ def add_regional_gl_entries(gl_entries, doc):
     print(f"   💰 VAT Undue > 0: {vat_check} (value: {total_vat_undue})")
     print(f"   💰 Any amounts > 0: {amounts_check}")
 
-    overall_condition = bool(has_thai_taxes) and amounts_check
-    print(f"   🎯 Overall condition (should proceed): {overall_condition}")
+    # Check for VAT Undue treatment - this also triggers the GL entries
+    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
+    vat_undue_from_treatment = (vat_treatment == "VAT Undue" and tax_base_amount > 0)
+    
+    print(f"   🔍 VAT TREATMENT CHECK:")
+    print(f"   💼 vat_treatment: {vat_treatment}")
+    print(f"   💵 tax_base_amount: {tax_base_amount}")
+    print(f"   ✅ vat_undue_from_treatment: {vat_undue_from_treatment}")
 
-    # Only proceed if Thai taxes flag is set AND there are actual amounts
-    if not has_thai_taxes or (total_wht <= 0 and total_retention <= 0 and total_vat_undue <= 0):
-        print(f"❌ SKIPPING REGIONAL GL ENTRIES:")
-        print(f"   📋 has_thai_taxes={has_thai_taxes} (should be truthy)")
-        print(f"   💰 WHT={total_wht} (should be > 0)")
-        print(f"   💰 Retention={total_retention} (should be > 0)")
-        print(f"   💰 VAT Undue={total_vat_undue} (should be > 0)")
-        print(f"   ❗ At least one amount should be > 0, but all are <= 0")
+    overall_condition = bool(has_thai_taxes) and amounts_check
+    vat_condition = vat_undue_from_treatment  # Separate condition for VAT Undue
+    print(f"   🎯 Overall condition (WHT/Retention): {overall_condition}")
+    print(f"   🎯 VAT Undue condition: {vat_condition}")
+
+    # Only proceed if Thai taxes flag is set AND there are actual amounts, OR VAT Undue treatment
+    if not has_thai_taxes and not vat_undue_from_treatment:
+        print(f"❌ SKIPPING REGIONAL GL ENTRIES - no Thai taxes or VAT Undue detected:")
+        print(f"   📋 has_thai_taxes={has_thai_taxes} (should be truthy for WHT/Retention)")
+        print(f"   💼 vat_undue_from_treatment={vat_undue_from_treatment} (should be true for VAT Undue)")
+        print(f"   💰 WHT={total_wht}, Retention={total_retention}, VAT Undue={total_vat_undue}")
+        print(f"   ❗ At least one should be non-zero, or VAT Undue treatment should be active")
         print(f"🇹🇭 =========================== REGIONAL GL DEBUG END (SKIPPED) ===========================")
         return
+    # If VAT Undue treatment is active, use tax_base_amount * 7% for vat_amount
+    if vat_undue_from_treatment:
+        total_vat_undue = tax_base_amount * 0.07  # Calculate VAT from tax base
+        print(f"   ✅ VAT UNDUE from treatment: calculated VAT = {total_vat_undue}")
 
-    print(f"✅ THAI TAXES DETECTED - PROCEEDING WITH GL ENTRIES:")
+    print(f"✅ THAI TAXES OR VAT UNDUE DETECTED - PROCEEDING WITH GL ENTRIES:")
     print(f"   💰 WHT: ฿{total_wht}")
     print(f"   💰 Retention: ฿{total_retention}")
     print(f"   💰 VAT Undue: ฿{total_vat_undue}")
@@ -201,6 +216,13 @@ def add_regional_gl_entries(gl_entries, doc):
         print(f"🎉 Regional GL entries created successfully for {doc.name}")
         print(f"🇹🇭 =========================== REGIONAL GL DEBUG END (SUCCESS) ===========================")
 
+    except Exception as e:
+        error_msg = str(e)[:100] if len(str(e)) > 100 else str(e)
+        print(f"❌ ERROR CREATING REGIONAL GL ENTRIES:")
+        print(f"   💥 Error message: {error_msg}")
+        print(f"   📄 Full error: {str(e)}")
+        frappe.log_error(f"Thai GL: {doc.name}: {error_msg}", "Thai GL Error")
+        print(f"🇹🇭 =========================== REGIONAL GL DEBUG END (ERROR) ===========================")
     except Exception as e:
         error_msg = str(e)[:100] if len(str(e)) > 100 else str(e)
         print(f"❌ ERROR CREATING REGIONAL GL ENTRIES:")
@@ -315,11 +337,21 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
                     getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
                     getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
+
+    # Check for VAT Undue treatment and calculate VAT amount if needed
+    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0), 2)
     vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
+
+    # If VAT Undue treatment is active (from PI) but vat_amount is 0, calculate from tax_base
+    if vat_treatment == "VAT Undue" and vat_amount == 0 and tax_base_amount > 0:
+        vat_amount = tax_base_amount * 0.07
+        print(f"   📊 Calculated VAT from tax_base (VAT Undue treatment): ฿{vat_amount}")
 
     print(f"   💰 WHT amount: ฿{wht_amount}")
     print(f"   💰 Retention amount: ฿{retention_amount}")
     print(f"   💰 VAT amount: ฿{vat_amount}")
+    print(f"   📋 VAT treatment: {vat_treatment}, tax_base: ฿{tax_base_amount}")
 
     # Handle different payment types
     if doc.payment_type == "Receive":
@@ -333,17 +365,6 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
 def _get_vat_undue_from_linked_sales_invoices(doc, company_doc):
     """
     Check linked Sales Invoices for VAT Undue treatment and calculate total VAT amount.
-
-    Logic:
-    - If Sales Invoice used VAT Undue treatment → include its VAT amount
-    - If Sales Invoice used Standard VAT treatment → skip (VAT already realized)
-
-    Args:
-        doc: Payment Entry document
-        company_doc: Company document
-
-    Returns:
-        Total VAT Undue amount from linked Sales Invoices
     """
     print(f"   🔍 Checking linked Sales Invoices for VAT Undue treatment...")
 

@@ -37,12 +37,17 @@ def create_payment_entry_thai_fields():
                 "no_copy": 0,
                 "print_hide": 0,
             },
+            {
+                "fieldname": "pd_custom_vat_section",
+                "fieldtype": "Section Break",
+                "label": "Value Added Tax",
+                "insert_after": "pd_custom_thai_compliance_tab",
+            },
             # Column 1 - Removed button and redundant fields
             {
                 "fieldname": "pd_custom_thai_tax_column_1",
                 "fieldtype": "Column Break",
-                "label": "",
-                "insert_after": "pd_custom_thai_compliance_tab",
+                "insert_after": "pd_custom_vat_section",
                 "width": "50%",
             },
             {
@@ -66,23 +71,17 @@ def create_payment_entry_thai_fields():
                 "print_hide": 0,
                 "read_only": 0,  # Ensure it's editable
             },
-            # Removed pd_custom_supplier and pd_custom_supplier_name - using standard party fields
             {
-                "fieldname": "pd_custom_income_type",
-                "fieldtype": "Select",
-                "label": "Income Type",
+                "fieldname": "pd_custom_thai_tax_column_2",
+                "fieldtype": "Column Break",
                 "insert_after": "pd_custom_tax_invoice_date",
-                "options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1) - Salary\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2) - Fee/Commission\n40 (2) ค่านายหน้า - สมาคม (10%)\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3) - Royalty\n40 (3) ค่าแห่งกู้ดวิลล์ ค่าแห่งลิขสิทธิ์ หรือสิทธิอย่างอื่น - บริษัท (3%)\n40 (3) ค่าแห่งกู้ดวิลล์ ค่าแห่งลิขสิทธิ์ หรือสิทธิอย่างอื่น - สมาคม (10%)\n4. (ก) ดอกเบี้ย ฯลฯ 40(4)ก - Interest\n40 (4)(ก) ดอกเบี้ย - บริษัท (1%)\n40 (4)(ก) ดอกเบี้ย - สมาคม (10%)\n4. (ข) เงินปันผล เงินส่วนแบ่งกำไร ฯลฯ 40(4)ข - Dividend\n40 (4)(ข) เงินปันผล - บริษัทต่างประเทศ ประกอบการในไทย (10%)\n40 (5)(ก) ค่าเช่าอสังหาฯ - บริษัท (5%)\n40 (5)(ก) ค่าเช่าอสังหาฯ - มูลนิธิ (10%)\n40 (5) ค่าเช่าเรือ ตามกฎหมายว่าด้วยการส่งเสริมพาณิชย์นาวีที่ใช้ในการขนส่งสินค้าระหว่างประเทศ (1%)\n40 (5) ผู้มีหน้าที่เสียภาษีเงินได้บุคคลธรรมดาที่มิได้อยู่ในประเทศไทย (15%)\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส - Service\n40 (6) วิชาชีพกฎหมาย\n40 (6) วิชาชีพแพทย์(การประกอบโรคศิลปะ)\n40 (6) วิชาชีพวิศวกรรม\n40 (6) วิชาชีพสถาปัตยากรรม\n40 (6) วิชาชีพการบัญชี\n40 (6) วิชาชีพประณีตศิลปกรรม\n40 (6) ผู้มีหน้าที่เสียภาษีเงินได้บุคคลธรรมดาที่มิได้อยู่ในประเทศไทย (15%)\n40 (7) ค่าจ้างทำของ(รับเหมา) (3%)\n40 (8) ค่าจ้างทำของ(อื่นๆ) (3%)\n40 (8) รางวัลจากการประกวด (5%)\n40 (8) รางวัลจากการแข่งขัน (5%)\n40 (8) รางวัลจากการชิงโชค (5%)\n40 (8) รางวัลจากการอื่นใดมี่มีลักษณะชิงโชค (5%)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ต่างประเทศ (อัตราก้าวหน้า)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ในประเทศ (5%)\n40 (8) ค่าแสดงให้แก่นักแสดงสาธารณะ - ต่างประเทศได้ขออนุญาตถ่ายทำ (10%)\n40 (8) รางวัล ส่วนลด หรือประโยชน์ใด ๆ เนื่องจากการส่งเสริมการขาย (3%)\n40 (8) ค่าเบี้ยประกันวินาศภัย (1%)\n40 (8) ซื้อยางแผ่น มันสำปะหลัง ปอ ข้าว ข้าวโพด อ้อย เมล็ดกาแฟ ผลปาล์มน้ำมัน - บริษัท (0.75%)\n6. ค่าบริการ/ค่าสินค้าภาครัฐ - Government Service\n7. ค่าจ้างแรงงาน - Labor\n8. ค่าโฆษณา - Advertising\n9. ค่าเช่า - Rent\n10. ค่าขนส่ง - Transportation\n11. ค่าประกันภัย - Insurance\n12. อื่นๆ - Others",
-                "translatable": 0,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
+                "width": "50%",
             },
             {
                 "fieldname": "pd_custom_tax_base_amount",
                 "fieldtype": "Currency",
                 "label": "Tax Base Amount",
-                "insert_after": "pd_custom_income_type",
+                "insert_after": "pd_custom_thai_tax_column_2",  # Updated - pd_custom_income_type DEPRECATED
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -90,42 +89,60 @@ def create_payment_entry_thai_fields():
                 "print_hide": 0,
                 "bold": 1,
             },
-            # Column 2
             {
-                "fieldname": "pd_custom_thai_tax_column_2",
-                "fieldtype": "Column Break",
-                "label": "",
+                "fieldname": "pd_custom_vat_amount",
+                "fieldtype": "Currency",
+                "label": "VAT Amount",
                 "insert_after": "pd_custom_tax_base_amount",
-                "width": "50%",
-            },
-            {
-                "fieldname": "pd_custom_apply_withholding_tax",
-                "fieldtype": "Check",
-                "label": "Apply Withholding Tax",
-                "insert_after": "pd_custom_thai_tax_column_2",
-                "default": "0",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
                 "hidden": 0,
                 "no_copy": 0,
                 "print_hide": 0,
+                "bold": 1,
             },
             {
-                "fieldname": "pd_custom_wht_certificate",
+                "fieldname": "pd_custom_input_vat_ref",
                 "fieldtype": "Link",
-                "label": "WHT Certificate",
-                "insert_after": "pd_custom_apply_withholding_tax",
-                "depends_on": "eval:doc.payment_type=='Pay'",
-                "options": "Withholding Tax Certificate",
+                "label": "Input VAT Report Ref.",
+                "insert_after": "pd_custom_vat_amount",
+                "options": "Thai Purchase VAT",
                 "translatable": 0,
                 "hidden": 0,
                 "read_only": 1,
                 "no_copy": 0,
                 "print_hide": 0,
             },
+            # Withholding Tax Section
+            {
+                "fieldname": "pd_custom_wht_section",
+                "fieldtype": "Section Break",
+                "label": "Withholding Tax",
+                "insert_after": "pd_custom_input_vat_ref",
+            },
+            # Column 2
+            {
+                "fieldname": "pd_custom_thai_tax_column_3",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_wht_section",
+                "width": "50%",
+            },
+            {
+                "fieldname": "pd_custom_apply_withholding_tax",
+                "fieldtype": "Check",
+                "label": "Apply Withholding Tax",
+                "insert_after": "pd_custom_thai_tax_column_3",
+                "default": "0",
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+            },
+            # Receive WHT
             {
                 "fieldname": "pd_custom_wht_certificate_no",
                 "fieldtype": "Data",
                 "label": "Certificate Number",
-                "insert_after": "pd_custom_wht_certificate",
+                "insert_after": "pd_custom_apply_withholding_tax",
                 "depends_on": "eval:doc.payment_type=='Receive'",
                 "description": "WHT Certificate Number received from customer",
                 "translatable": 0,
@@ -133,11 +150,26 @@ def create_payment_entry_thai_fields():
                 "no_copy": 0,
                 "print_hide": 0,
             },
+            # Link to Receive WHT Register (for Receive scenario)
+            {
+                "fieldname": "pd_custom_receive_wht_register",
+                "fieldtype": "Link",
+                "label": "Receive WHT Register",
+                "insert_after": "pd_custom_wht_certificate_no",
+                "depends_on": "eval:doc.payment_type=='Receive'",
+                "options": "Receive WHT Register",
+                "translatable": 0,
+                "hidden": 0,
+                "read_only": 1,
+                "no_copy": 0,
+                "print_hide": 0,
+                "description": "Link to Receive WHT Register when customer provides WHT certificate",
+            },
             {
                 "fieldname": "pd_custom_wht_certificate_date",
                 "fieldtype": "Date",
                 "label": "WHT Certificate Date",
-                "insert_after": "pd_custom_wht_certificate_no",
+                "insert_after": "pd_custom_receive_wht_register",
                 "hidden": 0,
                 "no_copy": 0,
                 "print_hide": 0,
@@ -152,11 +184,18 @@ def create_payment_entry_thai_fields():
                 "no_copy": 0,
                 "print_hide": 0,
             },
+            # Column 3
+            {
+                "fieldname": "pd_custom_thai_tax_column_4",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_withholding_tax_rate",
+                "width": "50%",
+            },
             {
                 "fieldname": "pd_custom_withholding_tax_amount",
                 "fieldtype": "Currency",
                 "label": "Withholding Tax Amount",
-                "insert_after": "pd_custom_withholding_tax_rate",
+                "insert_after": "pd_custom_thai_tax_column_4",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
                 "hidden": 0,
@@ -176,7 +215,6 @@ def create_payment_entry_thai_fields():
                 "print_hide": 0,
                 "bold": 1,
             },
-
             # CRITICAL: Mirror Fields for Regional GL Function (regional/payment_entry.py)
             # These fields match the exact field names the regional function expects
             {
@@ -214,7 +252,6 @@ def create_payment_entry_thai_fields():
                 "no_copy": 1,
                 "print_hide": 1,
             },
-
             # CRITICAL: Account Configuration Fields for Thai Tax GL Entries
             # These fields are required by regional/payment_entry.py for GL entries
             {
@@ -258,7 +295,6 @@ def create_payment_entry_thai_fields():
                 "insert_after": "pd_custom_output_vat_undue_account",
                 "description": "Account for output VAT GL entries",
                 "hidden": 1,  # Hidden as it's populated from Company defaults
-                "no_copy": 0,
                 "print_hide": 1,
             },
         ]
@@ -368,9 +404,10 @@ def populate_payment_entry_account_fields_from_company():
         print("Populating Payment Entry account fields from Company defaults...")
 
         # Get all Payment Entries that might need account field population
-        payment_entries = frappe.get_all("Payment Entry",
+        payment_entries = frappe.get_all(
+            "Payment Entry",
             filters={"pd_custom_apply_withholding_tax": 1},
-            fields=["name", "company"]
+            fields=["name", "company"],
         )
 
         if not payment_entries:
@@ -386,17 +423,28 @@ def populate_payment_entry_account_fields_from_company():
             updates = {}
 
             # Check and populate account fields
-            if hasattr(company_doc, 'default_wht_account') and company_doc.default_wht_account:
-                updates['pd_custom_wht_account'] = company_doc.default_wht_account
+            if hasattr(company_doc, "default_wht_account") and company_doc.default_wht_account:
+                updates["pd_custom_wht_account"] = company_doc.default_wht_account
 
-            if hasattr(company_doc, 'default_retention_account') and company_doc.default_retention_account:
-                updates['pd_custom_retention_account'] = company_doc.default_retention_account
+            if (
+                hasattr(company_doc, "default_retention_account")
+                and company_doc.default_retention_account
+            ):
+                updates["pd_custom_retention_account"] = company_doc.default_retention_account
 
-            if hasattr(company_doc, 'default_output_vat_undue_account') and company_doc.default_output_vat_undue_account:
-                updates['pd_custom_output_vat_undue_account'] = company_doc.default_output_vat_undue_account
+            if (
+                hasattr(company_doc, "default_output_vat_undue_account")
+                and company_doc.default_output_vat_undue_account
+            ):
+                updates["pd_custom_output_vat_undue_account"] = (
+                    company_doc.default_output_vat_undue_account
+                )
 
-            if hasattr(company_doc, 'default_output_vat_account') and company_doc.default_output_vat_account:
-                updates['pd_custom_output_vat_account'] = company_doc.default_output_vat_account
+            if (
+                hasattr(company_doc, "default_output_vat_account")
+                and company_doc.default_output_vat_account
+            ):
+                updates["pd_custom_output_vat_account"] = company_doc.default_output_vat_account
 
             # Apply updates if we have any
             if updates:
@@ -407,7 +455,9 @@ def populate_payment_entry_account_fields_from_company():
 
         if updated_count > 0:
             frappe.db.commit()
-            print(f"✅ Updated {updated_count} Payment Entries with account fields from Company defaults")
+            print(
+                f"✅ Updated {updated_count} Payment Entries with account fields from Company defaults"
+            )
         else:
             print("ℹ️  No Payment Entries needed account field updates")
 
@@ -435,7 +485,7 @@ def emergency_install_missing_account_fields():
             "pd_custom_wht_account",
             "pd_custom_retention_account",
             "pd_custom_output_vat_undue_account",
-            "pd_custom_output_vat_account"
+            "pd_custom_output_vat_account",
         ]
 
         missing_fields = []

@@ -24,23 +24,40 @@ class WithholdingTaxCertificate(Document):
         self.tax_base_amount = flt(total_base, self.precision("tax_base_amount"))
         self.wht_amount = flt(total_wht, self.precision("wht_amount"))
         self.net_payment_amount = flt(total_base - total_wht, self.precision("net_payment_amount"))
-        self.total_payment_amount = flt(total_base, self.precision("total_payment_amount"))
-
-    def after_insert(self):
-        """Auto-create PND form item entry when certificate is created"""
-        self.create_or_update_pnd_form_item()
-
-    def on_submit(self):
-        """Update PND form item and status when certificate is submitted"""
-        # Update status from Draft to Issued (persist to database)
-        self.db_set("status", "Issued")
-
-        # Update PND form item
-        self.create_or_update_pnd_form_item(update_only=True)
-
     def on_cancel(self):
-        """Remove PND form item when certificate is cancelled"""
+        """Remove PND form item and clear payment entry link when certificate is cancelled"""
+        # Set flag to allow link to cancelled doc during save
+        frappe.flags.allow_cancelled_linked_doc = True
+        
+        # First remove PND items (before clearing the link)
         self.remove_pnd_form_item()
+        
+        # Get the PE name before clearing payment_entry
+        pe_name = self.payment_entry
+        
+        # Clear the payment_entry link using db directly (bypass any hooks)
+        frappe.db.sql("UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s", (self.name,))
+        
+        # Also clear the PE's pd_custom_wht_certificate_details field
+        if pe_name:
+            frappe.db.sql("""
+                UPDATE `tabPayment Entry` 
+                SET pd_custom_wht_certificate_details = NULL 
+                WHERE name = %s
+            """, (pe_name,))
+        
+        frappe.db.commit()
+    
+    
+    
+    def make_payment_entry_editable(self):
+        """
+        Make this cancelled WHTC editable by setting payment_entry to NULL.
+        Called when PE needs to amend after cancelling.
+        """
+        if self.docstatus == 2:  # Cancelled
+            frappe.db.sql("UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s", (self.name,))
+            frappe.db.commit()
 
     def create_or_update_pnd_form_item(self, update_only=False):
         """
@@ -247,10 +264,6 @@ class WithholdingTaxCertificate(Document):
 
         for item in items_to_delete:
             frappe.delete_doc(pnd_items_doctype, item.name, ignore_permissions=True)
-
-        # Clear the PND form link
-        self.custom_pnd_form = ""
-        self.save(ignore_permissions=True)
 
         frappe.msgprint(
             f"Removed WHT Certificate from PND form items", alert=True, indicator="orange"

@@ -30,7 +30,7 @@ def install_purchase_invoice_thai_tax_fields():
                 "fieldname": "pd_custom_apply_thai_wht_compliance",
                 "label": "Apply Thai Withholding Tax Compliance",
                 "fieldtype": "Check",
-                "insert_after": "tax_withholding_category",
+                "insert_after": "apply_tds",
                 "description": 'TDS enabled: VAT Treatment will be auto-set to "VAT Undue (7%)" for compliance',
                 "default": "0",
                 "read_only": 0,
@@ -60,19 +60,21 @@ def install_purchase_invoice_thai_tax_fields():
                 "insert_after": "pd_custom_tax_invoice_number",
                 "description": "Thai tax invoice date",
             },
-            {
-                "fieldname": "pd_custom_income_type",
-                "fieldtype": "Select",
-                "label": "Income Type",
-                "options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1)\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2)\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3)\n4. ดอกเบี้ย ฯลฯ 40(4)ก\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส\n6. ค่าบริการ/ค่าสินค้าภาครัฐ",
-                "insert_after": "pd_custom_tax_invoice_date",
-                "description": "Type of income for withholding tax calculation",
-            },
+            # DEPRECATED: pd_custom_income_type - Use pd_custom_wht_income_type (Link to Tax Withholding Category) instead
+            # This Select field caused validation errors when copying Tax Withholding Category names to it
+            # {
+            #     "fieldname": "pd_custom_income_type",
+            #     "fieldtype": "Select",
+            #     "label": "Income Type",
+            #     "options": "\n1. เงินเดือน ค่าจ้าง ฯลฯ 40(1)\n2. ค่าธรรมเนียม ค่านายหน้า ฯลฯ 40(2)\n3. ค่าแห่งลิขสิทธิ์ ฯลฯ 40(3)\n4. ดอกเบี้ย ฯลฯ 40(4)ก\n5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส\n6. ค่าบริการ/ค่าสินค้าภาครัฐ",
+            #     "insert_after": "pd_custom_tax_invoice_date",
+            #     "description": "Type of income for withholding tax calculation",
+            # },
             {
                 "fieldname": "pd_custom_tax_base_amount",
                 "fieldtype": "Currency",
                 "label": "Tax Base Amount",
-                "insert_after": "pd_custom_income_type",
+                "insert_after": "pd_custom_tax_invoice_date",  # Updated - pd_custom_income_type DEPRECATED
                 "description": "Base amount for tax calculation",
             },
             # Column Break
@@ -120,14 +122,6 @@ def install_purchase_invoice_thai_tax_fields():
                 "insert_after": "pd_custom_withholding_tax_rate",
                 "depends_on": "pd_custom_apply_withholding_tax",
                 "description": "Withholding tax amount",
-            },
-            {
-                "fieldname": "pd_custom_net_payment_amount",
-                "fieldtype": "Currency",
-                "label": "Net Payment Amount",
-                "insert_after": "pd_custom_withholding_tax_amount",
-                "depends_on": "pd_custom_apply_withholding_tax",
-                "description": "Net amount after withholding tax deduction",
             },
             # Thai Ecosystem (Withholding Tax & Retention)
             {
@@ -187,7 +181,7 @@ def install_purchase_invoice_thai_tax_fields():
                 "fieldtype": "Link",
                 "insert_after": "pd_custom_subject_to_wht",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "options": "Thai WHT Income Type",
+                "options": "Tax Withholding Category",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -361,13 +355,21 @@ def install_purchase_invoice_thai_tax_fields():
                 "fieldname": "pd_custom_payment_amount",
                 "label": "Payment Amount",
                 "fieldtype": "Currency",
-                "insert_after": "pd_custom_withholding_tax_amount",
+                "insert_after": "base_rounded_total",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht || doc.pd_custom_subject_to_retention",
                 "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
                 "length": 0,
                 "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_net_payment_amount",
+                "fieldtype": "Currency",
+                "label": "Net Payment Amount",
+                "insert_after": "pd_custom_payment_amount",
+                "depends_on": "pd_custom_apply_withholding_tax",
+                "description": "Net amount after withholding tax deduction",
             },
             # add บิลเงินสด to supplier_invoice_details Section Break
             {
