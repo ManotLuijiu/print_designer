@@ -278,6 +278,7 @@ def enhance_in_words_field(doc, print_format_name=None, method=None):
             )
 
 
+@frappe.whitelist()
 def smart_money_in_words(amount, main_currency="", print_format=None):
     """
     Smart money in words that automatically detects Thai language context.
