@@ -244,10 +244,26 @@ frappe.ui.form.on('Purchase Invoice', {
 
 // Unlock the WHT compliance checkbox so Accounting dept can tick it at PI stage
 // even when the field was fetched/auto-populated from PO (Frappe locks fetched fields).
+// Import PIs keep WHT controls locked because WHT is handled per row in
+// tbs_customs_entries, not through the normal items-table WHT flow.
 function _unlock_wht_compliance_field(frm) {
-    if (frm.doc.docstatus === 0) {
-        frm.set_df_property('pd_custom_apply_thai_wht_compliance', 'read_only', 0);
+    if (frm.doc.docstatus !== 0) {
+        return;
     }
+
+    const is_import_pi = _is_tbs_import_purchase_invoice(frm);
+    frm.set_df_property('pd_custom_apply_thai_wht_compliance', 'read_only', is_import_pi ? 1 : 0);
+
+    if (frm.fields_dict.apply_tds) {
+        frm.set_df_property('apply_tds', 'read_only', is_import_pi ? 1 : 0);
+    }
+}
+
+function _is_tbs_import_purchase_invoice(frm) {
+    const has_customs_entries = Array.isArray(frm.doc.tbs_customs_entries) && frm.doc.tbs_customs_entries.length > 0;
+    const has_items = Array.isArray(frm.doc.items) && frm.doc.items.length > 0;
+
+    return frm.doc.tbs_custom_po_type === 'Import' || (has_customs_entries && !has_items);
 }
 
 // Helper function to count auto-populated fields for debugging

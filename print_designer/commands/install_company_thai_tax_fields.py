@@ -199,12 +199,20 @@ def install_company_thai_tax_fields():
                 "insert_after": "tbs_custom_require_export_documentation",
                 "description": "Default income account for export sales transactions",
             },
+            {
+                "fieldname": "pd_custom_default_expense_claim_account",
+                "fieldtype": "Link",
+                "label": "Default Expense Claim Account",
+                "options": "Account",
+                "insert_after": "tbs_custom_default_export_account",
+                "description": "Default expense claim type account (fall back account)",
+            },
             # Disable Default ERPNext's TDS
             {
                 "fieldname": "pd_custom_disable_erpnext_tds",
                 "fieldtype": "Check",
                 "label": "Disable ERPNext default TDS",
-                "insert_after": "tbs_custom_default_export_account",
+                "insert_after": "pd_custom_default_expense_claim_account",
                 "default": "1",
                 "description": "Need to disable ERPNext's default TDS if using in Thailand",
             },

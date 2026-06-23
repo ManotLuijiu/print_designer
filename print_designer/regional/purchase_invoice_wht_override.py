@@ -256,7 +256,8 @@ def _populate_defaults_from_supplier(doc):
         posting_date = getattr(doc, "posting_date", None)
         if posting_date:
             for rate_row in twc_doc.rates:
-                if rate_row.from_date <= posting_date <= rate_row.to_date:
+                # FIX: posting_date is a string from getattr(), rate_row dates are date objects
+                if getdate(rate_row.from_date) <= getdate(posting_date) <= getdate(rate_row.to_date):
                     doc.pd_custom_withholding_tax_pct = rate_row.tax_withholding_rate
                     break
 
@@ -357,7 +358,8 @@ def _apply_contract_installment_wht(doc):
         posting_date = getattr(doc, "posting_date", None)
         if posting_date:
             for rate_row in twc_doc.rates:
-                if rate_row.from_date <= posting_date <= rate_row.to_date:
+                # FIX: posting_date is a string from getattr(), rate_row dates are date objects
+                if getdate(rate_row.from_date) <= getdate(posting_date) <= getdate(rate_row.to_date):
                     wht_rate = flt(rate_row.tax_withholding_rate)
                     break
 
