@@ -564,6 +564,9 @@ after_install = [
     # Thai Billing fields + workspace moved to thai_business_suite
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
+    # Address field label overrides for Thai localization
+    # (city → Sub-district, county → District, state → Province)
+    "print_designer.commands.install_address_fields.install_address_fields",
 ]
 
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
@@ -575,6 +578,9 @@ extend_bootinfo = "print_designer.boot.boot_session"
 
 # Initialize protection against third-party app conflicts
 after_migrate = [
+    # Address field label overrides (re-applied on every migrate to keep
+    # them in sync with the install_address_fields function; idempotent)
+    "print_designer.commands.install_address_fields.install_address_fields",
     # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
     "print_designer.install.ensure_custom_fields",
     "print_designer.utils.print_protection.initialize_print_protection",
@@ -637,6 +643,8 @@ before_uninstall = [
     "print_designer.commands.install_wht_account_child_fields.remove_wht_account_child_fields",  # Remove WHT Liability Account field from TWC accounts child table
     "print_designer.commands.install_twx_gross_amount_field.remove_twx_custom_fields",  # Remove Gross Amount field from Tax Withholding Entry
     "print_designer.setup.install_tax_withholding_category_data.cleanup_tax_deduction_basis_descriptions",  # Remove tax_deduction_basis description Property Setter
+    # Address field label overrides removal (mirror of install)
+    "print_designer.commands.install_address_fields.remove_address_fields",
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 

@@ -4,7 +4,7 @@
 """
 Thai Purchase VAT Management
 Handles both:
-- DGS Thai Purchase VAT (all purchases except credit services)
+- Thai Purchase VAT (all purchases except credit services)
 - Input VAT Undue (credit service purchases only)
 """
 
@@ -72,7 +72,7 @@ def create_purchase_vat_records(doc, method):
     
     - Credit service purchases + Tax Invoice received → Input VAT Undue
     - Credit service purchases + NO Tax Invoice → Skip (create at Payment Entry)
-    - All other purchases → DGS Thai Purchase VAT
+    - All other purchases → Thai Purchase VAT
     """
     if doc.doctype != "Purchase Invoice" or doc.docstatus != 1:
         return
@@ -93,7 +93,7 @@ def create_purchase_vat_records(doc, method):
             # No Tax Invoice yet - skip for now, will create at Payment Entry
             return
     else:
-        # Non-service purchase - create DGS Thai Purchase VAT
+        # Non-service purchase - create Thai Purchase VAT
         _create_thai_purchase_vat(doc)
 
 
@@ -249,14 +249,14 @@ def handle_purchase_invoice_cancellation(doc, method):
         frappe.db.set_value("Input VAT Undue", input_vat_undue, "status", "Cancelled")
         frappe.db.commit()
 
-    # Update DGS Thai Purchase VAT if exists
+    # Update Thai Purchase VAT if exists
     dgs_vat = frappe.db.get_value(
-        "DGS Thai Purchase VAT",
+        "Thai Purchase VAT",
         {"purchase_invoice": doc.name},
         "name"
     )
     if dgs_vat:
-        frappe.db.set_value("DGS Thai Purchase VAT", dgs_vat, "workflow_state", "Cancelled")
+        frappe.db.set_value("Thai Purchase VAT", dgs_vat, "workflow_state", "Cancelled")
         frappe.db.commit()
 
 
@@ -397,7 +397,7 @@ def get_thai_vat_summary(vat_month=None, vat_year=None):
         filters["vat_year"] = vat_year
     
     dgs_vat_records = frappe.get_all(
-        "DGS Thai Purchase VAT",
+        "Thai Purchase VAT",
         filters=filters,
         fields=["name", "purchase_invoice", "supplier", "base_amount", "vat_amount", "total_amount", "vat_month", "vat_year", "workflow_state"]
     )
@@ -424,7 +424,7 @@ def get_thai_vat_summary(vat_month=None, vat_year=None):
 def get_vat_months_years():
     """Get available VAT months and years for filtering"""
     dgs_months = frappe.get_all(
-        "DGS Thai Purchase VAT",
+        "Thai Purchase VAT",
         fields=["vat_month", "vat_year"]
     )
     
