@@ -1,0 +1,17 @@
+{
+  "$schema": "../schemas/task_plan.schema.json",
+  "name": "receipt-blank-canvas",
+  "objective": "Restore the persisted Receipt canvas and remove the Beta badge without changing saved Receipt data.",
+  "status": "in_progress",
+  "tasks": [
+    {"id": 1, "title": "Capture AppPages component creation state", "status": "pending"},
+    {"id": 2, "title": "Compare compiled AppCanvas render function with source", "status": "pending"},
+    {"id": 3, "title": "Identify the Vue/compiler/build regression", "status": "pending"},
+    {"id": 4, "title": "Add a behavioral canvas render regression test", "status": "pending"},
+    {"id": 5, "title": "Implement the root-cause fix", "status": "pending"},
+    {"id": 6, "title": "Build and clear aws-solution site cache", "status": "pending"},
+    {"id": 7, "title": "Run Playwright production verification", "status": "pending"},
+    {"id": 8, "title": "Verify Beta badge removal", "status": "in_progress"}
+  ]
+}
+

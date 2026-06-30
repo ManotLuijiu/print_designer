@@ -1,5 +1,6 @@
 <template>
 	<div>
+		<AppHeader :print_format_name="print_format_name" />
 		<div
 			class="canvas"
 			id="canvas"
@@ -95,12 +96,14 @@
 	</div>
 </template>
 <script setup>
+import AppHeader from "./AppHeader.vue";
 import AppPages from "./AppPages.vue";
 import AppWidthHeightModal from "./AppWidthHeightModal.vue";
 import AppDynamicTextModal from "./AppDynamicTextModal.vue";
 import AppUserProvidedJinjaModal from "./AppUserProvidedJinjaModal.vue";
 import AppBarcodeModal from "./AppBarcodeModal.vue";
 import AppImageModal from "./AppImageModal.vue";
+import AppPreviewPdf from "./AppPreviewPdf.vue";
 import IconsUse from "../../icons/IconsUse.vue";
 import { watch, watchEffect, onMounted, ref, nextTick } from "vue";
 import { useMainStore } from "../../store/MainStore";
@@ -108,6 +111,14 @@ import { useElementStore } from "../../store/ElementStore";
 import { updateDynamicData, createHeaderFooterElement } from "../../utils";
 import { useMarqueeSelection } from "../../composables/MarqueeSelectionTool";
 import { useChangeValueUnit } from "../../composables/ChangeValueUnit";
+
+const props = defineProps({
+	print_format_name: {
+		type: String,
+		required: true,
+	},
+});
+
 const MainStore = useMainStore();
 const ElementStore = useElementStore();
 const { vMarquee } = useMarqueeSelection();
@@ -116,6 +127,7 @@ const marqueeOptions = {
 };
 
 const canvasContainer = ref(null);
+
 
 const addNewPage = async (event) => {
 	if (MainStore.mode == "editing") {

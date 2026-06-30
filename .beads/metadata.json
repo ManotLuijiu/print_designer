@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "print_designer",
+  "project_id": "6fec68d1-c300-4853-aa0a-2554804172d5"
+}

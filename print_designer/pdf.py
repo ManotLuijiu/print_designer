@@ -24,7 +24,7 @@ def get_effective_language(print_format_name=None):
         str: The effective language code/name to use
     """
     print(f"[DEBUG] get_effective_language called with print_format_name: {print_format_name}")
-    
+
     # Priority 1: Check _lang parameter from URL
     url_lang = frappe.form_dict.get("_lang")
     print(f"[DEBUG] URL _lang parameter: {url_lang}")
@@ -37,7 +37,7 @@ def get_effective_language(print_format_name=None):
         try:
             print(f"[DEBUG] Fetching Print Format doc: {print_format_name}")
             print_format_doc = frappe.get_doc("Print Format", print_format_name)
-            
+
             # Try default_print_language field first (standard field)
             format_lang = (
                 print_format_doc.get("default_print_language")
@@ -45,7 +45,7 @@ def get_effective_language(print_format_name=None):
                 else getattr(print_format_doc, "default_print_language", None)
             )
             print(f"[DEBUG] Print Format default_print_language field: {format_lang}")
-            
+
             # Fallback to language field if default_print_language is not set
             if not format_lang:
                 format_lang = (
@@ -54,19 +54,19 @@ def get_effective_language(print_format_name=None):
                     else getattr(print_format_doc, "language", None)
                 )
                 print(f"[DEBUG] Print Format language field (fallback): {format_lang}")
-                
+
             if format_lang and str(format_lang).strip():
                 print(f"[LANGUAGE] Using language from Print Format: {format_lang}")
                 return format_lang
             else:
-                print(f"[DEBUG] No valid language found in Print Format fields")
+                print("[DEBUG] No valid language found in Print Format fields")
         except Exception as e:
             print(f"[ERROR] Error getting Print Format language: {str(e)}")
 
     # Priority 3: Fallback to local language
     local_lang = frappe.local.lang
     print(f"[DEBUG] frappe.local.lang: {local_lang}")
-    
+
     # Priority 4: If no language is set anywhere, default to Thai ('th')
     # This is specific to this implementation where Thai is the primary language
     if not local_lang or local_lang == "en":
@@ -74,7 +74,7 @@ def get_effective_language(print_format_name=None):
         print(f"[LANGUAGE] Using Thai as default language (overriding '{frappe.local.lang}')")
     else:
         print(f"[LANGUAGE] Using fallback language: {local_lang}")
-    
+
     return local_lang
 
 
@@ -89,41 +89,43 @@ def is_thai_language(language):
         bool: True if the language is Thai
     """
     print(f"[DEBUG] is_thai_language called with: '{language}' (type: {type(language)})")
-    
+
     if not language:
-        print(f"[DEBUG] is_thai_language: Empty language, returning False")
+        print("[DEBUG] is_thai_language: Empty language, returning False")
         return False
 
     language_str = str(language).strip()
     language_lower = language_str.lower()
-    
-    print(f"[DEBUG] is_thai_language: language_str='{language_str}', language_lower='{language_lower}'")
-    
+
+    print(
+        f"[DEBUG] is_thai_language: language_str='{language_str}', language_lower='{language_lower}'"
+    )
+
     # Check for Thai language indicators
     # Note: "ไทย" should be checked as-is, not lowercased
     thai_indicators_exact = ["ไทย", "th", "th-th"]
     thai_indicators_lower = ["thai", "thai-th", "th", "th-th"]
-    
+
     is_thai = language_str in thai_indicators_exact or language_lower in thai_indicators_lower
     print(f"[DEBUG] is_thai_language result: {is_thai}")
-    
+
     return is_thai
 
 
 def pdf_header_footer_html(soup, head, content, styles, html_id, css):
     print(f"[DEBUG] pdf_header_footer_html called with html_id: {html_id}")
-    
+
     if soup.find(id="__print_designer"):
         pdf_generator = frappe.form_dict.get("pdf_generator", "wkhtmltopdf")
         print(f"[DEBUG] PDF generator: {pdf_generator}")
-        
+
         if pdf_generator == "chrome":
             path = "print_designer/page/print_designer/jinja/header_footer.html"
         else:
             path = "print_designer/page/print_designer/jinja/header_footer_old.html"
-        
+
         print(f"[DEBUG] Using template path: {path}")
-        
+
         try:
             # Get effective language using centralized function
             print_format_name = frappe.form_dict.get("format")
@@ -184,29 +186,27 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 
 
 def pdf_body_html(print_format, jenv, args, template):
-    print(f"[DEBUG] pdf_body_html called for print_format: {print_format.name if print_format else 'None'}")
-    
-    if (
-        print_format
-        and print_format.print_designer
-        and print_format.print_designer_body
-    ):
+    print(
+        f"[DEBUG] pdf_body_html called for print_format: {print_format.name if print_format else 'None'}"
+    )
+
+    if print_format and print_format.print_designer and print_format.print_designer_body:
         print(f"[DEBUG] Processing Print Designer format: {print_format.name}")
-        
+
         print_format_name = hashlib.md5(
             print_format.name.encode(), usedforsecurity=False
         ).hexdigest()
-        add_data_to_monitor(
-            print_designer=print_format_name, print_designer_action="download_pdf"
-        )
+        add_data_to_monitor(print_designer=print_format_name, print_designer_action="download_pdf")
 
         # Handle None or empty print_designer_settings
         if print_format.print_designer_settings:
             settings = json.loads(print_format.print_designer_settings)
-            print(f"[DEBUG] Settings loaded with schema_version: {settings.get('schema_version', 'not set')}")
+            print(
+                f"[DEBUG] Settings loaded with schema_version: {settings.get('schema_version', 'not set')}"
+            )
         else:
             settings = {}
-            print(f"[DEBUG] No settings found, using empty dict")
+            print("[DEBUG] No settings found, using empty dict")
 
         # Get effective language for this print format
         effective_lang = get_effective_language(print_format.name)
@@ -228,9 +228,7 @@ def pdf_body_html(print_format, jenv, args, template):
             # Check if print_designer_print_format has valid data
             # For Thai WHT certificates, only apply if payment has withholding tax
             if print_format.print_designer_print_format:
-                args.update(
-                    {"pd_format": json.loads(print_format.print_designer_print_format)}
-                )
+                args.update({"pd_format": json.loads(print_format.print_designer_print_format)})
             else:
                 # For Payment Entry WHT forms without designer format, check if WHT applies
                 # Parse doc from args if it's a string (as it comes from printview)
@@ -240,16 +238,16 @@ def pdf_body_html(print_format, jenv, args, template):
                         doc_data = json.loads(doc_data)
                     except (json.JSONDecodeError, TypeError):
                         doc_data = {}
-                
+
                 if doc_data.get("doctype") == "Payment Entry":
                     # In Thailand, WHT only applies to services, not goods
                     # Check if this payment entry has withholding tax fields
                     has_wht = (
-                        doc_data.get("pd_custom_has_thai_taxes") or
-                        doc_data.get("pd_custom_total_wht_amount", 0) > 0 or
-                        doc_data.get("apply_tax_withholding_amount", 0) > 0
+                        doc_data.get("pd_custom_has_thai_taxes")
+                        or doc_data.get("pd_custom_total_wht_amount", 0) > 0
+                        or doc_data.get("apply_tax_withholding_amount", 0) > 0
                     )
-                    
+
                     if has_wht:
                         # If WHT applies but no designer format, use a basic template
                         args.update({"pd_format": {"elements": [], "sections": []}})
@@ -261,11 +259,7 @@ def pdf_body_html(print_format, jenv, args, template):
         else:
             # Handle older schema with null checks
             after_table_data = print_format.print_designer_after_table or "[]"
-            args.update(
-                {
-                    "afterTableElement": json.loads(after_table_data)
-                }
-            )
+            args.update({"afterTableElement": json.loads(after_table_data)})
 
         # replace placeholder comment with user provided jinja code
         template_source = template.replace(
@@ -301,9 +295,9 @@ def is_older_schema(settings, current_version):
     current_version = current_version.split(".")
     if int(format_version[0]) < int(current_version[0]):
         return True
-    elif int(format_version[0]) == int(current_version[0]) and int(
-        format_version[1]
-    ) < int(current_version[1]):
+    elif int(format_version[0]) == int(current_version[0]) and int(format_version[1]) < int(
+        current_version[1]
+    ):
         return True
     elif (
         int(format_version[0]) == int(current_version[0])
@@ -318,21 +312,19 @@ def is_older_schema(settings, current_version):
 def get_print_format_template(jenv, print_format):
     print(f"[DEBUG] get_print_format_template called with print_format: {print_format}")
     # if print format is created using print designer, then use print designer template
-    if (
-        print_format
-        and print_format.print_designer
-        and print_format.print_designer_body
-    ):
+    if print_format and print_format.print_designer and print_format.print_designer_body:
         print(f"[DEBUG] Print format '{print_format.name}' is using Print Designer")
-        
+
         # Handle None or empty print_designer_settings
         if print_format.print_designer_settings:
             settings = json.loads(print_format.print_designer_settings)
-            print(f"[DEBUG] Loaded settings: schema_version = {settings.get('schema_version', 'not set')}")
+            print(
+                f"[DEBUG] Loaded settings: schema_version = {settings.get('schema_version', 'not set')}"
+            )
         else:
             settings = {}
-            print(f"[DEBUG] No settings found, using empty dict")
-        
+            print("[DEBUG] No settings found, using empty dict")
+
         if is_older_schema(settings, "1.1.0"):
             template_path = "print_designer/page/print_designer/jinja/old_print_format.html"
             print(f"[DEBUG] Using old template: {template_path}")
@@ -369,11 +361,11 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
 
     # Print full document object for debugging
     if doc:
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print(f"[DOC OBJECT DEBUG] Document: {doc.doctype} - {doc.name}")
-        print("="*80)
+        print("=" * 80)
         print(doc.as_dict())
-        print("="*80 + "\n")
+        print("=" * 80 + "\n")
 
     try:
         # Get the print format from form_dict if not provided
@@ -383,7 +375,7 @@ def before_print(doc=None, method=None, print_settings=None, **kwargs):
                 "print_format"
             )
             print(f"[DEBUG] Print format name from form_dict: {print_format_name}")
-            
+
             if print_format_name:
                 try:
                     print_format = frappe.get_doc("Print Format", print_format_name)
@@ -435,11 +427,13 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
     This replaces the old thai_amount_to_word.enhance_in_words_field function.
     """
     print(f"[DEBUG] _handle_thai_amount_enhancement called for doc: {doc.name if doc else 'None'}")
-    
+
     try:
         # Check if document has amount fields that need Thai enhancement
         if not (hasattr(doc, "in_words") and hasattr(doc, "grand_total")):
-            print(f"[DEBUG] Document doesn't have in_words/grand_total fields, skipping Thai enhancement")
+            print(
+                "[DEBUG] Document doesn't have in_words/grand_total fields, skipping Thai enhancement"
+            )
             return
 
         # Get effective language
@@ -460,9 +454,7 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
                 args["use_thai_language"] = True
                 args["original_in_words"] = original_in_words
 
-                print(
-                    f"Enhanced Thai amount for {doc.doctype} {doc.name}: {doc.in_words}"
-                )
+                print(f"Enhanced Thai amount for {doc.doctype} {doc.name}: {doc.in_words}")
 
             except ImportError:
                 print("Thai money conversion utility not available")
@@ -481,16 +473,50 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
         )
 
 
+def _anchor_footer_to_bottom(footer, page_height, footer_height):
+    """
+    Translate every direct child of the footer wrapper so the cluster's bottom
+    edge sits flush against the wrapper's bottom edge. Without this, footer
+    children render at the position the user last dragged them to, even after
+    they changed Page Settings > Footer Height — leaving an empty wrapper at
+    the bottom and the actual footer items floating in mid-page whitespace.
+
+    Mirrors the JS-side `alignFooterToBottom` action in
+    `ElementStore.js` so the editor and the Jinja-template print preview agree.
+
+    Children's ``startY`` is **relative to the wrapper** (the wrapper rectangle
+    is the only positioned ancestor at render time), so the target bottom edge
+    is ``wrapper_height`` in the wrapper's own coordinate system — NOT
+    ``wrapper_start_y + wrapper_height`` (which would be the page-bottom in
+    page coords and would push children off the page).
+    """
+    if not footer or len(footer) == 0:
+        return
+    wrapper = footer[0]
+    children = wrapper.get("childrens") if isinstance(wrapper, dict) else None
+    if not children:
+        return
+    wrapper_start_y = wrapper.get("startY")
+    wrapper_height = wrapper.get("height") or 0
+    if wrapper_start_y is None or wrapper_height <= 0:
+        return
+
+    max_child_bottom = max((c.get("startY") or 0) + (c.get("height") or 0) for c in children)
+    delta = wrapper_height - max_child_bottom
+    if abs(delta) < 0.5:
+        return
+    for child in children:
+        child["startY"] = (child.get("startY") or 0) + delta
+        if isinstance(child.get("pageY"), (int, float)):
+            child["pageY"] = child["pageY"] + delta
+
+
 def _prepare_print_designer_context(print_format, args):
     """
     Prepare the context variables needed for Print Designer templates.
     This ensures both PDF and HTML generation have the required variables.
     """
-    if not (
-        print_format
-        and print_format.print_designer
-        and print_format.print_designer_body
-    ):
+    if not (print_format and print_format.print_designer and print_format.print_designer_body):
         return
 
     try:
@@ -513,11 +539,35 @@ def _prepare_print_designer_context(print_format, args):
         print(f"effective_lang {effective_lang}")
 
         # Always prepare the core elements
+        footer_element = json.loads(print_format.print_designer_footer or "[]")
+        body_element = json.loads(print_format.print_designer_body or "[]")
+        header_element = json.loads(print_format.print_designer_header or "[]")
+
+        # Anchor the footer cluster to the bottom of its wrapper area so the
+        # Jinja template renders the items at the correct page position. This
+        # is needed even when the editor's ElementStore already did the same
+        # translation, because saved JSON may still have the user's pre-fix
+        # drag positions that the editor never got a chance to overwrite.
+        try:
+            page = (settings or {}).get("page", {}) or {}
+            _anchor_footer_to_bottom(
+                footer_element,
+                page_height=page.get("height") or 0,
+                footer_height=page.get("footerHeight") or 0,
+            )
+        except Exception as anchor_error:
+            # Never block the print because of a translation bug — fall
+            # back to the saved positions and log the error.
+            frappe.log_error(
+                title="Print Designer Footer Anchor",
+                message=f"Could not anchor footer to bottom: {str(anchor_error)}",
+            )
+
         args.update(
             {
-                "headerElement": json.loads(print_format.print_designer_header or "[]"),
-                "bodyElement": json.loads(print_format.print_designer_body or "[]"),
-                "footerElement": json.loads(print_format.print_designer_footer or "[]"),
+                "headerElement": header_element,
+                "bodyElement": body_element,
+                "footerElement": footer_element,
                 "settings": settings,
                 "pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
                 "effective_lang": effective_lang,
@@ -527,20 +577,10 @@ def _prepare_print_designer_context(print_format, args):
 
         # Set pd_format for newer schema
         if not is_older_schema(settings=settings, current_version="1.1.0"):
-            args.update(
-                {
-                    "pd_format": json.loads(
-                        print_format.print_designer_print_format or "{}"
-                    )
-                }
-            )
+            args.update({"pd_format": json.loads(print_format.print_designer_print_format or "{}")})
         else:
             args.update(
-                {
-                    "afterTableElement": json.loads(
-                        print_format.print_designer_after_table or "[]"
-                    )
-                }
+                {"afterTableElement": json.loads(print_format.print_designer_after_table or "[]")}
             )
 
         # Set send_to_jinja flag if not already set

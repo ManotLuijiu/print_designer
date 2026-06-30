@@ -36,10 +36,12 @@
 		as="image"
 		type="image/svg+xml"
 	/>
-	<AppHeader :print_format_name="print_format_name" />
 	<div class="main-layout" id="main-layout">
 		<AppToolbar :class="toolbarClasses" />
-		<AppCanvas class="app-sections print-format-container" />
+		<AppCanvas
+			class="app-sections print-format-container"
+			:print_format_name="print_format_name"
+		/>
 		<AppPropertiesPanel class="app-sections properties-panel" />
 	</div>
 </template>
@@ -47,7 +49,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, watchEffect } from "vue";
 import { useMainStore } from "./store/MainStore";
-import AppHeader from "./components/layout/AppHeader.vue";
 import AppToolbar from "./components/layout/AppToolbar.vue";
 import AppCanvas from "./components/layout/AppCanvas.vue";
 import AppPropertiesPanel from "./components/layout/AppPropertiesPanel.vue";
