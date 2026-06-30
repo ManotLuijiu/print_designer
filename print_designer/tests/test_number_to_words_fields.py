@@ -1,3 +1,4 @@
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -25,6 +26,26 @@ PAIRS = [{"source_field": "amount", "target_field": "amount_words"}]
 
 
 class TestNumberToWordsFieldPairs(unittest.TestCase):
+    def test_reads_pairs_from_print_designer_settings(self):
+        from print_designer.utils.number_to_words_fields import get_number_to_words_pairs
+
+        print_format = SimpleNamespace(
+            print_designer_settings=json.dumps({"numberToWordsFieldPairs": PAIRS})
+        )
+        self.assertEqual(get_number_to_words_pairs(print_format), PAIRS)
+
+    def test_explicit_language_wins_over_format_default(self):
+        from print_designer.utils.number_to_words_fields import resolve_print_language
+
+        print_format = SimpleNamespace(default_print_language="th")
+        self.assertEqual(resolve_print_language(print_format, "en", None, "th"), "en")
+
+    def test_format_default_wins_over_english_menu(self):
+        from print_designer.utils.number_to_words_fields import resolve_print_language
+
+        print_format = SimpleNamespace(default_print_language="ไทย")
+        self.assertEqual(resolve_print_language(print_format, None, None, "en"), "th")
+
     def test_validates_multiple_declarative_pairs(self):
         from print_designer.utils.number_to_words_fields import (
             validate_number_to_words_pairs,

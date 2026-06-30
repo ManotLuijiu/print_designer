@@ -44,6 +44,29 @@ def normalize_language(language):
     return "th" if value in THAI_LANGUAGES else value
 
 
+def get_number_to_words_pairs(print_format):
+    settings_value = _doc_value(print_format, "print_designer_settings") or "{}"
+    settings = frappe.parse_json(settings_value) or {}
+    pairs = settings.get("numberToWordsFieldPairs")
+    return pairs if isinstance(pairs, list) else []
+
+
+def resolve_print_language(
+    print_format,
+    explicit_language=None,
+    document_language=None,
+    user_language=None,
+):
+    language = (
+        explicit_language
+        or _doc_value(print_format, "default_print_language")
+        or document_language
+        or user_language
+        or "en"
+    )
+    return normalize_language(language)
+
+
 @contextmanager
 def _print_language(language):
     previous_language = getattr(frappe.local, "lang", None)
