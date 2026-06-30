@@ -143,6 +143,20 @@ export const fetchDoc = async (id = null) => {
           delete doc[element];
         }
       });
+      let previewValues = {};
+      if (MainStore.numberToWordsFieldPairs.length) {
+        const response = await frappe.call({
+          method:
+            "print_designer.print_designer.page.print_designer.print_designer.get_number_to_words_preview",
+          args: {
+            doctype: MainStore.doctype,
+            docname: MainStore.currentDoc,
+            print_format: MainStore.printDesignName,
+          },
+        });
+        previewValues = response.message || {};
+      }
+      Object.assign(doc, previewValues);
       MainStore.docData = doc;
     },
     { immediate: true },

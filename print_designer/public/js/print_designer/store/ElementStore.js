@@ -561,6 +561,7 @@ export const useElementStore = defineStore("ElementStore", {
         printBodyFonts: MainStore.printBodyFonts,
         userProvidedJinja: MainStore.userProvidedJinja,
         schema_version: MainStore.schema_version,
+        numberToWordsFieldPairs: MainStore.numberToWordsFieldPairs,
       };
       const convertCsstoString = (stylesheet) => {
         const cssRule = Array.from(stylesheet.cssRules)
@@ -1526,6 +1527,8 @@ export const useElementStore = defineStore("ElementStore", {
     loadSettings(settings) {
       const MainStore = useMainStore();
       if (!settings) return;
+      MainStore.numberToWordsFieldPairs =
+        settings.numberToWordsFieldPairs || [];
       Object.keys(settings).forEach((key) => {
         switch (key) {
           case "schema_version":

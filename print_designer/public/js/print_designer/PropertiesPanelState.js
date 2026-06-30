@@ -408,6 +408,84 @@ export const createPropertiesPanel = () => {
       ],
       [
         {
+          label: "Number to Words Fields",
+          name: "numberToWordsFields",
+          isLabelled: true,
+          flex: "auto",
+          condtional: null,
+          button: {
+            label: "Configure Fields",
+            size: "sm",
+            style: "secondary",
+            margin: 15,
+            onClick: (event) => {
+              const numericTypes = ["Currency", "Float", "Int", "Percent"];
+              const textTypes = ["Data", "Small Text", "Text", "Long Text"];
+              const numericFields = MainStore.metaFields
+                .filter((field) => numericTypes.includes(field.fieldtype))
+                .map((field) => field.fieldname);
+              const textFields = MainStore.metaFields
+                .filter((field) => textTypes.includes(field.fieldtype))
+                .map((field) => field.fieldname);
+              const currencyFields = MainStore.metaFields
+                .filter((field) => field.fieldtype === "Link" && field.options === "Currency")
+                .map((field) => field.fieldname);
+              const dialog = new frappe.ui.Dialog({
+                title: __("Number to Words Fields"),
+                fields: [
+                  {
+                    fieldname: "pairs",
+                    fieldtype: "Table",
+                    label: __("Field Pairs"),
+                    in_place_edit: true,
+                    data: JSON.parse(JSON.stringify(MainStore.numberToWordsFieldPairs)),
+                    fields: [
+                      {
+                        fieldname: "source_field",
+                        fieldtype: "Autocomplete",
+                        label: __("Number Field"),
+                        options: numericFields,
+                        in_list_view: 1,
+                        reqd: 1,
+                      },
+                      {
+                        fieldname: "target_field",
+                        fieldtype: "Autocomplete",
+                        label: __("Words Field"),
+                        options: textFields,
+                        in_list_view: 1,
+                        reqd: 1,
+                      },
+                      {
+                        fieldname: "currency_field",
+                        fieldtype: "Autocomplete",
+                        label: __("Currency Field"),
+                        options: currencyFields,
+                        in_list_view: 1,
+                      },
+                    ],
+                  },
+                ],
+                primary_action_label: __("Apply"),
+                primary_action(values) {
+                  MainStore.numberToWordsFieldPairs = (values.pairs || []).map(
+                    ({ source_field, target_field, currency_field }) => ({
+                      source_field,
+                      target_field,
+                      ...(currency_field ? { currency_field } : {}),
+                    }),
+                  );
+                  dialog.hide();
+                },
+              });
+              dialog.show();
+              event.target.blur();
+            },
+          },
+        },
+      ],
+      [
+        {
           label: "Delete Page",
           name: "deletePage",
           isLabelled: true,

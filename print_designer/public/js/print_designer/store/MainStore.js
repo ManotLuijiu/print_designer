@@ -39,6 +39,7 @@ export const useMainStore = defineStore("MainStore", {
 		rawMeta: null,
 		metaFields: [],
 		docData: {},
+		numberToWordsFieldPairs: [],
 		dynamicData: [],
 		imageDocFields: [],
 		snapPoints: [],
