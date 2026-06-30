@@ -92,6 +92,15 @@ class TestNumberToWordsFieldPairs(unittest.TestCase):
         print_format = SimpleNamespace(default_print_language="th")
         self.assertEqual(resolve_print_language(print_format, "en", None, "th"), "en")
 
+    def test_automatic_user_language_does_not_override_format_default(self):
+        from print_designer.utils.number_to_words_fields import resolve_print_language
+
+        print_format = SimpleNamespace(default_print_language="th")
+        self.assertEqual(
+            resolve_print_language(print_format, "en", None, "en"),
+            "th",
+        )
+
     def test_format_default_wins_over_english_menu(self):
         from print_designer.utils.number_to_words_fields import resolve_print_language
 

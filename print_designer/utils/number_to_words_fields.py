@@ -71,11 +71,15 @@ def resolve_print_language(
     document_language=None,
     user_language=None,
 ):
+    normalized_explicit = normalize_language(explicit_language)
+    normalized_user = normalize_language(user_language)
+    if normalized_explicit and normalized_explicit == normalized_user:
+        normalized_explicit = ""
     language = (
-        explicit_language
+        normalized_explicit
         or _doc_value(print_format, "default_print_language")
         or document_language
-        or user_language
+        or normalized_user
         or "en"
     )
     return normalize_language(language)

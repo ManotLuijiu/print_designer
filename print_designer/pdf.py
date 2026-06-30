@@ -42,11 +42,16 @@ def get_effective_language(print_format_name=None, doc=None):
     if not print_format_doc:
         print_format_doc = {}
     document_language = doc.get("language") if doc and hasattr(doc, "get") else None
+    preferred_language = (
+        frappe.db.get_value("User", frappe.session.user, "language")
+        if getattr(frappe.session, "user", None)
+        else None
+    ) or frappe.local.lang
     return resolve_print_language(
         print_format_doc,
         explicit_language=frappe.form_dict.get("_lang"),
         document_language=document_language,
-        user_language=frappe.local.lang,
+        user_language=preferred_language,
     )
 
 
