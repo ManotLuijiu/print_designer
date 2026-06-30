@@ -822,6 +822,36 @@ export const createPropertiesPanel = () => {
           },
           flex: 1,
         },
+        {
+          label: "Min Rows",
+          name: "min_rows",
+          isLabelled: true,
+          labelDirection: "column",
+          condtional: () => MainStore.getCurrentElementsValues[0]?.table,
+          frappeControl: (ref, name) => {
+            const MainStore = useMainStore();
+            makeFeild({
+              name,
+              ref,
+              fieldtype: "Int",
+              requiredData: [MainStore.getCurrentElementsValues[0]],
+              reactiveObject: () => MainStore.getCurrentElementsValues[0],
+              propertyName: "minRows",
+              isStyle: false,
+              defaultValue: 0,
+              onChangeCallback: (value = null) => {
+                // Clamp to non-negative integer; 0 = no padding.
+                if (value == null || value === "" || Number.isNaN(value)) {
+                  MainStore.getCurrentElementsValues[0].minRows = 0;
+                  return;
+                }
+                const n = Math.max(0, Math.floor(Number(value)));
+                MainStore.getCurrentElementsValues[0].minRows = n;
+              },
+            });
+          },
+          flex: 1,
+        },
       ],
       [
         {

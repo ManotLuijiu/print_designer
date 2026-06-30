@@ -17,47 +17,59 @@ UTILS_JS = Path(__file__).parents[1] / "public/js/print_designer/utils.js"
 ELEMENT_STORE = Path(__file__).parents[1] / "public/js/print_designer/store/ElementStore.js"
 
 
-class TestPrintDesignerEmptyFieldsNoLongerShowLiteralJinja(unittest.TestCase):
-    """Bug 1: getFormattedValue used to fall back to ``{{ fieldname }}`` and
-    then render that template string verbatim. Empty fields should render
-    empty now.
+class TestPrintDesignerEmptyFieldsKeepJinjaPlaceholder(unittest.TestCase):
+    """Empty doc fields must keep the ``{{ fieldname }}`` Jinja placeholder so:
+
+    - the editor's Custom Data preview shows the wired-up field reference
+      (instead of an empty area), and
+    - the Jinja print pipeline can substitute the actual value at print
+      time when the doc is loaded.
     """
 
-    def test_no_unevaluated_jinja_template_in_dynamic_text_fallback(self):
+    def test_dynamic_text_fallback_uses_jinja_placeholder(self):
         source = UTILS_JS.read_text()
         block = source[
             source.index("export const getFormattedValue") : source.index(
                 "export const updateDynamicData"
             )
         ]
-
-        # The fix removed both `{{ ${field.fieldname} }}` template fallbacks
-        # that produced user-visible `{{ var }}` text. Either path would
-        # regress the bug, so we forbid both literal patterns.
-        self.assertNotIn(
+        self.assertIn(
             "`{{ ${field.fieldname} }}`",
             block,
-            "getFormattedValue still has the dynamic text fallback that prints "
-            "`{{ var }}` as literal text on the rendered receipt.",
-        )
-        self.assertNotIn(
-            "}${field.fieldname} }}`",
-            block,
-            "getFormattedValue still builds a `{{ var }}` Jinja-template string "
-            "in some code path — empty fields must render empty (the "
-            "Jinja engine never sees this string again).",
+            "getFormattedValue lost the dynamic-text `{{ fieldname }}` "
+            "Jinja placeholder fallback — empty doc fields will no longer "
+            "show the wired-up field reference in the editor preview or "
+            "the print output.",
         )
 
-    def test_fallback_renders_empty_string(self):
-        """The empty-field fallback should evaluate to an empty string,
-        not an unfilled template string, so it never leaks `{{ }}` onto
-        the printed page."""
+    def test_default_case_in_switch_uses_jinja_placeholder(self):
         source = UTILS_JS.read_text()
+        idx = source.index("switch (field.fieldname)")
+        block = source[idx : idx + 1000]
+        self.assertIn(
+            "`{{ ${field.fieldname} }}`",
+            block,
+            "The fall-through `default` case in the value-unavailable "
+            "switch should fall back to a `{{ fieldname }}` Jinja "
+            "placeholder, not an empty string.",
+        )
+
+    def test_image_attach_types_return_null_not_placeholder(self):
+        """Image / Attach Image fields must remain `null` so the editor
+        doesn't render a literal `{{ fieldname }}` where an image should
+        go."""
+        source = UTILS_JS.read_text()
+        block = source[
+            source.index("export const getFormattedValue") : source.index(
+                "export const updateDynamicData"
+            )
+        ]
         self.assertRegex(
-            source,
-            r'\["Image, Attach Image"\]\.indexOf\(field\.fieldtype\)\s*!=\s*-1\s*\?\s*null\s*:\s*""',
-            "Empty dynamic-field fallback should be null for Image/Attach "
-            "Image types and an empty string otherwise.",
+            block,
+            r'\["Image, Attach Image"\]\.indexOf\(field\.fieldtype\)\s*!=\s*-1\s*\?\s*null\s*:\s*`\{\{ \$\{field\.fieldname\} \}\}`',
+            "Image / Attach Image fields must keep the `null` branch of "
+            "the ternary so the editor doesn't try to render a placeholder "
+            "where an image belongs.",
         )
 
 

@@ -453,15 +453,14 @@ export const getFormattedValue = async (field, row = null) => {
         row,
       );
     } else {
-      // BUG FIX: Original code returned a literal `{{ fieldname }}` template
-      // string here as a "placeholder" while waiting for the value to load.
-      // But nothing in the pipeline ever re-evaluates that string, so the
-      // user saw raw `{{ pd_custom_net_total_after_wht_words }}` text on
-      // the rendered receipt whenever the doc field was null/empty.
-      // Empty fields should render empty (the label, if any, is already
-      // shown separately via is_labelled).
+      // Use `{{ fieldname }}` as a visual placeholder so the editor shows
+      // the field reference (rather than empty space) when the doc field
+      // is null/empty. The Jinja print pipeline will evaluate this
+      // placeholder at print time using the actual doc.
       formattedValue.value =
-        ["Image, Attach Image"].indexOf(field.fieldtype) != -1 ? null : "";
+        ["Image, Attach Image"].indexOf(field.fieldtype) != -1
+          ? null
+          : `{{ ${field.fieldname} }}`;
     }
   } else {
     let rawValue = MainStore.docData[field.fieldname];
@@ -500,11 +499,11 @@ export const getFormattedValue = async (field, row = null) => {
             formattedValue.value = frappe.datetime.now_time();
             break;
           default:
-            // BUG FIX: same literal-{{ var }} regression as above — when
-            // the value couldn't be fetched at all (no row context)
-            // we used to dump an unrendered Jinja template into the
-            // output, which then showed on the printed receipt.
-            formattedValue.value = "";
+            // Use `{{ fieldname }}` as a Jinja placeholder so the print
+            // pipeline can substitute the actual value at print time, and
+            // so the editor shows the field reference (rather than empty
+            // space) when the value can't be fetched.
+            formattedValue.value = `{{ ${field.fieldname} }}`;
         }
       }
     }

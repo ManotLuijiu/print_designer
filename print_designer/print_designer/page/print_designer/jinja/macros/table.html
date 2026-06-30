@@ -1,37 +1,44 @@
-{% macro table(element, send_to_jinja, heightType) -%}
-    {%- set heightType = element.get("heightType") -%}
-    {%- if settings.get("schema_version") == "1.1.0" -%}
-        {%- set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%}
-    {%- endif -%}
-    <table style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'fixed' and heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;" class="table-container printTable {{ element.classes | join(' ') }}">
-            <thead>
-            {% if element.columns %}
-                <tr>
-            {% for column in element.columns%}
-                    <th style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} {{convert_css(element.headerStyle)}}border-top-style: solid !important;border-bottom-style: solid !important;{%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}">
-                    {{ _(column.label) }}
-                    </th>
-            {% endfor %}
-                </tr>
-            {% endif %}
-            </thead>
-            <tbody>
-            {% if element.columns %}
-            {% for row in doc.get(element.table.fieldname)%}
-                <tr>
-                    {% set isLastRow = loop.last %}
-                {% for column in element.columns%}
-                    <td style="{{convert_css(element.style)}}{%if row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%if isLastRow%}border-bottom-style: solid !important;{%endif%}{%if loop.first%}border-left-style: solid !important;{%elif loop.last%}border-right-style: solid !important;{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}">
-                {% if column is mapping %}
-                    {% for field in column.dynamicContent%}
-                        {{ span_tag(field, element, row, send_to_jinja) }}
-                    {% endfor %}
-            {% endif %}
-                    </td>
-                {% endfor %}
-                </tr>
-                {% endfor %}
-            {% endif %}
-            </tbody>
-    </table>
+{% macro table(element, send_to_jinja, heightType) -%} {# PD-FIX-V2-MINROWS marker #} {%- set
+heightType = element.get("heightType") -%} {%- if settings.get("schema_version") == "1.1.0" -%} {%-
+set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%} {%- endif -%} {%-
+set min_rows = element.get("minRows") or element.get("min_rows") or 0 -%} {%- set source_rows =
+(doc.get(element.table.fieldname) if element.table and element.table.fieldname else None) or [] -%}
+{%- set actual_row_count = source_rows | length -%} {%- set padded_row_count = [min_rows,
+actual_row_count] | max -%}
+<table
+	style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'fixed' and heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;"
+	class="table-container printTable {{ element.classes | join(' ') }}"
+>
+	<thead>
+		{% if element.columns %}
+		<tr>
+			{% for column in element.columns%}
+			<th
+				style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
+			>
+				{{ _(column.label) }}
+			</th>
+			{% endfor %}
+		</tr>
+		{% endif %}
+	</thead>
+	<tbody>
+		{% if element.columns %} {% for i in range(padded_row_count) %} {%- set is_data_row = i <
+		actual_row_count -%} {%- set row = source_rows[i] if is_data_row else None -%} {%- set
+		is_first_data_row = (i == 0) -%} {%- set is_last_data_row = (i == padded_row_count - 1) -%}
+		<tr>
+			{% set isLastRow = loop.last %} {% for column in element.columns%}
+			<td
+				style="border: 0 !important;{%if is_first_data_row%}border-top: 1px solid black !important;{%endif%}{%if is_last_data_row%}border-bottom: 1px solid black !important;{%endif%}{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.style)}}{%if row and row.idx and row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}"
+			>
+				{% if column is mapping and is_data_row %} {% for field in column.dynamicContent%}
+				{{ span_tag(field, element, row, send_to_jinja) }} {% endfor %} {% else %} {# empty
+				padded row: render a non-breaking space so wkhtmltopdf / Chrome PDF give the row a
+				real height instead of collapsing it to zero. #} &nbsp; {% endif %}
+			</td>
+			{% endfor %}
+		</tr>
+		{% endfor %} {% endif %}
+	</tbody>
+</table>
 {%- endmacro %}

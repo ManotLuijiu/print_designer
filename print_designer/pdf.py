@@ -13,32 +13,25 @@ from frappe.utils.pdf import pdf_body_html as fw_pdf_body_html
 def get_effective_language(print_format_name=None):
     """
     Get the effective language for PDF generation with proper priority:
-    1. _lang parameter from URL (highest priority)
-    2. Print Format language field
-    3. frappe.local.lang (fallback)
 
-    Args:
-        print_format_name: Name of the print format to check for language setting
-
-    Returns:
-        str: The effective language code/name to use
+    1. Print Format ``default_print_language`` (or legacy ``language``) —
+       the designer's explicit intent for this Print Format wins over the
+       Desk's auto-injected ``_lang`` URL parameter, so a Print Format
+       configured for Thai will print in Thai even when the user's session
+       language is English.
+    2. ``_lang`` URL parameter — useful when a user explicitly picks a
+       different language at print time.
+    3. ``frappe.local.lang`` — the current session language.
+    4. ``"th"`` — final fallback for this Thai-first deployment.
     """
     print(f"[DEBUG] get_effective_language called with print_format_name: {print_format_name}")
 
-    # Priority 1: Check _lang parameter from URL
-    url_lang = frappe.form_dict.get("_lang")
-    print(f"[DEBUG] URL _lang parameter: {url_lang}")
-    if url_lang and str(url_lang).strip():
-        print(f"[LANGUAGE] Using language from URL parameter: {url_lang}")
-        return url_lang
-
-    # Priority 2: Check Print Format default_print_language field
+    # Priority 1: Print Format default_print_language (wins over URL _lang)
     if print_format_name:
         try:
             print(f"[DEBUG] Fetching Print Format doc: {print_format_name}")
             print_format_doc = frappe.get_doc("Print Format", print_format_name)
 
-            # Try default_print_language field first (standard field)
             format_lang = (
                 print_format_doc.get("default_print_language")
                 if hasattr(print_format_doc, "get")
@@ -46,7 +39,6 @@ def get_effective_language(print_format_name=None):
             )
             print(f"[DEBUG] Print Format default_print_language field: {format_lang}")
 
-            # Fallback to language field if default_print_language is not set
             if not format_lang:
                 format_lang = (
                     print_format_doc.get("language")
@@ -63,12 +55,18 @@ def get_effective_language(print_format_name=None):
         except Exception as e:
             print(f"[ERROR] Error getting Print Format language: {str(e)}")
 
+    # Priority 2: _lang parameter from URL
+    url_lang = frappe.form_dict.get("_lang")
+    print(f"[DEBUG] URL _lang parameter: {url_lang}")
+    if url_lang and str(url_lang).strip():
+        print(f"[LANGUAGE] Using language from URL parameter: {url_lang}")
+        return url_lang
+
     # Priority 3: Fallback to local language
     local_lang = frappe.local.lang
     print(f"[DEBUG] frappe.local.lang: {local_lang}")
 
     # Priority 4: If no language is set anywhere, default to Thai ('th')
-    # This is specific to this implementation where Thai is the primary language
     if not local_lang or local_lang == "en":
         local_lang = "th"
         print(f"[LANGUAGE] Using Thai as default language (overriding '{frappe.local.lang}')")
@@ -429,11 +427,13 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
     print(f"[DEBUG] _handle_thai_amount_enhancement called for doc: {doc.name if doc else 'None'}")
 
     try:
-        # Check if document has amount fields that need Thai enhancement
-        if not (hasattr(doc, "in_words") and hasattr(doc, "grand_total")):
-            print(
-                "[DEBUG] Document doesn't have in_words/grand_total fields, skipping Thai enhancement"
-            )
+        # Check if document has the in_words field used as the gate. We
+        # intentionally do NOT require `grand_total` here — Payment Entry
+        # uses `paid_amount` instead, and other doctypes (e.g. Journal
+        # Entry) use different fields. The hook decides what to compute
+        # based on what fields actually exist on the doc.
+        if not hasattr(doc, "in_words"):
+            print("[DEBUG] Document doesn't have in_words field, skipping Thai enhancement")
             return
 
         # Get effective language
@@ -445,14 +445,90 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
             try:
                 from print_designer.utils.thai_amount_to_word import thai_money_in_words
 
+                # Determine the primary amount for the words conversion.
+                # Prefer grand_total (Sales/Purchase Invoice), fall back
+                # to paid_amount (Payment Entry), then 0 as last resort.
+                primary_amount = (
+                    getattr(doc, "grand_total", None) or getattr(doc, "paid_amount", None) or 0
+                )
+
                 # Set Thai amount in words
                 original_in_words = doc.in_words
-                doc.in_words = thai_money_in_words(doc.grand_total or 0)
+                doc.in_words = thai_money_in_words(primary_amount or 0)
 
                 # Also add to args for template access
                 args["thai_in_words"] = doc.in_words
                 args["use_thai_language"] = True
                 args["original_in_words"] = original_in_words
+
+                # Populate the various `*_words` custom fields that the
+                # Receipt design references (e.g. pd_custom_net_total_after_wht_words,
+                # tbs_balance_payable_words, pd_custom_net_after_wht_retention_words,
+                # pd_custom_net_after_wht_retention_words_details). These are
+                # Code/Data fields that the user expects to be filled with
+                # the net amount in Thai words at print time. Only fill
+                # fields that are currently empty so we don't clobber
+                # user-stored data.
+                #
+                # Source amount: prefer the doc's own computed _details
+                # fields (e.g. `pd_custom_net_total_after_wht_details` =
+                # 101,850 for a 105,000 - 3,150 WHT payment). Fall back to
+                # `received_amount - WHT amount` when the _details field is
+                # not populated. This avoids printing 105,000 in words
+                # (the gross amount) when the design wants the net amount
+                # after WHT (101,850).
+                wht_amount = getattr(doc, "pd_custom_withholding_tax_amount", None) or 0
+                net_after_wht = (
+                    getattr(doc, "received_amount", None) or getattr(doc, "paid_amount", None) or 0
+                ) - wht_amount
+
+                # Per-field source map: each words field reads from its matching
+                # _details field. If that's not populated, fall back to the
+                # computed net_after_wht.
+                words_field_to_source = (
+                    (
+                        "pd_custom_net_total_after_wht_words",
+                        "pd_custom_net_total_after_wht_details",
+                    ),
+                    (
+                        "tbs_balance_payable_words",
+                        "pd_custom_net_total_after_wht_details",
+                    ),
+                    (
+                        "pd_custom_net_after_wht_retention_words",
+                        "pd_custom_net_after_wht_retention_details",
+                    ),
+                    (
+                        "pd_custom_net_after_wht_retention_words_details",
+                        "pd_custom_net_after_wht_retention_details",
+                    ),
+                )
+                populated_words_fields = []
+                for words_field, source_field in words_field_to_source:
+                    if not hasattr(doc, words_field):
+                        continue
+                    current = getattr(doc, words_field, None)
+                    if current in (None, ""):
+                        # Pull amount from source field; if 0/None, use net_after_wht
+                        amount = (
+                            getattr(doc, source_field, None)
+                            if getattr(doc, source_field, None) is not None
+                            and getattr(doc, source_field, None) != 0
+                            else None
+                        )
+                        if amount is None or amount == 0:
+                            amount = net_after_wht
+                        try:
+                            setattr(doc, words_field, thai_money_in_words(amount or 0))
+                            populated_words_fields.append(words_field)
+                        except Exception as set_err:
+                            print(f"[THAI ENHANCEMENT] Could not set {words_field}: {set_err}")
+                if populated_words_fields:
+                    print(
+                        f"[THAI ENHANCEMENT] Filled *_words fields "
+                        f"({len(populated_words_fields)}): "
+                        f"{populated_words_fields}"
+                    )
 
                 print(f"Enhanced Thai amount for {doc.doctype} {doc.name}: {doc.in_words}")
 
