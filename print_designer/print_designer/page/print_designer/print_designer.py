@@ -6,6 +6,12 @@ from frappe.model.document import BaseDocument
 from frappe.utils.jinja import get_jenv
 from frappe import _
 
+from print_designer.utils.number_to_words_fields import (
+    apply_number_to_words_pairs,
+    get_number_to_words_pairs,
+    resolve_print_language,
+)
+
 
 @frappe.whitelist()
 def get_signature_image(signature_name):
@@ -133,6 +139,28 @@ def render_user_text_withdoc(
     doc.check_permission()
     return render_user_text(
         string=string, doc=doc, row=row, send_to_jinja=send_to_jinja
+    )
+
+
+@frappe.whitelist(allow_guest=False)
+def get_number_to_words_preview(doctype, docname, print_format, language=None):
+    doc = frappe.get_doc(doctype, docname)
+    doc.check_permission("read")
+    print_format_doc = frappe.get_doc("Print Format", print_format)
+    if print_format_doc.doc_type != doctype:
+        frappe.throw(_("Print Format does not belong to this document type"))
+
+    effective_language = resolve_print_language(
+        print_format_doc,
+        explicit_language=language,
+        document_language=doc.get("language"),
+        user_language=frappe.local.lang,
+    )
+    return apply_number_to_words_pairs(
+        doc,
+        frappe.get_meta(doctype),
+        get_number_to_words_pairs(print_format_doc),
+        effective_language,
     )
 
 

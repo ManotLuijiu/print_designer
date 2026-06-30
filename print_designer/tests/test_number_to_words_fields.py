@@ -1,7 +1,7 @@
 import json
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 class FakeMeta:
@@ -26,6 +26,42 @@ PAIRS = [{"source_field": "amount", "target_field": "amount_words"}]
 
 
 class TestNumberToWordsFieldPairs(unittest.TestCase):
+    def test_preview_endpoint_returns_only_computed_targets(self):
+        from print_designer.print_designer.page.print_designer import print_designer
+
+        doc = MagicMock()
+        doc.get.return_value = None
+        print_format = SimpleNamespace(
+            doc_type="Payment Entry",
+            default_print_language="th",
+            print_designer_settings=json.dumps({"numberToWordsFieldPairs": PAIRS}),
+        )
+
+        with (
+            patch.object(
+                print_designer.frappe,
+                "get_doc",
+                side_effect=[doc, print_format],
+            ),
+            patch.object(print_designer.frappe, "get_meta", return_value=FakeMeta()),
+            patch.object(
+                print_designer,
+                "apply_number_to_words_pairs",
+                return_value={"amount_words": "หนึ่งร้อยบาทถ้วน"},
+                create=True,
+            ) as apply_pairs,
+        ):
+            result = print_designer.get_number_to_words_preview(
+                doctype="Payment Entry",
+                docname="ACC-PAY-2606-00001",
+                print_format="Receipt",
+            )
+
+        self.assertEqual(result, {"amount_words": "หนึ่งร้อยบาทถ้วน"})
+        doc.check_permission.assert_called_once_with("read")
+        doc.save.assert_not_called()
+        apply_pairs.assert_called_once()
+
     def test_reads_pairs_from_print_designer_settings(self):
         from print_designer.utils.number_to_words_fields import get_number_to_words_pairs
 
