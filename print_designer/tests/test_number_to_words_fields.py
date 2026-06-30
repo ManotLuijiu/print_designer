@@ -26,6 +26,22 @@ PAIRS = [{"source_field": "amount", "target_field": "amount_words"}]
 
 
 class TestNumberToWordsFieldPairs(unittest.TestCase):
+    def test_merge_pair_is_idempotent(self):
+        from print_designer.utils.number_to_words_fields import (
+            merge_number_to_words_pair,
+        )
+
+        settings = {"numberToWordsFieldPairs": []}
+        pair = {
+            "source_field": "pd_custom_net_total_after_wht_details",
+            "target_field": "pd_custom_net_total_after_wht_words_details",
+        }
+
+        merge_number_to_words_pair(settings, pair)
+        merge_number_to_words_pair(settings, pair)
+
+        self.assertEqual(settings["numberToWordsFieldPairs"], [pair])
+
     def test_preview_endpoint_returns_only_computed_targets(self):
         from print_designer.print_designer.page.print_designer import print_designer
 

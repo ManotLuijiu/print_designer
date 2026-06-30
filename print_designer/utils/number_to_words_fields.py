@@ -5,7 +5,6 @@ from frappe.utils import money_in_words
 
 from print_designer.utils.thai_amount_to_word import thai_money_in_words
 
-
 NUMERIC_FIELD_TYPES = frozenset({"Currency", "Float", "Int", "Percent"})
 TEXT_FIELD_TYPES = frozenset({"Data", "Small Text", "Text", "Long Text"})
 THAI_LANGUAGES = frozenset({"th", "th-th", "thai", "ไทย"})
@@ -49,6 +48,21 @@ def get_number_to_words_pairs(print_format):
     settings = frappe.parse_json(settings_value) or {}
     pairs = settings.get("numberToWordsFieldPairs")
     return pairs if isinstance(pairs, list) else []
+
+
+def merge_number_to_words_pair(settings, pair):
+    pairs = settings.setdefault("numberToWordsFieldPairs", [])
+    identity = (pair.get("source_field"), pair.get("target_field"))
+    if not all(identity):
+        return False
+    if any(
+        (current.get("source_field"), current.get("target_field")) == identity
+        for current in pairs
+        if isinstance(current, dict)
+    ):
+        return False
+    pairs.append(dict(pair))
+    return True
 
 
 def resolve_print_language(

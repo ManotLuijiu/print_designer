@@ -428,7 +428,10 @@ export const createPropertiesPanel = () => {
                 .filter((field) => textTypes.includes(field.fieldtype))
                 .map((field) => field.fieldname);
               const currencyFields = MainStore.metaFields
-                .filter((field) => field.fieldtype === "Link" && field.options === "Currency")
+                .filter(
+                  (field) =>
+                    field.fieldtype === "Link" && field.options === "Currency",
+                )
                 .map((field) => field.fieldname);
               const dialog = new frappe.ui.Dialog({
                 title: __("Number to Words Fields"),
@@ -438,7 +441,9 @@ export const createPropertiesPanel = () => {
                     fieldtype: "Table",
                     label: __("Field Pairs"),
                     in_place_edit: true,
-                    data: JSON.parse(JSON.stringify(MainStore.numberToWordsFieldPairs)),
+                    data: JSON.parse(
+                      JSON.stringify(MainStore.numberToWordsFieldPairs),
+                    ),
                     fields: [
                       {
                         fieldname: "source_field",

@@ -2,9 +2,10 @@ import re
 from typing import Literal
 
 import frappe
+import frappe.utils.print_format
+from frappe import _
 from frappe.model.document import BaseDocument
 from frappe.utils.jinja import get_jenv
-from frappe import _
 
 from print_designer.utils.number_to_words_fields import (
     apply_number_to_words_pairs,
@@ -117,8 +118,6 @@ def get_print_context(
 
 
 # Patch the original get_print_context function
-import frappe.utils.print_format
-
 frappe.utils.print_format.get_print_context = get_print_context
 
 
