@@ -1,0 +1,1 @@
+{"nodes": [{"id": "test_simple_py", "label": "test_simple.py", "file_type": "code", "source_file": "test_simple.py", "source_location": "L1"}], "edges": [{"source": "test_simple_py", "target": "erpnext_setup_install", "relation": "imports", "confidence": "EXTRACTED", "source_file": "test_simple.py", "source_location": "L1", "weight": 1.0}], "raw_calls": []}

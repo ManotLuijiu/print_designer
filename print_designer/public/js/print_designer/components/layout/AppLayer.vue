@@ -99,7 +99,7 @@ const props = defineProps({
 }
 .layers-panel::-webkit-scrollbar-track,
 .layers-panel::-webkit-scrollbar-corner {
-	background: white;
+	background: var(--bg-light-gray);
 }
 .layer-section {
 	width: 100%;

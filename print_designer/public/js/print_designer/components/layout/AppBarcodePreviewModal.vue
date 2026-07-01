@@ -362,6 +362,14 @@ const addStaticText = (event) => {
 				color: var(--dark);
 			}
 		}
+		@media (prefers-color-scheme: dark) {
+			.preview-text {
+				&:hover,
+				&.preview-text-selected {
+					color: var(--gray-50);
+				}
+			}
+		}
 
 		.next-line {
 			margin: 0px 7px;

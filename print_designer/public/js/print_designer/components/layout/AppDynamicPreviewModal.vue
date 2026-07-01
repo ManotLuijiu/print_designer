@@ -420,6 +420,14 @@ const deleteField = (ev) => {
 				color: var(--dark);
 			}
 		}
+		@media (prefers-color-scheme: dark) {
+			.preview-text {
+				&:hover,
+				&.preview-text-selected {
+					color: var(--gray-50);
+				}
+			}
+		}
 
 		.next-line,
 		.jinja-toggle {

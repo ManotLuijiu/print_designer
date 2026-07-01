@@ -140,6 +140,14 @@ const getPageClass = (field) => {
 <style lang="scss" scoped>
 .dynamic-span {
 	padding: 1px !important;
+	color: var(--gray-900);
+}
+// Vue scoped style would attach data-v-8bddfa60 to the <a> selector too,
+// which the link doesn't have (it's inserted via v-html). Use :deep() so
+// the rule targets the actual class we stamped on the link in
+// utils.js > getFormattedValue.
+:deep(.dynamic-span-link) {
+	color: var(--gray-900);
 }
 .dynamic-span-hover:hover:not(.dynamic-span-selected) {
 	border-bottom: 1px solid var(--gray-600) !important;

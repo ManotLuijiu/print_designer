@@ -4,29 +4,29 @@
 .print-preview-sidebar .frappe-control[data-fieldname="digital_signature"],
 .print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] {
     margin-bottom: 15px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--gray-300);
     border-radius: 6px;
     padding: 10px;
-    background: #fafafa;
+    background: var(--bg-light-gray);
 }
 
 .print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-label,
 .print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-label {
     font-weight: 600;
-    color: #333;
+    color: var(--text-color);
     margin-bottom: 5px;
 }
 
 .print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-input,
 .print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-input {
-    border: 1px solid #d1d8dd;
+    border: 1px solid var(--gray-300);
     border-radius: 4px;
     transition: border-color 0.2s ease;
 }
 
 .print-preview-sidebar .frappe-control[data-fieldname="digital_signature"] .control-input:focus,
 .print-preview-sidebar .frappe-control[data-fieldname="company_stamp"] .control-input:focus {
-    border-color: #2490ef;
+    border-color: var(--primary, #2490ef);
     box-shadow: 0 0 0 2px rgba(36, 144, 239, 0.1);
 }
 
@@ -57,25 +57,25 @@
 
 /* Approval Section Styling */
 .approval-section {
-    border: 2px solid #333;
+    border: 2px solid var(--text-color);
     border-radius: 8px;
-    background: #fdfdfd;
+    background: var(--control-bg);
     margin: 20px 0;
     padding: 15px;
 }
 
 .approval-title {
-    color: #333;
+    color: var(--text-color);
     text-transform: uppercase;
     letter-spacing: 1px;
-    border-bottom: 2px solid #333;
+    border-bottom: 2px solid var(--text-color);
     margin-bottom: 15px;
     padding-bottom: 8px;
 }
 
 .approval-content {
-    background: #f9f9f9;
-    border: 1px dashed #999;
+    background: var(--bg-light-gray);
+    border: 1px dashed var(--text-muted);
     border-radius: 4px;
     position: relative;
     min-height: 100px;
@@ -83,18 +83,18 @@
 
 /* QR Approval Section Styling */
 .qr-approval-section {
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
     border-radius: 6px;
-    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    background: linear-gradient(145deg, var(--bg-light-gray), var(--gray-200));
     padding: 20px;
     margin: 20px 0;
 }
 
 .qr-approval-title {
-    color: #495057;
+    color: var(--text-color);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--gray-300);
     margin-bottom: 15px;
     padding-bottom: 8px;
 }
@@ -103,7 +103,7 @@
     display: flex;
     align-items: center;
     gap: 20px;
-    background: white;
+    background: var(--control-bg);
     border-radius: 4px;
     padding: 15px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -113,9 +113,9 @@
     flex-shrink: 0;
     text-align: center;
     padding: 10px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--gray-200);
     border-radius: 4px;
-    background: #f8f9fa;
+    background: var(--bg-light-gray);
 }
 
 .approval-status-section {
@@ -124,11 +124,11 @@
 }
 
 .approval-status-section > div {
-    border: 2px dashed #ced4da;
+    border: 2px dashed var(--gray-300);
     border-radius: 4px;
     padding: 15px;
     text-align: center;
-    background: #f8f9fa;
+    background: var(--bg-light-gray);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -191,7 +191,7 @@
 
 /* Hover effects for interactive elements */
 .qr-code-section:hover {
-    background: #e9ecef;
+    background: var(--gray-200);
     transition: background 0.2s ease;
     cursor: pointer;
 }
@@ -200,7 +200,7 @@
 @media print {
     .digital-signature-container {
         box-shadow: none;
-        border: 1px solid #999;
+        border: 1px solid var(--text-muted);
     }
 
     .company-stamp-container {
@@ -208,12 +208,12 @@
     }
 
     .qr-approval-section {
-        background: white;
-        border: 1px solid #333;
+        background: var(--control-bg);
+        border: 1px solid var(--text-color);
     }
 
     .qr-code-section {
-        background: white;
-        border: 1px solid #333;
+        background: var(--control-bg);
+        border: 1px solid var(--text-color);
     }
 }

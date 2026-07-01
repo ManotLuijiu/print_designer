@@ -109,7 +109,7 @@ onMounted(() => createPropertiesPanel());
 			margin: 6px 0px;
 		}
 		.text-type-active {
-			background-color: white;
+			background-color: var(--control-bg);
 			box-shadow: var(--card-shadow);
 			border-radius: var(--border-radius);
 		}

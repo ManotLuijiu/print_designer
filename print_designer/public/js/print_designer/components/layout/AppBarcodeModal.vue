@@ -394,7 +394,7 @@ small {
 					span {
 						padding: 7px 0px 7px 4px;
 					}
-					background-color: white;
+					background-color: var(--control-bg);
 				}
 			}
 			.item-selected {
@@ -402,7 +402,7 @@ small {
 				span {
 					padding: 7px 0px 7px 4px;
 				}
-				background-color: white;
+				background-color: var(--control-bg);
 			}
 		}
 	}
@@ -417,7 +417,7 @@ small {
 		}
 		&::-webkit-scrollbar-track,
 		&::-webkit-scrollbar-corner {
-			background: white;
+			background: var(--bg-light-gray);
 		}
 		&::-webkit-scrollbar-thumb {
 			background: var(--gray-300);

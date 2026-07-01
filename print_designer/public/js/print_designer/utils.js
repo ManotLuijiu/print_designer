@@ -511,6 +511,19 @@ export const getFormattedValue = async (field, row = null) => {
   if (field.fieldtype == "Signature") {
     formattedValue.value = `<img class="print-item-image" src="${formattedValue.value}" alt="">`;
   }
+  // Tag any <a> Frappe's link formatter produced so theme-aware CSS can
+  // style it (e.g. .dynamic-span-link { color: var(--gray-900); } on a
+  // white-page background). Done at the end so it applies to every branch
+  // (Link, Dynamic Link, image wrapped in <a>, etc.).
+  if (
+    typeof formattedValue.value === "string" &&
+    formattedValue.value.includes("<a ")
+  ) {
+    formattedValue.value = formattedValue.value.replace(
+      /<a /g,
+      '<a class="dynamic-span-link" ',
+    );
+  }
   return formattedValue.value;
 };
 
