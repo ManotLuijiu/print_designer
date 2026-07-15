@@ -34,6 +34,11 @@ THAI_TRANSLATIONS = {
     "Interest Income": "ดอกเบี้ย",
     "Bond Interest": "ดอกเบี้ยพันธบัตร",
     "Dividend Income": "เงินปันผล",
+    "Dividend Income (Foreign)": "เงินปันผล (ต่างประเทศ)",
+    "Interest Income (Foreign)": "ดอกเบี้ย (ต่างประเทศ)",
+    "Royalty (Foreign)": "ค่าสิทธิ (ต่างประเทศ)",
+    "Professional Services (Foreign)": "ค่าจ้างวิชาชีพอิสระ (ต่างประเทศ)",
+    "Contracting Services (Foreign)": "ค่ารับเหมา/จ้างทำของ (ต่างประเทศ)",
     "Ship Rental": "ค่าเช่าเรือ",
     "Contracting Services": "ค่าจ้างทำของ",
     "Foreign Contractor Fees": "ค่าจ้างผู้รับเหมาต่างประเทศ",
@@ -68,6 +73,11 @@ THAI_TRANSLATIONS = {
     "Interest under Section 40(4)(a)": "ดอกเบี้ยตามมาตรา 40(4)(ก)",
     "Bond or debenture interest": "ดอกเบี้ยพันธบัตรหรือหุ้นกู้",
     "Dividends / profit sharing (Section 40(4)(b))": "เงินปันผล / ส่วนแบ่งกำไร (มาตรา 40(4)(ข))",
+    "Dividends paid to foreign company (Section 40(4)(b))": "เงินปันผล / ส่วนแบ่งกำไรที่จ่ายให้บริษัทต่างประเทศ (มาตรา 40(4)(ข))",
+    "Interest paid to foreign company (Section 40(4))": "ดอกเบี้ยที่จ่ายให้บริษัทต่างประเทศ (มาตรา 40(4))",
+    "Royalties paid to foreign company (Section 40(3))": "ค่าสิทธิ / แฟรนไชส์ / ลิขสิทธิ์ที่จ่ายให้บริษัทต่างประเทศ (มาตรา 40(3))",
+    "Professional services paid to foreign company (Section 40(6))": "ค่าบริการวิชาชีพอิสระที่จ่ายให้บริษัทต่างประเทศ (มาตรา 40(6))",
+    "Contracting services paid to foreign company (Section 40(2),(7),(8))": "รับเหมา / จ้างทำของที่จ่ายให้บริษัทต่างประเทศ (มาตรา 40(2),(7),(8))",
     "Rent of buildings/houses/structures (Section 40(5))": "ค่าเช่าอาคาร/บ้าน/สิ่งปลูกสร้าง (มาตรา 40(5))",
     "Ship lease for international transport": "ค่าเช่าเรือสำหรับขนส่งระหว่างประเทศ",
     "Hire of work / contracting (Section 40(7),(8))": "จ้างทำของ / รับเหมา (มาตรา 40(7),(8))",
@@ -82,6 +92,15 @@ THAI_TRANSLATIONS = {
 FORM_TYPE_TH = {
     "PND3": "ภงด.3",
     "PND53": "ภงด.53",
+    "PND54": "ภงด.54",
+}
+
+RECIPIENT_TYPE_TH = {
+    "Individual": "บุคคลธรรมดา",
+    "Corporation": "นิติบุคคล",
+    "Foundation/Association": "มูลนิธิ/สมาคม",
+    "Oversea": "ต่างประเทศ",
+    "Government": "รัฐบาล",
 }
 
 
@@ -146,35 +165,87 @@ def install_thai_wht_income_types():
     created_count = 0
     updated_count = 0
 
+    # Pre-build collision map: (form_type, income_category) -> has multiple records?
+    # Only add suffix when collision exists.
+    from collections import defaultdict
+    form_cat_counts = defaultdict(int)
     for record in records:
-        doc_name = f"{record['form_type']}-{record['income_category']}"
+        form_cat_counts[(record["form_type"], record["income_category"])] += 1
+
+    # Group collision records: (form_type, income_category) -> list of conditions (normalized)
+    form_cat_conditions = defaultdict(list)
+    for record in records:
+        cv = " ".join(record["conditions"].split()) if record["conditions"] else ""
+        form_cat_conditions[(record["form_type"], record["income_category"])].append(cv)
+
+    for record in records:
+        # Normalize whitespace to handle any embedded newlines/tabs in CSV
+        conditions_val = " ".join(record["conditions"].split()) if record["conditions"] else ""
+        existing = frappe.db.get_value(
+            "Thai WHT Income Type",
+            {
+                "form_type": record["form_type"],
+                "income_category": record["income_category"],
+                "tax_rate": record["tax_rate"],
+                "recipient_type": record["recipient_type"],
+                "conditions": conditions_val,
+            },
+            "name",
+        )
 
         doc_data = {
             "doctype": "Thai WHT Income Type",
             "form_type": record["form_type"],
             "form_type_th": FORM_TYPE_TH.get(record["form_type"], record["form_type"]),
             "recipient_type": record["recipient_type"],
+            "recipient_type_th": RECIPIENT_TYPE_TH.get(record["recipient_type"], record["recipient_type"]),
             "income_category": record["income_category"],
             "income_category_th": translate_to_thai(record["income_category"]),
             "income_description": record["income_description"],
             "income_description_th": translate_to_thai(record["income_description"]) if record["income_description"] else "",
-            "conditions": record["conditions"],
-            "conditions_th": translate_to_thai(record["conditions"]),
+            "conditions": conditions_val,
+            "conditions_th": translate_to_thai(conditions_val),
             "tax_rate": record["tax_rate"],
-            "is_active": 1
+            "is_active": 1,
+            # Compound Thai display name: {income_category_th} {recipient_type_th} {tax_rate} {form_type_th}
+            "doc_title_th": f"{translate_to_thai(record['income_category'])} {RECIPIENT_TYPE_TH.get(record['recipient_type'], record['recipient_type'])} {record['tax_rate']} {FORM_TYPE_TH.get(record['form_type'], record['form_type'])}",
         }
 
-        if frappe.db.exists("Thai WHT Income Type", doc_name):
-            # Update existing record
-            doc = frappe.get_doc("Thai WHT Income Type", doc_name)
+        if existing:
+            # Update existing record IN-PLACE (preserves current doc name, avoids duplicate insert)
+            doc = frappe.get_doc("Thai WHT Income Type", existing)
             doc.update(doc_data)
             doc.save(ignore_permissions=True)
             updated_count += 1
         else:
-            # Create new record
-            doc = frappe.get_doc(doc_data)
-            doc.insert(ignore_permissions=True)
-            created_count += 1
+            # English doc name: {income_category} {recipient_type} {tax_rate} {form_type}
+            # Example: "Advertising Income Corporation 2 PND53"
+            # Space-separated, no special characters (Tier 2.2 naming)
+            income_cat = record["income_category"]
+            recipient = record["recipient_type"]
+            rate_val = record["tax_rate"]
+            form_code = record["form_type"]
+            doc_name = f"{income_cat} {recipient} {rate_val} {form_code}"
+
+            # Safety check: if English name already exists (partial migration state), update it instead
+            if frappe.db.exists("Thai WHT Income Type", doc_name):
+                doc = frappe.get_doc("Thai WHT Income Type", doc_name)
+                doc.update(doc_data)
+                doc.save(ignore_permissions=True)
+                updated_count += 1
+            else:
+                # Insert via SQL to bypass Frappe autoname interference entirely
+                doc_data["name"] = doc_name
+                # Remove doctype (it's a Frappe meta field, not a DB column)
+                insert_data = {k: v for k, v in doc_data.items() if k != "doctype"}
+                columns = list(insert_data.keys())
+                placeholders = ["%s"] * len(columns)
+                values = [insert_data[c] for c in columns]
+                frappe.db.sql(
+                    f"INSERT INTO `tabThai WHT Income Type` ({', '.join(columns)}) VALUES ({', '.join(placeholders)})",
+                    values,
+                )
+                created_count += 1
 
     frappe.db.commit()
 

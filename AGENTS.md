@@ -55,3 +55,30 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
+
+---
+
+## WHT DocType Naming (Tier 2)
+
+### Tier 2.1: Tax Withholding Category — IMPLEMENTED
+
+- **Doc name (ID)** = `category_name_en` — already has full English format (e.g. `Transport 1% (PND3)`)
+- **`title_field`** = `category_name` — Thai display (e.g. `ค่าขนส่ง 1% (ภงด.3)`)
+- **No uniqueness issues** — 34 records, all `category_name_en` values are unique
+- **PND54** — uses `Oversea` as recipient_type in doc name (already in `category_name_en`)
+- **Migration** — rename via DB UPDATE, update all cross-links (TWI.tax_withholding_category, TWC.pd_custom_thai_wht_income_type) in same transaction
+
+### Tier 2.2: Thai WHT Income Type — IMPLEMENTING
+
+**Schema changes:**
+- Keep `conditions` + `conditions_th` as-is (nuanced details beyond recipient_type)
+- Add `recipient_type_th` (Select) — Thai options matching `recipient_type`:
+  - `Individual` → `บุคคลธรรมดา`, `Corporation` → `นิติบุคคล`, `Foundation/Association` → `มูลนิธิ/สมาคม`, `Oversea` → `ต่างประเทศ`, `Government` → `รัฐบาล`
+- Add `doc_title_th` (Data) — compound Thai display: `{income_category_th} {recipient_type_th} {tax_rate} {form_type_th}`
+
+**Doc name format:** `{income_category} {recipient_type} {tax_rate} {form_type}`
+- Example: `Advertising Income Corporation 2 PND53`
+
+**`title_field`** = `doc_title_th` — compound Thai display
+
+e.g. `ค่าโฆษณา นิติบุคคล 2 ภงด.53`

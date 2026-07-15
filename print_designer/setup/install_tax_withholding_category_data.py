@@ -68,8 +68,38 @@ def get_existing_thai_wht_income_types():
     )
 
 
+def build_twc_name_en(income_category, rate, recipient_type, form_type):
+    """Build English category_name_en (e.g., 'Commission & Royalties 3% (PND53)')."""
+    name_map = {
+        "Rental Income": "Rental",
+        "Rental Income (Ship Lease)": "Ship Lease",
+        "Professional Services": "Professional Services",
+        "Services Income": "Services",
+        "Prize & Awards": "Prize & Awards",
+        "Entertainment Income": "Entertainment",
+        "Advertising Income": "Advertising",
+        "Service Fees": "Service Fees",
+        "Transport Fees": "Transport",
+        "Sales Promotion Income": "Sales Promotion",
+        "Commission & Royalties": "Commission & Royalties",
+        "Interest Income": "Interest",
+        "Bond Interest": "Bond Interest",
+        "Dividend Income": "Dividend",
+        "Ship Rental": "Ship Rental",
+        "Contracting Services": "Contracting",
+        "Foreign Contractor Fees": "Foreign Contractor",
+        "Insurance Premiums": "Insurance Premiums",
+        "Agricultural Trading Income": "Agricultural",
+    }
+    short_name = name_map.get(income_category, income_category)
+    # Mirror Thai pattern: '{income_category_th} {rate}% ({thai_form})'
+    # English version: '{short_name} {rate}% ({form_type_without_prefix})'
+    form_en = form_type  # 'PND3' or 'PND53'
+    return f"{short_name} {float(rate):g}% ({form_en})"
+
+
 def build_twc_name(income_category, rate, recipient_type, form_type):
-    """Build a descriptive TWC name."""
+    """Build a descriptive TWC name (old format, used only for lookup)."""
     name_map = {
         "Rental Income": "Rental",
         "Rental Income (Ship Lease)": "Rental Ship Lease",
@@ -93,9 +123,9 @@ def build_twc_name(income_category, rate, recipient_type, form_type):
     }
 
     short_name = name_map.get(income_category, income_category)
-    recipient_suffix = "Individual" if recipient_type == "Individual" else "Corporate"
-
-    return f"WHT {rate:.0f}% {short_name} - {recipient_suffix} ({form_type})"
+    recipient_suffix = "Individual" if recipient_type == "Individual" else "Corporation"
+    rate_val = float(rate) if rate else 0
+    return f"WHT {rate_val:.0f}% {short_name} - {recipient_suffix} ({form_type})"
 
 
 def seed_tax_withholding_categories():
@@ -136,7 +166,8 @@ def seed_tax_withholding_categories():
     print(f"Found {len(company_wht_accounts)} companies with WHT accounts configured")
 
     # Create TWCs and track link mappings
-    twc_name_by_key = {}
+    twc_name_by_key = {}          # key -> TWC doc name (English for lookup)
+    twc_category_by_key = {}      # key -> category_name (Thai, the doc name after migration)
     twc_key_to_first_wht = {}  # key -> first WHT record for bilingual name
     twc_created = 0
     twc_updated = 0
@@ -150,19 +181,50 @@ def seed_tax_withholding_categories():
         first_wht = next((r for r in thai_wht_records if r.name == first_wht_name), None)
         twc_key_to_first_wht[key] = first_wht
 
-        # Check if TWC already exists
-        if frappe.db.exists("Tax Withholding Category", twc_name):
+        # Build Thai category_name (this becomes the doc name after migration)
+        if first_wht:
+            thai_form = "ภงด." + form_type[3:]
+            twc_category_name = f"{first_wht.get('income_category_th') or income_category} {float(rate):g}% ({thai_form})"
+        else:
+            twc_category_name = twc_name
+
+        # Build English category_name_en (mirrors the Thai pattern)
+        twc_category_name_en = build_twc_name_en(income_category, rate, recipient_type, form_type)
+
+        twc_category_by_key[key] = twc_category_name
+
+        # Check if TWC already exists by English name (current format)
+        if frappe.db.exists("Tax Withholding Category", twc_category_name_en):
+            twc = frappe.get_doc("Tax Withholding Category", twc_category_name_en)
+            twc_updated += 1
+            print(f"  Updating existing TWC (English): {twc_category_name_en}")
+        elif frappe.db.exists("Tax Withholding Category", twc_name):
+            # Pre-migration: exists with old English doc name (WHT X% Y - Z (Form))
             twc = frappe.get_doc("Tax Withholding Category", twc_name)
             twc_updated += 1
             print(f"  Updating existing TWC: {twc_name}")
+        elif frappe.db.exists("Tax Withholding Category", twc_category_name):
+            # Pre-migration: exists with Thai doc name (ยังไม่ได้เปลี่ยน)
+            # Rename to English
+            old_name = twc_category_name
+            frappe.db.sql(
+                "UPDATE `tabTax Withholding Category` SET name=%s WHERE name=%s",
+                (twc_category_name_en, old_name),
+            )
+            twc = frappe.get_doc("Tax Withholding Category", twc_category_name_en)
+            twc_updated += 1
+            print(f"  Renamed TWC: {old_name} → {twc_category_name_en}")
         else:
             twc = frappe.new_doc("Tax Withholding Category")
-            twc.name = twc_name
-            twc.flags.ignore_autoname = True
+            # Set English doc name (category_name_en) and Thai category_name
+            twc.category_name = twc_category_name
+            twc.category_name_en = twc_category_name_en
+            twc.name = twc_category_name_en  # English doc name
             twc_created += 1
-            print(f"  Creating new TWC: {twc_name}")
+            print(f"  Creating new TWC: {twc_category_name_en}")
 
-        twc_name_by_key[key] = twc_name
+        # Store Thai doc name for linking (post-migration TWCs use Thai names)
+        twc_name_by_key[key] = twc_category_name_en  # Use English name for TWI→TWC link updates
 
         # Update/add rate row
         _update_rate_row(twc, from_date, to_date, rate)
@@ -176,12 +238,14 @@ def seed_tax_withholding_categories():
         # Populate mandatory accounts child table (preserve existing, add missing companies)
         _ensure_accounts_rows(twc, company_wht_accounts)
 
-        # Populate combined label: Thai name + rate + PND form type
+        # Populate/update category_name and category_name_en
         if first_wht:
-            thai_form = "ภงด." + form_type[3:]  # PND3 → ภงด.3 | PND53 → ภงด.53
-            category_name_th = first_wht.get("income_category_th") or income_category
-            twc.category_name = f"{category_name_th} {rate:g}% ({thai_form})"
-            twc.category_name_en = first_wht.get("income_category") or income_category
+            twc.category_name = twc_category_name
+            twc.category_name_en = twc_category_name_en
+            # Also populate reverse link: TWC -> Thai WHT Income Type
+            # Only set if this TWC doesn't already have a link (avoid overwriting user changes)
+            if not twc.get("pd_custom_thai_wht_income_type"):
+                twc.pd_custom_thai_wht_income_type = first_wht_name
 
         twc.save(ignore_permissions=True)
 
@@ -189,29 +253,30 @@ def seed_tax_withholding_categories():
     print(f"TWC seeding complete: {twc_created} created, {twc_updated} updated")
 
     # Now update Thai WHT Income Type records to link to TWCs
-    links_updated = 0
+    # Use the English TWC doc name (stored in twc_name_by_key)
+    twi_links_updated = 0
     for rec in thai_wht_records:
         key = (rec.income_category, rec.tax_rate, rec.recipient_type, rec.form_type)
-        twc_name = twc_name_by_key.get(key)
-        if twc_name:
+        twc_doc_name = twc_name_by_key.get(key)  # This is now the Thai doc name
+        if twc_doc_name:
             current_link = frappe.db.get_value("Thai WHT Income Type", rec.name, "tax_withholding_category")
-            if current_link != twc_name:
+            if current_link != twc_doc_name:
                 frappe.db.set_value(
                     "Thai WHT Income Type",
                     rec.name,
                     "tax_withholding_category",
-                    twc_name
+                    twc_doc_name
                 )
-                links_updated += 1
+                twi_links_updated += 1
 
     frappe.db.commit()
-    print(f"Linked {links_updated} Thai WHT Income Type records to TWCs")
+    print(f"Linked {twi_links_updated} Thai WHT Income Type records to TWCs")
 
     return {
         "twc_created": twc_created,
         "twc_updated": twc_updated,
         "twc_total": twc_created + twc_updated,
-        "links_updated": links_updated,
+        "twi_links_updated": twi_links_updated,
         "fiscal_year": f"{from_date} to {to_date}",
     }
 

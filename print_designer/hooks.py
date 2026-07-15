@@ -113,6 +113,7 @@ commands = [
 # include js, css files in header of desk.html
 app_include_js = [
     "print_watermark.bundle.js",
+    "print_designer.app.bundle.js",
 ]
 
 app_include_css = [
@@ -186,7 +187,9 @@ doctype_js = {
     "Company": ["public/js/print_format/company.js", "public/js/company/company_thai_accounts.js"],
     "Designation": "public/js/stamps_signatures/designation_signature.js",
 }
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_list_js = {
+    "Tax Withholding Category": "public/js/tax_withholding_category_list.js",
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -556,6 +559,9 @@ after_install = [
     "print_designer.commands.install_twx_gross_amount_field.execute",  # Install Gross Amount field on Tax Withholding Entry
     "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
     "print_designer.setup.install_tax_withholding_category_data.apply_tax_deduction_basis_descriptions",  # Update tax_deduction_basis field description for Thai users
+    # Task 2: Set autoname to Thai fields (runs AFTER seed so TWCs/records exist)
+    "print_designer.commands.set_autoname_thai_wht.set_autoname_thai_wht",  # Set Thai WHT Income Type autoname to income_category_th
+    "print_designer.commands.set_autoname_twc.set_autoname_twc",  # Set Tax Withholding Category autoname to category_name
     # DISABLED: old retention installer - using enhanced installer above
     # "print_designer.commands.restructure_retention_fields.restructure_retention_fields",  # Restructure retention fields to eliminate API loops
     # "print_designer.api.global_typography.after_install",
@@ -613,6 +619,10 @@ after_migrate = [
     "print_designer.commands.install_twx_gross_amount_field.execute",  # Install Gross Amount field on Tax Withholding Entry
     "print_designer.setup.install_tax_withholding_category_data.seed_tax_withholding_categories",  # Seed TWC records from Thai WHT Income Type data
     "print_designer.setup.install_tax_withholding_category_data.apply_tax_deduction_basis_descriptions",  # Update tax_deduction_basis field description for Thai users
+    "print_designer.commands.populate_twc_reverse_links.populate_twc_reverse_links",  # Populate TWC.pd_custom_thai_wht_income_type reverse links
+    # Task 2: Set autoname to Thai fields (runs AFTER seed so TWCs/records exist)
+    "print_designer.commands.set_autoname_thai_wht.set_autoname_thai_wht",  # Set Thai WHT Income Type autoname to income_category_th
+    "print_designer.commands.set_autoname_twc.set_autoname_twc",  # Set Tax Withholding Category autoname to category_name
     # Generate Account Thai translation files for external server access
     "print_designer.utils.account_file_api.generate_account_files_for_external_access",
     # Apply Account Thai translations after migration to ensure complete coverage
@@ -839,7 +849,7 @@ permission_query_conditions = {
 regional_overrides = {
     "Thailand": {
         "erpnext.accounts.doctype.payment_entry.payment_entry.add_regional_gl_entries": "print_designer.regional.payment_entry.add_regional_gl_entries",
-        "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_regional_gl_entries": "print_designer.regional.sales_invoice.make_regional_gl_entries"
+        "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_regional_gl_entries": "print_designer.regional.sales_invoice.make_regional_gl_entries",
     }
 }
 

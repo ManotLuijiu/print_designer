@@ -2,6 +2,13 @@
 // Provides guidance for service item classification
 
 frappe.ui.form.on("Item", {
+	setup: function (frm) {
+		// Wire custom search: show category_name (Thai) in dropdown, save name
+		frm.set_query("pd_custom_wht_income_type", () => ({
+			query: "print_designer.controllers.queries.twc_search",
+		}));
+	},
+
 	refresh: function (frm) {
 		// Add helpful guidance for service classification
 		add_service_classification_help(frm);
@@ -33,7 +40,7 @@ frappe.ui.form.on("Item", {
 function add_service_classification_help(frm) {
 	const field = frm.get_field('pd_custom_is_service_item');
 	if (field && !field.df.description) {
-		field.df.description = 'Check this for consulting, software development, maintenance, training, and other service-based items subject to 3% WHT in Thailand. Examples: Consulting Services, IT Support, Training Programs';
+		field.df.description = __("Check this for consulting, software development, maintenance, training, and other service-based items subject to 3% WHT in Thailand. Examples: Consulting Services, IT Support, Training Programs");
 		field.refresh();
 	}
 }
@@ -46,8 +53,7 @@ function show_wht_service_info(frm) {
 	) {
 		frm.get_field("pd_custom_is_service_item").$wrapper.append(`
       <div class="wht-service-info alert alert-warning" style="margin-top: 10px;">
-        <strong>⚠️ Service Item:</strong> This item will automatically trigger 3% withholding tax 
-        calculation in Sales Invoices for companies with Thailand Service Business enabled.
+        <strong>⚠️ ${__("Service Item")}:</strong> ${__("This item will automatically trigger 3% withholding tax calculation in Sales Invoices for companies with Thailand Service Business enabled.")}
       </div>
     `);
 	}
@@ -84,13 +90,7 @@ function suggest_service_classification(frm) {
 	);
 
 	if (is_likely_service && !frm.doc.pd_custom_is_service_item) {
-		frappe.msgprint({
-			title: __("Service Item Suggestion"),
-			message: __(
-				'Based on the Item Group "{0}", this might be a service item. Consider checking "Is Service" if this item represents a service subject to withholding tax.',
-				[frm.doc.item_group],
-			),
-			indicator: "blue",
-		});
+		// Auto-enable service item field based on item group
+		frm.set_value("pd_custom_is_service_item", 1);
 	}
 }

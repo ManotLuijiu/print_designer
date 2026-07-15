@@ -18,17 +18,33 @@ TAX_WITHHOLDING_CATEGORY_CUSTOM_FIELDS = {
             "description": "When enabled, WHT is deducted from every installment once the total contract value exceeds 1,000 THB, even if individual installments are below 1,000 THB. Per Thai Revenue Department regulations.",
             "module": "Print Designer",
         },
+        {
+            "fieldname": "pd_custom_thai_wht_income_type",
+            "fieldtype": "Link",
+            "label": "Thai WHT Income Type",
+            "insert_after": "tax_deduction_basis",
+            "options": "Thai WHT Income Type",
+            "translatable": 0,
+            "read_only": 1,
+            "module": "Print Designer",
+        },
     ]
 }
 
+TAX_WHITHOLDING_CATEGORY_INSTALL_LIST = [
+    "pd_custom_apply_wht_to_contract_installments",
+    "pd_custom_thai_wht_income_type",
+]
+
 
 def create_tax_withholding_category_fields():
-    """Install pd_custom_apply_wht_to_contract_installments custom field on Tax Withholding Category."""
+    """Install custom fields on Tax Withholding Category."""
     try:
         print("Installing Tax Withholding Category custom fields...")
         create_custom_fields(TAX_WITHHOLDING_CATEGORY_CUSTOM_FIELDS, update=True)
         frappe.db.commit()
-        print("✅ pd_custom_apply_wht_to_contract_installments installed on Tax Withholding Category!")
+        for field in TAX_WHITHOLDING_CATEGORY_INSTALL_LIST:
+            print(f"   ✅ {field} installed on Tax Withholding Category!")
         return True
     except Exception as e:
         frappe.db.rollback()
@@ -41,10 +57,11 @@ def check_tax_withholding_category_fields():
     """Verify that the custom fields are properly installed."""
     try:
         print("Checking Tax Withholding Category custom fields...")
-        fields_to_check = ["pd_custom_apply_wht_to_contract_installments"]
         all_ok = True
-        for fieldname in fields_to_check:
-            if not frappe.db.exists("Custom Field", {"dt": "Tax Withholding Category", "fieldname": fieldname}):
+        for fieldname in TAX_WHITHOLDING_CATEGORY_INSTALL_LIST:
+            if not frappe.db.exists(
+                "Custom Field", {"dt": "Tax Withholding Category", "fieldname": fieldname}
+            ):
                 print(f"❌ Missing field: {fieldname}")
                 all_ok = False
             else:
@@ -60,9 +77,10 @@ def uninstall_tax_withholding_category_fields():
     """Remove custom fields from Tax Withholding Category."""
     try:
         print("Removing Tax Withholding Category custom fields...")
-        fields_to_remove = ["pd_custom_apply_wht_to_contract_installments"]
-        for fieldname in fields_to_remove:
-            custom_field = frappe.db.exists("Custom Field", {"dt": "Tax Withholding Category", "fieldname": fieldname})
+        for fieldname in TAX_WHITHOLDING_CATEGORY_INSTALL_LIST:
+            custom_field = frappe.db.exists(
+                "Custom Field", {"dt": "Tax Withholding Category", "fieldname": fieldname}
+            )
             if custom_field:
                 frappe.delete_doc("Custom Field", custom_field, force=1)
                 print(f"   ✓ Removed {fieldname}")
