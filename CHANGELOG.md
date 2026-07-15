@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.23.0](https://github.com/ManotLuijiu/print_designer/compare/v1.22.0...v1.23.0) (2026-07-15)
+
+
+### 📚 Documentation
+
+* plan language-aware words field pairs ([f471b52](https://github.com/ManotLuijiu/print_designer/commit/f471b528d4e9fb1a0a0e6a836b3672e69930d323))
+* specify language-aware words field pairs ([e50f11d](https://github.com/ManotLuijiu/print_designer/commit/e50f11da12cef71decfe4306d47512722cda88c3))
+
+
+### 🐛 Bug Fixes
+
+* configure Receipt amount words rendering ([04b78f0](https://github.com/ManotLuijiu/print_designer/commit/04b78f089ea26d59f0920e351871f545f6f2315f))
+* distinguish automatic print language ([92a989d](https://github.com/ManotLuijiu/print_designer/commit/92a989d51561f7f47343cc709f0b7679fc08f87a))
+* render configured words fields in print language ([60faae8](https://github.com/ManotLuijiu/print_designer/commit/60faae886ab59673df3f72c3db9c54a288a7eeaf))
+
+
+### 🔧 Maintenance
+
+* close number-to-words field pair issue ([4204e4f](https://github.com/ManotLuijiu/print_designer/commit/4204e4f69aa5886943cf28b668ac0d86ed141bd6))
+* close print language precedence bug ([402f487](https://github.com/ManotLuijiu/print_designer/commit/402f487378e5bf519774c651bd9ea2d808af5696))
+
+
+### ✨ Features
+
+* 020626_adding_address_utils ([3fd3096](https://github.com/ManotLuijiu/print_designer/commit/3fd309653f6acf7e3cf0cd420f0a4bc55e5d8a09))
+* 050626 ([9de3d32](https://github.com/ManotLuijiu/print_designer/commit/9de3d321cfda2d1c720096b82b418212f04daea8))
+* 060626 add whitelist to thai_amount_to_word ([b9f7903](https://github.com/ManotLuijiu/print_designer/commit/b9f7903169e1404616a47b5904b560f1baba8c4c))
+* add number-to-words field pair resolver ([2ee3d32](https://github.com/ManotLuijiu/print_designer/commit/2ee3d32f70bb77661f4e0035866d357d02ebd4b2))
+* add thai_billing, thai_billing_item ([6e6d46d](https://github.com/ManotLuijiu/print_designer/commit/6e6d46d6228a532243477fd54c6246c8d6ad3769))
+* add thai_billing, thai_billing_item ([c282a19](https://github.com/ManotLuijiu/print_designer/commit/c282a19a78bbff3aac7fcb3cecefd36fc9c7a63c))
+* add thai_billing, thai_billing_item ([226d7b3](https://github.com/ManotLuijiu/print_designer/commit/226d7b3804e25a5e3115bbd66b4f60e24a38217a))
+* added dockerfile ([0a7bbfa](https://github.com/ManotLuijiu/print_designer/commit/0a7bbfafe1723bd96f3b1235874af5ae541324f1))
+* Added Import/Export ([4760b36](https://github.com/ManotLuijiu/print_designer/commit/4760b36d47d64b514831cec0dafd0395f6fb8cec))
+* backup print_designer ([46ea285](https://github.com/ManotLuijiu/print_designer/commit/46ea28515e3a8b19ae6a2dfd069f6956ca6c7d20))
+* backup print_designer2 ([e179b79](https://github.com/ManotLuijiu/print_designer/commit/e179b794a4d3c1720b3efd2ff58a86c383413b38))
+* backup TBS ([f0379e3](https://github.com/ManotLuijiu/print_designer/commit/f0379e3c00a2df7fc2f6b4e89b71d88dcc9b0d54))
+* configure words fields in print designer ([1b57267](https://github.com/ManotLuijiu/print_designer/commit/1b572678939daa20f760b11f2871473bb087622b))
+* disable Apply Thai Withholding Tax Compliance in PI ([9845bd5](https://github.com/ManotLuijiu/print_designer/commit/9845bd51149a66a0c660225de0b14a63bfe0bb9e))
+* expose words fields to design preview ([14e3037](https://github.com/ManotLuijiu/print_designer/commit/14e30376d91121b6743b7007e3a7bad106976d6e))
+* Fixed Format ([a66747c](https://github.com/ManotLuijiu/print_designer/commit/a66747c49e6a26f040f6fb98c10c4d7dca189477))
+* inpac_selling/custom/customer.json ([4fab26d](https://github.com/ManotLuijiu/print_designer/commit/4fab26db351379f5b46759ce7fce4230deb9755b))
+* mariadb-optimization ([31618a7](https://github.com/ManotLuijiu/print_designer/commit/31618a700145c3b6ddf82d44ffb68d4d71963b30))
+* modified:   print_designer/commands/install_company_thai_tax_fields.py ([1eca262](https://github.com/ManotLuijiu/print_designer/commit/1eca262aec276797c835a112161dd11bcb5efa81))
+* modified:   print_designer/commands/install_company_thai_tax_fields.py ([865e5e4](https://github.com/ManotLuijiu/print_designer/commit/865e5e4fdecb82a4cf8b16eb740dd0f6a0463daa))
+* PND Reports ([9dbcf2f](https://github.com/ManotLuijiu/print_designer/commit/9dbcf2f445fd91f81ed90044389b8d03d163ff1e))
+* **thai_wht:** bilingual naming for WHT Income Type + list view column customization ([3419961](https://github.com/ManotLuijiu/print_designer/commit/3419961569e276fd7513f3c3e563cf16a89c278c))
+* translation_tools/hooks.py ([4f62536](https://github.com/ManotLuijiu/print_designer/commit/4f6253602fc93d54cf8c5d7a2df8d3a379e6796d))
+
 ## [1.22.0](https://github.com/ManotLuijiu/print_designer/compare/v1.21.0...v1.22.0) (2026-04-01)
 
 
