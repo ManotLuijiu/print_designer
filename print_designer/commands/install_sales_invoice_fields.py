@@ -1,6 +1,61 @@
 # install_sales_invoice_fields.py
 # Enhanced Sales Invoice custom fields installation with comprehensive validation
 # Following patterns established in Quotation and Sales Order
+#
+# =============================================================================
+# APPROACH A: FIELD LIFECYCLE CLEANUP (For Future Custom Fields)
+# =============================================================================
+#
+# CANONICAL PREFIX: pd_custom_ (e.g., pd_custom_wht_income_type)
+#
+# Orphan prefixes to clean up when migrating/renaming fields:
+#   - thai_*       (e.g., thai_wht_preview_section, thai_cash_receipt)
+#   - custom_*     (e.g., custom_net_total_after_wht_retention, custom_retention_*)
+#   - wht_*        (e.g., wht_income_type, wht_description)
+#   - No prefix    (e.g., vat_treatment, subject_to_wht, net_total_after_wht)
+#
+# Example cleanup function for future use:
+#
+# def cleanup_orphan_fields(doctype):
+#     ORPHAN_PREFIXES = ['thai_', 'custom_', 'wht_']
+#     ORPHAN_SPECIFIC = ['vat_treatment', 'subject_to_wht', 'net_total_after_wht']
+#
+#     existing = frappe.get_all("Custom Field", filters={"dt": doctype}, pluck="fieldname")
+#
+#     for prefix in ORPHAN_PREFIXES:
+#         for fn in [f for f in existing if f.startswith(prefix)]:
+#             frappe.delete_doc("Custom Field", fn, force=True)
+#             print(f"  Deleted orphan: {fn}")
+#
+#     for fn in ORPHAN_SPECIFIC:
+#         if fn in existing:
+#             frappe.delete_doc("Custom Field", fn, force=True)
+#             print(f"  Deleted orphan: {fn}")
+#
+#     frappe.db.commit()
+#
+# Usage in install function:
+#     cleanup_orphan_fields("Sales Invoice")  # Call FIRST before create_custom_fields
+#
+# Full orphan list (deleted 2026-07-15):
+#   thai_wht_preview_section, thai_cash_receipt, thai_compliance_section,
+#   thai_customer_branch_code, thai_customer_tax_id, thai_export_eligible,
+#   thai_invoice_type, thai_tax_information_section, thai_tax_invoice_date,
+#   thai_tax_invoice_number, thai_vat_eligible,
+#   custom_subject_to_retention, custom_net_total_after_wht_retention,
+#   custom_net_total_after_wht_retention_in_words, custom_net_total_after_wht_and_retention_in_words,
+#   custom_retention_note, custom_retention, custom_retention_amount,
+#   custom_withholding_tax, custom_withholding_tax_amount, custom_payment_amount,
+#   custom_invoice_qr_section, custom_show_qr_on_print, custom_invoice_qr_code,
+#   custom_invoice_qr_image, custom_invoice_qr_url, custom_invoice_qr_column_break,
+#   custom_invoice_qr_generated_on, custom_invoice_qr_data_version,
+#   pd_custom_net_total_after_wht, pd_custom_approved_by_signature,
+#   pd_custom_prepared_by_signature, pd_custom_watermark_text,
+#   pd_custom_net_total_after_wht_words,
+#   wht_amounts_column_break, vat_treatment, subject_to_wht, wht_income_type,
+#   wht_description, wht_certificate_required, net_total_after_wht,
+#   net_total_after_wht_in_words, wht_note, wht_preview_column_break
+# =============================================================================
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
@@ -67,6 +122,40 @@ def get_sales_invoice_custom_fields_definition():
     """
     return {
         "Sales Invoice": [
+            # Thai Compliance Tab - placed after title field
+            {
+                "fieldname": "pd_custom_thai_compliance_tab",
+                "fieldtype": "Tab Break",
+                "label": "Thai Tax Compliance",
+                "insert_after": "loyalty_redemption_cost_center",
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+            },
+            {
+                "fieldname": "pd_custom_vat_section",
+                "fieldtype": "Section Break",
+                "label": "Value Added Tax",
+                "insert_after": "pd_custom_thai_compliance_tab",
+            },
+            {
+                "fieldname": "pd_custom_company_thailand_service_business",
+                "fieldtype": "Check",
+                "label": "Company Thailand Service Business",
+                "fetch_from": "company.thailand_service_business",
+                "hidden": 1,
+                "read_only": 1,
+                "no_copy": 1,
+            },
+            {
+                "fieldname": "pd_custom_company_construction_service",
+                "fieldtype": "Check",
+                "label": "Company Construction Service",
+                "fetch_from": "company.construction_service",
+                "hidden": 1,
+                "read_only": 1,
+                "no_copy": 1,
+            },
             # Document watermark field
             {
                 "fieldname": "pd_custom_watermark_text",
@@ -120,7 +209,7 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "pd_custom_vat_treatment",
                 "description": "This invoice is for services subject to withholding tax",
                 "default": "0",
-                "depends_on": "eval:doc.company && doc.thailand_service_business",
+                "depends_on": "eval:doc.pd_custom_company_thailand_service_business",
             },
             {
                 "fieldname": "pd_custom_wht_income_type",
@@ -197,7 +286,7 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Subject to Retention",
                 "insert_after": "pd_custom_wht_preview_cb",
                 "description": "This invoice is for construction subject to retention deduct.",
-                "depends_on": "eval:doc.company && doc.construction_service",
+                "depends_on": "eval:doc.pd_custom_company_construction_service",
             },
             {
                 "fieldname": "pd_custom_net_after_wht_retention",
