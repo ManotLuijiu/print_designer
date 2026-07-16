@@ -239,7 +239,6 @@ frappe.ui.form.on('Purchase Invoice', {
                 indicator: 'orange'
             }, 3);
         }
-    }
 });
 
 // Unlock the WHT compliance checkbox so Accounting dept can tick it at PI stage
@@ -454,3 +453,29 @@ function check_remaining_wht_items(frm) {
         }
     });
 }
+
+// ============================================
+// Purchase Invoice: Keep as-is for now
+// Thai Tax Compliance override for charge_type is commented out
+// May need different logic for Purchase Invoices
+// ============================================
+// function pd_override_thai_tax_charge_type_purchase(frm) {
+//     if (!frm.doc.company || !frm.doc.taxes || frm.doc.taxes.length === 0) return;
+//     frappe.db.get_value('Company', frm.doc.company, 'country').then(r => {
+//         if (!r || r.message.country !== 'Thailand') return;
+//         let overridden = 0;
+//         frm.doc.taxes.forEach(function(tax) {
+//             if (tax.charge_type && !['Thai Tax Compliance', 'On Previous Row Amount', 'On Previous Row Total', 'On Item Quantity'].includes(tax.charge_type)) {
+//                 if (!tax.custom_original_charge_type) {
+//                     tax.custom_original_charge_type = tax.charge_type;
+//                 }
+//                 tax.charge_type = 'Thai Tax Compliance';
+//                 overridden++;
+//             }
+//         });
+//         if (overridden > 0) {
+//             console.log('Thailand WHT PI: Set charge_type to Thai Tax Compliance for', overridden, 'tax rows');
+//             frm.refresh_fields('taxes');
+//         }
+//     });
+// }

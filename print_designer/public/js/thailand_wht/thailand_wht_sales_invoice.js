@@ -234,6 +234,12 @@ frappe.ui.form.on('Sales Invoice', {
     // This populates hidden fields for depends_on evaluation
     company: function(frm) {
         pd_fetch_company_thai_fields(frm);
+    },
+    
+    // Override tax template charge_type for Thai companies
+    // When tax template is selected, set charge_type to 'Thai Tax Compliance'
+    taxes_and_charges: function(frm) {
+        pd_override_thai_tax_charge_type(frm);
     }
 });
 
@@ -243,22 +249,54 @@ function pd_fetch_company_thai_fields(frm) {
     
     frappe.db.get_value('Company', frm.doc.company, [
         'thailand_service_business',
-        'construction_service'
+        'construction_service',
+        'country'
     ]).then(r => {
         if (r && r.message) {
             // Populate hidden fields for depends_on evaluation
             frm.doc.pd_custom_company_thailand_service_business = r.message.thailand_service_business || 0;
             frm.doc.pd_custom_company_construction_service = r.message.construction_service || 0;
+            frm.doc.pd_custom_company_country = r.message.country;
             
             console.log('Thailand WHT: Company fields fetched', {
                 thailand_service_business: frm.doc.pd_custom_company_thailand_service_business,
-                construction_service: frm.doc.pd_custom_company_construction_service
+                construction_service: frm.doc.pd_custom_company_construction_service,
+                country: frm.doc.pd_custom_company_country
             });
             
             // Refresh fields to trigger depends_on evaluation
-            frm.refresh_fields(['pd_custom_company_thailand_service_business', 'pd_custom_company_construction_service']);
+            frm.refresh_fields(['pd_custom_company_thailand_service_business', 'pd_custom_company_construction_service', 'pd_custom_company_country']);
         }
     });
+}
+
+// Override tax charge_type for Thai companies
+// When tax template is applied, set charge_type to 'Thai Tax Compliance' for Thai companies
+function pd_override_thai_tax_charge_type(frm) {
+    if (!frm.doc.company || !frm.doc.taxes || frm.doc.taxes.length === 0) return;
+    
+    // Check if company is Thailand
+    if (frm.doc.pd_custom_company_country !== 'Thailand') return;
+    
+    // Override charge_type for all tax rows
+    let overridden = 0;
+    frm.doc.taxes.forEach(function(tax) {
+        // Only override percentage-based taxes (On Net Total, Actual)
+        if (tax.charge_type && !['Thai Tax Compliance', 'On Previous Row Amount', 'On Previous Row Total', 'On Item Quantity'].includes(tax.charge_type)) {
+            // Store original charge_type
+            if (!tax.custom_original_charge_type) {
+                tax.custom_original_charge_type = tax.charge_type;
+            }
+            // Set to Thai Tax Compliance
+            tax.charge_type = 'Thai Tax Compliance';
+            overridden++;
+        }
+    });
+    
+    if (overridden > 0) {
+        console.log('Thailand WHT: Set charge_type to Thai Tax Compliance for', overridden, 'tax rows');
+        frm.refresh_fields('taxes');
+    }
 }
 
 // Monitor any field value changes
