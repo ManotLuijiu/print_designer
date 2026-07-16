@@ -125,11 +125,10 @@ def get_sales_invoice_custom_fields_definition():
             },
             # Main WHT and Retention Preview Section
             {
-                "fieldname": "pd_custom_wht_preview_section",
+                "fieldname": "pd_custom_wht_section",
                 "fieldtype": "Section Break",
                 "label": "Withholding Tax & Retention",
                 "insert_after": "pd_custom_thai_compliance_tab",
-                "collapsible": 1,
                 "no_copy": 1,
                 "read_only": 1,
             },
@@ -137,7 +136,7 @@ def get_sales_invoice_custom_fields_definition():
             {
                 "fieldname": "pd_custom_wht_amounts_cb",
                 "fieldtype": "Column Break",
-                "insert_after": "pd_custom_wht_preview_section",
+                "insert_after": "pd_custom_wht_section",
                 "no_copy": 1,
                 "read_only": 1,
             },
@@ -175,7 +174,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Net Total (After WHT) in Words",
                 "insert_after": "pd_custom_net_total_after_wht",
                 "description": "Net total amount in Thai words",
-                "depends_on": "eval:doc.pd_custom_net_total_after_wht",
                 "read_only": 1,
             },
             {
@@ -213,7 +211,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Subject to Retention",
                 "insert_after": "pd_custom_company_construction_service",
                 "description": "This invoice is for construction subject to retention deduct.",
-                "depends_on": "eval:doc.pd_custom_company_construction_service",
             },
             {
                 "fieldname": "pd_custom_net_after_wht_retention",
@@ -221,7 +218,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Net Total (After WHT & Retention)",
                 "insert_after": "pd_custom_subject_to_retention",
                 "description": "Net total after adding VAT (7%) and deducting WHT&Retention",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention",
             },
             {
                 "fieldname": "pd_custom_net_after_wht_retention_words",
@@ -229,7 +225,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Net Total (After WHT and Retention) in Words",
                 "insert_after": "pd_custom_net_after_wht_retention",
                 "description": "Net total amount in Thai words (After WHT & Retention)",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "translatable": 1,
                 "read_only": 0,
                 "hidden": 0,
@@ -243,7 +238,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Retention Note",
                 "insert_after": "pd_custom_net_after_wht_retention_words",
                 "description": "Important note about Retention deduction timing",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention",
                 "default": "หมายเหตุ: จำนวนเงินประกันผลงาน  จะถูกหักเมื่อชำระเงิน\\nNote: Retention amount will be deducted upon payment",
                 "translatable": 1,
             },
@@ -254,7 +248,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Retention (%)",
                 "insert_after": "base_in_words",
                 "description": "Retention percentage to be withheld from payment",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention",
             },
             {
                 "fieldname": "pd_custom_retention_amount",
@@ -262,7 +255,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Retention Amount",
                 "insert_after": "pd_custom_retention_pct",
                 "description": "Calculated retention amount",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention",
             },
             {
                 "fieldname": "pd_custom_withholding_tax_pct",

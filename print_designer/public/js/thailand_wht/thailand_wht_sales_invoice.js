@@ -307,34 +307,7 @@ function monitorModelEvents() {
 monitorModelEvents();
 
 // Expose functions globally for use by frappe.ui.form.on
-window.pd_auto_fill_wht_category = pd_auto_fill_wht_category;
 window.pd_fetch_company_thai_fields = pd_fetch_company_thai_fields;
 
-// Auto-populate tax_withholding_category from Item's pd_custom_wht_income_type
-// Note: VAT is handled by ERPNext's taxes_and_charges field
-frappe.ui.form.on('Sales Invoice Item', {
-    item_code: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        if (row.item_code) {
-            // Auto-populate WHT category from Item
-            pd_auto_fill_wht_category(frm, cdt, cdn, row.item_code);
-        }
-    }
-});
-
-// Auto-fill tax_withholding_category from Item's pd_custom_wht_income_type
-function pd_auto_fill_wht_category(frm, cdt, cdn, item_code) {
-    if (!item_code) return;
-    
-    const row = locals[cdt][cdn];
-    
-    // Only auto-fill if tax_withholding_category is empty (allow user override)
-    if (row.tax_withholding_category) return;
-    
-    frappe.db.get_value('Item', item_code, 'pd_custom_wht_income_type', function(r) {
-        if (r && r.pd_custom_wht_income_type) {
-            frappe.model.set_value(cdt, cdn, 'tax_withholding_category', r.pd_custom_wht_income_type);
-            console.log('Auto-filled tax_withholding_category:', r.pd_custom_wht_income_type);
-        }
-    });
-}
+// NOTE: tax_withholding_category is auto-populated by ERPNext's get_item_details()
+// which reads from item.sales_tax_withholding_category (standard ERPNext field)

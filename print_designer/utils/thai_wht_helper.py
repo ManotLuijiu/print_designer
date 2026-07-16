@@ -150,12 +150,17 @@ def get_wht_rate_from_twc(twc_name, posting_date=None):
         return 0.0
 
 
-def get_twc_from_item(item_code):
+def get_twc_from_item(item_code, transaction_type="selling"):
     """
-    Get default Tax Withholding Category from Item's pd_custom_wht_income_type.
+    Get default Tax Withholding Category from Item's standard ERPNext field.
+    
+    NOTE: ERPNext already handles this automatically via get_item_details() in:
+    - erpnext/stock/get_item_details.py -> get_tax_withholding_category()
+    This function is kept for backward compatibility.
     
     Args:
         item_code: Item code
+        transaction_type: "selling" for sales_tax_withholding_category, "buying" for purchase_tax_withholding_category
     
     Returns:
         str: Tax Withholding Category name or None
@@ -163,8 +168,8 @@ def get_twc_from_item(item_code):
     if not item_code:
         return None
     
-    wht_income_type = frappe.get_value("Item", item_code, "pd_custom_wht_income_type")
-    return wht_income_type
+    field = "sales_tax_withholding_category" if transaction_type == "selling" else "purchase_tax_withholding_category"
+    return frappe.get_value("Item", item_code, field)
 
 
 def format_wht_description(twc_name, lang='th'):
