@@ -63,17 +63,11 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def migrate_wht_income_type_field(doctype):
     """
-    Migrate wht_income_type field from Select to Link type.
-    Frappe doesn't allow changing fieldtype directly, so we need to delete and recreate.
+    DEPRECATED: pd_custom_wht_income_type is no longer used on Sales Invoice header.
+    WHT Income Type is now per-item using ERPNext's native tax_withholding_category field.
+    This function is kept for historical reference.
     """
-    field_name = f"{doctype}-pd_custom_wht_income_type"
-    if frappe.db.exists("Custom Field", field_name):
-        existing_field = frappe.db.get_value("Custom Field", field_name, "fieldtype")
-        if existing_field == "Select":
-            # Delete old Select field to allow creating new Link field
-            frappe.delete_doc("Custom Field", field_name, force=True)
-            frappe.db.commit()
-            print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+    pass
 
 
 def install_sales_invoice_custom_fields():
@@ -92,9 +86,6 @@ def install_sales_invoice_custom_fields():
     custom_fields = get_sales_invoice_custom_fields_definition()
 
     try:
-        # Migrate wht_income_type from Select to Link (if exists as Select)
-        migrate_wht_income_type_field("Sales Invoice")
-
         print(f"📦 Installing {len(custom_fields['Sales Invoice'])} custom fields...")
         create_custom_fields(custom_fields, update=True)
 
@@ -132,51 +123,13 @@ def get_sales_invoice_custom_fields_definition():
                 "no_copy": 0,
                 "print_hide": 0,
             },
-            {
-                "fieldname": "pd_custom_vat_section",
-                "fieldtype": "Section Break",
-                "label": "Value Added Tax",
-                "insert_after": "pd_custom_thai_compliance_tab",
-            },
-            {
-                "fieldname": "pd_custom_company_thailand_service_business",
-                "fieldtype": "Check",
-                "label": "Company Thailand Service Business",
-                "fetch_from": "company.thailand_service_business",
-                "hidden": 1,
-                "read_only": 1,
-                "no_copy": 1,
-            },
-            {
-                "fieldname": "pd_custom_company_construction_service",
-                "fieldtype": "Check",
-                "label": "Company Construction Service",
-                "fetch_from": "company.construction_service",
-                "hidden": 1,
-                "read_only": 1,
-                "no_copy": 1,
-            },
-            # Document watermark field
-            {
-                "fieldname": "pd_custom_watermark_text",
-                "fieldtype": "Select",
-                "label": "Document Watermark",
-                "insert_after": "is_return",
-                "description": "Watermark text to display on printed document",
-                "options": "None\nOriginal\nCopy\nDraft\nCancelled\nPaid\nDuplicate",
-                "default": "None",
-                "allow_on_submit": 1,
-                "print_hide": 1,
-                "translatable": 1,
-            },
             # Main WHT and Retention Preview Section
             {
                 "fieldname": "pd_custom_wht_preview_section",
                 "fieldtype": "Section Break",
-                "label": "Thai Ecosystem (Withholding Tax & Retention)",
-                "insert_after": "named_place",
+                "label": "Withholding Tax & Retention",
+                "insert_after": "pd_custom_thai_compliance_tab",
                 "collapsible": 1,
-                "collapsible_depends_on": "eval:doc.pd_custom_subject_to_wht || doc.pd_custom_subject_to_retention",
                 "no_copy": 1,
                 "read_only": 1,
             },
@@ -188,49 +141,24 @@ def get_sales_invoice_custom_fields_definition():
                 "no_copy": 1,
                 "read_only": 1,
             },
-            # VAT Treatment (Foundation field)
             {
-                "fieldname": "pd_custom_vat_treatment",
-                "fieldtype": "Select",
-                "label": "VAT Treatment",
+                "fieldname": "pd_custom_company_thailand_service_business",
+                "fieldtype": "Check",
+                "label": "Company Thailand Service Business",
+                "fetch_from": "company.thailand_service_business",
                 "insert_after": "pd_custom_wht_amounts_cb",
-                "description": "Select VAT treatment: Standard for regular sales, Exempt for fresh food/services, Zero-rated for export sales",
-                "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
-                "default": "Standard VAT",
-                "in_list_view": 1,
-                "in_standard_filter": 1,
-                "translatable": 1,
+                "hidden": 0,
+                "read_only": 1,
+                "no_copy": 1,
             },
             # WHT Chain starts here
             {
-                "fieldname": "pd_custom_subject_to_wht",
+                "fieldname": "pd_custom_wht_certificate_required",
                 "fieldtype": "Check",
-                "label": "Subject to Withholding Tax",
-                "insert_after": "pd_custom_vat_treatment",
-                "description": "This invoice is for services subject to withholding tax",
-                "default": "0",
-                "depends_on": "eval:doc.pd_custom_company_thailand_service_business",
-            },
-            {
-                "fieldname": "pd_custom_wht_income_type",
-                "fieldtype": "Link",
-                "label": "WHT Income Type",
-                "insert_after": "pd_custom_subject_to_wht",
-                "description": "Type of income for WHT calculation (linked to Tax Withholding Category)",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "options": "Tax Withholding Category",
-                "no_copy": 0,
-                "read_only": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_description",
-                "fieldtype": "Data",
-                "label": "WHT Description",
-                "insert_after": "pd_custom_wht_income_type",
-                "description": "Thai description of WHT income type",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "no_copy": 0,
-                "read_only": 1,
+                "label": "WHT Certificate Required",
+                "insert_after": "pd_custom_company_thailand_service_business",
+                "description": "Customer will provide withholding tax certificate",
+                "default": "1",
             },
             {
                 "fieldname": "pd_custom_net_total_after_wht",
@@ -238,7 +166,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Net Total (After WHT)",
                 "insert_after": "pd_custom_wht_certificate_required",
                 "description": "Net total after adding VAT (7%) and deducting WHT",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "options": "Company:company:default_currency",
                 "read_only": 1,
             },
@@ -248,17 +175,8 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Net Total (After WHT) in Words",
                 "insert_after": "pd_custom_net_total_after_wht",
                 "description": "Net total amount in Thai words",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht && doc.pd_custom_net_total_after_wht",
+                "depends_on": "eval:doc.pd_custom_net_total_after_wht",
                 "read_only": 1,
-            },
-            {
-                "fieldname": "pd_custom_wht_certificate_required",
-                "fieldtype": "Check",
-                "label": "WHT Certificate Required",
-                "insert_after": "pd_custom_wht_description",
-                "description": "Customer will provide withholding tax certificate",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
-                "default": "1",
             },
             {
                 "fieldname": "pd_custom_wht_note",
@@ -266,7 +184,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "WHT Note",
                 "insert_after": "pd_custom_net_total_after_wht_words",
                 "description": "Important note about WHT deduction timing",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "default": "Note: Withholding tax amount will be deducted upon payment",
                 "no_copy": 0,
                 "read_only": 1,
@@ -281,10 +198,20 @@ def get_sales_invoice_custom_fields_definition():
             },
             # Retention Chain starts here
             {
+                "fieldname": "pd_custom_company_construction_service",
+                "fieldtype": "Check",
+                "label": "Company Construction Service",
+                "fetch_from": "company.construction_service",
+                "insert_after": "pd_custom_wht_preview_cb",
+                "hidden": 0,
+                "read_only": 1,
+                "no_copy": 1,
+            },
+            {
                 "fieldname": "pd_custom_subject_to_retention",
                 "fieldtype": "Check",
                 "label": "Subject to Retention",
-                "insert_after": "pd_custom_wht_preview_cb",
+                "insert_after": "pd_custom_company_construction_service",
                 "description": "This invoice is for construction subject to retention deduct.",
                 "depends_on": "eval:doc.pd_custom_company_construction_service",
             },
@@ -343,7 +270,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Withholding Tax (%)",
                 "insert_after": "pd_custom_retention_amount",
                 "description": "Withholding tax percentage",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
             },
             {
                 "fieldname": "pd_custom_withholding_tax_amount",
@@ -351,7 +277,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Withholding Tax Amount",
                 "insert_after": "pd_custom_withholding_tax_pct",
                 "description": "Calculated withholding tax amount",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
             },
             {
                 "fieldname": "pd_custom_payment_amount",
@@ -359,7 +284,6 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "Payment Amount",
                 "insert_after": "pd_custom_withholding_tax_amount",
                 "description": "Final payment amount after all deductions",
-                "depends_on": "eval:doc.pd_custom_subject_to_retention || doc.pd_custom_subject_to_wht",
             },
             # Signature fields
             {
@@ -442,6 +366,19 @@ def get_sales_invoice_custom_fields_definition():
                 "insert_after": "pd_custom_qr_generated_on",
                 "read_only": 1,
                 "default": "1.0",
+            },
+            # Document watermark field
+            {
+                "fieldname": "pd_custom_watermark_text",
+                "fieldtype": "Select",
+                "label": "Document Watermark",
+                "insert_after": "is_return",
+                "description": "Watermark text to display on printed document",
+                "options": "None\nOriginal\nCopy\nDraft\nCancelled\nPaid\nDuplicate",
+                "default": "None",
+                "allow_on_submit": 1,
+                "print_hide": 1,
+                "translatable": 1,
             },
         ]
     }
@@ -532,10 +469,6 @@ def reinstall_sales_invoice_custom_fields():
 
         # Get field definitions and force installation with update=True
         custom_fields = get_sales_invoice_custom_fields_definition()
-
-        # Migrate wht_income_type from Select to Link (if exists as Select)
-        # This MUST be called before create_custom_fields to avoid fieldtype change error
-        migrate_wht_income_type_field("Sales Invoice")
 
         print(f"📦 Reinstalling {len(custom_fields['Sales Invoice'])} custom fields...")
         create_custom_fields(custom_fields, update=True)
