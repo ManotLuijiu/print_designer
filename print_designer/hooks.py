@@ -549,6 +549,7 @@ after_install = [
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Install Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.execute",  # Install Purchase Order Thai tax compliance fields
+    "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Install Item Is Service field (required before WHT fields)
 "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data
     "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
@@ -609,6 +610,7 @@ after_migrate = [
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
+    "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
 "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
     "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
     "print_designer.commands.install_wht_account_child_fields.execute",  # Install WHT Liability Account field on TWC accounts child table
@@ -650,6 +652,7 @@ before_uninstall = [
     "print_designer.setup.install_tax_withholding_category_data.cleanup_tax_deduction_basis_descriptions",  # Remove tax_deduction_basis description Property Setter
     # Address field label overrides removal (mirror of install)
     "print_designer.commands.install_address_fields.remove_address_fields",
+    "print_designer.overrides.tax_charge_type.remove",  # Remove 'Thai Tax Compliance' from charge_type options
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
