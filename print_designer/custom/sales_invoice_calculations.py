@@ -217,16 +217,18 @@ def calculate_retention_amounts_for_sales_invoice(doc):
 def calculate_final_payment_amounts_for_sales_invoice(doc):
     """Calculate final payment amounts after WHT and retention deductions"""
     try:
-        # Start with grand total (includes VAT)
+        # Get totals
         grand_total = flt(doc.grand_total)
+        net_total = flt(doc.total)  # Sum of items before tax
         
-        # Get deduction amounts - use correct field name: pd_custom_withholding_tax_amount (not estimated_wht_amount)
+        # Get deduction amounts
         wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
         retention_amount = flt(getattr(doc, 'pd_custom_retention_amount', 0))
         
-        # Calculate what pd_custom_net_total_after_wht SHOULD be based on current grand_total and wht_amount
-        # Use Thai Commercial Rounding for consistency
-        expected_net_total_after_wht = thai_flt(grand_total - wht_amount)
+        # For Thai WHT: pd_custom_net_total_after_wht = net_total - wht_amount
+        # NOT grand_total - wht_amount, because Thai WHT is informational only
+        # (WHT is handled at Payment step, not Invoice step)
+        expected_net_total_after_wht = thai_flt(net_total - wht_amount)
         current_net_total_after_wht = flt(doc.get('pd_custom_net_total_after_wht', 0))
         
         # Check if current amount is significantly different from expected
@@ -247,9 +249,9 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
         
         # Calculate payment amount based on retention status
         if doc.get('pd_custom_subject_to_retention') and retention_amount > 0:
-            # pd_custom_net_after_wht_retention = grand_total - pd_custom_withholding_tax_amount - pd_custom_retention_amount
+            # pd_custom_net_after_wht_retention = net_total - pd_custom_withholding_tax_amount - pd_custom_retention_amount
             # Use Thai Commercial Rounding for consistency
-            doc.pd_custom_net_after_wht_retention = thai_flt(grand_total - wht_amount - retention_amount)
+            doc.pd_custom_net_after_wht_retention = thai_flt(net_total - wht_amount - retention_amount)
             
             # pd_custom_payment_amount = pd_custom_net_after_wht_retention
             doc.pd_custom_payment_amount = doc.pd_custom_net_after_wht_retention
@@ -271,9 +273,9 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
             
     except Exception as e:
         frappe.log_error(f"Error calculating final payment amounts for Sales Invoice {doc.name}: {str(e)}")
-        # Fallback to grand total
-        doc.pd_custom_net_total_after_wht = flt(doc.grand_total)
-        doc.pd_custom_payment_amount = flt(doc.grand_total)
+        # Fallback to net_total (not grand_total, for Thai WHT)
+        doc.pd_custom_net_total_after_wht = flt(doc.total)
+        doc.pd_custom_payment_amount = flt(doc.total)
         doc.pd_custom_net_after_wht_retention = 0
 
 

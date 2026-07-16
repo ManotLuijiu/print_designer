@@ -611,7 +611,8 @@ after_migrate = [
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
     "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
-"print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
+    "print_designer.overrides.sales_invoice_thai_wht_gl.execute",  # Patch Sales Invoice GL posting for Thai WHT (Thai Tax Compliance → debit)
+    "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
     "print_designer.commands.install_tax_withholding_category_fields.create_tax_withholding_category_fields",  # Install contract installment WHT flag on Tax Withholding Category
     "print_designer.commands.install_wht_account_child_fields.execute",  # Install WHT Liability Account field on TWC accounts child table
     "print_designer.commands.install_twx_gross_amount_field.execute",  # Install Gross Amount field on Tax Withholding Entry
@@ -628,6 +629,7 @@ after_migrate = [
     # Thai Billing fields + workspace moved to thai_business_suite
     # Fix Thailand Address Template to include county (อำเภอ/District) with Thai labels
     "print_designer.commands.fix_thai_address_template.execute",
+    "print_designer.overrides.sales_invoice_thai_wht_gl.execute",  # Patch Sales Invoice GL posting for Thai WHT (Thai Tax Compliance → debit)
 ]
 
 # Uninstallation

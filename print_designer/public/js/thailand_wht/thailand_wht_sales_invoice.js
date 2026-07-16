@@ -94,6 +94,8 @@ frappe.ui.form.on('Sales Invoice', {
             is_new: frm.is_new(),
             status: frm.doc.status,
             is_dirty: frm.is_dirty(),
+            country: frm.doc.pd_custom_company_country,
+            taxes_count: frm.doc.taxes ? frm.doc.taxes.length : 0,
             toolbar_buttons: frm.page.btn_primary ? frm.page.btn_primary.text() : 'No primary button'
         });
         
@@ -122,6 +124,10 @@ frappe.ui.form.on('Sales Invoice', {
             // Trigger company event to populate fields
             frm.events.company(frm);
         }
+        
+        // Calculate WHT amounts
+        pd_calculate_wht_amounts(frm);
+        console.log('🇹🇭 WHT calculated on refresh');
     },
     
     before_save: function(frm) {
@@ -239,7 +245,19 @@ frappe.ui.form.on('Sales Invoice', {
     // Override tax template charge_type for Thai companies
     // When tax template is selected, set charge_type to 'Thai Tax Compliance'
     taxes_and_charges: function(frm) {
+        console.log('🇹🇭 Thailand WHT: taxes_and_charges event triggered');
         pd_override_thai_tax_charge_type(frm);
+    }
+});
+
+// Hook into Sales Taxes and Charges child table
+// Recalculate WHT when any tax row changes
+frappe.ui.form.on('Sales Taxes and Charges', {
+    charge_type: function(frm, cdt, cdn) {
+        const tax_row = locals[cdt][cdn];
+        console.log('🇹🇭 Thailand WHT: charge_type changed to:', tax_row.charge_type);
+        // Calculate WHT amounts
+        pd_calculate_wht_amounts(frm);
     }
 });
 
@@ -271,16 +289,29 @@ function pd_fetch_company_thai_fields(frm) {
 }
 
 // Override tax charge_type for Thai companies
-// When tax template is applied, set charge_type to 'Thai Tax Compliance' for Thai companies
+// When tax template is applied, set charge_type to 'Thai Tax Compliance'
+// The backend (taxes_and_totals_thai_wht.py) handles the negation
 function pd_override_thai_tax_charge_type(frm) {
-    if (!frm.doc.company || !frm.doc.taxes || frm.doc.taxes.length === 0) return;
+    console.log('🇹🇭 Thailand WHT: pd_override_thai_tax_charge_type called');
+    console.log('  - company:', frm.doc.company);
+    console.log('  - country:', frm.doc.pd_custom_company_country);
+    console.log('  - taxes count:', frm.doc.taxes ? frm.doc.taxes.length : 0);
+    
+    if (!frm.doc.company || !frm.doc.taxes || frm.doc.taxes.length === 0) {
+        console.log('  - SKIP: No company or taxes');
+        return;
+    }
     
     // Check if company is Thailand
-    if (frm.doc.pd_custom_company_country !== 'Thailand') return;
+    if (frm.doc.pd_custom_company_country !== 'Thailand') {
+        console.log('  - SKIP: Not Thailand company');
+        return;
+    }
     
     // Override charge_type for all tax rows
     let overridden = 0;
-    frm.doc.taxes.forEach(function(tax) {
+    frm.doc.taxes.forEach(function(tax, idx) {
+        console.log(`  - Tax row ${idx}: charge_type='${tax.charge_type}', amount=${tax.tax_amount}`);
         // Only override percentage-based taxes (On Net Total, Actual)
         if (tax.charge_type && !['Thai Tax Compliance', 'On Previous Row Amount', 'On Previous Row Total', 'On Item Quantity'].includes(tax.charge_type)) {
             // Store original charge_type
@@ -289,13 +320,14 @@ function pd_override_thai_tax_charge_type(frm) {
             }
             // Set to Thai Tax Compliance
             tax.charge_type = 'Thai Tax Compliance';
+            console.log(`  - Tax row ${idx}: OVERRIDE to 'Thai Tax Compliance'`);
             overridden++;
         }
     });
     
     if (overridden > 0) {
-        console.log('Thailand WHT: Set charge_type to Thai Tax Compliance for', overridden, 'tax rows');
-        frm.refresh_fields('taxes');
+        console.log('🇹🇭 Thailand WHT: Set charge_type to Thai Tax Compliance for', overridden, 'tax rows');
+        frm.refresh_field('taxes');
     }
 }
 
@@ -346,6 +378,111 @@ monitorModelEvents();
 
 // Expose functions globally for use by frappe.ui.form.on
 window.pd_fetch_company_thai_fields = pd_fetch_company_thai_fields;
+window.pd_calculate_wht_amounts = pd_calculate_wht_amounts;
+
+// Calculate WHT amounts based on total and tax rate
+// pd_custom_withholding_tax_amount = total * pd_custom_withholding_tax_pct / 100
+// pd_custom_net_total_after_wht = total - pd_custom_withholding_tax_amount
+function pd_calculate_wht_amounts(frm) {
+    // Get values
+    const total = frm.doc.total || 0;
+    const whtPct = frm.doc.pd_custom_withholding_tax_pct || 0;
+    
+    // Calculate WHT amount = total * wht_pct / 100
+    const whtAmount = total * whtPct / 100;
+    
+    // Calculate net total after WHT = total - WHT amount
+    const netTotalAfterWHT = total - whtAmount;
+    
+    // Set the custom fields (skip dirty trigger for calculated fields)
+    frm.set_value('pd_custom_withholding_tax_amount', whtAmount, null, true);
+    frm.set_value('pd_custom_net_total_after_wht', netTotalAfterWHT, null, true);
+    
+    // Call server to convert to words
+    if (netTotalAfterWHT > 0) {
+        frappe.call({
+            method: 'print_designer.thailand_wht_sales_invoice.calculate_net_total_words',
+            args: { amount: netTotalAfterWHT, currency: frm.doc.currency },
+            callback: function(r) {
+                if (r.message) {
+                    frm.set_value('pd_custom_net_total_after_wht_words', r.message, null, true);
+                    frm.refresh_fields(['pd_custom_net_total_after_wht_words']);
+                }
+            }
+        });
+    } else {
+        frm.set_value('pd_custom_net_total_after_wht_words', '', null, true);
+        frm.refresh_fields(['pd_custom_net_total_after_wht_words']);
+    }
+}
+
+// Convert number to Thai Baht words
+function pd_number_to_thai_words(num) {
+    const units = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+    
+    if (num === 0) return 'ศูนย์บาทถ้วน';
+    
+    num = Math.round(num * 100) / 100;
+    const parts = num.toString().split('.');
+    const intPart = parseInt(parts[0]);
+    const decPart = parts[1] ? parseInt(parts[1].padEnd(2, '0').substring(0, 2)) : 0;
+    
+    let result = '';
+    let numStr = intPart.toString();
+    let len = numStr.length;
+    
+    for (let i = 0; i < len; i++) {
+        const digit = parseInt(numStr[i]);
+        const pos = len - i - 1;
+        const posGroup = Math.floor(pos / 6);
+        const posInGroup = pos % 6;
+        
+        if (digit !== 0) {
+            if (posInGroup === 1 && digit === 2) {
+                result += 'ยี่';
+            } else if (posInGroup === 1 && digit === 1) {
+                result += '';
+            } else if (posInGroup === 0 && digit === 1 && len > 1) {
+                result += 'เอ็ด';
+            } else {
+                result += units[digit];
+            }
+            result += positions[posInGroup];
+        }
+        
+        if (posInGroup === 5 && posGroup > 0) {
+            result += 'ล้าน';
+        }
+    }
+    
+    result += 'บาท';
+    
+    if (decPart > 0) {
+        let decStr = decPart.toString().padStart(2, '0');
+        for (let i = 0; i < 2; i++) {
+            const digit = parseInt(decStr[i]);
+            const pos = 1 - i;
+            if (digit !== 0) {
+                if (pos === 1 && digit === 2) {
+                    result += 'ยี่';
+                } else if (pos === 1 && digit === 1) {
+                    result += '';
+                } else if (pos === 0 && digit === 1 && decPart > 10) {
+                    result += 'เอ็ด';
+                } else {
+                    result += units[digit];
+                }
+                result += positions[pos];
+            }
+        }
+        result += 'สตางค์';
+    } else {
+        result += 'ถ้วน';
+    }
+    
+    return result;
+}
 
 // NOTE: tax_withholding_category is auto-populated by ERPNext's get_item_details()
 // which reads from item.sales_tax_withholding_category (standard ERPNext field)
