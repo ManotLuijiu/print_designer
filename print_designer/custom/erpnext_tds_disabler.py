@@ -12,6 +12,7 @@ which conflicts with Thai accounting logic where WHT is part of the invoice.
 
 When pd_custom_disable_erpnext_tds is ON in Company settings:
 - apply_tds flag is forced to 0
+- tax_withholding_category is cleared from items (ERPNext auto-fetches wrong values)
 - No separate TDS GL entries are created
 - Thai WHT Compliance fields handle the withholding instead
 """
@@ -23,14 +24,16 @@ def disable_tds_for_thai_wht(doc, method):
     """
     Disable ERPNext TDS for companies using Thai WHT Compliance.
     
-    Called on: Purchase Invoice validate (on Save)
+    Called on: Purchase Invoice, Sales Invoice validate (on Save)
     
     Logic:
     - Check if Company has pd_custom_disable_erpnext_tds = 1
-    - If yes, force apply_tds = 0 regardless of supplier settings
-    - Show message to user that TDS is disabled
+    - If yes:
+      - Force apply_tds = 0
+      - Clear tax_withholding_category from all items (ERPNext auto-fetches wrong values)
+      - Show message to user that TDS is disabled
     """
-    if doc.doctype != "Purchase Invoice":
+    if doc.doctype not in ("Purchase Invoice", "Sales Invoice"):
         return
     
     # Get Company's TDS disable setting
@@ -48,12 +51,29 @@ def disable_tds_for_thai_wht(doc, method):
         return  # Company doesn't use Thai WHT - let ERPNext handle normally
     
     # Check if apply_tds was auto-set by ERPNext
-    if doc.apply_tds:
+    if doc.doctype == "Purchase Invoice" and doc.apply_tds:
         doc.apply_tds = 0
         frappe.msgprint(
             msg="⚠️ ERPNext TDS has been disabled for this Company. "
                 "Please use the Thai WHT Compliance fields instead.",
             title="TDS Disabled",
+            indicator="blue"
+        )
+    
+    # Clear tax_withholding_category from all items
+    # ERPNext auto-fetches this from item.sales_tax_withholding_category
+    # but the values are incorrect for Thai WHT (adds instead of subtracts)
+    items_cleared = 0
+    for item in doc.items:
+        if item.tax_withholding_category:
+            item.tax_withholding_category = None
+            items_cleared += 1
+    
+    if items_cleared > 0:
+        frappe.msgprint(
+            msg=f"⚠️ Cleared {items_cleared} tax_withholding_category from items. "
+                "ERPNext TDS is disabled - Thai WHT Compliance handles withholding.",
+            title="WHT Category Cleared",
             indicator="blue"
         )
 
@@ -62,12 +82,12 @@ def block_tds_gl_entries(doc, method):
     """
     Ensure no separate TDS GL entries are created for Thai WHT transactions.
     
-    Called on: Purchase Invoice on_submit
+    Called on: Purchase Invoice, Sales Invoice on_submit
     
     Safety check - verify apply_tds is 0 before GL entries are made.
     This is a belt-and-suspenders check in case ERPNext's logic tries to run.
     """
-    if doc.doctype != "Purchase Invoice":
+    if doc.doctype not in ("Purchase Invoice", "Sales Invoice"):
         return
     
     try:
@@ -78,12 +98,12 @@ def block_tds_gl_entries(doc, method):
         )
     except Exception:
         return
-    
+
     if not disable_tds:
         return
     
     # Double-check: ensure apply_tds is 0 before submission
-    if doc.apply_tds:
+    if doc.doctype == "Purchase Invoice" and doc.apply_tds:
         doc.apply_tds = 0
         frappe.msgprint(
             msg="⚠️ TDS flag was reset before submission. "
