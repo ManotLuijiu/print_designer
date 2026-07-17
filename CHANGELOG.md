@@ -2,18 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-### [1.23.1](https://github.com/ManotLuijiu/print_designer/compare/v1.23.0...v1.23.1) (2026-07-17)
+### [1.24.0](https://github.com/ManotLuijiu/print_designer/compare/v1.23.0...v1.24.0) (2026-07-17)
 
+### ✨ Features
+
+* Add Layer panel toggle for managing element visibility and layering
+* Add Grid toggle for 10mm/50mm grid overlay display
+* Add Help toggle with border toggle explanation popover
+* Redesign border toggle icons from SVG to informative rectangles (All, L, R, T, B)
+* Add border style options: Solid, Dotted, and Dashed styles
 
 ### 🔧 Maintenance
 
 * add empty app.js stubs ([9d2b2c0](https://github.com/ManotLuijiu/print_designer/commit/9d2b2c0bbc9c26a7d56471b0d510fbcb994239ad))
 
-
 ### ♻️ Refactoring
 
 * **thailand_wht:** Remove redundant pd_custom_wht_income_type field ([88b752c](https://github.com/ManotLuijiu/print_designer/commit/88b752c73c161b0700d764f29da44623493f3231))
-
 
 ### ✨ Features
 
@@ -21,7 +26,11 @@ All notable changes to this project will be documented in this file. See [standa
 * Fixed WHT ([9512ba4](https://github.com/ManotLuijiu/print_designer/commit/9512ba4acae7dc8c7448327935044a53de3a74df))
 * **Sales Invoice:** Thai Tax Compliance charge_type override ([2499c25](https://github.com/ManotLuijiu/print_designer/commit/2499c25d12c52543ab6164577da913f0f014741e))
 * **thailand_wht:** Auto-fill tax_withholding_category from Item ([ad780d9](https://github.com/ManotLuijiu/print_designer/commit/ad780d92dd521d951822e21344a82bdbcd42073c))
-
+* Add Layer panel toggle for managing element visibility and layering
+* Add Grid toggle for 10mm/50mm grid overlay display
+* Add Help toggle with border toggle explanation popover
+* Redesign border toggle icons from SVG to informative rectangles (All, L, R, T, B)
+* Add border style options: Solid, Dotted, and Dashed styles
 
 ### 🐛 Bug Fixes
 
@@ -32,12 +41,10 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.23.0](https://github.com/ManotLuijiu/print_designer/compare/v1.22.0...v1.23.0) (2026-07-15)
 
-
 ### 📚 Documentation
 
 * plan language-aware words field pairs ([f471b52](https://github.com/ManotLuijiu/print_designer/commit/f471b528d4e9fb1a0a0e6a836b3672e69930d323))
 * specify language-aware words field pairs ([e50f11d](https://github.com/ManotLuijiu/print_designer/commit/e50f11da12cef71decfe4306d47512722cda88c3))
-
 
 ### 🐛 Bug Fixes
 
@@ -45,12 +52,10 @@ All notable changes to this project will be documented in this file. See [standa
 * distinguish automatic print language ([92a989d](https://github.com/ManotLuijiu/print_designer/commit/92a989d51561f7f47343cc709f0b7679fc08f87a))
 * render configured words fields in print language ([60faae8](https://github.com/ManotLuijiu/print_designer/commit/60faae886ab59673df3f72c3db9c54a288a7eeaf))
 
-
 ### 🔧 Maintenance
 
 * close number-to-words field pair issue ([4204e4f](https://github.com/ManotLuijiu/print_designer/commit/4204e4f69aa5886943cf28b668ac0d86ed141bd6))
 * close print language precedence bug ([402f487](https://github.com/ManotLuijiu/print_designer/commit/402f487378e5bf519774c651bd9ea2d808af5696))
-
 
 ### ✨ Features
 
@@ -80,18 +85,15 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.22.0](https://github.com/ManotLuijiu/print_designer/compare/v1.21.0...v1.22.0) (2026-04-01)
 
-
 ### ✨ Features
 
 * add Print WHT Cert button and auto-create WHT Certificate on PI submit ([f001677](https://github.com/ManotLuijiu/print_designer/commit/f001677eb755fe94fc14b6c9584d6ac069e4aa00))
-
 
 ### 🔧 Maintenance
 
 * **release:** 1.21.0 ([876fbd7](https://github.com/ManotLuijiu/print_designer/commit/876fbd70b2bf80f076fb8338e2c71ddb25c6c8b9))
 
 ## [1.20.0](https://github.com/ManotLuijiu/print_designer/compare/v1.19.2...v1.20.0) (2026-03-25)
-
 
 ### ✨ Features
 
@@ -100,13 +102,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.19.2](https://github.com/ManotLuijiu/print_designer/compare/v1.19.1...v1.19.2) (2026-03-20)
 
-
 ### 🔧 Maintenance
 
 * move Thai Billing hooks to thai_business_suite ([5df4586](https://github.com/ManotLuijiu/print_designer/commit/5df458643b548efa9c4588810d51d593ad5ca254))
 
 ### [1.19.1](https://github.com/ManotLuijiu/print_designer/compare/v1.19.0...v1.19.1) (2026-03-11)
-
 
 ### 🐛 Bug Fixes
 
@@ -114,13 +114,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.19.0](https://github.com/ManotLuijiu/print_designer/compare/v1.18.0...v1.19.0) (2026-03-08)
 
-
 ### ✨ Features
 
 * extract VAT treatment helper, auto-set VAT from item service flag ([27f4bf1](https://github.com/ManotLuijiu/print_designer/commit/27f4bf181f2ccff3c16f3f7a6c37f02123edc222))
 
 ## [1.18.0](https://github.com/ManotLuijiu/print_designer/compare/v1.17.6...v1.18.0) (2026-03-08)
-
 
 ### ✨ Features
 
@@ -128,13 +126,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.17.6](https://github.com/ManotLuijiu/print_designer/compare/v1.17.5...v1.17.6) (2026-02-27)
 
-
 ### 🐛 Bug Fixes
 
 * make wht_income_type editable on direct Sales Invoice ([4853cce](https://github.com/ManotLuijiu/print_designer/commit/4853cceb6570e7e58bb5007882643e724a7eb68d))
 
 ### [1.17.5](https://github.com/ManotLuijiu/print_designer/compare/v1.17.4...v1.17.5) (2026-02-26)
-
 
 ### ✨ Features
 
@@ -142,13 +138,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.17.4](https://github.com/ManotLuijiu/print_designer/compare/v1.17.3...v1.17.4) (2026-02-25)
 
-
 ### ✨ Features
 
 * show Thai income category in WHT Income Type link fields ([babc61f](https://github.com/ManotLuijiu/print_designer/commit/babc61f5f3c3f73f57956dfed019532322824649))
 
 ### [1.17.3](https://github.com/ManotLuijiu/print_designer/compare/v1.17.2...v1.17.3) (2026-02-14)
-
 
 ### ✨ Features
 
@@ -156,11 +150,9 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### 1.17.2 (2026-02-14)
 
-
 ### 🐛 Bug Fixes
 
 * handle missing custom fields in field index ordering patch ([bb0af69](https://github.com/ManotLuijiu/print_designer/commit/bb0af690b4995f9041c5e8f0dcb5f7f71df6dc19))
-
 
 ### ✨ Features
 
@@ -169,13 +161,11 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### [1.17.1](https://github.com/ManotLuijiu/print_designer/compare/v1.17.0...v1.17.1) (2026-01-23)
 
-
 ### 🐛 Bug Fixes
 
 * resolve 'creation' attribute error in watermark migration ([d4b2344](https://github.com/ManotLuijiu/print_designer/commit/d4b23448700cffa9e2f880c3b49e8176bc9179ef))
 
 ## [1.17.0](https://github.com/ManotLuijiu/print_designer/compare/v1.16.0...v1.17.0) (2026-01-22)
-
 
 ### ✨ Features
 
@@ -183,22 +173,18 @@ All notable changes to this project will be documented in this file. See [standa
 
 ## [1.16.0](https://github.com/ManotLuijiu/print_designer/compare/v1.14.0...v1.16.0) (2026-01-22)
 
-
 ### 👷 CI/CD
 
 * add auto-merge workflow (develop → main) ([ce92fe0](https://github.com/ManotLuijiu/print_designer/commit/ce92fe03406fbe6111f97a43315e7ecb0ee5f07f))
 * add CodeRabbit AI code review configuration ([855fcf3](https://github.com/ManotLuijiu/print_designer/commit/855fcf38ea25ac91c4502285725b379faade89e1))
 
-
 ### 🐛 Bug Fixes
 
 * Restore Chromium PDF support, fix Watermark migration, add Thai defaults ([6234177](https://github.com/ManotLuijiu/print_designer/commit/62341770faeb7b0033ed58714166fb84a502f2af))
 
-
 ### ✨ Features
 
 * Add Sales Invoice QR code support with Thai e-Tax format ([e579c9c](https://github.com/ManotLuijiu/print_designer/commit/e579c9c215d64106deaada743953c6369f5c2735))
-
 
 ### 🔧 Maintenance
 
@@ -207,163 +193,163 @@ All notable changes to this project will be documented in this file. See [standa
 ## [1.7.3] - 2025-08-23
 
 ### Added
-- **Thailand WHT System Unification**: Complete consolidation of Thailand Withholding Tax preview and field systems into unified management interface
-  - New comprehensive `thailand_wht_fields.py` system (1,110 lines) providing unified field definitions for all WHT-enabled DocTypes
-  - Added `print_designer.custom.thai_wht_custom_fields` module with complete field definition system (448 lines)
-  - Added `print_designer.custom.thai_wht_events` module for centralized WHT event handling
-  - Added `print_designer.custom.thai_wht_preview` module for real-time WHT calculation and preview
-  - New `print_designer.commands.install_thai_wht_preview` installation command system
-  - Added `print_designer.overrides.company` for Thailand-specific company integration
+* **Thailand WHT System Unification**: Complete consolidation of Thailand Withholding Tax preview and field systems into unified management interface
+  * New comprehensive `thailand_wht_fields.py` system (1,110 lines) providing unified field definitions for all WHT-enabled DocTypes
+  * Added `print_designer.custom.thai_wht_custom_fields` module with complete field definition system (448 lines)
+  * Added `print_designer.custom.thai_wht_events` module for centralized WHT event handling
+  * Added `print_designer.custom.thai_wht_preview` module for real-time WHT calculation and preview
+  * New `print_designer.commands.install_thai_wht_preview` installation command system
+  * Added `print_designer.overrides.company` for Thailand-specific company integration
 
 ### Enhanced
-- **Sales Document Integration**: WHT fields now properly integrated into existing taxes sections across Quotation, Sales Order, and Sales Invoice
-  - WHT preview fields positioned logically following ERPNext UI patterns
-  - Real-time WHT amount calculations and preview functionality in all sales documents
-  - Comprehensive field coverage: Company configuration, Customer setup, and Sales document preview
-  - Multi-DocType support with consistent field structure and behavior
+* **Sales Document Integration**: WHT fields now properly integrated into existing taxes sections across Quotation, Sales Order, and Sales Invoice
+  * WHT preview fields positioned logically following ERPNext UI patterns
+  * Real-time WHT amount calculations and preview functionality in all sales documents
+  * Comprehensive field coverage: Company configuration, Customer setup, and Sales document preview
+  * Multi-DocType support with consistent field structure and behavior
 
 ### Changed
-- **Consolidated Installation Commands**: Merged separate WHT installation systems into unified command structure in hooks.py
-- **Improved Field Organization**: WHT fields repositioned from separate sections into logical tax-related sections
-- **Enhanced System Architecture**: Moved from multiple scattered files to centralized system management
-- **Better Integration**: Updated hooks.py with streamlined Thai WHT event system and comprehensive command registration
+* **Consolidated Installation Commands**: Merged separate WHT installation systems into unified command structure in hooks.py
+* **Improved Field Organization**: WHT fields repositioned from separate sections into logical tax-related sections
+* **Enhanced System Architecture**: Moved from multiple scattered files to centralized system management
+* **Better Integration**: Updated hooks.py with streamlined Thai WHT event system and comprehensive command registration
 
 ### Technical
-- **Field Definition Consolidation**: Merged multiple WHT field definition files into comprehensive unified system
-- **Enhanced Error Handling**: Improved installation and validation processes for WHT field management
-- **Migration Support**: Automatic migration of existing WHT field installations with `migrate_sales_invoice_wht_fields()`
-- **Thai Language Support**: Proper Thai descriptions and formatting for WHT income types and compliance requirements
-- **Standard Rate Integration**: Built-in support for Thai standard WHT rates (3% services, 5% professional services, etc.)
+* **Field Definition Consolidation**: Merged multiple WHT field definition files into comprehensive unified system
+* **Enhanced Error Handling**: Improved installation and validation processes for WHT field management
+* **Migration Support**: Automatic migration of existing WHT field installations with `migrate_sales_invoice_wht_fields()`
+* **Thai Language Support**: Proper Thai descriptions and formatting for WHT income types and compliance requirements
+* **Standard Rate Integration**: Built-in support for Thai standard WHT rates (3% services, 5% professional services, etc.)
 
 ## [1.7.2] - 2025-08-22
 
 ### Fixed
-- Fixed Sales Invoice form state management issue where Submit button reverted to Save after saving document
-- Eliminated problematic client scripts that caused form dirty state during refresh
-- Implemented proper ERPNext-pattern server-side calculations for Thailand WHT and retention amounts
+* Fixed Sales Invoice form state management issue where Submit button reverted to Save after saving document
+* Eliminated problematic client scripts that caused form dirty state during refresh
+* Implemented proper ERPNext-pattern server-side calculations for Thailand WHT and retention amounts
 
 ### Added  
-- Added comprehensive server-side calculation system in `print_designer.custom.sales_invoice_calculations`
-- Added proper validation-time calculations for retention amounts, withholding tax, and final payment amounts
-- Added graceful error handling and defensive programming for missing company settings
+* Added comprehensive server-side calculation system in `print_designer.custom.sales_invoice_calculations`
+* Added proper validation-time calculations for retention amounts, withholding tax, and final payment amounts
+* Added graceful error handling and defensive programming for missing company settings
 
 ### Changed
-- Moved Thailand WHT and retention calculations from client scripts to validate() method following ERPNext grand_total pattern
-- Updated Sales Invoice hooks to use proper server-side validation instead of client-side interference
-- Commented out unused modules in thailand_wht_fields.py to reflect active Sales Invoice-only scope
+* Moved Thailand WHT and retention calculations from client scripts to validate() method following ERPNext grand_total pattern
+* Updated Sales Invoice hooks to use proper server-side validation instead of client-side interference
+* Commented out unused modules in thailand_wht_fields.py to reflect active Sales Invoice-only scope
 
 ## [1.7.1] - 2025-08-22
 
 ### Fixed
-- Fixed retention system field conflicts between programmatic installation and fixtures
-- Cleaned up duplicate field installation mechanisms to prevent API loops
-- Disabled conflicting programmatic retention field installation in hooks.py and install.py
+* Fixed retention system field conflicts between programmatic installation and fixtures
+* Cleaned up duplicate field installation mechanisms to prevent API loops
+* Disabled conflicting programmatic retention field installation in hooks.py and install.py
 
 ### Changed
-- Consolidated retention system to use fixtures-only approach for better reliability
-- Updated custom field fixtures with proper conditional visibility (depends_on expressions)
-- Improved retention field UX with proper validation feedback and automatic calculations
+* Consolidated retention system to use fixtures-only approach for better reliability
+* Updated custom field fixtures with proper conditional visibility (depends_on expressions)
+* Improved retention field UX with proper validation feedback and automatic calculations
 
 ## [1.7.0] - 2025-08-22
 
 ### Added
-- **Retention System Fixtures Export**: Complete retention fields system exported to fixtures for deployment
-  - Added 6 custom fields for Sales Invoice retention calculations:
-    - `custom_retention` - Retention (%) 
-    - `custom_retention_amount` - Retention Amount (Currency)
-    - `custom_withholding_tax` - Withholding Tax (%)
-    - `custom_withholding_tax_amount` - Withholding Tax Amount (Currency)
-    - `custom_payment_amount` - Payment Amount (Currency)
-    - `custom_retention_percent` - Retention % (alternate field)
-- **Retention System Commands**: New management commands for retention field installation
-  - Added `restructure_retention_fields.py` command for field restructuring
-  - Enhanced retention field installation with fixture support
-- **Custom Retention Backend**: Sales Invoice retention calculation backend integration
-- **Company Retention Settings**: New DocType for company-level retention configuration
+* **Retention System Fixtures Export**: Complete retention fields system exported to fixtures for deployment
+  * Added 6 custom fields for Sales Invoice retention calculations:
+    * `custom_retention` - Retention (%)
+    * `custom_retention_amount` - Retention Amount (Currency)
+    * `custom_withholding_tax` - Withholding Tax (%)
+    * `custom_withholding_tax_amount` - Withholding Tax Amount (Currency)
+    * `custom_payment_amount` - Payment Amount (Currency)
+    * `custom_retention_percent` - Retention % (alternate field)
+* **Retention System Commands**: New management commands for retention field installation
+  * Added `restructure_retention_fields.py` command for field restructuring
+  * Enhanced retention field installation with fixture support
+* **Custom Retention Backend**: Sales Invoice retention calculation backend integration
+* **Company Retention Settings**: New DocType for company-level retention configuration
 
 ### Changed
-- **Hooks Configuration**: Updated fixtures configuration to include retention system fields
-- **Installation Commands**: Enhanced retention field installation with better error handling
-- **Frontend Styling**: Updated company preview CSS for better retention display
+* **Hooks Configuration**: Updated fixtures configuration to include retention system fields
+* **Installation Commands**: Enhanced retention field installation with better error handling
+* **Frontend Styling**: Updated company preview CSS for better retention display
 
 ### Technical Notes
-- Retention fields are now exportable as fixtures enabling cross-installation deployment
-- Fields can be converted from fixtures to programmatic installation for better maintainability
-- Supports Thai business retention requirements with proper currency handling
+* Retention fields are now exportable as fixtures enabling cross-installation deployment
+* Fields can be converted from fixtures to programmatic installation for better maintainability
+* Supports Thai business retention requirements with proper currency handling
 
 ## [1.6.1] - 2025-01-21
 
 ### Fixed
-- **CRITICAL API Flooding Issue**: Resolved infinite loop causing hundreds of duplicate API calls
-  - Disabled recursive `validate` hook in hooks.py that was causing server flooding
-  - Optimized retention calculation from multiple API calls to single call
-  - Fixed custom field `depends_on` expressions removing eval API calls
-  - Reduced form loading from hundreds of API calls to single call (99% performance improvement)
-- **Retention System Performance**: Dramatically improved response time and stability
-  - Enhanced error handling and logging in retention calculations  
-  - Added proper caching mechanism to prevent API call recursion
-  - Fixed browser freezing and server overload issues
+* **CRITICAL API Flooding Issue**: Resolved infinite loop causing hundreds of duplicate API calls
+  * Disabled recursive `validate` hook in hooks.py that was causing server flooding
+  * Optimized retention calculation from multiple API calls to single call
+  * Fixed custom field `depends_on` expressions removing eval API calls
+  * Reduced form loading from hundreds of API calls to single call (99% performance improvement)
+* **Retention System Performance**: Dramatically improved response time and stability
+  * Enhanced error handling and logging in retention calculations  
+  * Added proper caching mechanism to prevent API call recursion
+  * Fixed browser freezing and server overload issues
 
 ### Added
-- **Emergency Fix Tools**: Complete monitoring and prevention system
-  - Added `fix_retention_api_flooding.py` script for emergency resolution
-  - Added `monitor_retention_performance.py` for health monitoring and prevention
-  - Implemented performance validation and health check functions
-  - Created prevention measures for future API flooding incidents
+* **Emergency Fix Tools**: Complete monitoring and prevention system
+  * Added `fix_retention_api_flooding.py` script for emergency resolution
+  * Added `monitor_retention_performance.py` for health monitoring and prevention
+  * Implemented performance validation and health check functions
+  * Created prevention measures for future API flooding incidents
 
 ### Technical
-- Emergency response reduced API calls by ~99% (from hundreds to 1 per form load)
-- Form loading time improved from timeout/freeze to 0.012 seconds
-- Server stability restored with proper recursive loop prevention
-- Health monitoring system added to prevent future performance issues
+* Emergency response reduced API calls by ~99% (from hundreds to 1 per form load)
+* Form loading time improved from timeout/freeze to 0.012 seconds
+* Server stability restored with proper recursive loop prevention
+* Health monitoring system added to prevent future performance issues
 
 ## [1.6.0] - 2025-01-21
 
 ### Added
-- **Enhanced Retention System**: Complete retention management system for construction services
-  - Added `construction_service` field to Company doctype for enabling construction features
-  - Added `default_retention_rate` field with 5% default for construction projects
-  - Added `default_retention_account` field for retention liability management
-  - Added `custom_retention` and `custom_retention_amount` fields to Sales Invoice
-  - Implemented automated account discovery and setup functions
-  - Created comprehensive validation and checking system
-- **Thai Business Integration**: Following Thailand Service Business pattern for consistency
-  - Mirrored Default Withholding Tax Account pattern for retention accounts
-  - Integrated with existing WHT calculation system
-  - Enhanced client-side caching for performance optimization
+* **Enhanced Retention System**: Complete retention management system for construction services
+  * Added `construction_service` field to Company doctype for enabling construction features
+  * Added `default_retention_rate` field with 5% default for construction projects
+  * Added `default_retention_account` field for retention liability management
+  * Added `custom_retention` and `custom_retention_amount` fields to Sales Invoice
+  * Implemented automated account discovery and setup functions
+  * Created comprehensive validation and checking system
+* **Thai Business Integration**: Following Thailand Service Business pattern for consistency
+  * Mirrored Default Withholding Tax Account pattern for retention accounts
+  * Integrated with existing WHT calculation system
+  * Enhanced client-side caching for performance optimization
 
 ### Enhanced
-- Improved installation command system with `install_enhanced_retention_fields.py`
-- Added intelligent account search functionality for retention accounts
-- Enhanced field dependency management with proper `depends_on` evaluation
-- Comprehensive error handling and rollback mechanisms for field installation
+* Improved installation command system with `install_enhanced_retention_fields.py`
+* Added intelligent account search functionality for retention accounts
+* Enhanced field dependency management with proper `depends_on` evaluation
+* Comprehensive error handling and rollback mechanisms for field installation
 
 ### Technical
-- Added automated retention account setup with fallback to suitable payable accounts
-- Implemented field validation system to prevent installation conflicts
-- Enhanced retention calculation integration with existing tax systems
-- Improved user experience for starter users with pre-configured defaults
+* Added automated retention account setup with fallback to suitable payable accounts
+* Implemented field validation system to prevent installation conflicts
+* Enhanced retention calculation integration with existing tax systems
+* Improved user experience for starter users with pre-configured defaults
 
 ## [1.5.6] - 2024-08-21
 
 ### Fixed
-- Fixed font validation error in production environments for watermark_font_family field
-- Fixed error logging message length issues by implementing proper truncation for Error Log title field (130 character limit)
-- Enhanced migration logic to handle existing installations safely during font option updates
-- Resolved validation failures when existing font values are not in updated options list
+* Fixed font validation error in production environments for watermark_font_family field
+* Fixed error logging message length issues by implementing proper truncation for Error Log title field (130 character limit)
+* Enhanced migration logic to handle existing installations safely during font option updates
+* Resolved validation failures when existing font values are not in updated options list
 
 ### Changed
-- Updated Thai font options: removed "TH Sarabun New", added "Kanit" and "Noto Sans Thai" for better compatibility
-- Improved error handling in Print Settings setup with proper message formatting
-- Enhanced watermark font field migration to automatically update invalid font selections
+* Updated Thai font options: removed "TH Sarabun New", added "Kanit" and "Noto Sans Thai" for better compatibility
+* Improved error handling in Print Settings setup with proper message formatting
+* Enhanced watermark font field migration to automatically update invalid font selections
 
 ### Technical
-- Added intelligent font value migration that maps old font names to compatible alternatives
-- Implemented proper error message truncation to prevent Error Log creation failures
-- Enhanced install.py, overrides/erpnext_install.py, and patches for consistent font options across all installation paths
+* Added intelligent font value migration that maps old font names to compatible alternatives
+* Implemented proper error message truncation to prevent Error Log creation failures
+* Enhanced install.py, overrides/erpnext_install.py, and patches for consistent font options across all installation paths
 
 ## [1.5.5] - 2024-08-21
 
 ### Fixed
-- Fixed Thailand WHT JavaScript performance issues
-- Improved performance for withholding tax calculations
+* Fixed Thailand WHT JavaScript performance issues
+* Improved performance for withholding tax calculations
