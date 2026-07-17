@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.23.1](https://github.com/ManotLuijiu/print_designer/compare/v1.23.0...v1.23.1) (2026-07-17)
+
+
+### 🔧 Maintenance
+
+* add empty app.js stubs ([9d2b2c0](https://github.com/ManotLuijiu/print_designer/commit/9d2b2c0bbc9c26a7d56471b0d510fbcb994239ad))
+
+
+### ♻️ Refactoring
+
+* **thailand_wht:** Remove redundant pd_custom_wht_income_type field ([88b752c](https://github.com/ManotLuijiu/print_designer/commit/88b752c73c161b0700d764f29da44623493f3231))
+
+
+### ✨ Features
+
+* Add 'Thai Tax Compliance' charge_type option ([322d1b9](https://github.com/ManotLuijiu/print_designer/commit/322d1b9720c7127303033d25c959c803282e1ed7))
+* Fixed WHT ([9512ba4](https://github.com/ManotLuijiu/print_designer/commit/9512ba4acae7dc8c7448327935044a53de3a74df))
+* **Sales Invoice:** Thai Tax Compliance charge_type override ([2499c25](https://github.com/ManotLuijiu/print_designer/commit/2499c25d12c52543ab6164577da913f0f014741e))
+* **thailand_wht:** Auto-fill tax_withholding_category from Item ([ad780d9](https://github.com/ManotLuijiu/print_designer/commit/ad780d92dd521d951822e21344a82bdbcd42073c))
+
+
+### 🐛 Bug Fixes
+
+* bidirectional minRows sync for table drag-resize and manual input ([fe6301f](https://github.com/ManotLuijiu/print_designer/commit/fe6301fccb1b9033d2c77ea19190838137ea291f))
+* Extend erpnext_tds_disabler to Sales Invoice ([611f05b](https://github.com/ManotLuijiu/print_designer/commit/611f05b56e80e4479c6aaccd93228dff838cde56))
+* Remove install_item_wht_fields references from hooks.py ([ee67adf](https://github.com/ManotLuijiu/print_designer/commit/ee67adf5b677bca77c5d57bc6f2a043f1967829e))
+* Thai WHT calculation using total instead of grand_total ([0a78b08](https://github.com/ManotLuijiu/print_designer/commit/0a78b08ec933b7f593c781a93fa7f229b71e89cc))
+
 ## [1.23.0](https://github.com/ManotLuijiu/print_designer/compare/v1.22.0...v1.23.0) (2026-07-15)
 
 
