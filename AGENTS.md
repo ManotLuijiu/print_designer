@@ -1,6 +1,30 @@
 Before writing code, first explore the project structure,
 then invoke the nextjs-doc skill for documentation.
 
+## Print Designer Theme
+
+**CSS Variables (defined in `App.vue` `.main-layout`):**
+
+```css
+--primary: #7b4b57;      /* Burgundy/wine color - NOT blue! */
+--primary-color: #7b4b57;
+```
+
+**IMPORTANT:** Do NOT assume `--primary` is blue (#2490ef) like Frappe default. Print Designer overrides it to burgundy (#7b4b57).
+
+**Toolbar icon colors:**
+
+- Use `white` for active icons (white on burgundy background = visible)
+- Use `var(--text-muted)` for inactive icons
+- When passing `color` prop to `IconsUse`, use `'white'` when active, `'var(--text-muted)'` otherwise
+
+**CSS files location:** `print_designer/public/css/*.scss`
+
+- `print_designer.bundle.scss` - main wrapper styles
+- `global_typography_override.bundle.scss` - Thai font overrides
+- `signature_stamp.bundle.scss` - signature/stamp styles
+- `watermark.bundle.scss` - watermark settings styles
+
 ## Frontend dependency policy
 
 - Treat Vue and Pinia versions as a compatibility pair. Do not upgrade either independently or rely on undeclared versions inherited from Frappe.
@@ -39,17 +63,20 @@ bd close <id>         # Complete work
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
+
    ```bash
    git pull --rebase
    bd dolt push
    git push
    git status  # MUST show "up to date with origin"
    ```
+
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
+
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
@@ -71,12 +98,14 @@ bd close <id>         # Complete work
 ### Tier 2.2: Thai WHT Income Type — IMPLEMENTING
 
 **Schema changes:**
+
 - Keep `conditions` + `conditions_th` as-is (nuanced details beyond recipient_type)
 - Add `recipient_type_th` (Select) — Thai options matching `recipient_type`:
   - `Individual` → `บุคคลธรรมดา`, `Corporation` → `นิติบุคคล`, `Foundation/Association` → `มูลนิธิ/สมาคม`, `Oversea` → `ต่างประเทศ`, `Government` → `รัฐบาล`
 - Add `doc_title_th` (Data) — compound Thai display: `{income_category_th} {recipient_type_th} {tax_rate} {form_type_th}`
 
 **Doc name format:** `{income_category} {recipient_type} {tax_rate} {form_type}`
+
 - Example: `Advertising Income Corporation 2 PND53`
 
 **`title_field`** = `doc_title_th` — compound Thai display

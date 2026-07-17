@@ -17,3 +17,51 @@
         }
     }
 }
+
+/* Empty table indicator - makes tables with no columns visible */
+.table-container.empty-table {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background-color: rgba(255, 0, 0, 0.1) !important;
+    border: 3px dashed #d32f2f !important;
+    min-height: 80px !important;
+    min-width: 200px !important;
+    width: 200px !important;
+    height: 80px !important;
+    position: relative !important;
+    overflow: visible !important;
+
+    /* Ensure the inner div also has minimum size */
+    > div {
+        min-height: 80px !important;
+        min-width: 200px !important;
+        background-color: transparent !important;
+    }
+
+    /* Also style the table itself */
+    .printTable {
+        min-height: 80px !important;
+        min-width: 200px !important;
+    }
+
+    &::after {
+        content: "⚠ Empty Table - Right-click to Delete";
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        color: #d32f2f !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        font-family: Arial, sans-serif !important;
+        background: rgba(255, 255, 255, 0.95) !important;
+        padding: 8px 16px !important;
+        border-radius: 6px !important;
+        border: 2px solid #d32f2f !important;
+        pointer-events: none !important;
+        white-space: nowrap !important;
+        z-index: 999999 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+    }
+}

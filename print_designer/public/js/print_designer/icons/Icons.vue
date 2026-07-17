@@ -298,5 +298,28 @@
 			/>
 			<path id="activeBorder" d="M2,22H0v1a1,1,0,0,0,1,1H23a1,1,0,0,0,1-1V22H2Z" />
 		</symbol>
+		<!-- Help Icon: Question Mark -->
+		<symbol id="helpIcon" viewBox="0 0 24 24">
+			<circle cx="12" cy="12" r="10" fill="none" stroke="var(--icon-stroke)" stroke-width="2" />
+			<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" fill="none" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+			<circle cx="12" cy="17" r="0.5" fill="var(--icon-stroke)" />
+		</symbol>
+		<!-- Grid Tool Icon -->
+		<symbol id="gridTool" viewBox="0 0 24 24">
+			<line x1="8" y1="0" x2="8" y2="24" stroke="var(--icon-stroke)" stroke-width="2" />
+			<line x1="16" y1="0" x2="16" y2="24" stroke="var(--icon-stroke)" stroke-width="2" />
+			<line x1="0" y1="8" x2="24" y2="8" stroke="var(--icon-stroke)" stroke-width="2" />
+			<line x1="0" y1="16" x2="24" y2="16" stroke="var(--icon-stroke)" stroke-width="2" />
+		</symbol>
+		<!-- Border Style Icons -->
+		<symbol id="borderStyleSolid">
+			<line x1="3" y1="12" x2="21" y2="12" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" />
+		</symbol>
+		<symbol id="borderStyleDotted">
+			<line x1="3" y1="12" x2="21" y2="12" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" stroke-dasharray="1,4" />
+		</symbol>
+		<symbol id="borderStyleDashed">
+			<line x1="3" y1="12" x2="21" y2="12" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,4" />
+		</symbol>
 	</svg>
 </template>

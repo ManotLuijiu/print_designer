@@ -231,7 +231,8 @@ frappe.ui.form.on('Purchase Invoice', {
                     console.log('❌ DEBUG: Error populating compliance section:', r);
                 }
             });
-        } else if (!frm.doc.is_paid) {
+        }
+        else if (!frm.doc.is_paid) {
             console.log('⏭️ DEBUG: Cash purchase disabled - compliance section not needed');
 
             frappe.show_alert({
@@ -239,6 +240,7 @@ frappe.ui.form.on('Purchase Invoice', {
                 indicator: 'orange'
             }, 3);
         }
+    },
 });
 
 // Unlock the WHT compliance checkbox so Accounting dept can tick it at PI stage

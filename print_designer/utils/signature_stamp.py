@@ -265,10 +265,28 @@ def download_pdf_with_signature_stamp(
             font_size = print_settings.get("watermark_font_size", 12)
             position = print_settings.get("watermark_position", "Top Right")
             font_family = print_settings.get("watermark_font_family", "Sarabun")
+            # Get custom margin values (default to 10mm equivalent in px)
+            margin_top = print_settings.get("watermark_margin_top", "10mm")
+            margin_bottom = print_settings.get("watermark_margin_bottom", "10mm")
+            margin_left = print_settings.get("watermark_margin_left", "10mm")
+            margin_right = print_settings.get("watermark_margin_right", "10mm")
         except Exception:
             font_size = 12
             position = "Top Right"
             font_family = "Sarabun"
+            margin_top = "10mm"
+            margin_bottom = "10mm"
+            margin_left = "10mm"
+            margin_right = "10mm"
+        
+        # Convert mm to px (1mm ≈ 3.78px at 96dpi)
+        def mm_to_px(mm_str):
+            if not mm_str:
+                return "10mm"
+            mm_val = float(mm_str.replace("mm", "").replace("px", ""))
+            if "mm" in mm_str:
+                return f"{int(mm_val * 3.78)}px"
+            return f"{int(mm_val)}px"
 
         # Get watermark text from multiple sources
         pd_custom_watermark_text = ""
@@ -306,21 +324,32 @@ def download_pdf_with_signature_stamp(
                 log_to_print_designer(f"Error getting dynamic watermark: {e}")
 
         if pd_custom_watermark_text:
-            # Calculate position CSS based on selection (CSS 2.1 compatible only)
-            # Use same positioning as print preview for consistency
+            # Calculate position CSS based on selection with custom margins
+            # Convert margins to CSS-compatible values
+            mt_px = mm_to_px(margin_top)
+            mb_px = mm_to_px(margin_bottom)
+            ml_px = mm_to_px(margin_left)
+            mr_px = mm_to_px(margin_right)
+            
             position_css = ""
             if position == "Top Right":
-                position_css = (
-                    "top: 70px; right: 70px;"  # Below page numbers, same as preview
-                )
+                position_css = f"top: {mt_px}; right: {mr_px};"
             elif position == "Top Left":
-                position_css = "top: 70px; left: 20px;"
+                position_css = f"top: {mt_px}; left: {ml_px};"
+            elif position == "Top Center":
+                position_css = f"top: {mt_px}; left: 50%; transform: translateX(-50%);"
+            elif position == "Middle Right":
+                position_css = f"top: 50%; right: {mr_px}; transform: translateY(-50%);"
+            elif position == "Middle Left":
+                position_css = f"top: 50%; left: {ml_px}; transform: translateY(-50%);"
+            elif position == "Middle Center":
+                position_css = "top: 50%; left: 50%; transform: translate(-50%, -50%);"
             elif position == "Bottom Right":
-                position_css = "bottom: 20px; right: 70px;"
+                position_css = f"bottom: {mb_px}; right: {mr_px};"
             elif position == "Bottom Left":
-                position_css = "bottom: 20px; left: 20px;"
-            else:  # Center - use margin-based centering for CSS 2.1 compatibility
-                position_css = "top: 45%; left: 45%; width: 100px; margin-left: -50px;"
+                position_css = f"bottom: {mb_px}; left: {ml_px};"
+            elif position == "Bottom Center":
+                position_css = f"bottom: {mb_px}; left: 50%; transform: translateX(-50%);"
 
             # Add watermark CSS and HTML (CSS 2.1 compatible only)
             if pd_custom_watermark_text == "sequence":

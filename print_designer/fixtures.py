@@ -34,5 +34,13 @@ fixtures = [
 
 # Boot session defaults
 boot_session = """
-window.watermark_enabled = {{ frappe.get_single('Watermark Settings').enabled if frappe.db.exists('Watermark Settings', 'Watermark Settings') else 0 }};
+window.watermark_enabled = 0;
+{% try %}
+{% if frappe.db.exists('DocType', 'Watermark Settings') and frappe.db.exists('Watermark Settings', None) %}
+{% set ws = frappe.get_single('Watermark Settings') %}
+window.watermark_enabled = {{ ws.enabled if ws.enabled else 0 }};
+{% endif %}
+{% except %}
+window.watermark_enabled = 0;
+{% endtry %}
 """

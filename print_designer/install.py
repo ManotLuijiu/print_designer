@@ -294,6 +294,42 @@ def setup_enhanced_print_settings():
                         ),
                     },
                     {
+                        "label": _("Watermark Margin Top"),
+                        "fieldname": "watermark_margin_top",
+                        "fieldtype": "Data",
+                        "default": "10mm",
+                        "insert_after": "watermark_position",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _("Margin from top (e.g., 10mm, 20px)"),
+                    },
+                    {
+                        "label": _("Watermark Margin Bottom"),
+                        "fieldname": "watermark_margin_bottom",
+                        "fieldtype": "Data",
+                        "default": "10mm",
+                        "insert_after": "watermark_margin_top",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _("Margin from bottom (e.g., 10mm, 20px)"),
+                    },
+                    {
+                        "label": _("Watermark Margin Left"),
+                        "fieldname": "watermark_margin_left",
+                        "fieldtype": "Data",
+                        "default": "10mm",
+                        "insert_after": "watermark_margin_bottom",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _("Margin from left (e.g., 10mm, 20px)"),
+                    },
+                    {
+                        "label": _("Watermark Margin Right"),
+                        "fieldname": "watermark_margin_right",
+                        "fieldtype": "Data",
+                        "default": "10mm",
+                        "insert_after": "watermark_margin_left",
+                        "depends_on": "eval:doc.watermark_settings != 'None'",
+                        "description": _("Margin from right (e.g., 10mm, 20px)"),
+                    },
+                    {
                         "label": _("Watermark Font Family"),
                         "fieldname": "watermark_font_family",
                         "fieldtype": "Select",
@@ -341,6 +377,14 @@ def setup_print_settings_defaults():
             print_settings.set("watermark_font_size", "12px")
         if not print_settings.get("watermark_position"):
             print_settings.set("watermark_position", "Top Right")
+        if not print_settings.get("watermark_margin_top"):
+            print_settings.set("watermark_margin_top", "10mm")
+        if not print_settings.get("watermark_margin_bottom"):
+            print_settings.set("watermark_margin_bottom", "10mm")
+        if not print_settings.get("watermark_margin_left"):
+            print_settings.set("watermark_margin_left", "10mm")
+        if not print_settings.get("watermark_margin_right"):
+            print_settings.set("watermark_margin_right", "10mm")
         if not print_settings.get("watermark_font_family"):
             print_settings.set("watermark_font_family", "Sarabun")
 
@@ -377,6 +421,10 @@ def fix_print_settings_field_ordering():
             "watermark_settings",
             "watermark_font_size",
             "watermark_position",
+            "watermark_margin_top",
+            "watermark_margin_bottom",
+            "watermark_margin_left",
+            "watermark_margin_right",
             "watermark_font_family",
         ]
 
@@ -945,6 +993,10 @@ def check_missing_print_settings_fields():
         "watermark_settings",
         "watermark_font_size",
         "watermark_position",
+        "watermark_margin_top",
+        "watermark_margin_bottom",
+        "watermark_margin_left",
+        "watermark_margin_right",
         "watermark_font_family",
     ]
 

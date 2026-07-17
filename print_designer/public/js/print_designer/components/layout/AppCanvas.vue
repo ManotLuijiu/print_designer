@@ -9,6 +9,16 @@
 			:style="[MainStore.mode == 'editing' && { cursor: MainStore.cursor }]"
 		>
 			<AppPages v-for="page in ElementStore.Elements" :key="page.index" :page="page" />
+			<!-- Grid Overlay -->
+			<div
+				v-if="MainStore.showGrid"
+				class="grid-overlay"
+				:style="{
+					backgroundSize: MainStore.snapGridSize + 'px ' + MainStore.snapGridSize + 'px',
+					backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+						linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px)`
+				}"
+			></div>
 			<div class="page-btn-wrapper">
 				<button
 					class="btn"
@@ -549,5 +559,14 @@ watch(
 	outline: 1px double var(--primary) !important;
 	border: none !important;
 	z-index: 9999 !important;
+}
+.grid-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	pointer-events: none;
+	z-index: 0;
 }
 </style>

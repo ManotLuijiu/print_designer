@@ -6,7 +6,7 @@
 		:style="`padding: ${padding}px; margin-top: ${margin}px; margin-bottom: ${margin}px;`"
 		:class="class"
 	>
-		<use :href="`#${name}`" :style="`fill: ${color}; --icon-stroke:${color};`" />
+		<use :href="`#${name}`" :style="`fill: ${color}; stroke: ${color}; --icon-stroke: ${color};`" />
 	</svg>
 </template>
 

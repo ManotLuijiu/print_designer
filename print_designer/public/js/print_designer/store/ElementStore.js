@@ -530,68 +530,110 @@ export const useElementStore = defineStore("ElementStore", {
         await this.upload_file(file_data);
       });
     },
-    async saveElements() {
+    async saveElements(options = {}) {
       const MainStore = useMainStore();
       if (this.checkIfAnyTableIsEmpty()) return;
-      const is_standard = await frappe.db.get_value(
-        "Print Format",
-        MainStore.printDesignName,
-        "standard",
-      );
-      MainStore.is_standard = is_standard.message.standard === "Yes";
-      // Update the header and footer height with margin
-      MainStore.page.headerHeightWithMargin =
-        MainStore.page.headerHeight + MainStore.page.marginTop;
-      MainStore.page.footerHeightWithMargin =
-        MainStore.page.footerHeight + MainStore.page.marginBottom;
-      const objectToSave = this.computeLayoutForSave();
-      if (!objectToSave) return;
-      const updatedPage = { ...MainStore.page };
-      const settingsForSave = {
-        page: updatedPage,
-        pdfPrintDPI: MainStore.pdfPrintDPI,
-        globalStyles: MainStore.globalStyles,
-        currentPageSize: MainStore.currentPageSize,
-        isHeaderFooterAuto: MainStore.isHeaderFooterAuto,
-        currentDoc: MainStore.currentDoc,
-        textControlType: MainStore.textControlType,
-        currentFonts: MainStore.currentFonts,
-        printHeaderFonts: MainStore.printHeaderFonts,
-        printFooterFonts: MainStore.printFooterFonts,
-        printBodyFonts: MainStore.printBodyFonts,
-        userProvidedJinja: MainStore.userProvidedJinja,
-        schema_version: MainStore.schema_version,
-        numberToWordsFieldPairs: MainStore.numberToWordsFieldPairs,
-      };
-      const convertCsstoString = (stylesheet) => {
-        const cssRule = Array.from(stylesheet.cssRules)
-          .map((rule) => rule.cssText || "")
-          .join(" ");
-        return stylesheet.cssRules ? cssRule : "";
-      };
-      const css =
-        convertCsstoString(MainStore.screenStyleSheet) +
-        convertCsstoString(MainStore.printStyleSheet);
 
-      objectToSave.print_designer_settings = JSON.stringify(settingsForSave);
-      objectToSave.print_designer_after_table = null;
-      objectToSave.css = css;
-      if (MainStore.isOlderSchema("1.3.0")) {
-        await this.printFormatCopyOnOlderSchema(objectToSave);
-      } else {
-        await frappe.db.set_value(
+      // Optimization: Check debounce for thumbnail generation
+      const now = Date.now();
+      const shouldGenerateThumbnail =
+        options.generateThumbnail !== false &&
+        MainStore.thumbnailEnabled !== false &&
+        !MainStore.isGeneratingThumbnail &&
+        now - MainStore.lastSaveTime > MainStore.thumbnailDebounceMs;
+
+      // Prevent concurrent thumbnail generation
+      if (shouldGenerateThumbnail) {
+        MainStore.isGeneratingThumbnail = true;
+      }
+
+      try {
+        const is_standard = await frappe.db.get_value(
           "Print Format",
           MainStore.printDesignName,
-          objectToSave,
+          "standard",
         );
-        frappe.show_alert(
-          {
-            message: `Print Format Saved Successfully`,
-            indicator: "green",
-          },
-          5,
-        );
-        await this.generatePreview();
+        MainStore.is_standard = is_standard.message.standard === "Yes";
+        // Update the header and footer height with margin
+        MainStore.page.headerHeightWithMargin =
+          MainStore.page.headerHeight + MainStore.page.marginTop;
+        MainStore.page.footerHeightWithMargin =
+          MainStore.page.footerHeight + MainStore.page.marginBottom;
+        const objectToSave = this.computeLayoutForSave();
+        if (!objectToSave) return;
+        const updatedPage = { ...MainStore.page };
+        const settingsForSave = {
+          page: updatedPage,
+          pdfPrintDPI: MainStore.pdfPrintDPI,
+          globalStyles: MainStore.globalStyles,
+          currentPageSize: MainStore.currentPageSize,
+          isHeaderFooterAuto: MainStore.isHeaderFooterAuto,
+          currentDoc: MainStore.currentDoc,
+          textControlType: MainStore.textControlType,
+          currentFonts: MainStore.currentFonts,
+          printHeaderFonts: MainStore.printHeaderFonts,
+          printFooterFonts: MainStore.printFooterFonts,
+          printBodyFonts: MainStore.printBodyFonts,
+          userProvidedJinja: MainStore.userProvidedJinja,
+          schema_version: MainStore.schema_version,
+          numberToWordsFieldPairs: MainStore.numberToWordsFieldPairs,
+        };
+        const convertCsstoString = (stylesheet) => {
+          const cssRule = Array.from(stylesheet.cssRules)
+            .map((rule) => rule.cssText || "")
+            .join(" ");
+          return stylesheet.cssRules ? cssRule : "";
+        };
+        const css =
+          convertCsstoString(MainStore.screenStyleSheet) +
+          convertCsstoString(MainStore.printStyleSheet);
+
+        objectToSave.print_designer_settings = JSON.stringify(settingsForSave);
+        objectToSave.print_designer_after_table = null;
+        objectToSave.css = css;
+        if (MainStore.isOlderSchema("1.3.0")) {
+          await this.printFormatCopyOnOlderSchema(objectToSave);
+        } else {
+          await frappe.db.set_value(
+            "Print Format",
+            MainStore.printDesignName,
+            objectToSave,
+          );
+          frappe.show_alert(
+            {
+              message: `Print Format Saved Successfully`,
+              indicator: "green",
+            },
+            5,
+          );
+
+          // Update last save time
+          MainStore.lastSaveTime = now;
+
+          // Generate thumbnail only if conditions are met
+          // Note: thumbnail generation runs async, doesn't block UI
+          if (shouldGenerateThumbnail) {
+            // Run thumbnail generation async, don't await
+            this.generatePreview()
+              .catch((err) => {
+                console.error(
+                  "[Performance] Thumbnail generation failed:",
+                  err,
+                );
+              })
+              .finally(() => {
+                MainStore.isGeneratingThumbnail = false;
+              });
+          } else if (options.generateThumbnail) {
+            // Force thumbnail even if debounced
+            await this.generatePreview();
+          }
+        }
+      } finally {
+        // Only reset flag if thumbnail wasn't started
+        if (!shouldGenerateThumbnail) {
+          MainStore.isGeneratingThumbnail = false;
+        }
       }
     },
     checkIfAnyTableIsEmpty() {

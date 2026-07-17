@@ -14,6 +14,8 @@
 				}
 			"
 		>
+				<!-- Grid Overlay -->
+			<div v-if="MainStore.isGridVisible" class="grid-overlay"></div>
 			<template v-for="(object, index) in page.header" :key="object.id" v-if="page.DOMRef">
 				<component
 					:is="
@@ -48,6 +50,8 @@
 					v-bind="{ object, index }"
 				></component>
 			</template>
+			<!-- Grid Overlay -->
+			<div v-if="MainStore.isGridVisible" class="grid-overlay"></div>
 		</div>
 	</div>
 </template>
@@ -443,6 +447,43 @@ const ElementStore = useElementStore();
 		&.active-page {
 			outline: 1px solid color(from var(--primary) srgb r g b / 0.5) !important;
 		}
+
+		& .grid-overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: 0;
+			/* Grid pattern: 10mm cells */
+			background-image:
+				linear-gradient(to right, rgba(0, 0, 255, 0.15) 1px, transparent 1px),
+				linear-gradient(to bottom, rgba(0, 0, 255, 0.15) 1px, transparent 1px),
+				linear-gradient(to right, rgba(0, 0, 255, 0.3) 1px, transparent 1px),
+				linear-gradient(to bottom, rgba(0, 0, 255, 0.3) 1px, transparent 1px);
+			background-size:
+				10mm 10mm,
+				10mm 10mm,
+				50mm 50mm,
+				50mm 50mm;
+			background-position: -1px -1px;
+		}
 	}
+}
+</style>
+<style scoped>
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+  background-size: 10% 10%;
 }
 </style>

@@ -14,10 +14,10 @@ def get_print_designer_html_for_browser(
 ):
     """
     DEPRECATED: This function is no longer used after Print button fix.
-    
+
     The fix was to let standard Frappe rendering handle Print Designer formats for browser printing,
     as the original frappe/print_designer only handles PDF generation, not browser printing.
-    
+
     This function attempted to use Print Designer's PDF rendering system for browser printing,
     which caused conflicts. Now we use standard rendering + watermarks only.
     """
@@ -49,10 +49,11 @@ def get_print_designer_html_for_browser(
         except (BrokenPipeError, OSError, ConnectionError) as chrome_error:
             # If Chrome-related error occurs, fall back to simpler rendering
             log_to_print_designer(f"Chrome rendering failed, using fallback: {str(chrome_error)}")
-            
+
             # Use the print format's HTML directly without Chrome processing
-            if hasattr(print_format_doc, 'html'):
+            if hasattr(print_format_doc, "html"):
                 from frappe.www.printview import get_context
+
                 context = get_context(
                     doc=doc_obj,
                     print_format=print_format_doc,
@@ -300,7 +301,14 @@ def get_print_designer_style(print_format_doc):
         return ""
 
 
-def get_watermark_position_css(position, position_config=None, margin_top="0mm", margin_right="0mm", margin_bottom="0mm", margin_left="0mm"):
+def get_watermark_position_css(
+    position,
+    position_config=None,
+    margin_top="0mm",
+    margin_right="0mm",
+    margin_bottom="0mm",
+    margin_left="0mm",
+):
     """
     Get CSS positioning styles based on Watermark Settings position configuration
 
@@ -313,7 +321,9 @@ def get_watermark_position_css(position, position_config=None, margin_top="0mm",
     Returns:
         str: CSS positioning properties
     """
-    log_to_print_designer(f"get_watermark_position_css called with position='{position}', config={position_config}, margins=T{margin_top}/R{margin_right}/B{margin_bottom}/L{margin_left}")
+    log_to_print_designer(
+        f"get_watermark_position_css called with position='{position}', config={position_config}, margins=T{margin_top}/R{margin_right}/B{margin_bottom}/L{margin_left}"
+    )
     # Check if custom positioning is requested (keeps px-based custom values as-is)
     if position == "Custom" and position_config:
         custom_css = []
@@ -338,15 +348,15 @@ def get_watermark_position_css(position, position_config=None, margin_top="0mm",
 
     # Use predefined positions with independent per-edge margins
     position_map = {
-        "Top Left":      f"top: {margin_top}; left: {margin_left};",
-        "Top Center":    f"top: {margin_top}; left: 50%; transform: translateX(-50%);",
-        "Top Right":     f"top: {margin_top}; right: {margin_right};",
-        "Middle Left":   f"top: 50%; left: {margin_left}; transform: translateY(-50%);",
+        "Top Left": f"top: {margin_top}; left: {margin_left};",
+        "Top Center": f"top: {margin_top}; left: 50%; transform: translateX(-50%);",
+        "Top Right": f"top: {margin_top}; right: {margin_right};",
+        "Middle Left": f"top: 50%; left: {margin_left}; transform: translateY(-50%);",
         "Middle Center": "top: 50%; left: 50%; transform: translate(-50%, -50%);",
-        "Middle Right":  f"top: 50%; right: {margin_right}; transform: translateY(-50%);",
-        "Bottom Left":   f"bottom: {margin_bottom}; left: {margin_left};",
+        "Middle Right": f"top: 50%; right: {margin_right}; transform: translateY(-50%);",
+        "Bottom Left": f"bottom: {margin_bottom}; left: {margin_left};",
         "Bottom Center": f"bottom: {margin_bottom}; left: 50%; transform: translateX(-50%);",
-        "Bottom Right":  f"bottom: {margin_bottom}; right: {margin_right};",
+        "Bottom Right": f"bottom: {margin_bottom}; right: {margin_right};",
     }
 
     result_css = position_map.get(position, position_map["Top Right"])
@@ -370,12 +380,10 @@ def log_to_print_designer(message, level="INFO"):
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] [WATERMARK] [{level}] {message}\n")
             f.flush()  # Ensure data is written immediately
-    except (OSError, IOError, BrokenPipeError) as e:
+    except (OSError, IOError, BrokenPipeError):
         # Silently fall back to frappe logger for file system errors
         try:
-            frappe.logger("print_designer").info(
-                f"[WATERMARK] [{level}] {message}"
-            )
+            frappe.logger("print_designer").info(f"[WATERMARK] [{level}] {message}")
         except Exception:
             # If all logging fails, just ignore it to prevent blocking the main process
             pass
@@ -402,8 +410,10 @@ def get_html_and_style_with_watermark(
     settings=None,
 ):
     """Override of get_html_and_style that adds watermark support and Print Designer compatibility"""
-    
-    log_to_print_designer(f"Print preview override called: print_format={print_format}, settings={settings}, trigger_print={trigger_print}")
+
+    log_to_print_designer(
+        f"Print preview override called: print_format={print_format}, settings={settings}, trigger_print={trigger_print}"
+    )
 
     # Check if this is a Print Designer format
     print_format_doc = None
@@ -414,11 +424,8 @@ def get_html_and_style_with_watermark(
             pass
 
     # Check if this is a Print Designer format and preserve its original rendering
-    is_print_designer_format = (
-        print_format_doc and 
-        print_format_doc.get("print_designer") == 1
-    )
-    
+    is_print_designer_format = print_format_doc and print_format_doc.get("print_designer") == 1
+
     if is_print_designer_format:
         # For Print Designer formats, we need to preserve the exact CSS and HTML structure
         # to maintain whitespace, fonts, and other styling that works in the designer
@@ -432,7 +439,7 @@ def get_html_and_style_with_watermark(
             style=style,
             settings=settings,
         )
-        
+
         # Ensure Print Designer CSS is preserved in the result
         if result.get("style") and print_format_doc.css:
             # Preserve original Print Designer CSS which includes whitespace rules
@@ -449,7 +456,7 @@ def get_html_and_style_with_watermark(
             style=style,
             settings=settings,
         )
-    
+
     # Log successful rendering
     log_to_print_designer(
         f"Standard rendering used: format={print_format}, trigger_print={trigger_print}, "
@@ -458,7 +465,7 @@ def get_html_and_style_with_watermark(
 
     # Parse settings to check for watermark configuration
     settings_dict = frappe.parse_json(settings) if settings else {}
-    watermark_settings = settings_dict.get("watermark_settings", "None")
+    watermark_settings = settings_dict.get("watermark_settings")
     watermark_template = settings_dict.get("watermark_template")
 
     # Also check for new watermark fields from our Print Settings override
@@ -466,32 +473,45 @@ def get_html_and_style_with_watermark(
     watermark_position = settings_dict.get("watermark_position")
     watermark_font_family = settings_dict.get("watermark_font_family")
 
-    # Frappe's print view JS does NOT pass custom Print Format fields in the settings dict.
-    # The sidebar shows the values visually but never sends them to the server.
-    # Fix: read directly from the Print Format document as authoritative source.
-    if print_format_doc and (not watermark_settings or watermark_settings == "None"):
-        watermark_settings = print_format_doc.get("watermark_settings") or "None"
+    # Frappe's print view JS sends "None" as string when watermark is disabled.
+    # We should respect "None" from sidebar - don't fall back to Print Format doc values.
+    # Only fall back to Print Format doc if sidebar didn't send watermark_settings at all (None).
+    if watermark_settings is None and print_format_doc:
+        watermark_settings = print_format_doc.get("watermark_settings")
         watermark_font_size = watermark_font_size or print_format_doc.get("watermark_font_size")
         watermark_position = watermark_position or print_format_doc.get("watermark_position")
-        watermark_font_family = watermark_font_family or print_format_doc.get("watermark_font_family")
+        watermark_font_family = watermark_font_family or print_format_doc.get(
+            "watermark_font_family"
+        )
         log_to_print_designer(
             f"Watermark settings read from Print Format doc: settings={watermark_settings}, "
             f"font_size={watermark_font_size}, position={watermark_position}, font_family={watermark_font_family}"
         )
+
+    # Normalize None and "None" to "None" for consistent comparison
+    if not watermark_settings:
+        watermark_settings = "None"
 
     log_to_print_designer(
         f"Print preview watermark request - settings: {watermark_settings}, template: {watermark_template}, font_size: {watermark_font_size}, position: {watermark_position}, font_family: {watermark_font_family}"
     )
 
     # Add watermark HTML if configured (either via settings or template)
-    if (watermark_settings and watermark_settings != "None" and result.get("html")) or (watermark_template and result.get("html")):
+    # CRITICAL: Only show watermark if explicitly set and NOT "None"
+    show_watermark = watermark_settings and watermark_settings != "None" and result.get("html")
+    show_template_watermark = watermark_template and result.get("html")
+    log_to_print_designer(
+        f"Watermark condition check - show_watermark: {show_watermark}, show_template: {show_template_watermark}"
+    )
+
+    if show_watermark or show_template_watermark:
         # Get watermark configuration from Watermark Settings DocType
         try:
             # Priority 1: If template is specified, use template configuration
             if watermark_template:
                 log_to_print_designer(f"Using watermark template: {watermark_template}")
                 from print_designer.api.watermark import get_watermark_template_config
-                
+
                 template_config = get_watermark_template_config(watermark_template)
                 font_size = template_config.get("font_size", 12)
                 font_family = template_config.get("font_family", "Sarabun")
@@ -500,24 +520,26 @@ def get_html_and_style_with_watermark(
                 watermark_position = template_config.get("position", "Top Right")
                 custom_watermark_text = template_config.get("custom_text")
                 configured_mode = template_config.get("watermark_mode", "None")
-                
+
                 # Collect custom positioning data
                 position_config = {
                     "position_top": template_config.get("position_top"),
                     "position_right": template_config.get("position_right"),
                     "position_bottom": template_config.get("position_bottom"),
                     "position_left": template_config.get("position_left"),
-                    "position_custom": template_config.get("position_custom")
+                    "position_custom": template_config.get("position_custom"),
                 }
-                
-                log_to_print_designer(f"Template configuration loaded: mode={configured_mode}, text={custom_watermark_text}, position={watermark_position}, custom_pos={position_config}")
-            
+
+                log_to_print_designer(
+                    f"Template configuration loaded: mode={configured_mode}, text={custom_watermark_text}, position={watermark_position}, custom_pos={position_config}"
+                )
+
             # Priority 2: Try to get configuration from new Watermark Settings system
             elif print_format:
                 from print_designer.api.watermark import get_watermark_config_for_print_format
-                
+
                 watermark_config = get_watermark_config_for_print_format(print_format)
-                
+
                 if watermark_config.get("enabled"):
                     font_size = watermark_config.get("font_size", 12)
                     font_family = watermark_config.get("font_family", "Sarabun")
@@ -526,23 +548,25 @@ def get_html_and_style_with_watermark(
                     watermark_position = watermark_config.get("position", "Top Right")
                     custom_watermark_text = watermark_config.get("custom_text")
                     configured_mode = watermark_config.get("watermark_mode", "None")
-                    
+
                     # Collect custom positioning data
                     position_config = {
                         "position_top": watermark_config.get("position_top"),
                         "position_right": watermark_config.get("position_right"),
                         "position_bottom": watermark_config.get("position_bottom"),
                         "position_left": watermark_config.get("position_left"),
-                        "position_custom": watermark_config.get("position_custom")
+                        "position_custom": watermark_config.get("position_custom"),
                     }
                 else:
                     # Watermark Settings DocType not configured for this format.
                     # Raise so the except block falls back to Print Settings.
-                    raise Exception(f"No Watermark Settings configured for '{print_format}', using Print Settings fallback")
+                    raise Exception(
+                        f"No Watermark Settings configured for '{print_format}', using Print Settings fallback"
+                    )
             else:
                 # No template and no print format, use defaults
                 raise Exception("No watermark configuration available")
-                
+
         except Exception as e:
             # Fallback to Print Settings for backward compatibility
             log_to_print_designer(f"Failed to get Watermark Settings, using fallback: {str(e)}")
@@ -559,18 +583,32 @@ def get_html_and_style_with_watermark(
 
                 font_size = watermark_font_size or ps_font_size
                 # Remove px suffix if present for numeric processing
-                if isinstance(font_size, str) and font_size.endswith('px'):
+                if isinstance(font_size, str) and font_size.endswith("px"):
                     font_size = font_size[:-2]
                 font_family = watermark_font_family or ps_font_family
                 watermark_position = watermark_position or ps_position
-                watermark_margin_top = int(settings_dict.get("watermark_margin_top") or ps_margin_top)
-                watermark_margin_right = int(settings_dict.get("watermark_margin_right") or ps_margin_right)
-                watermark_margin_bottom = int(settings_dict.get("watermark_margin_bottom") or ps_margin_bottom)
-                watermark_margin_left = int(settings_dict.get("watermark_margin_left") or ps_margin_left)
+                # Keep margin values as strings with unit (e.g., "10mm") for CSS
+                watermark_margin_top = settings_dict.get("watermark_margin_top") or str(ps_margin_top) or "10mm"
+                watermark_margin_right = settings_dict.get("watermark_margin_right") or str(ps_margin_right) or "10mm"
+                watermark_margin_bottom = settings_dict.get("watermark_margin_bottom") or str(ps_margin_bottom) or "10mm"
+                watermark_margin_left = settings_dict.get("watermark_margin_left") or str(ps_margin_left) or "10mm"
+                # Remove 'px' suffix if present (keep 'mm')
+                watermark_margin_top = watermark_margin_top.replace('px', '')
+                watermark_margin_right = watermark_margin_right.replace('px', '')
+                watermark_margin_bottom = watermark_margin_bottom.replace('px', '')
+                watermark_margin_left = watermark_margin_left.replace('px', '')
+                if not watermark_margin_top.endswith('mm'):
+                    watermark_margin_top += 'mm'
+                if not watermark_margin_right.endswith('mm'):
+                    watermark_margin_right += 'mm'
+                if not watermark_margin_bottom.endswith('mm'):
+                    watermark_margin_bottom += 'mm'
+                if not watermark_margin_left.endswith('mm'):
+                    watermark_margin_left += 'mm'
                 log_to_print_designer(
                     f"Using Print Settings fallback: font_size={font_size}, font_family={font_family}, position={watermark_position}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
                 )
-                
+
                 watermark_color = "#999999"
                 watermark_opacity = 0.6
                 custom_watermark_text = None
@@ -596,8 +634,10 @@ def get_html_and_style_with_watermark(
         # Priority 1: Use custom text from Watermark Settings if configured
         if custom_watermark_text:
             pd_custom_watermark_text = frappe._(custom_watermark_text)
-            log_to_print_designer(f"Using custom watermark text from configuration: {pd_custom_watermark_text}")
-        
+            log_to_print_designer(
+                f"Using custom watermark text from configuration: {pd_custom_watermark_text}"
+            )
+
         # Priority 2: Check configured mode from Watermark Settings
         elif configured_mode and configured_mode != "None":
             if configured_mode == "Original on First Page":
@@ -609,8 +649,10 @@ def get_html_and_style_with_watermark(
                 # The actual sequence watermarking (Original on page 1, Copy on page 2)
                 # is handled by the Chrome PDF generator for multi-page PDFs
                 pd_custom_watermark_text = frappe._("Original")
-                log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
-        
+                log_to_print_designer(
+                    "Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence"
+                )
+
         # Priority 3: Fallback to traditional watermark_settings from URL parameter
         elif watermark_settings == "Original on First Page":
             pd_custom_watermark_text = frappe._("Original")
@@ -621,11 +663,13 @@ def get_html_and_style_with_watermark(
             # The actual sequence watermarking (Original on page 1, Copy on page 2)
             # is handled by the Chrome PDF generator for multi-page PDFs
             pd_custom_watermark_text = frappe._("Original")
-            log_to_print_designer("Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence")
+            log_to_print_designer(
+                "Sequence watermark detected - using 'Original' for preview, Chrome PDF will handle full sequence"
+            )
 
         # Then, check for dynamic watermark from document fields (if available)
-        # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
-        if not pd_custom_watermark_text and settings_dict and watermark_settings == "None":
+        # BUT ONLY if a watermark setting was explicitly chosen (to prevent override)
+        if not pd_custom_watermark_text and settings_dict and watermark_settings != "None":
             doc_data = settings_dict.get("doc", {})
             log_to_print_designer(f"Document data for dynamic watermark: {doc_data}")
             doctype = settings_dict.get("doctype", "")
@@ -647,9 +691,7 @@ def get_html_and_style_with_watermark(
                             f"Using dynamic watermark for preview: {pd_custom_watermark_text}"
                         )
                 except Exception as e:
-                    log_to_print_designer(
-                        f"Error getting dynamic watermark for preview: {e}"
-                    )
+                    log_to_print_designer(f"Error getting dynamic watermark for preview: {e}")
 
         watermark_html = ""
         if pd_custom_watermark_text:
@@ -662,12 +704,30 @@ def get_html_and_style_with_watermark(
                 f"Creating watermark HTML: text={pd_custom_watermark_text}, font={font_family}, "
                 f"position_type={position_type}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
             )
+            # Ensure margins have proper unit (remove duplicate suffixes)
+            def ensure_unit(val, default_unit="mm"):
+                val = str(val).strip() if val else f"10{default_unit}"
+                # Remove duplicate units
+                for unit in ["mm", "px", "cm", "in"]:
+                    if val.endswith(unit + unit):
+                        val = val[:-(len(unit))] + unit
+                # Add unit if missing
+                if not any(val.endswith(u) for u in ["mm", "px", "cm", "in"]):
+                    val += default_unit
+                return val
+            
+            margin_top = ensure_unit(watermark_margin_top)
+            margin_right = ensure_unit(watermark_margin_right)
+            margin_bottom = ensure_unit(watermark_margin_bottom)
+            margin_left = ensure_unit(watermark_margin_left)
+            
             position_css = get_watermark_position_css(
-                watermark_position, position_config,
-                margin_top=f"{watermark_margin_top}mm",
-                margin_right=f"{watermark_margin_right}mm",
-                margin_bottom=f"{watermark_margin_bottom}mm",
-                margin_left=f"{watermark_margin_left}mm",
+                watermark_position,
+                position_config,
+                margin_top=margin_top,
+                margin_right=margin_right,
+                margin_bottom=margin_bottom,
+                margin_left=margin_left,
             )
             log_to_print_designer(f"Watermark CSS: position={position_type}, {position_css}")
 

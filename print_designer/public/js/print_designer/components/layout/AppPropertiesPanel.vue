@@ -62,7 +62,21 @@ onMounted(() => createPropertiesPanel());
 	.designer-icon {
 		height: 24px;
 		width: 24px;
-		fill: var(--gray-600);
+		fill: var(--text-muted);
+	}
+	/* Properties panel icons using --icon-stroke variable */
+	.flex-container svg,
+	.panel-container svg {
+		--icon-stroke: var(--text-muted);
+	}
+	.flex-container svg:hover,
+	.panel-container svg:hover {
+		--icon-stroke: var(--primary);
+	}
+	/* Ensure IconsUse icons in properties panel are visible */
+	.flex-container svg use,
+	.panel-container svg use {
+		stroke: var(--icon-stroke);
 	}
 	.primary-actions {
 		display: flex;
@@ -146,9 +160,12 @@ onMounted(() => createPropertiesPanel());
 		margin-top: 5px;
 		margin-bottom: 4px;
 		font-size: 10px;
-		color: var(--gray-600);
+		color: var(--text-muted);
 		vertical-align: middle;
 		font-weight: 400;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.panel-container {
 		display: flex !important;
@@ -251,5 +268,108 @@ onMounted(() => createPropertiesPanel());
 }
 .picker-arrow.arrow {
 	display: none;
+}
+
+/* Border Toggle Letter Boxes - Simple styled like Help Tooltip */
+.border-toggle-box {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	font-size: 11px;
+	font-weight: 600;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	margin: 2px;
+	border: 1px solid transparent;
+	/* Default inactive state - dark border, light fill */
+	background-color: var(--bg-color);
+	color: var(--text-muted);
+	border-color: var(--text-muted);
+}
+
+.border-toggle-box:hover {
+	border-color: var(--primary);
+	color: var(--primary);
+}
+
+/* Active state - primary background, white text */
+.border-toggle-active {
+	background-color: var(--primary);
+	color: white;
+	border-color: var(--primary);
+}
+
+.border-toggle-active:hover {
+	color: white;
+}
+
+/* Individual toggle box styles - borders on appropriate sides */
+.border-toggle-all {
+	border: 2px solid var(--text-muted);
+}
+.border-toggle-all:hover {
+	border-color: var(--primary);
+}
+.border-toggle-all.border-toggle-active {
+	border-color: white;
+}
+
+.border-toggle-left {
+	border-left: 3px solid var(--text-muted);
+	border-top: 1px solid var(--text-muted);
+	border-right: 1px solid var(--text-muted);
+	border-bottom: 1px solid var(--text-muted);
+}
+.border-toggle-left:hover {
+	border-color: var(--primary);
+}
+.border-toggle-left.border-toggle-active {
+	border-color: var(--primary);
+	background-color: var(--primary);
+}
+
+.border-toggle-right {
+	border-left: 1px solid var(--text-muted);
+	border-top: 1px solid var(--text-muted);
+	border-right: 3px solid var(--text-muted);
+	border-bottom: 1px solid var(--text-muted);
+}
+.border-toggle-right:hover {
+	border-color: var(--primary);
+}
+.border-toggle-right.border-toggle-active {
+	border-color: var(--primary);
+	background-color: var(--primary);
+}
+
+.border-toggle-top {
+	border-left: 1px solid var(--text-muted);
+	border-top: 3px solid var(--text-muted);
+	border-right: 1px solid var(--text-muted);
+	border-bottom: 1px solid var(--text-muted);
+}
+.border-toggle-top:hover {
+	border-color: var(--primary);
+}
+.border-toggle-top.border-toggle-active {
+	border-color: var(--primary);
+	background-color: var(--primary);
+}
+
+.border-toggle-bottom {
+	border-left: 1px solid var(--text-muted);
+	border-top: 1px solid var(--text-muted);
+	border-right: 1px solid var(--text-muted);
+	border-bottom: 3px solid var(--text-muted);
+}
+.border-toggle-bottom:hover {
+	border-color: var(--primary);
+}
+.border-toggle-bottom.border-toggle-active {
+	border-color: var(--primary);
+	background-color: var(--primary);
 }
 </style>

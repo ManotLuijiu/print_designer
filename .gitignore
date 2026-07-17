@@ -10,6 +10,7 @@ dist/
 # build/
 frappe/docs/current
 frappe/public/dist
+print_designer/public/dist/
 .vscode
 .vs
 node_modules

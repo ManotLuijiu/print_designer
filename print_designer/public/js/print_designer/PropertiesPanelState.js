@@ -23,11 +23,22 @@ export const createPropertiesPanel = () => {
     parentBorderTop = false,
     parentBorderBottom = false,
     condtional = null,
+    useLetterBox = false,
+    letter = "",
     ...args
   }) => {
-    const result = {
-      icon: { onlyIcon, name, size, padding, margin, onClick, isActive },
+    const iconProps = {
+      onlyIcon,
+      name,
+      size,
+      padding,
+      margin,
+      onClick,
+      isActive,
+      useLetterBox,
+      letter,
     };
+    const result = { icon: iconProps };
     if (onlyIcon) {
       result["name"] = name;
       result["condtional"] = condtional;
@@ -80,12 +91,22 @@ export const createPropertiesPanel = () => {
     });
   };
   const borderWidthIcons = (name, { ...args }) => {
+    // Letter mapping for simple box icons
+    const letterMap = {
+      borderAll: "All",
+      borderLeftStyle: "L",
+      borderRightStyle: "R",
+      borderTopStyle: "T",
+      borderBottomStyle: "B",
+    };
     return iconControl({
       name,
-      color: "var(--gray-500)",
+      color: "var(--text-muted)",
       size: 18,
       padding: 2,
       margin: 8,
+      useLetterBox: true,
+      letter: letterMap[name] || name,
       condtional: () => {
         return parseFloatAndUnit(
           getConditonalObject({
@@ -110,22 +131,23 @@ export const createPropertiesPanel = () => {
             "borderBottomStyle",
             "borderLeftStyle",
             "borderRightStyle",
-          ].every(
-            (side) =>
-              getConditonalObject({
-                reactiveObject: () => MainStore.getCurrentElementsValues[0],
-                isStyle: true,
-                property: side,
-              }) != "hidden",
-          );
-        } else {
-          return (
-            getConditonalObject({
+          ].every((side) => {
+            const value = getConditonalObject({
               reactiveObject: () => MainStore.getCurrentElementsValues[0],
               isStyle: true,
-              property: name,
-            }) != "hidden"
-          );
+              property: side,
+            });
+            // If value is undefined/null or not "hidden", consider it active
+            return !value || value !== "hidden";
+          });
+        } else {
+          const value = getConditonalObject({
+            reactiveObject: () => MainStore.getCurrentElementsValues[0],
+            isStyle: true,
+            property: name,
+          });
+          // If value is undefined/null or not "hidden", consider it active
+          return !value || value !== "hidden";
         }
       },
       onlyIcon: true,
@@ -134,6 +156,56 @@ export const createPropertiesPanel = () => {
       ...args,
     });
   };
+
+  // Border Style Icons: Solid, Dotted, Dashed
+  const borderStyleIcons = (name, { ...args }) => {
+    const mapper = {
+      borderStyleSolid: "solid",
+      borderStyleDotted: "dotted",
+      borderStyleDashed: "dashed",
+    };
+    return iconControl({
+      name,
+      color: "var(--text-muted)",
+      size: 24,
+      padding: 2,
+      margin: 4,
+      condtional: () => {
+        return parseFloatAndUnit(
+          getConditonalObject({
+            reactiveObject: () => MainStore.getCurrentElementsValues[0],
+            isStyle: true,
+            property: "borderWidth",
+          }),
+        ).value;
+      },
+      onClick: () => {
+        const element = getConditonalObject({
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          isStyle: true,
+        });
+        if (element) {
+          element["borderStyle"] = mapper[name];
+        }
+      },
+      isActive: () => {
+        const element = getConditonalObject({
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          isStyle: true,
+        });
+        // Default to solid if not set
+        const currentStyle = element
+          ? element["borderStyle"] || "solid"
+          : "solid";
+        return currentStyle === mapper[name];
+      },
+      onlyIcon: true,
+      parentBorderTop: true,
+      parentBorderBottom: true,
+      ...args,
+    });
+  };
+
   const inputControl = ({
     label,
     name,
@@ -502,7 +574,7 @@ export const createPropertiesPanel = () => {
             size: "sm",
             style: "secondary",
             margin: 15,
-            onClick: (e, field) => {
+            onClick: (e) => {
               if (MainStore.activePage?.childrens.length) {
                 let message = __("Are you sure you want to delete the page?");
                 frappe.confirm(message, () => {
@@ -588,7 +660,7 @@ export const createPropertiesPanel = () => {
             style: () =>
               MainStore.activePage.firstPage ? "primary" : "secondary",
             margin: 15,
-            onClick: (e, field) => {
+            onClick: (e) => {
               MainStore.activePage.firstPage = !MainStore.activePage.firstPage;
               if (MainStore.activePage.firstPage) {
                 ElementStore.Elements.forEach((element) => {
@@ -612,7 +684,7 @@ export const createPropertiesPanel = () => {
               MainStore.activePage.oddPage ? "primary" : "secondary",
             margin: 15,
             size: "sm",
-            onClick: (e, field) => {
+            onClick: (e) => {
               MainStore.activePage.oddPage = !MainStore.activePage.oddPage;
               if (MainStore.activePage.oddPage) {
                 ElementStore.Elements.forEach((element) => {
@@ -636,7 +708,7 @@ export const createPropertiesPanel = () => {
               MainStore.activePage.evenPage ? "primary" : "secondary",
             margin: 15,
             size: "sm",
-            onClick: (e, field) => {
+            onClick: (e) => {
               MainStore.activePage.evenPage = !MainStore.activePage.evenPage;
               if (MainStore.activePage.evenPage) {
                 ElementStore.Elements.forEach((element) => {
@@ -660,7 +732,7 @@ export const createPropertiesPanel = () => {
               MainStore.activePage.lastPage ? "primary" : "secondary",
             margin: 15,
             size: "sm",
-            onClick: (e, field) => {
+            onClick: (e) => {
               MainStore.activePage.lastPage = !MainStore.activePage.lastPage;
               if (MainStore.activePage.lastPage) {
                 ElementStore.Elements.forEach((element) => {
@@ -930,6 +1002,7 @@ export const createPropertiesPanel = () => {
                 }
                 const n = Math.max(0, Math.floor(Number(value)));
                 MainStore.getCurrentElementsValues[0].minRows = n;
+                MainStore.getCurrentElementsValues[0].PreviewRowNo = n;
               },
             });
           },
@@ -1525,6 +1598,11 @@ export const createPropertiesPanel = () => {
           margin: 4,
           saveWithUom: true,
         }),
+      ],
+      [
+        borderStyleIcons("borderStyleSolid"),
+        borderStyleIcons("borderStyleDotted"),
+        borderStyleIcons("borderStyleDashed"),
       ],
       [
         borderWidthIcons("borderAll"),

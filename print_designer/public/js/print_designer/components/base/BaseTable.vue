@@ -8,15 +8,35 @@
 		:style="[
 			postionalStyles(startX, startY, width, height),
 			style.zIndex && { zIndex: style.zIndex },
+			// Force minimum size for empty tables
+			!columns.length && {
+				minWidth: '200px',
+				minHeight: '100px',
+				width: '200px',
+				height: '100px',
+			},
 		]"
 		:class="[
 			'table-container',
 			classes,
 			MainStore.getCurrentElementsId.includes(id) && 'active-elements',
+			!columns.length && 'empty-table',
 		]"
+		@contextmenu.prevent="handleTableContextMenu($event)"
 	>
 		<div
-			:style="['overflow: hidden;', widthHeightStyle(width, height)]"
+			:style="[
+				'overflow: hidden;',
+				widthHeightStyle(width, height),
+				// Force minimum size for empty tables inner div
+				!columns.length && {
+					minWidth: '200px',
+					minHeight: '100px',
+					width: '200px',
+					height: '100px',
+					display: 'block',
+				},
+			]"
 			@click.self="
 				() => {
 					selectedColumn = null;
@@ -24,7 +44,7 @@
 				}
 			"
 		>
-			<table class="printTable">
+			<table class="printTable" :style="!columns.length && { minWidth: '200px', minHeight: '100px', display: 'block', border: '2px dashed #d32f2f' }">
 				<thead>
 					<tr v-if="columns.length">
 						<th
@@ -101,6 +121,25 @@
 							}"
 						/>
 					</tr>
+					<!-- Reserved/Padding rows (shown with light background) -->
+					<tr
+						v-if="columns.length && reservedRows > 0"
+						v-for="n in reservedRows"
+						:key="'reserved-' + n"
+						class="reserved-row"
+					>
+						<td
+							v-for="column in columns"
+							:key="column.fieldname"
+							:style="[
+								style,
+								{ backgroundColor: 'rgba(200, 200, 200, 0.3)' },
+							]"
+							class="reserved-cell"
+						>
+							&nbsp;
+						</td>
+					</tr>
 				</tbody>
 			</table>
 		</div>
@@ -111,6 +150,7 @@
 			"
 		/>
 		<AppTableContextMenu v-if="menu" v-bind="{ menu }" @handleMenuClick="handleMenuClick" />
+		<AppTableContextMenu v-if="tableMenu" v-bind="{ menu: tableMenu }" :isTableMenu="true" @handleMenuClick="handleTableMenuClick" @close="tableMenu = null" />
 	</div>
 </template>
 
@@ -125,7 +165,7 @@ import {
 	deleteCurrentElements,
 	widthHeightStyle,
 } from "../../utils";
-import { toRefs, ref, watch } from "vue";
+import { toRefs, ref, watch, computed } from "vue";
 import { useDraw } from "../../composables/Draw";
 import BaseResizeHandles from "./BaseResizeHandles.vue";
 import AppTableContextMenu from "../layout/AppTableContextMenu.vue";
@@ -147,6 +187,7 @@ const currentColumn = ref(null);
 const columnDragging = ref(true);
 const draggableEl = ref(-1);
 const menu = ref(null);
+const tableMenu = ref(null);
 
 const {
 	id,
@@ -162,11 +203,26 @@ const {
 	altStyle,
 	classes,
 	PreviewRowNo,
+	minRows,
 	styleEditMode,
 	selectedColumn,
 	selectedDynamicText,
 	DOMRef,
 } = toRefs(props.object);
+
+// Compute reserved rows for visual padding in Design View
+const reservedRows = computed(() => {
+	const dataRows = MainStore.docData[props.object.table?.fieldname]?.length || 0;
+	const min = props.object.minRows || 0;
+	// Show all rows up to minRows (data rows + reserved rows)
+	const totalRows = Math.max(min, dataRows);
+	// Reserved rows = total - data rows
+	return Math.max(0, totalRows - dataRows);
+});
+
+// NOTE: minRows recalculation from height changes is handled EXCLUSIVELY by Resizable.js
+// (resizeend handler). This ensures a single source of truth and prevents feedback loops
+// where multiple watchers fire and overwrite each other's values.
 
 watch(
 	() => selectedColumn.value,
@@ -248,11 +304,48 @@ const handleMenuClick = (index, action) => {
 				applyStyleToHeader: false,
 			});
 			break;
-		case "delete":
-			columns.value.splice(index, 1)[0].dynamicContent?.forEach((el) => {
+		case "delete": {
+			const deletedColumn = columns.value.splice(index, 1)[0];
+			// Remove dynamicContent elements
+			deletedColumn?.dynamicContent?.forEach((el) => {
 				MainStore.dynamicData.splice(MainStore.dynamicData.indexOf(el), 1);
 			});
+			// Check if all columns deleted - auto-delete the table
+			if (columns.value.length === 0) {
+				MainStore.currentElements = {};
+				MainStore.currentElements[id.value] = props.object;
+				MainStore.getCurrentElementsId = [id.value];
+				deleteCurrentElements();
+				return;
+			}
+			// Rebalance remaining column widths to sum to 100%
+			if (columns.value.length > 0) {
+				const totalWidth = columns.value.reduce((sum, col) => sum + (col.width || 0), 0);
+				if (totalWidth > 0) {
+					columns.value.forEach((col) => {
+						col.width = (col.width / totalWidth) * 100;
+					});
+				} else {
+					// Equal distribution if no widths set
+					const equalWidth = 100 / columns.value.length;
+					columns.value.forEach((col) => {
+						col.width = equalWidth;
+					});
+				}
+			}
 			break;
+		}
+		case "deleteTable": {
+			// Remove all dynamicContent elements from this table
+			columns.value.forEach((col) => {
+				col.dynamicContent?.forEach((el) => {
+					MainStore.dynamicData.splice(MainStore.dynamicData.indexOf(el), 1);
+				});
+			});
+			// Delete the entire table element
+			deleteCurrentElements();
+			break;
+		}
 	}
 	columns.value.forEach((element, index) => {
 		element.id = index;
@@ -277,6 +370,29 @@ const handleMenu = (e, index) => {
 		menu.value.top = e.y - DOMRef.value.getBoundingClientRect().y + "px";
 		menu.value.index = index;
 	}
+};
+
+const handleTableContextMenu = (e) => {
+	// Only show table menu if clicking on the table container background, not on columns
+	if (e.target.closest('th')) return;
+	e.preventDefault();
+	const rect = DOMRef.value.getBoundingClientRect();
+	tableMenu.value = {
+		left: e.clientX - rect.left + "px",
+		top: e.clientY - rect.top + "px",
+		index: -1, // -1 indicates table-level menu
+	};
+};
+
+const handleTableMenuClick = (index, action) => {
+	if (action === "deleteTable") {
+		// Set this table as the current element and delete it
+		MainStore.currentElements = {};
+		MainStore.currentElements[id.value] = props.object;
+		MainStore.getCurrentElementsId = [id.value];
+		deleteCurrentElements();
+	}
+	tableMenu.value = null;
 };
 
 const dragstart = (ev, index) => {
@@ -435,5 +551,64 @@ const handleMouseUp = (e, tablewidth) => {
 .text-hover:hover {
 	box-sizing: border-box !important;
 	border-bottom: 1px solid var(--primary-color) !important;
+}
+
+/* Empty table indicator - makes tables with no columns visible */
+.empty-table {
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
+	background-color: rgba(255, 0, 0, 0.1) !important;
+	border: 3px dashed #d32f2f !important;
+	min-height: 80px !important;
+	min-width: 200px !important;
+	width: 200px !important;
+	height: 80px !important;
+	position: relative !important;
+	overflow: visible !important;
+
+	/* Ensure the inner div also has minimum size */
+	> div {
+		min-height: 80px !important;
+		min-width: 200px !important;
+		background-color: transparent !important;
+	}
+
+	/* Also style the table itself */
+	.printTable {
+		min-height: 80px !important;
+		min-width: 200px !important;
+	}
+
+	&::after {
+		content: "⚠ Empty Table - Right-click to Delete";
+		position: fixed !important;
+		top: 50% !important;
+		left: 50% !important;
+		transform: translate(-50%, -50%) !important;
+		color: #d32f2f !important;
+		font-size: 14px !important;
+		font-weight: bold !important;
+		font-family: Arial, sans-serif !important;
+		background: rgba(255, 255, 255, 0.95) !important;
+		padding: 8px 16px !important;
+		border-radius: 6px !important;
+		border: 2px solid #d32f2f !important;
+		pointer-events: none !important;
+		white-space: nowrap !important;
+		z-index: 999999 !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+	}
+}
+
+/* Reserved/Padding rows - light background to indicate minimum rows */
+.reserved-row {
+	background-color: rgba(200, 200, 200, 0.3);
+	border: 1px dashed rgba(150, 150, 150, 0.5);
+}
+
+.reserved-cell {
+	background-color: rgba(200, 200, 200, 0.3) !important;
+	border: 1px dashed rgba(150, 150, 150, 0.3) !important;
 }
 </style>

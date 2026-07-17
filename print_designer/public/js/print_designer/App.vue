@@ -36,6 +36,7 @@
 		as="image"
 		type="image/svg+xml"
 	/>
+	<Icons />
 	<div class="main-layout" id="main-layout">
 		<AppToolbar :class="toolbarClasses" />
 		<AppCanvas
@@ -49,6 +50,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, watchEffect } from "vue";
 import { useMainStore } from "./store/MainStore";
+import Icons from "./icons/Icons.vue";
 import AppToolbar from "./components/layout/AppToolbar.vue";
 import AppCanvas from "./components/layout/AppCanvas.vue";
 import AppPropertiesPanel from "./components/layout/AppPropertiesPanel.vue";

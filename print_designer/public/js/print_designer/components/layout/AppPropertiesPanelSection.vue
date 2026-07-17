@@ -38,7 +38,7 @@
 							@loadstart="borderCheckOnLoad(fd)"
 						>
 							<IconsUse
-								v-if="fd.icon"
+								v-if="fd.icon && !fd.icon.useLetterBox"
 								:name="fd.icon.name"
 								:key="fd.icon.name"
 								:size="fd.icon.size || 20"
@@ -50,13 +50,38 @@
 											? fd.icon.isActive
 											: fd.icon.isActive()
 									)
-										? 'var(--primary-color)'
-										: fd.icon.color || 'var(--gray-600)'
-								"
+											? 'var(--primary-color)'
+										: fd.icon.color || 'var(--text-muted)'
+									"
 								@click="
 									typeof fd.icon.onClick != 'function' || fd.icon.onClick($event)
 								"
 							/>
+							<!-- Letter Box Icon for Border Toggles -->
+							<span
+								v-if="fd.icon && fd.icon.useLetterBox"
+								class="border-toggle-box"
+								:class="[
+									fd.icon.letter === 'All' ? 'border-toggle-all' : '',
+									fd.icon.letter === 'L' ? 'border-toggle-left' : '',
+									fd.icon.letter === 'R' ? 'border-toggle-right' : '',
+									fd.icon.letter === 'T' ? 'border-toggle-top' : '',
+									fd.icon.letter === 'B' ? 'border-toggle-bottom' : '',
+									(
+										typeof fd.icon.isActive != 'function'
+											? fd.icon.isActive
+											: fd.icon.isActive()
+									)
+											? 'border-toggle-active'
+										: 'border-toggle-inactive'
+								]"
+								@click="
+									typeof fd.icon.onClick != 'function' || fd.icon.onClick($event)
+								"
+								:title="fd.icon.letter === 'All' ? 'All Borders' : fd.icon.letter + ' Border'"
+							>
+								{{ fd.icon.letter }}
+							</span>
 							<button
 								v-if="fd.button"
 								:class="[
@@ -448,6 +473,9 @@ const handleBlur = ({
 			padding-bottom: 4px;
 			.main-label {
 				margin-top: 0px;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
 			}
 		}
 		&.flex-row {
@@ -458,5 +486,78 @@ const handleBlur = ({
 			padding: 5px !important;
 		}
 	}
+}
+
+/* Border Toggle Letter Boxes - Mimic Help Tooltip Style */
+.border-toggle-box {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	margin: 4px 3px;
+	border: 1px solid var(--border-color);
+	border-radius: 3px;
+	font-size: 10px;
+	font-weight: bold;
+	cursor: pointer;
+	user-select: none;
+	background: var(--control-bg);
+	color: var(--text-muted);
+	transition: all 0.15s ease;
+}
+
+/* Active State */
+.border-toggle-active {
+	background: var(--primary-color);
+	color: white !important;
+	border-color: var(--primary-color) !important;
+}
+
+/* Inactive State */
+.border-toggle-inactive {
+	background: var(--control-bg);
+	color: var(--text-muted);
+}
+
+.border-toggle-inactive:hover {
+	background: var(--primary-color);
+	color: white;
+	border-color: var(--primary-color);
+}
+
+/* Border Position Indicators - Thick borders for position */
+.border-toggle-left {
+	border-left: 3px solid var(--text-muted);
+}
+.border-toggle-left.border-toggle-active {
+	border-left: 3px solid white;
+}
+
+.border-toggle-right {
+	border-right: 3px solid var(--text-muted);
+}
+.border-toggle-right.border-toggle-active {
+	border-right: 3px solid white;
+}
+
+.border-toggle-top {
+	border-top: 3px solid var(--text-muted);
+}
+.border-toggle-top.border-toggle-active {
+	border-top: 3px solid white;
+}
+
+.border-toggle-bottom {
+	border-bottom: 3px solid var(--text-muted);
+}
+.border-toggle-bottom.border-toggle-active {
+	border-bottom: 3px solid white;
+}
+
+/* All borders active - solid box */
+.border-toggle-all.border-toggle-active {
+	background: var(--primary-color);
+	border: 1px solid var(--primary-color);
 }
 </style>
