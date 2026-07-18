@@ -6,6 +6,7 @@ This provides the exact console method that works reliably for database operatio
 Usage examples and patterns for efficient debugging and development.
 """
 
+
 def get_console_template(operation_type="basic"):
     """
     Get console command templates for different operations
@@ -18,16 +19,15 @@ def get_console_template(operation_type="basic"):
     """
 
     templates = {
-        "basic": '''echo 'import frappe
-frappe.init("moo.localhost")
+        "basic": """echo 'import frappe
+frappe.init("{your_site}")
 frappe.connect()
 
 # Your code here
 print("Console ready!")
-' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console''',
-
-        "field_check": '''echo 'import frappe
-frappe.init("moo.localhost")
+' | /bench --site {your_site} console""",
+        "field_check": """echo 'import frappe
+frappe.init("{your_site}")
 frappe.connect()
 
 # Check Payment Entry field
@@ -35,10 +35,9 @@ fields = frappe.db.get_all("Custom Field",
     filters={"dt": "Payment Entry", "fieldname": "pd_custom_tax_base_amount"},
     fields=["name", "fetch_from", "fieldtype", "label"])
 print("Field info:", fields)
-' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console''',
-
-        "field_fix": '''echo 'import frappe
-frappe.init("moo.localhost")
+' | /bench --site {your_site} console""",
+        "field_fix": """echo 'import frappe
+frappe.init("{your_site}")
 frappe.connect()
 
 # Fix fetch_from field
@@ -53,10 +52,9 @@ if field_name:
     print(f"Fixed: {old_fetch} → None")
 else:
     print("Field not found")
-' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console''',
-
+' | /bench --site {your_site} console""",
         "sql": '''echo 'import frappe
-frappe.init("moo.localhost")
+frappe.init("{your_site}")
 frappe.connect()
 
 # Execute SQL query
@@ -69,10 +67,9 @@ result = frappe.db.sql("""
 print(f"Found {len(result)} fields with fetch_from:")
 for r in result:
     print(f"  {r.fieldname}: {r.fetch_from}")
-' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console''',
-
+' | /bench --site {your_site} console''',
         "status": '''echo 'import frappe
-frappe.init("moo.localhost")
+frappe.init("{your_site}")
 frappe.connect()
 
 # Check Thai tax fields status
@@ -97,7 +94,7 @@ if fetch_issues:
         print(f"  {issue.fieldname} → {issue.fetch_from}")
 else:
     print("\\n✅ No fetch_from issues found")
-' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console'''
+' | /bench --site {your_site} console''',
     }
 
     return templates.get(operation_type, templates["basic"])
@@ -113,7 +110,7 @@ def print_usage_guide():
 METHOD THAT WORKS RELIABLY (as discovered):
 ==============================================================
 
-echo 'PYTHON_CODE_HERE' | /Users/manotlj/miniconda3/bin/bench --site moo.localhost console
+echo 'PYTHON_CODE_HERE' | /bench --site {your_site} console
 
 ==============================================================
 READY-TO-USE TEMPLATES:
@@ -144,10 +141,10 @@ USAGE PATTERNS:
 ==============================================================
 
 🟢 BASIC PATTERN:
-1. Start with: echo 'PYTHON_CODE' | bench --site moo.localhost console
+1. Start with: echo 'PYTHON_CODE' | bench --site {your_site} console
 2. Always include:
    import frappe
-   frappe.init("moo.localhost")
+   frappe.init("{your_site}")
    frappe.connect()
 3. Add your specific operations
 4. Use print() for output
@@ -156,13 +153,13 @@ USAGE PATTERNS:
 For complex operations, use the echo approach with proper escaping:
 
 echo 'import frappe
-frappe.init("moo.localhost")
+frappe.init("{your_site}")
 frappe.connect()
 
 # Your multi-line code here
 result = frappe.db.get_value("DocType", "DocType Name", "field")
 print("Result:", result)
-' | bench --site moo.localhost console
+' | bench --site {your_site} console
 
 🟢 DEBUGGING THAI TAX ISSUES:
 - Check field existence: frappe.db.exists("Custom Field", {...})
@@ -195,7 +192,7 @@ frappe.clear_cache()
 TIPS:
 ==============================================================
 
-1. 🎯 Always test on moo.localhost first
+1. 🎯 Always test on your_site first
 2. 🔒 Use transactions for risky operations: frappe.db.begin(); frappe.db.commit()
 3. 📝 Add print statements for debugging
 4. 🧹 Clear cache after field changes

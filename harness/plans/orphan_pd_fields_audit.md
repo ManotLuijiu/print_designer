@@ -28,7 +28,7 @@
 
 **`pd_custom_wht_preview_section` is the canonical name.** The old name only appears in legacy migration/patch code that should never run again.
 
-## Database State on `aws-solution.bunchee.online`
+## Database State on `{site_name}`
 
 ### `tabCustom Field` orphan records on `Payment Entry` (20 total)
 
@@ -151,7 +151,7 @@ WHERE dt = 'Payment Entry'
   );
 ```
 
-Followed by `bench --site aws-solution.bunchee.online clear-cache` so the meta cache picks up the cleanup.
+Followed by `bench --site {site_name} clear-cache` so the meta cache picks up the cleanup.
 
 ## Tasks (bd)
 

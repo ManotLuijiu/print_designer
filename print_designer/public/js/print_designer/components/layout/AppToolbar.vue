@@ -1,6 +1,6 @@
 <template>
 	<Icons />
-	<div class="sidebar">
+	<div class="sidebar" v-bind="attrs">
 		<div class="toolbar-section mt-3">
 			<div>
 				<template
@@ -102,7 +102,11 @@ import Icons from "../../icons/Icons.vue";
 import IconsUse from "../../icons/IconsUse.vue";
 import { useMainStore } from "../../store/MainStore";
 import LayersPanel from "./LayersPanel.vue";
-import { ref } from "vue";
+import { ref, useAttrs } from "vue";
+
+defineOptions({ inheritAttrs: false });
+const attrs = useAttrs();
+
 const MainStore = useMainStore();
 const showBorderHelp = ref(false);
 

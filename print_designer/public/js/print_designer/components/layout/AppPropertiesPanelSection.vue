@@ -108,11 +108,15 @@
 										: fd.button.label
 								}}
 							</button>
-							<AppPropertiesFrappeControl
-								:key="`FC_${fd.name}`"
-								v-if="fd.frappeControl"
-								:field="fd"
-							/>
+								<AppPropertiesFrappeControl
+									:key="`FC_${fd.name}`"
+									v-if="fd.frappeControl"
+									:field="fd"
+									/>
+								<component
+									:is="fd.component"
+									v-if="fd.component && (typeof fd.condtional != 'function' || fd.condtional())"
+									/>
 							<label
 								v-if="
 									!fd.frappeControl &&
@@ -241,7 +245,7 @@
 					></div>
 				</div>
 				<button
-					v-else-if="field.button"
+					v-else-if="field.button && (typeof field.condtional != 'function' || field.condtional())"
 					:class="[
 						`btn btn-${field.button.size || 'md'}`,
 						field.button.style && `btn-${field.button.style}`,
@@ -254,7 +258,7 @@
 					"
 					:style="[
 						field.flex && { flex: field.flex },
-						`padding: ${field.button.padding}px; margin-top: ${field.button.margin}px; margin-bottom: ${field.button.margin}px;`,
+						`padding: ${field.button.padding || 4}px; margin-top: ${field.button.margin || 4}px; margin-bottom: ${field.button.margin || 4}px;`,
 						'font-size:11px;',
 					]"
 				>

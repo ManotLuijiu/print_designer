@@ -102,7 +102,7 @@ def verify_deletion():
 def delete_and_verify():
     """Complete process: find, delete, and verify"""
     
-    print("🎯 Deleting wht_section from Sales Order in tipsiricons.bunchee.online")
+    print("🎯 Deleting wht_section from Sales Order in {site1}.{your_domain}.online")
     print("=" * 70)
     
     # Step 1: Find the field

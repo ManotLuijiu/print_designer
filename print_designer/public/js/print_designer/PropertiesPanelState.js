@@ -1,3 +1,4 @@
+import { watch, markRaw } from "vue";
 import { useMainStore } from "./store/MainStore";
 import { useElementStore } from "./store/ElementStore";
 import { makeFeild } from "./frappeControl";
@@ -9,9 +10,32 @@ import {
   getConditonalObject,
   getParentPage,
 } from "./utils";
+
+// P3: Border Visual Editor Component - use markRaw to avoid reactivity warning
+import BorderVisualEditor from "./components/custom/BorderVisualEditor.vue";
+const BorderVisualEditorRaw = markRaw(BorderVisualEditor);
+// P4: Drag Paint Controls Component
+import DragPaintControls from "./components/custom/DragPaintControls.vue";
+const DragPaintControlsRaw = markRaw(DragPaintControls);
 export const createPropertiesPanel = () => {
   const MainStore = useMainStore();
-  const ElementStore = useElementStore();
+  const ElementStore = useElementStore(); // Used in some closures
+
+  // Step 1: Watch for selection changes and log target object
+  watch(
+    () => MainStore.currentElements,
+    (newVal) => {
+      const keys = Object.keys(newVal);
+      const values = Object.values(newVal);
+      const firstElement = values[0];
+      console.log(
+        `[Selection] Changed: count=${keys.length} | firstType=${firstElement?.type} | styleEditMode=${firstElement?.styleEditMode} | selectedColumn=${firstElement?.selectedColumn?.label ?? "none"}`,
+        { keys, firstElement },
+      );
+    },
+    { deep: true },
+  );
+
   const iconControl = ({
     name,
     size,
@@ -116,15 +140,85 @@ export const createPropertiesPanel = () => {
           }),
         ).value;
       },
-      onClick: () =>
-        handleBorderIconClick(
-          getConditonalObject({
-            reactiveObject: () => MainStore.getCurrentElementsValues[0],
-            isStyle: true,
-          }),
-          name,
-        ),
+      onClick: () => {
+        const selectedElement = MainStore.getCurrentElementsValues[0];
+        const hasSelectedColumn = !!selectedElement?.selectedColumn;
+        const styleEditMode = selectedElement?.styleEditMode;
+
+        // For L/R in header mode (no column selected), target specific column's style
+        if (
+          styleEditMode === "header" &&
+          !hasSelectedColumn &&
+          selectedElement?.columns?.length
+        ) {
+          let targetColumnStyle;
+
+          if (name === "borderLeftStyle") {
+            // L: target first column's style
+            targetColumnStyle = selectedElement.columns[0].style;
+          } else if (name === "borderRightStyle") {
+            // R: target last column's style
+            targetColumnStyle =
+              selectedElement.columns[selectedElement.columns.length - 1].style;
+          }
+
+          if (targetColumnStyle) {
+            if (targetColumnStyle[name] === "hidden") {
+              targetColumnStyle[name] = "solid";
+            } else {
+              targetColumnStyle[name] = "hidden";
+            }
+          }
+          return;
+        }
+
+        // Default behavior: use getConditonalObject
+        let targetStyle = getConditonalObject({
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          isStyle: true,
+        });
+        handleBorderIconClick(targetStyle, name);
+      },
       isActive: () => {
+        const selectedElement = MainStore.getCurrentElementsValues[0];
+        const hasSelectedColumn = !!selectedElement?.selectedColumn;
+        const styleEditMode = selectedElement?.styleEditMode;
+
+        // Helper: border is ACTIVE if NOT hidden (undefined = visible like Excel grid)
+        const isBorderActive = (styleObj) => {
+          if (!styleObj) return true;
+          return styleObj[name] !== "hidden";
+        };
+
+        // For L/R in header mode (no column selected), check specific column's style
+        if (
+          styleEditMode === "header" &&
+          !hasSelectedColumn &&
+          selectedElement?.columns?.length
+        ) {
+          let checkStyle;
+
+          if (name === "borderLeftStyle") {
+            // L: check first column's style
+            checkStyle = selectedElement.columns[0].style;
+          } else if (name === "borderRightStyle") {
+            // R: check last column's style
+            checkStyle =
+              selectedElement.columns[selectedElement.columns.length - 1].style;
+          }
+
+          if (checkStyle) {
+            return isBorderActive(checkStyle);
+          }
+          return true; // Default to active if no column style
+        }
+
+        // Default: check the conditional object
+        let checkStyle = getConditonalObject({
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          isStyle: true,
+        });
+
         if (name === "borderAll") {
           return [
             "borderTopStyle",
@@ -132,22 +226,11 @@ export const createPropertiesPanel = () => {
             "borderLeftStyle",
             "borderRightStyle",
           ].every((side) => {
-            const value = getConditonalObject({
-              reactiveObject: () => MainStore.getCurrentElementsValues[0],
-              isStyle: true,
-              property: side,
-            });
-            // If value is undefined/null or not "hidden", consider it active
-            return !value || value !== "hidden";
+            const value = checkStyle?.[side];
+            return !!value && value !== "hidden";
           });
         } else {
-          const value = getConditonalObject({
-            reactiveObject: () => MainStore.getCurrentElementsValues[0],
-            isStyle: true,
-            property: name,
-          });
-          // If value is undefined/null or not "hidden", consider it active
-          return !value || value !== "hidden";
+          return isBorderActive(checkStyle);
         }
       },
       onlyIcon: true,
@@ -155,6 +238,127 @@ export const createPropertiesPanel = () => {
       parentBorderBottom: true,
       ...args,
     });
+  };
+
+  // Border Presets (P2)
+  const borderPresets = [
+    { name: "No Grid", borders: { L: false, R: false, T: false, B: false } },
+    { name: "Full Grid", borders: { L: true, R: true, T: true, B: true } },
+    {
+      name: "Outline Only",
+      borders: {
+        L: true,
+        R: true,
+        T: true,
+        B: true,
+        innerV: false,
+        innerH: false,
+      },
+    },
+    {
+      name: "Horizontal",
+      borders: { L: false, R: false, T: true, B: true, innerH: true },
+    },
+  ];
+
+  const applyBorderPreset = (preset) => {
+    const selectedElement = MainStore.getCurrentElementsValues[0];
+    if (!selectedElement) return;
+
+    const getStyleObj = () =>
+      getConditonalObject({
+        reactiveObject: () => selectedElement,
+        isStyle: true,
+      });
+
+    // Apply outer borders
+    const style = getStyleObj();
+    if (style) {
+      style.borderLeftStyle = preset.borders.L ? "solid" : "hidden";
+      style.borderRightStyle = preset.borders.R ? "solid" : "hidden";
+      style.borderTopStyle = preset.borders.T ? "solid" : "hidden";
+      style.borderBottomStyle = preset.borders.B ? "solid" : "hidden";
+    }
+
+    // Apply to all columns if table
+    if (selectedElement.columns) {
+      selectedElement.columns.forEach((col) => {
+        if (!col.style) col.style = {};
+        col.style.borderLeftStyle = preset.borders.L ? "solid" : "hidden";
+        col.style.borderRightStyle = preset.borders.R ? "solid" : "hidden";
+      });
+    }
+  };
+
+  // P3: Visual Border Editor - using Vue component
+  const createBorderGrid = () => {
+    return {
+      label: __("Border Grid"),
+      name: "borderGrid",
+      labelDirection: "row",
+      isLabelled: false,
+      condtional: () => {
+        const element = MainStore.getCurrentElementsValues[0];
+        return element?.type === "table";
+      },
+      component: BorderVisualEditorRaw,
+    };
+  };
+
+  // P4: Drag Paint Controls - using Vue component
+  const createDragPaintControls = () => {
+    return {
+      label: __("Drag Paint"),
+      name: "dragPaint",
+      labelDirection: "row",
+      isLabelled: false,
+      condtional: () => {
+        const element = MainStore.getCurrentElementsValues[0];
+        return element?.type === "table";
+      },
+      component: DragPaintControlsRaw,
+    };
+  };
+
+  // Copy/Paste Border Style (P5)
+  let copiedBorderStyle = null;
+  const copyBorderStyle = () => {
+    const selectedElement = MainStore.getCurrentElementsValues[0];
+    if (!selectedElement) return;
+    const style = getConditonalObject({
+      reactiveObject: () => selectedElement,
+      isStyle: true,
+    });
+    if (style) {
+      copiedBorderStyle = { ...style };
+      frappe.show_alert(__("Border style copied"));
+    }
+  };
+  const pasteBorderStyle = () => {
+    if (!copiedBorderStyle) return;
+    const selectedElement = MainStore.getCurrentElementsValues[0];
+    if (!selectedElement) return;
+    const style = getConditonalObject({
+      reactiveObject: () => selectedElement,
+      isStyle: true,
+    });
+    if (style) {
+      Object.assign(style, {
+        borderLeftStyle: copiedBorderStyle.borderLeftStyle,
+        borderRightStyle: copiedBorderStyle.borderRightStyle,
+        borderTopStyle: copiedBorderStyle.borderTopStyle,
+        borderBottomStyle: copiedBorderStyle.borderBottomStyle,
+        borderLeftWidth: copiedBorderStyle.borderLeftWidth,
+        borderRightWidth: copiedBorderStyle.borderRightWidth,
+        borderTopWidth: copiedBorderStyle.borderTopWidth,
+        borderBottomWidth: copiedBorderStyle.borderBottomWidth,
+        borderLeftColor: copiedBorderStyle.borderLeftColor,
+        borderRightColor: copiedBorderStyle.borderRightColor,
+        borderTopColor: copiedBorderStyle.borderTopColor,
+        borderBottomColor: copiedBorderStyle.borderBottomColor,
+      });
+      frappe.show_alert(__("Border style pasted"));
+    }
   };
 
   // Border Style Icons: Solid, Dotted, Dashed
@@ -820,7 +1024,7 @@ export const createPropertiesPanel = () => {
               reactiveObject: () => MainStore.getCurrentElementsValues[0],
               propertyName: "zIndex",
               isStyle: true,
-              formatValue: (object, property, isStyle) => {
+              formatValue: (object, property, _isStyle) => {
                 if (!object) return;
                 return parseInt(object[property]) || 0;
               },
@@ -938,7 +1142,7 @@ export const createPropertiesPanel = () => {
                   MainStore.frappeControls[name].$input.blur();
                 }
               },
-              formatValue: (object, property, isStyle) => {
+              formatValue: (object, property, _isStyle) => {
                 if (!object) return;
                 return object[property]?.fieldname || "";
               },
@@ -1031,7 +1235,7 @@ export const createPropertiesPanel = () => {
                 { label: "Yes", value: "Yes" },
                 { label: "No", value: "No" },
               ],
-              formatValue: (object, property, isStyle) => {
+              formatValue: (object, property, _isStyle) => {
                 if (!object) return;
                 return object[property] ? "Yes" : "No";
               },
@@ -1079,7 +1283,7 @@ export const createPropertiesPanel = () => {
                   MainStore.globalStyles["table"]
                 );
               },
-              onChangeCallback: (value) => {
+              onChangeCallback: (_value) => {
                 if (
                   MainStore.getCurrentElementsValues[0]?.selectedDynamicText
                 ) {
@@ -1122,7 +1326,8 @@ export const createPropertiesPanel = () => {
             MainStore.getCurrentElementsValues[0].selectedColumn,
           frappeControl: (ref, name) => {
             const MainStore = useMainStore();
-            const ElementStore = useElementStore();
+            // ElementStore available for future use
+            // const ElementStore = useElementStore();
             makeFeild({
               name,
               ref,
@@ -1136,7 +1341,7 @@ export const createPropertiesPanel = () => {
                 { label: "Yes", value: "Yes" },
                 { label: "No", value: "No" },
               ],
-              formatValue: (object, property, isStyle) => {
+              formatValue: (object, property, _isStyle) => {
                 if (!object) return;
                 return object[property] ? "Yes" : "No";
               },
@@ -1199,7 +1404,7 @@ export const createPropertiesPanel = () => {
                 { label: "Yes", value: "Yes" },
                 { label: "No", value: "No" },
               ],
-              formatValue: (object, property, isStyle) => {
+              formatValue: (object, property, _isStyle) => {
                 if (!object) return;
                 return object[property] ? "Yes" : "No";
               },
@@ -1297,7 +1502,7 @@ export const createPropertiesPanel = () => {
                   MainStore.globalStyles[styleClass]
                 );
               },
-              onChangeCallback: (value) => {
+              onChangeCallback: (_value) => {
                 if (
                   MainStore.getCurrentElementsValues[0]?.selectedDynamicText
                 ) {
@@ -1369,7 +1574,7 @@ export const createPropertiesPanel = () => {
                   MainStore.globalStyles[styleClass]
                 );
               },
-              onChangeCallback: (value) => {
+              onChangeCallback: (_value) => {
                 let object = MainStore.getCurrentElementsValues[0];
                 if (!object) return;
                 if (object.labelDisplayStyle == "standard") {
@@ -1583,10 +1788,102 @@ export const createPropertiesPanel = () => {
       ],
     ],
   });
+  // P6: Per-border color inputs
+  const perBorderColor = (side, label) => {
+    const propMap = {
+      L: "borderLeftColor",
+      R: "borderRightColor",
+      T: "borderTopColor",
+      B: "borderBottomColor",
+    };
+    const propertyName = propMap[side];
+    return {
+      label: label,
+      name: propertyName,
+      labelDirection: "column",
+      isLabelled: true,
+      condtional: () => {
+        const style = getConditonalObject({
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          isStyle: true,
+        });
+        return (
+          style?.borderLeftStyle !== "hidden" ||
+          style?.borderRightStyle !== "hidden"
+        );
+      },
+      frappeControl: (ref, name) => {
+        makeFeild({
+          name: name,
+          ref: ref,
+          fieldtype: "Color",
+          requiredData: [MainStore.getCurrentElementsValues[0]],
+          reactiveObject: () => MainStore.getCurrentElementsValues[0],
+          propertyName: propertyName,
+          isStyle: true,
+        });
+      },
+    };
+  };
+
   MainStore.propertiesPanel.push({
     title: "Border",
     sectionCondtional: () => MainStore.getCurrentElementsId.length === 1,
     fields: [
+      // P2: Border Presets
+      [
+        {
+          label: __("Presets"),
+          name: "borderPresets",
+          labelDirection: "row",
+          isLabelled: false,
+          condtional: () => true,
+          frappeControl: (ref, _name) => {
+            const container = document.createElement("div");
+            container.className = "flex gap-1 flex-wrap";
+            borderPresets.forEach((preset) => {
+              const btn = document.createElement("button");
+              btn.className = "btn btn-xs btn-default";
+              btn.textContent = preset.name;
+              btn.onclick = () => applyBorderPreset(preset);
+              container.appendChild(btn);
+            });
+            ref?.appendChild(container);
+          },
+        },
+      ],
+      // Copy/Paste Borders (P5)
+      [
+        {
+          label: __("Copy"),
+          name: "copyBorder",
+          labelDirection: "column",
+          isLabelled: true,
+          condtional: () => true,
+          frappeControl: (ref, _name) => {
+            const btn = document.createElement("button");
+            btn.className = "btn btn-xs btn-default";
+            btn.textContent = __("Copy");
+            btn.onclick = copyBorderStyle;
+            ref?.appendChild(btn);
+          },
+        },
+        {
+          label: __("Paste"),
+          name: "pasteBorder",
+          labelDirection: "column",
+          isLabelled: true,
+          condtional: () => copiedBorderStyle !== null,
+          frappeControl: (ref, _name) => {
+            const btn = document.createElement("button");
+            btn.className = "btn btn-xs btn-default";
+            btn.textContent = __("Paste");
+            btn.onclick = pasteBorderStyle;
+            ref?.appendChild(btn);
+          },
+        },
+      ],
+      // Main border controls
       [
         styleInputwithIcon("borderWidth", 24, {
           padding: 6,
@@ -1611,6 +1908,14 @@ export const createPropertiesPanel = () => {
         borderWidthIcons("borderTopStyle"),
         borderWidthIcons("borderBottomStyle"),
       ],
+      // P6: Per-border colors
+      [perBorderColor("L", __("Left")), perBorderColor("R", __("Right"))],
+      [perBorderColor("T", __("Top")), perBorderColor("B", __("Bottom"))],
+      // P3: Visual Border Editor (3x3 grid in dialog)
+      [createBorderGrid()],
+      // P4: Drag Paint Controls
+      [createDragPaintControls()],
+      // Legacy combined border color
       {
         label: "Border Color",
         name: "borderColor",

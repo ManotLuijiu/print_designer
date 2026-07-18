@@ -4,7 +4,7 @@ from frappe.utils import flt
 
 
 @click.command()
-@click.option('--site', default='moo.localhost', help='Site name')
+@click.option('--site', default='{your_site}', help='Site name')
 @click.option('--pnd-form', default='PND53-2568-09-073', help='PND Form name to test')
 def test_pnd_population(site, pnd_form):
 	"""Test PND53 Form automatic WHT certificate population"""

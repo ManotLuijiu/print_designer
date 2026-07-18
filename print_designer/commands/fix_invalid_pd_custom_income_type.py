@@ -95,7 +95,7 @@ def execute():
 if __name__ == "__main__":
     import sys
     sys.path.insert(0, "/home/frappe/frappe-bench/apps/frappe")
-    frappe.init("digisoft-erp.bunchee.online")
+    frappe.init("digisoft-erp.{your_domain}.online")
     frappe.set_user("Administrator")
     count = fix_invalid_pd_custom_income_type()
     print(f"\n{'='*60}")

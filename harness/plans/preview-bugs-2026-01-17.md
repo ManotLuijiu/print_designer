@@ -2,7 +2,7 @@
 
 ## Bug 1: Header/Content/Footer Not Respected in Preview
 
-**URL**: <https://aws-solution.bunchee.online/desk/print/Sales%20Invoice/BL6907-00001>
+**URL**: <https://{site_name}/desk/print/Sales%20Invoice/BL6907-00001>
 **Status**: ✅ FIXED
 **Root Cause**: The print_format.html was using old styles when `pdf_generator != "chrome"`, which didn't have proper header/footer positioning CSS
 **Fix Applied**: Changed print_format.html to always use `render_styles()` for Print Designer formats, regardless of `pdf_generator` value
@@ -64,7 +64,7 @@
 
 ## Bug 7: SVG Sprite Icons Loaded in Properties Panel (DOM Bloat)
 
-**URL**: <https://aws-solution.bunchee.online/desk/print-designer/Invoice%20-%20AWS%20Solution>
+**URL**: <https://{site_name}/desk/print-designer/Invoice%20-%20AWS%20Solution>
 **Status**: TODO
 **Description**: The `<svg id="printIcons">` sprite (containing all icon symbols like `layerPanel`, `borderAll`, `borderLeftStyle`, etc.) is being loaded INSIDE the properties panel (`<div class="properties-container app-sections properties-panel">`). This causes:
 
@@ -94,7 +94,7 @@
 
 ## Bug 8: Border Toggle Icons All Look Same (Dark Theme)
 
-**URL**: <https://aws-solution.bunchee.online/desk/print-designer/Invoice%20-%20AWS%20Solution>
+**URL**: <https://{site_name}/desk/print-designer/Invoice%20-%20AWS%20Solution>
 **Status**: ✅ FIXED
 **Description**: Border toggle icons (`borderAll`, `borderLeftStyle`, `borderRightStyle`, `borderTopStyle`, `borderBottomStyle`) all look the same in Dark theme. User cannot distinguish which border is active.
 

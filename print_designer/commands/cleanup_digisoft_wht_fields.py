@@ -138,7 +138,7 @@ def verify_complete_removal():
 def complete_cleanup():
     """Complete cleanup process for all wht_section fields"""
     
-    print("🧹 Complete Cleanup: Removing all wht_section fields from tipsiricons.bunchee.online")
+    print("🧹 Complete Cleanup: Removing all wht_section fields from {site1}.{your_domain}.online")
     print("=" * 80)
     
     # Step 1: Find all fields
@@ -153,7 +153,7 @@ def complete_cleanup():
         # Step 3: Verify removal
         if verify_complete_removal():
             print("\n🎉 CLEANUP COMPLETED SUCCESSFULLY!")
-            print("   All wht_section fields have been removed from tipsiricons.bunchee.online")
+            print("   All wht_section fields have been removed from {site1}.{your_domain}.online")
             return True
         else:
             print("\n⚠️  CLEANUP INCOMPLETE - some fields remain")

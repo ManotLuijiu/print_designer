@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Patch script to add watermark margin fields to Print Settings for aws-solution site.
-Run with: bench --site aws-solution.bunchee.online execute add_watermark_margin_fields.py
+Patch script to add watermark margin fields to Print Settings for {site_name} site.
+Run with: bench --site {site_name} execute add_watermark_margin_fields.py
 """
 
 import frappe

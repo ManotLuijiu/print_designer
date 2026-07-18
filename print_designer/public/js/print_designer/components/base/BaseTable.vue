@@ -55,7 +55,7 @@
 									maxWidth: `${column.width}%`,
 								},
 								headerStyle,
-								column.applyStyleToHeader && column.style,
+								column.style, // Always apply column style for border overrides
 							]"
 							v-for="(column, index) in columns"
 							:class="
@@ -224,9 +224,17 @@ const reservedRows = computed(() => {
 // (resizeend handler). This ensures a single source of truth and prevents feedback loops
 // where multiple watchers fire and overwrite each other's values.
 
+// Log selection state for debugging border toggles
 watch(
 	() => selectedColumn.value,
 	(value) => {
+		console.log(
+			"[TableSelection]",
+			"selectedColumn:", value?.label || null,
+			"| styleEditMode:", styleEditMode.value,
+			"| columns:", props.object.columns?.length,
+			"| isWholeTable:", !value
+		);
 		if (value) {
 			MainStore.frappeControls.applyStyleToHeader?.set_value(value.applyStyleToHeader);
 		}
@@ -505,15 +513,9 @@ const handleMouseUp = (e, tablewidth) => {
 		width: 100%;
 		overflow: hidden;
 
-		tr:first-child th {
-			border-top-style: solid !important;
-		}
-		tr th:first-child {
-			border-left-style: solid !important;
-		}
-		tr th:last-child {
-			border-right-style: solid !important;
-		}
+		// NOTE: Borders are controlled by inline styles, not CSS
+		// This allows border-left-style: hidden to work correctly
+
 		.current-column {
 			outline: 1.5px solid var(--primary-color);
 			outline-offset: -1.5px;

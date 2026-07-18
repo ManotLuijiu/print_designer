@@ -8,8 +8,8 @@ with Playwright.
 
 ## Verified production state (2026-06-29)
 
-- Site: `https://aws-solution.bunchee.online/desk/print-designer/Receipt`
-- Site is hosted by this bench: `sites/aws-solution.bunchee.online`.
+- Site: `https://{site_name}/desk/print-designer/Receipt`
+- Site is hosted by this bench: `sites/{site_name}`.
 - Authentication works with the user-provided Administrator account. Do not store
   the password in this repository or harness.
 - The served Print Format is intact:
@@ -64,7 +64,7 @@ with Playwright.
 ```bash
 python3 -m unittest print_designer.tests.test_print_designer_header_source -v
 bench build --app print_designer
-bench --site aws-solution.bunchee.online clear-cache
+bench --site {site_name} clear-cache
 ```
 
 Use `/tmp/diagnose_receipt.py` only if it still exists. It is temporary and must

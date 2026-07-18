@@ -44,12 +44,29 @@ import { useMainStore } from "../../store/MainStore";
 import { useElementStore } from "../../store/ElementStore";
 import { createPropertiesPanel } from "../../PropertiesPanelState";
 import AppPropertiesPanelSection from "./AppPropertiesPanelSection.vue";
-import { onMounted } from "vue";
+import { onMounted, watch } from "vue";
 import Icons from "../../icons/Icons.vue";
 
 const MainStore = useMainStore();
 const ElementStore = useElementStore();
 onMounted(() => createPropertiesPanel());
+
+// Log selection state for debugging
+watch(
+  () => MainStore.currentElements,
+  (currentElements) => {
+    const keys = Object.keys(currentElements);
+    const values = Object.values(currentElements);
+    console.log("[Selection] currentElements changed:", {
+      count: keys.length,
+      types: values.map((v) => v?.type),
+      ids: keys,
+      selectedColumns: values.map((v) => v?.selectedColumn?.label),
+      styleEditModes: values.map((v) => v?.styleEditMode),
+    });
+  },
+  { deep: true }
+);
 </script>
 <style deep lang="scss">
 .properties-container {

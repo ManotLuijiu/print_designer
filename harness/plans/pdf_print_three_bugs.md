@@ -1,6 +1,6 @@
 # PDF Print Three Bugs — Fix Plan (2026-06-30)
 
-## User-Reported Bugs (URL: `https://aws-solution.bunchee.online/api/method/frappe.utils.print_format.download_pdf?doctype=Payment+Entry&name=ACC-PAY-2606-00001&format=Receipt&no_letterhead=1&_lang=en`)
+## User-Reported Bugs (URL: `https://{site_name}/api/method/frappe.utils.print_format.download_pdf?doctype=Payment+Entry&name=ACC-PAY-2606-00001&format=Receipt&no_letterhead=1&_lang=en`)
 
 | # | Bug | Status |
 |---|---|---|
@@ -64,7 +64,7 @@ So the Print Format's explicit intent wins over the Desk's auto-injected `_lang=
 ## Deployment
 
 - `bench restart` (user-approved) cleared gunicorn worker Python module caches
-- `bench --site aws-solution.bunchee.online clear-cache` cleared site cache
+- `bench --site {site_name} clear-cache` cleared site cache
 - All 27+ tests still pass
 
 ## bd Tasks

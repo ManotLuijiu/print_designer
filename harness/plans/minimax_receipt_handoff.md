@@ -8,12 +8,12 @@ browser-tested**. The exact next command is:
 ```bash
 cd /home/frappe/frappe-bench
 bench build --app print_designer
-bench --site aws-solution.bunchee.online clear-cache
+bench --site {site_name} clear-cache
 ```
 
 Then run authenticated Playwright against:
 
-`https://aws-solution.bunchee.online/desk/print-designer/Receipt`
+`https://{site_name}/desk/print-designer/Receipt`
 
 ## Proven failure boundary
 
