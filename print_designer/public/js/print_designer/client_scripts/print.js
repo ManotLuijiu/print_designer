@@ -1864,7 +1864,7 @@ function initializePrintPage() {
         );
       }
 
-      show(frm) {
+      async show(frm) {
         console.log("[Language Debug] ════ show() START ════");
         console.log("[Language Debug] frm:", frm?.doctype, frm?.docname);
         console.log("[Language Debug] Current URL:", window.location.href);
@@ -1881,6 +1881,8 @@ function initializePrintPage() {
         console.log(
           "[Language Debug] After Step 1, lang_code:",
           this.lang_code,
+          "language_item.value:",
+          this.language_item?.value,
         );
 
         // Step 2: Call parent show()
@@ -1889,20 +1891,58 @@ function initializePrintPage() {
         console.log(
           "[Language Debug] After Step 2, lang_code:",
           this.lang_code,
+          "language_item.value:",
+          this.language_item?.value,
         );
+
+        // CRITICAL: Override Frappe's language_selector (the standard sidebar dropdown)
+        // This is separate from our language_item
+        setTimeout(() => {
+          console.log("[Language Debug] Forcing standard language_selector");
+          if (this.language_selector && this.language_selector.val) {
+            console.log(
+              "[Language Debug] Setting language_selector.val to",
+              this.lang_code,
+            );
+            this.language_selector.val(this.lang_code);
+          } else {
+            // Fallback: find and set the DOM element directly
+            const langControl = document.querySelector(
+              '[data-fieldname="language"]',
+            );
+            if (langControl) {
+              const input = langControl.querySelector("input");
+              if (input && input.value !== this.lang_code) {
+                console.log(
+                  "[Language Debug] DOM fallback: setting input.value to",
+                  this.lang_code,
+                );
+                input.value = this.lang_code;
+                // Update display
+                const display = langControl.querySelector(".control-value");
+                if (display) {
+                  // Use textContent for safety
+                  display.textContent = this.lang_code;
+                }
+              }
+            }
+          }
+        }, 100);
 
         // Step 3: Apply print format language AFTER parent
         console.log(
           "[Language Debug] Step 3: Calling apply_print_format_language()",
         );
-        this.apply_print_format_language();
+        await this.apply_print_format_language();
         console.log(
           "[Language Debug] After Step 3, lang_code:",
           this.lang_code,
+          "language_item.value:",
+          this.language_item?.value,
         );
 
         // Final check: Force Print Format language
-        const pf_lang = this.get_print_format_default_language();
+        const pf_lang = await this.get_print_format_default_language();
         if (pf_lang) {
           console.log(
             "[Language Debug] Step 4: FORCING Print Format language:",
@@ -1924,6 +1964,48 @@ function initializePrintPage() {
             new URLSearchParams(window.location.search).get("_lang") || "none",
           );
         }, 500);
+
+        // Force language_item value to our desired value
+        if (this.language_item) {
+          console.log(
+            "[Language Debug] Forcing language_item.set_value(",
+            this.lang_code,
+            ")",
+          );
+          this.language_item.set_value(this.lang_code);
+        }
+
+        // Observe DOM for language input changes and force our value
+        setTimeout(() => {
+          const langInput = document.querySelector(
+            '[data-fieldname="language"] input',
+          );
+          if (langInput && langInput.value !== this.lang_code) {
+            console.log(
+              "[Language Debug] DOM override detected! Setting language input from",
+              langInput.value,
+              "to",
+              this.lang_code,
+            );
+            langInput.value = this.lang_code;
+            // Trigger change event
+            langInput.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }, 1000);
+
+        // Also try to set via jQuery val() which Frappe controls use
+        setTimeout(() => {
+          const langInput = this.language_item?.$input?.get(0);
+          if (langInput && langInput.value !== this.lang_code) {
+            console.log(
+              "[Language Debug] jQuery override detected! Setting via jQuery from",
+              langInput.value,
+              "to",
+              this.lang_code,
+            );
+            this.language_item.$input.val(this.lang_code);
+          }
+        }, 1500);
         console.log(
           "[Language Debug] ════ show() END, FINAL lang_code:",
           this.lang_code,
@@ -2170,6 +2252,10 @@ function initializePrintPage() {
           change: () => {
             if (this.language_item.value == this.language_item.last_value)
               return;
+            console.log(
+              "[Language Debug] sidebar language change triggered, new value:",
+              this.language_item.value,
+            );
             this.toolbar_language_selector.set_value(this.language_item.value);
             this.set_user_lang();
             this.refresh_copy_options_labels();
@@ -2178,8 +2264,17 @@ function initializePrintPage() {
         });
         this.language_selector = this.language_item.$input;
 
+        console.log(
+          "[Language Debug] language_item created, initial value:",
+          this.language_item?.value,
+        );
+
         // Set default language from print format (AFTER language_item is created)
         this.set_default_print_language();
+        console.log(
+          "[Language Debug] After set_default_print_language(), language_item.value:",
+          this.language_item?.value,
+        );
 
         this.letterhead_selector = this.add_sidebar_item({
           fieldtype: "Link",
@@ -2831,6 +2926,16 @@ function initializePrintPage() {
 
         // Update UI selectors
         this.update_language_selectors();
+
+        // CRITICAL: Also set the parent's language_selector (Frappe's standard control)
+        if (this.language_selector) {
+          console.log(
+            "[Language Debug] Setting parent's language_selector.val(",
+            this.lang_code,
+            ")",
+          );
+          this.language_selector.val(this.lang_code);
+        }
       }
 
       update_language_selectors() {
@@ -2855,31 +2960,50 @@ function initializePrintPage() {
           "[Language Debug] set_user_lang() called, current value:",
           this.language_item?.value,
         );
-        // Update lang_code when language is changed by user
+
+        // NEW: Check Print Format default_language FIRST (highest priority)
+        // If Print Format has a specific language, it always wins over user preference
+        const print_format_name = this.selected_format();
+        if (print_format_name && print_format_name !== "Standard") {
+          const print_format = locals["Print Format"]?.[print_format_name];
+          if (print_format?.default_print_language) {
+            console.log(
+              "[Language Debug] Print Format has default_print_language:",
+              print_format.default_print_language,
+              "- using that instead of user selection",
+            );
+            this.lang_code = print_format.default_print_language;
+            this.language_item?.set_value(this.lang_code);
+            if (this.language_selector) {
+              this.language_selector.val(this.lang_code);
+            }
+            return; // Print Format wins - exit early
+          }
+        }
+
+        // Original behavior: use user's dropdown selection (fallback)
         this.lang_code = this.language_item.value || "th";
         console.log(
-          "[Language Debug] After update, lang_code:",
+          "[Language Debug] Using user selection, lang_code:",
           this.lang_code,
         );
+
         // Store user's language preference in localStorage
         localStorage.setItem("print_designer_language", this.lang_code);
-        // Skip super.set_user_lang() - it may override Print Format's default_print_language
-        // Instead, just update the form language
+
+        // Update the form language
         if (this.frm) {
           this.frm.set_value("language", this.lang_code);
         }
-        console.log(
-          "[Language Debug] After set_user_lang(), lang_code:",
-          this.lang_code,
-        );
       }
-      restore_user_language() {
+      async restore_user_language() {
         // Restore user's preferred language from localStorage
         // ONLY if Print Format doesn't have a default_print_language
         const stored_lang = localStorage.getItem("print_designer_language");
 
         // Get the print format's default language
-        const print_format_lang = this.get_print_format_default_language();
+        const print_format_lang =
+          await this.get_print_format_default_language();
 
         // Only restore from localStorage if Print Format doesn't have a default language
         if (
@@ -2907,10 +3031,11 @@ function initializePrintPage() {
         }
       }
 
-      apply_print_format_language() {
+      async apply_print_format_language() {
         // Called after parent initialization to ensure Print Format language is applied
         // This re-applies the Print Format's language if it was overridden
-        const print_format_lang = this.get_print_format_default_language();
+        const print_format_lang =
+          await this.get_print_format_default_language();
         if (print_format_lang) {
           console.log(
             "[Language Debug] Applying Print Format language:",
@@ -2929,14 +3054,32 @@ function initializePrintPage() {
         }
       }
 
-      get_print_format_default_language() {
+      async get_print_format_default_language() {
         // Get the default_print_language from the currently selected Print Format
         const print_format_name = this.selected_format();
         if (!print_format_name || print_format_name === "Standard") {
           return null;
         }
-        const print_format = locals["Print Format"]?.[print_format_name];
-        return print_format?.default_print_language || null;
+        // First try the cache
+        const cached_pf = locals["Print Format"]?.[print_format_name];
+        if (cached_pf?.default_print_language) {
+          return cached_pf.default_print_language;
+        }
+        // Fetch from server
+        try {
+          const result = await frappe.db.get_value(
+            "Print Format",
+            print_format_name,
+            "default_print_language",
+          );
+          return result?.message?.default_print_language || null;
+        } catch (e) {
+          console.log(
+            "[Language Debug] Error fetching print format language:",
+            e,
+          );
+          return null;
+        }
       }
       set_default_print_format() {
         super.set_default_print_format();

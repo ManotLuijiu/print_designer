@@ -1,6 +1,7 @@
 import os
 
 import frappe
+from frappe.translate import print_language
 from frappe.www.printview import get_html_and_style as original_get_html_and_style
 
 
@@ -426,19 +427,26 @@ def get_html_and_style_with_watermark(
     # Check if this is a Print Designer format and preserve its original rendering
     is_print_designer_format = print_format_doc and print_format_doc.get("print_designer") == 1
 
+    # NEW: Get language from Print Format's default_print_language
+    lang = None
+    if print_format_doc and print_format_doc.get("default_print_language"):
+        lang = print_format_doc.default_print_language
+        log_to_print_designer(f"Using Print Format language: {lang}")
+
     if is_print_designer_format:
         # For Print Designer formats, we need to preserve the exact CSS and HTML structure
         # to maintain whitespace, fonts, and other styling that works in the designer
-        result = original_get_html_and_style(
-            doc=doc,
-            name=name,
-            print_format=print_format,
-            no_letterhead=no_letterhead,
-            letterhead=letterhead,
-            trigger_print=trigger_print,
-            style=style,
-            settings=settings,
-        )
+        with print_language(lang):
+            result = original_get_html_and_style(
+                doc=doc,
+                name=name,
+                print_format=print_format,
+                no_letterhead=no_letterhead,
+                letterhead=letterhead,
+                trigger_print=trigger_print,
+                style=style,
+                settings=settings,
+            )
 
         # Ensure Print Designer CSS is preserved in the result
         if result.get("style") and print_format_doc.css:
@@ -588,23 +596,31 @@ def get_html_and_style_with_watermark(
                 font_family = watermark_font_family or ps_font_family
                 watermark_position = watermark_position or ps_position
                 # Keep margin values as strings with unit (e.g., "10mm") for CSS
-                watermark_margin_top = settings_dict.get("watermark_margin_top") or str(ps_margin_top) or "10mm"
-                watermark_margin_right = settings_dict.get("watermark_margin_right") or str(ps_margin_right) or "10mm"
-                watermark_margin_bottom = settings_dict.get("watermark_margin_bottom") or str(ps_margin_bottom) or "10mm"
-                watermark_margin_left = settings_dict.get("watermark_margin_left") or str(ps_margin_left) or "10mm"
+                watermark_margin_top = (
+                    settings_dict.get("watermark_margin_top") or str(ps_margin_top) or "10mm"
+                )
+                watermark_margin_right = (
+                    settings_dict.get("watermark_margin_right") or str(ps_margin_right) or "10mm"
+                )
+                watermark_margin_bottom = (
+                    settings_dict.get("watermark_margin_bottom") or str(ps_margin_bottom) or "10mm"
+                )
+                watermark_margin_left = (
+                    settings_dict.get("watermark_margin_left") or str(ps_margin_left) or "10mm"
+                )
                 # Remove 'px' suffix if present (keep 'mm')
-                watermark_margin_top = watermark_margin_top.replace('px', '')
-                watermark_margin_right = watermark_margin_right.replace('px', '')
-                watermark_margin_bottom = watermark_margin_bottom.replace('px', '')
-                watermark_margin_left = watermark_margin_left.replace('px', '')
-                if not watermark_margin_top.endswith('mm'):
-                    watermark_margin_top += 'mm'
-                if not watermark_margin_right.endswith('mm'):
-                    watermark_margin_right += 'mm'
-                if not watermark_margin_bottom.endswith('mm'):
-                    watermark_margin_bottom += 'mm'
-                if not watermark_margin_left.endswith('mm'):
-                    watermark_margin_left += 'mm'
+                watermark_margin_top = watermark_margin_top.replace("px", "")
+                watermark_margin_right = watermark_margin_right.replace("px", "")
+                watermark_margin_bottom = watermark_margin_bottom.replace("px", "")
+                watermark_margin_left = watermark_margin_left.replace("px", "")
+                if not watermark_margin_top.endswith("mm"):
+                    watermark_margin_top += "mm"
+                if not watermark_margin_right.endswith("mm"):
+                    watermark_margin_right += "mm"
+                if not watermark_margin_bottom.endswith("mm"):
+                    watermark_margin_bottom += "mm"
+                if not watermark_margin_left.endswith("mm"):
+                    watermark_margin_left += "mm"
                 log_to_print_designer(
                     f"Using Print Settings fallback: font_size={font_size}, font_family={font_family}, position={watermark_position}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
                 )
@@ -704,23 +720,24 @@ def get_html_and_style_with_watermark(
                 f"Creating watermark HTML: text={pd_custom_watermark_text}, font={font_family}, "
                 f"position_type={position_type}, margins=T{watermark_margin_top}/R{watermark_margin_right}/B{watermark_margin_bottom}/L{watermark_margin_left}mm"
             )
+
             # Ensure margins have proper unit (remove duplicate suffixes)
             def ensure_unit(val, default_unit="mm"):
                 val = str(val).strip() if val else f"10{default_unit}"
                 # Remove duplicate units
                 for unit in ["mm", "px", "cm", "in"]:
                     if val.endswith(unit + unit):
-                        val = val[:-(len(unit))] + unit
+                        val = val[: -(len(unit))] + unit
                 # Add unit if missing
                 if not any(val.endswith(u) for u in ["mm", "px", "cm", "in"]):
                     val += default_unit
                 return val
-            
+
             margin_top = ensure_unit(watermark_margin_top)
             margin_right = ensure_unit(watermark_margin_right)
             margin_bottom = ensure_unit(watermark_margin_bottom)
             margin_left = ensure_unit(watermark_margin_left)
-            
+
             position_css = get_watermark_position_css(
                 watermark_position,
                 position_config,
