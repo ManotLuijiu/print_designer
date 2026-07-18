@@ -1,5 +1,11 @@
 // TODO: revisit and properly implement this client script
 
+console.log(
+  "%c🟢 print_designer/client_scripts/print.js LOADED!",
+  "color: green; font-size: 16px; font-weight: bold;",
+);
+console.log("[Language Debug] Script execution started");
+
 /**
  * Print Designer PDF Generation Logger
  *
@@ -435,10 +441,15 @@ function initializePrintPage() {
 
     // Store the original class
     const OriginalPrintView = frappe.ui.form.PrintView;
+    console.log(
+      "[Language Debug] ✅ Custom PrintView class loaded! OriginalPrintView:",
+      OriginalPrintView ? "exists" : "MISSING",
+    );
 
     frappe.ui.form.PrintView = class PrintView extends OriginalPrintView {
       constructor(wrapper) {
-        console.log("[WATERMARK DEBUG] PrintView constructor called");
+        console.log("[Language Debug] ✅ Custom PrintView loaded!");
+        console.log("[Language Debug] PrintView constructor called");
         super(wrapper);
       }
       make() {
@@ -508,9 +519,12 @@ function initializePrintPage() {
                 this.toolbar_language_selector.last_value
               )
                 return;
-              this.language_item.set_value(
-                this.toolbar_language_selector.value,
-              );
+              // Only set if language_item exists (it may not exist yet on toolbar creation)
+              if (this.language_item) {
+                this.language_item.set_value(
+                  this.toolbar_language_selector.value,
+                );
+              }
             },
           },
           parent: this.header_prepend_container,
@@ -1851,17 +1865,78 @@ function initializePrintPage() {
       }
 
       show(frm) {
-        console.log("PrintView.show called with:", frm);
+        console.log("[Language Debug] ════ show() START ════");
+        console.log("[Language Debug] frm:", frm?.doctype, frm?.docname);
+        console.log("[Language Debug] Current URL:", window.location.href);
+        console.log(
+          "[Language Debug] URL _lang param:",
+          new URLSearchParams(window.location.search).get("_lang"),
+        );
+
+        // Step 1: Set Print Format language BEFORE parent
+        console.log(
+          "[Language Debug] Step 1: Calling set_default_print_language()",
+        );
+        this.set_default_print_language();
+        console.log(
+          "[Language Debug] After Step 1, lang_code:",
+          this.lang_code,
+        );
+
+        // Step 2: Call parent show()
+        console.log("[Language Debug] Step 2: Calling super.show()");
         super.show(frm);
-        // Restore user's preferred language after parent initialization
-        this.restore_user_language();
+        console.log(
+          "[Language Debug] After Step 2, lang_code:",
+          this.lang_code,
+        );
+
+        // Step 3: Apply print format language AFTER parent
+        console.log(
+          "[Language Debug] Step 3: Calling apply_print_format_language()",
+        );
+        this.apply_print_format_language();
+        console.log(
+          "[Language Debug] After Step 3, lang_code:",
+          this.lang_code,
+        );
+
+        // Final check: Force Print Format language
+        const pf_lang = this.get_print_format_default_language();
+        if (pf_lang) {
+          console.log(
+            "[Language Debug] Step 4: FORCING Print Format language:",
+            pf_lang,
+          );
+          this.lang_code = pf_lang;
+          if (this.language_item) this.language_item.set_value(pf_lang);
+          if (this.toolbar_language_selector)
+            this.toolbar_language_selector.set_value(pf_lang);
+        }
+
+        // Mark resolved language on DOM
+        setTimeout(() => {
+          const sidebar = $(".print-preview-sidebar");
+          sidebar.attr("data-resolved-lang", this.lang_code);
+          sidebar.attr("data-pf-lang", pf_lang || "none");
+          sidebar.attr(
+            "data-url-lang",
+            new URLSearchParams(window.location.search).get("_lang") || "none",
+          );
+        }, 500);
+        console.log(
+          "[Language Debug] ════ show() END, FINAL lang_code:",
+          this.lang_code,
+          "════",
+        );
+
         // Set default signature and stamp when showing
         this.set_default_signature_and_stamp();
         this.inner_msg = this.page.add_inner_message(`
-				<a style="line-height: 2.4" href="/app/print-designer?doctype=${this.frm.doctype}">
-					${__("Try the new Print Designer")}
-				</a>
-			`);
+			<a style="line-height: 2.4" href="/app/print-designer?doctype=${this.frm.doctype}">
+				${__("Try the new Print Designer")}
+			</a>
+		`);
       }
       preview() {
         console.log(
@@ -2087,9 +2162,6 @@ function initializePrintPage() {
         // Initialize print settings
         this.load_print_settings();
 
-        // Set default language from print format
-        this.set_default_print_language();
-
         this.language_item = this.add_sidebar_item({
           fieldtype: "Link",
           fieldname: "language",
@@ -2105,6 +2177,9 @@ function initializePrintPage() {
           },
         });
         this.language_selector = this.language_item.$input;
+
+        // Set default language from print format (AFTER language_item is created)
+        this.set_default_print_language();
 
         this.letterhead_selector = this.add_sidebar_item({
           fieldtype: "Link",
@@ -2661,13 +2736,10 @@ function initializePrintPage() {
         let print_format = null;
 
         if (print_format_name) {
-          console.log(
-            "[Language Debug] Loading Print Format:",
-            print_format_name,
-          );
+          console.log("[Language Debug] ====== LOADING PRINT FORMAT ======");
+          console.log("[Language Debug] print_format_name:", print_format_name);
 
-          // Always reload the Print Format to get default_print_language field
-          // The standard get_print_format() may not return custom fields
+          // Use frappe.call which handles CSRF automatically
           frappe.call({
             method: "frappe.client.get",
             args: {
@@ -2676,10 +2748,7 @@ function initializePrintPage() {
             },
             async: false, // Synchronous to ensure data is loaded before proceeding
             callback: (r) => {
-              console.log(
-                "[Language Debug] frappe.call response:",
-                r.message ? "OK" : "EMPTY",
-              );
+              console.log("[Language Debug] frappe.call status:", r.status);
               if (r.message) {
                 print_format = r.message;
                 console.log(
@@ -2688,18 +2757,17 @@ function initializePrintPage() {
                 );
                 console.log(
                   "[Language Debug] print_format keys:",
-                  Object.keys(print_format),
+                  Object.keys(print_format).filter(
+                    (k) => k.includes("lang") || k.includes("print"),
+                  ),
                 );
-                // Cache in locals
-                if (!locals["Print Format"]) {
-                  locals["Print Format"] = {};
-                }
-                locals["Print Format"][print_format_name] = r.message;
+              } else {
+                console.log("[Language Debug] Response message is empty!");
               }
             },
           });
         } else {
-          console.log("[Language Debug] No print_format_name!");
+          console.log("[Language Debug] No print_format_name provided!");
         }
 
         // Debug logging
@@ -2783,16 +2851,46 @@ function initializePrintPage() {
         }
       }
       set_user_lang() {
-        // Update lang_code when language is changed (default to Thai for Thai users)
+        console.log(
+          "[Language Debug] set_user_lang() called, current value:",
+          this.language_item?.value,
+        );
+        // Update lang_code when language is changed by user
         this.lang_code = this.language_item.value || "th";
+        console.log(
+          "[Language Debug] After update, lang_code:",
+          this.lang_code,
+        );
         // Store user's language preference in localStorage
         localStorage.setItem("print_designer_language", this.lang_code);
-        super.set_user_lang();
+        // Skip super.set_user_lang() - it may override Print Format's default_print_language
+        // Instead, just update the form language
+        if (this.frm) {
+          this.frm.set_value("language", this.lang_code);
+        }
+        console.log(
+          "[Language Debug] After set_user_lang(), lang_code:",
+          this.lang_code,
+        );
       }
       restore_user_language() {
         // Restore user's preferred language from localStorage
+        // ONLY if Print Format doesn't have a default_print_language
         const stored_lang = localStorage.getItem("print_designer_language");
-        if (stored_lang && stored_lang !== this.lang_code) {
+
+        // Get the print format's default language
+        const print_format_lang = this.get_print_format_default_language();
+
+        // Only restore from localStorage if Print Format doesn't have a default language
+        if (
+          stored_lang &&
+          !print_format_lang &&
+          stored_lang !== this.lang_code
+        ) {
+          console.log(
+            "[Language Debug] Restoring from localStorage:",
+            stored_lang,
+          );
           this.lang_code = stored_lang;
           if (this.language_item) {
             this.language_item.set_value(stored_lang);
@@ -2800,7 +2898,45 @@ function initializePrintPage() {
           if (this.toolbar_language_selector) {
             this.toolbar_language_selector.set_value(stored_lang);
           }
+        } else if (print_format_lang) {
+          console.log(
+            "[Language Debug] Print Format has language:",
+            print_format_lang,
+            "- using that instead of localStorage",
+          );
         }
+      }
+
+      apply_print_format_language() {
+        // Called after parent initialization to ensure Print Format language is applied
+        // This re-applies the Print Format's language if it was overridden
+        const print_format_lang = this.get_print_format_default_language();
+        if (print_format_lang) {
+          console.log(
+            "[Language Debug] Applying Print Format language:",
+            print_format_lang,
+          );
+          this.lang_code = print_format_lang;
+          if (this.language_item) {
+            this.language_item.set_value(print_format_lang);
+          }
+          if (this.toolbar_language_selector) {
+            this.toolbar_language_selector.set_value(print_format_lang);
+          }
+          if (this.language_selector) {
+            this.language_selector.val(print_format_lang);
+          }
+        }
+      }
+
+      get_print_format_default_language() {
+        // Get the default_print_language from the currently selected Print Format
+        const print_format_name = this.selected_format();
+        if (!print_format_name || print_format_name === "Standard") {
+          return null;
+        }
+        const print_format = locals["Print Format"]?.[print_format_name];
+        return print_format?.default_print_language || null;
       }
       set_default_print_format() {
         super.set_default_print_format();
@@ -3089,5 +3225,9 @@ function initializePrintPage() {
   } // End of extendPrintView function
 
   // Call the function to extend PrintView
+  console.log("[Language Debug] Calling extendPrintView()...");
   extendPrintView();
+  console.log("[Language Debug] extendPrintView() returned");
 }
+
+console.log("[Language Debug] ✅ print.js FILE FULLY LOADED");
