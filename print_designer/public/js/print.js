@@ -8,16 +8,17 @@
  * - apply it through the existing Language control
  */
 
-console.log("[PD PRINT] Print Designer print.js LOADED!");
-
 const PDPrintLanguageState = {
   retries: 0,
   maxRetries: 20,
   applying: false,
   lastAppliedFormat: null,
+  patchRetries: 0,
+  patchMaxRetries: 50,
 };
 
 apply_print_language();
+patch_refresh_print_format();
 
 $(document).on("change", 'input[data-fieldname="print_format"]', () => {
   queue_print_language_apply(150);
@@ -25,12 +26,52 @@ $(document).on("change", 'input[data-fieldname="print_format"]', () => {
 
 function apply_print_language() {
   const route = frappe.get_route();
-  console.log("[PD PRINT] apply_print_language(), route:", route);
-  if (route[0] !== "print") {
-    console.log("[PD PRINT] Not on print page, skipping");
+  if (route[0] !== "print") return;
+  queue_print_language_apply(500);
+}
+
+/**
+ * Option A: Patch PrintView.refresh_print_format so the navbar "Refresh"
+ * button (and both Shift+R shortcuts) re-assert the Print Format's
+ * default_print_language after core's refresh resets it to the doc/customer
+ * language.
+ *
+ * Core flow on refresh:
+ *   refresh_print_format() -> set_default_print_language()  (resets
+ *   lang_code to this.frm.doc.language priority) -> preview()
+ *
+ * That reset uses language_selector.val(...) silently (no `change` event),
+ * so the format-input listener above never fires. We defeat the
+ * lastAppliedFormat guard and re-apply via the same path used on load.
+ */
+function patch_refresh_print_format() {
+  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+
+  if (!PV || !PV.prototype) {
+    // PrintView is defined lazily by the print page JS; retry until present.
+    if (
+      PDPrintLanguageState.patchRetries < PDPrintLanguageState.patchMaxRetries
+    ) {
+      PDPrintLanguageState.patchRetries += 1;
+      setTimeout(patch_refresh_print_format, 200);
+    }
     return;
   }
-  queue_print_language_apply(500);
+
+  if (PV.prototype._pdRefreshPatched) return;
+
+  const original_refresh = PV.prototype.refresh_print_format;
+  PV.prototype.refresh_print_format = function () {
+    const result = original_refresh.apply(this, arguments);
+
+    // Core just reset lang_code back to the customer's language; let the
+    // original refresh settle, then re-assert the Print Format default.
+    PDPrintLanguageState.lastAppliedFormat = null;
+    queue_print_language_apply(250);
+
+    return result;
+  };
+  PV.prototype._pdRefreshPatched = true;
 }
 
 function queue_print_language_apply(delay = 0) {
@@ -41,33 +82,18 @@ function queue_print_language_apply(delay = 0) {
 
 function apply_language_from_print_format() {
   const route = frappe.get_route();
-  console.log("[PD PRINT] apply_language_from_print_format(), route:", route);
   if (route[0] !== "print") return;
 
   const print_format = $('input[data-fieldname="print_format"]').val();
   const lang_input = $('input[data-fieldname="language"]');
-  console.log(
-    "[PD PRINT] print_format:",
-    print_format,
-    "lang_input found:",
-    lang_input.length,
-  );
 
   if (!lang_input.length || !print_format || print_format === "Standard") {
-    console.log(
-      "[PD PRINT] Waiting for elements... retries:",
-      PDPrintLanguageState.retries,
-    );
     if (PDPrintLanguageState.retries < PDPrintLanguageState.maxRetries) {
       PDPrintLanguageState.retries += 1;
       queue_print_language_apply(250);
     }
     return;
   }
-
-  console.log(
-    "[PD PRINT] Found elements, calling API for print format language",
-  );
 
   PDPrintLanguageState.retries = 0;
 
@@ -101,22 +127,14 @@ function apply_language_from_print_format() {
 }
 
 function set_language(lang_code) {
-  console.log("[PD PRINT] set_language() called with:", lang_code);
   const lang_input = $('input[data-fieldname="language"]');
   const lang_display = $(
     '.frappe-control[data-fieldname="language"] .control-value a',
   );
 
-  if (!lang_input.length || !lang_code) {
-    console.log("[PD PRINT] No lang_input or lang_code");
-    return;
-  }
-  if (lang_input.val() === lang_code) {
-    console.log("[PD PRINT] Already set to:", lang_code);
-    return;
-  }
+  if (!lang_input.length || !lang_code) return;
+  if (lang_input.val() === lang_code) return;
 
-  console.log("[PD PRINT] Setting language to:", lang_code);
   lang_input.val(lang_code).trigger("change");
 
   if (lang_display.length) {
