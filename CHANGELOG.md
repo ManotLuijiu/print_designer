@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.24.1](https://github.com/ManotLuijiu/print_designer/compare/v1.27.0...v1.24.1) (2026-07-19)
+
+
+### 🐛 Bug Fixes
+
+* **print:** prototype override to preserve Print Format language on Refresh ([7e19cc6](https://github.com/ManotLuijiu/print_designer/commit/7e19cc6a325ea838b39ff75d64ad158c1f215897))
+
 ### [1.24.0](https://github.com/ManotLuijiu/print_designer/compare/v1.23.0...v1.24.0) (2026-07-17)
 
 ### ✨ Features
