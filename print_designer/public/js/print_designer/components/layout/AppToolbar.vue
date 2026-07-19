@@ -48,6 +48,41 @@
 				@click="console.log('[Toolbar] Grid clicked, isGridVisible:', MainStore.isGridVisible, 'toggle classes:', MainStore.isGridVisible ? 'tool-icons active-toggle-icon' : 'tool-icons'), MainStore.isGridVisible = !MainStore.isGridVisible"
 			/>
 			<div class="toolbar-divider"></div>
+			<!-- Language Toggle -->
+			<div class="language-toggle-container">
+				<IconsUse
+					name="languageIcon"
+					:size="32"
+					:padding="8"
+					:color="MainStore.previewLanguage ? 'white' : 'var(--text-muted)'"
+					:class="['tool-icons', { 'active-toggle-icon': MainStore.previewLanguage }]"
+					:title="__('Preview Language')"
+					@click="showLanguageMenu = !showLanguageMenu"
+				/>
+				<div v-if="showLanguageMenu" class="language-menu">
+					<div class="language-menu-header">
+						<strong>{{ __('Preview Language') }}</strong>
+						<span class="close-btn" @click="showLanguageMenu = false">&times;</span>
+					</div>
+					<div class="language-options">
+						<label
+							v-for="lang in availableLanguages"
+							:key="lang.code"
+							:class="['language-option', { active: MainStore.previewLanguage === lang.code }]"
+						>
+							<input
+								type="radio"
+								:name="'previewLanguage'"
+								:value="lang.code"
+								v-model="MainStore.previewLanguage"
+								@change="onLanguageChange"
+							/>
+							{{ lang.label }}
+						</label>
+					</div>
+				</div>
+			</div>
+			<div class="toolbar-divider"></div>
 			<!-- Help Button for Border Toggle Explanation -->
 			<div class="help-popover-container">
 				<IconsUse
@@ -102,21 +137,66 @@ import Icons from "../../icons/Icons.vue";
 import IconsUse from "../../icons/IconsUse.vue";
 import { useMainStore } from "../../store/MainStore";
 import LayersPanel from "./LayersPanel.vue";
-import { ref, useAttrs } from "vue";
+import { ref, useAttrs, watch } from "vue";
 
 defineOptions({ inheritAttrs: false });
 const attrs = useAttrs();
 
 const MainStore = useMainStore();
 const showBorderHelp = ref(false);
+const showLanguageMenu = ref(false);
+
+// Available languages for preview
+const availableLanguages = [
+	{ code: null, label: __('System Default') },
+	{ code: 'th', label: 'ไทย' },
+	{ code: 'en', label: 'English' },
+];
+
+// Initialize from Print Format's default_print_language
+const initLanguage = () => {
+	const printFormatName = MainStore.printDesignName;
+	if (printFormatName) {
+		frappe.call({
+			method: 'frappe.client.get',
+			args: {
+				doctype: 'Print Format',
+				name: printFormatName,
+			},
+			callback: function(r) {
+				if (r && r.message && r.message.default_print_language) {
+					MainStore.previewLanguage = r.message.default_print_language;
+				}
+			},
+		});
+	}
+};
+
+// Watch for print format changes
+watch(() => MainStore.printDesignName, (newVal) => {
+	if (newVal) {
+		initLanguage();
+	}
+});
+
+// Called when user changes language
+const onLanguageChange = () => {
+	showLanguageMenu.value = false;
+	// Language is already set via v-model="MainStore.previewLanguage"
+	console.log('[PD] Language changed to:', MainStore.previewLanguage);
+};
+
+// Initialize on mount
+if (MainStore.printDesignName) {
+	initLanguage();
+}
 
 const iconClasses = (id, icon) => {
 	const isActive = MainStore.activeControl == id;
-	console.log('[Toolbar] iconClasses:', { id, icon, activeControl: MainStore.activeControl, isActive });
 	return [
 		icon,
-		"tool-icons",
-		{ "active-tool-icon": isActive },
+		'tool-icons',
+		{ 'active-tool-icon': isActive },
 	];
 };
 </script>
@@ -169,7 +249,7 @@ const iconClasses = (id, icon) => {
 	--icon-stroke: white !important;
 }
 
-/* Toggle icons (layer, grid, help) - IconsUse component */
+/* Toggle icons (layer, grid, help, language) - IconsUse component */
 .active-toggle-icon {
 	background-color: var(--primary) !important;
 	border-radius: var(--border-radius-sm) !important;
@@ -198,6 +278,69 @@ const iconClasses = (id, icon) => {
 	height: 1px;
 	background-color: var(--border-color);
 	margin: 4px auto;
+}
+
+/* Language Toggle Menu */
+.language-toggle-container {
+	position: relative;
+}
+.language-menu {
+	position: absolute;
+	left: 48px;
+	top: 0;
+	background: var(--bg-color);
+	border: 1px solid var(--border-color);
+	border-radius: var(--border-radius-md);
+	padding: 12px;
+	width: 180px;
+	z-index: 1000;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.language-menu-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--border-color);
+}
+.language-menu-header strong {
+	color: var(--text-color);
+	font-size: 12px;
+}
+.close-btn {
+	cursor: pointer;
+	font-size: 18px;
+	color: var(--text-muted);
+	line-height: 1;
+}
+.close-btn:hover {
+	color: var(--text-color);
+}
+.language-options {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.language-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: var(--border-radius-sm);
+	cursor: pointer;
+	font-size: 12px;
+	color: var(--text-color);
+}
+.language-option:hover {
+	background: var(--control-bg);
+}
+.language-option.active {
+	background: var(--primary);
+	color: white;
+}
+.language-option input[type="radio"] {
+	margin: 0;
 }
 
 /* Help Popover Styles */

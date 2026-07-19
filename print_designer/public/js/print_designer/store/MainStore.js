@@ -83,6 +83,14 @@ export const useMainStore = defineStore("MainStore", {
     isLayerPanelEnabled: false,
     isGridVisible: false,
     /**
+     * @type {string|null} previewLanguage - Language for print preview (null = system default)
+     */
+    previewLanguage: null,
+    /**
+     * @type {number} tableRenderKey - Counter to force table re-renders (e.g., when language changes)
+     */
+    tableRenderKey: 0,
+    /**
      * @type {string|null} activeToggle - Currently active toggle tool (layer|grid|help|null)
      */
     activeToggle: null,
@@ -477,7 +485,7 @@ export const useMainStore = defineStore("MainStore", {
             object.selectedColumn?.["style"] ||
             object[styleEditMode];
     },
-    isValidValue: (state) => (value) => {
+    isValidValue: (_state) => (value) => {
       if (typeof value == "string") {
         return value.length != 0;
       } else if (typeof value == "number") {

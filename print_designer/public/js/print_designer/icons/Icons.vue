@@ -321,5 +321,10 @@
 		<symbol id="borderStyleDashed">
 			<line x1="3" y1="12" x2="21" y2="12" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6,4" />
 		</symbol>
+		<!-- Language Icon -->
+		<symbol id="languageIcon" viewBox="0 0 24 24">
+			<circle cx="12" cy="12" r="10" fill="none" stroke="var(--icon-stroke)" stroke-width="2" />
+			<path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" fill="none" stroke="var(--icon-stroke)" stroke-width="2" />
+		</symbol>
 	</svg>
 </template>

@@ -16,6 +16,7 @@
 |---------|-------------|
 | [Codebase Analysis](codebase-analysis.md) | Detailed analysis of print_designer codebase structure |
 | [Border Styling Improvements](border-styling-improvements.md) | Enterprise border features implementation |
+| [Print Designer Jinja Templates](print-designer-jinja.md) | Jinja macros for print preview (spantag, styles) |
 
 ### API Documentation
 

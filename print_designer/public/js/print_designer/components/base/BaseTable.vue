@@ -1,5 +1,6 @@
 <template>
 	<div
+		:key="object.id + '-' + MainStore.tableRenderKey"
 		:ref="setElements(object, index)"
 		@mousedown.left="handleMouseDown($event, object)"
 		@mouseup="handleMouseUp($event, width)"

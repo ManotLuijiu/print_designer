@@ -16,36 +16,36 @@
 		>
 				<!-- Grid Overlay -->
 			<div v-if="MainStore.isGridVisible" class="grid-overlay"></div>
-			<template v-for="(object, index) in page.header" :key="object.id" v-if="page.DOMRef">
+			<template v-for="(object, index) in page.header" :key="object.id + '-' + MainStore.tableRenderKey" v-if="page.DOMRef">
 				<component
 					:is="
-						object.type == 'text'
-							? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
-							: isComponent[object.type]
+					object.type == 'text'
+						? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
+						: isComponent[object.type]
 					"
 					v-bind="{ object, index }"
 				></component>
 			</template>
 			<template
 				v-for="(object, index) in page.childrens"
-				:key="object.id"
+				:key="object.id + '-' + MainStore.tableRenderKey"
 				v-if="page.DOMRef"
 			>
 				<component
 					:is="
-						object.type == 'text'
-							? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
-							: isComponent[object.type]
+					object.type == 'text'
+						? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
+						: isComponent[object.type]
 					"
 					v-bind="{ object, index }"
 				></component>
 			</template>
-			<template v-for="(object, index) in page.footer" :key="object.id" v-if="page.DOMRef">
+			<template v-for="(object, index) in page.footer" :key="object.id + '-' + MainStore.tableRenderKey" v-if="page.DOMRef">
 				<component
 					:is="
-						object.type == 'text'
-							? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
-							: isComponent[object.type]
+					object.type == 'text'
+						? isComponent[object.type][object.isDynamic ? 'dynamic' : 'static']
+						: isComponent[object.type]
 					"
 					v-bind="{ object, index }"
 				></component>

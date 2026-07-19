@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, watchEffect } from "vue";
+import { computed, onMounted, onUnmounted, watchEffect, watch } from "vue";
 import { useMainStore } from "./store/MainStore";
 import Icons from "./icons/Icons.vue";
 import AppToolbar from "./components/layout/AppToolbar.vue";
@@ -167,6 +167,17 @@ watchEffect(() => {
 		MainStore.isDrawing = false;
 	}
 });
+
+// Re-fetch metadata when preview language changes (for language toggle)
+watch(
+	() => MainStore.previewLanguage,
+	(newLang, oldLang) => {
+		if (oldLang !== undefined && newLang !== oldLang) {
+			console.log("[PD] Language changed, re-fetching metadata:", oldLang, "->", newLang);
+			fetchMeta();
+		}
+	}
+);
 </script>
 <style deep lang="scss">
 .main-layout {

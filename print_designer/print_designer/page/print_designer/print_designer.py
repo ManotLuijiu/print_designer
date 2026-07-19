@@ -8,8 +8,12 @@ from frappe.model.document import BaseDocument
 from frappe.utils.jinja import get_jenv
 
 from print_designer.utils.number_to_words_fields import (
+    _print_language,
+    _resolve_currency,
     apply_number_to_words_pairs,
+    convert_amount_to_words,
     get_number_to_words_pairs,
+    normalize_language,
     resolve_print_language,
 )
 
@@ -109,9 +113,7 @@ def get_print_context(
     context = original_get_print_context(doctype, name, print_format, letterhead)
 
     # Add signature and stamp context
-    signature_stamp_context = get_signature_and_stamp_context(
-        digital_signature, company_stamp
-    )
+    signature_stamp_context = get_signature_and_stamp_context(digital_signature, company_stamp)
     context.update(signature_stamp_context)
 
     return context
@@ -122,23 +124,17 @@ frappe.utils.print_format.get_print_context = get_print_context
 
 
 @frappe.whitelist(allow_guest=False)
-def render_user_text_withdoc(
-    string, doctype, docname=None, row=None, send_to_jinja=None
-):
+def render_user_text_withdoc(string, doctype, docname=None, row=None, send_to_jinja=None):
     if not row:
         row = {}
     if not send_to_jinja:
         send_to_jinja = {}
 
     if not docname or docname == "":
-        return render_user_text(
-            string=string, doc={}, row=row, send_to_jinja=send_to_jinja
-        )
+        return render_user_text(string=string, doc={}, row=row, send_to_jinja=send_to_jinja)
     doc = frappe.get_cached_doc(doctype, docname)
     doc.check_permission()
-    return render_user_text(
-        string=string, doc=doc, row=row, send_to_jinja=send_to_jinja
-    )
+    return render_user_text(string=string, doc=doc, row=row, send_to_jinja=send_to_jinja)
 
 
 @frappe.whitelist(allow_guest=False)
@@ -163,9 +159,129 @@ def get_number_to_words_preview(doctype, docname, print_format, language=None):
     )
 
 
+@frappe.whitelist()
+def translate_in_words_fields(doctype, docname, language=None):
+    """Translate in_words type fields when language changes.
+
+    ERPNext stores in_words in English when document is saved.
+    This function regenerates those fields in the requested language for
+    print preview purposes (does not modify the database).
+    """
+    doc = frappe.get_doc(doctype, docname)
+    doc.check_permission("read")
+    meta = frappe.get_meta(doctype)
+    values = {}
+    normalized_lang = normalize_language(language) if language else "en"
+
+    # Log fields found in meta for debugging
+    _in_words_fields = [
+        (df.fieldname, df.fieldtype)
+        for df in meta.fields
+        if df.fieldname and "_in_words" in df.fieldname
+    ]
+    frappe.logger().debug(
+        f"[PD] translate_in_words_fields: doctype={doctype}, _in_words in meta: {_in_words_fields}"
+    )
+
+    # Find in_words and base_in_words fields in meta
+    # NOTE: check for "in_words" (standalone) AND "*_in_words" (suffix)
+    # "in_words".endswith("_in_words") is False, so we check separately
+    in_words_field = None
+    base_in_words_field = None
+    for df in meta.fields:
+        if df.fieldtype == "Small Text" and df.fieldname:
+            if df.fieldname == "in_words":
+                in_words_field = df
+            elif df.fieldname == "base_in_words":
+                base_in_words_field = df
+            elif df.fieldname.endswith("_in_words"):
+                # Generic _in_words suffix field - also translate
+                pass  # Already handled via generic approach below
+
+    # Helper to get primary amount field for in_words
+    def get_primary_amount():
+        for fname in [
+            "rounded_total",
+            "grand_total",
+            "net_total",
+            "total",
+            "amount",
+            "actual_total",
+            "outstanding_amount",
+        ]:
+            val = doc.get(fname)
+            if val is not None and val != 0:
+                return val
+        return None
+
+    # Helper to get base amount field for base_in_words
+    def get_base_amount():
+        for fname in [
+            "base_rounded_total",
+            "base_grand_total",
+            "base_net_total",
+            "base_total",
+            "base_amount",
+        ]:
+            val = doc.get(fname)
+            if val is not None and val != 0:
+                return val
+        return None
+
+    # Handle in_words (primary display currency)
+    if in_words_field:
+        amount = get_primary_amount()
+        if amount is not None:
+            currency = _resolve_currency(doc)
+            if normalized_lang == "th":
+                values["in_words"] = convert_amount_to_words(amount, "th", currency)
+            else:
+                with _print_language(normalized_lang):
+                    values["in_words"] = convert_amount_to_words(amount, normalized_lang, currency)
+
+    # Handle base_in_words
+    if base_in_words_field:
+        amount = get_base_amount()
+        if amount is not None:
+            currency = _resolve_currency(doc)
+            if normalized_lang == "th":
+                values["base_in_words"] = convert_amount_to_words(amount, "th", currency)
+            else:
+                with _print_language(normalized_lang):
+                    values["base_in_words"] = convert_amount_to_words(
+                        amount, normalized_lang, currency
+                    )
+
+    # CRITICAL: If doc has in_words value but field wasn't found in meta,
+    # translate it anyway (some doctypes customize away the in_words field)
+    if "in_words" not in values and doc.get("in_words"):
+        amount = get_primary_amount()
+        if amount is not None:
+            currency = _resolve_currency(doc)
+            if normalized_lang == "th":
+                values["in_words"] = convert_amount_to_words(amount, "th", currency)
+            else:
+                with _print_language(normalized_lang):
+                    values["in_words"] = convert_amount_to_words(amount, normalized_lang, currency)
+
+    return values
+
+
 @frappe.whitelist(allow_guest=False)
-def get_meta(doctype):
-    return frappe.get_meta(doctype).as_dict()
+@frappe.whitelist(allow_guest=False)
+def get_meta(doctype, _lang=None):
+    meta = frappe.get_meta(doctype).as_dict()
+    # Translate field labels if language is specified
+    if _lang:
+        old_lang = frappe.local.lang
+        try:
+            frappe.local.lang = _lang
+            for field in meta.get("fields", []):
+                if field.get("label"):
+                    field["label"] = _(field["label"])
+        finally:
+            frappe.local.lang = old_lang
+    return meta
 
 
 @frappe.whitelist(allow_guest=False)
@@ -205,9 +321,7 @@ def render_user_text(string, doc, row=None, send_to_jinja=None):
     result = {}
     try:
         result["success"] = 1
-        result["message"] = jenv.from_string(string).render(
-            {"doc": doc, "row": row, **jinja_vars}
-        )
+        result["message"] = jenv.from_string(string).render({"doc": doc, "row": row, **jinja_vars})
     except Exception as e:
         """
 		string is provided by user and there is no way to know if it is correct or not so log the error from client side
@@ -290,10 +404,7 @@ def get_image_docfields():
             customfield.label,
             customfield.options,
         )
-        .where(
-            (customfield.fieldtype == "Image")
-            | (customfield.fieldtype == "Attach Image")
-        )
+        .where((customfield.fieldtype == "Image") | (customfield.fieldtype == "Attach Image"))
         .orderby(customfield.dt)
     ).run(as_dict=True)
 
@@ -323,10 +434,7 @@ def get_watermark_docfields():
             docfield.label,
             docfield.options,
         )
-        .where(
-            (docfield.fieldtype == "Select") 
-            & (docfield.fieldname.like("%watermark%"))
-        )
+        .where((docfield.fieldtype == "Select") & (docfield.fieldname.like("%watermark%")))
         .orderby(docfield.parent)
     ).run(as_dict=True)
 
@@ -341,10 +449,7 @@ def get_watermark_docfields():
             customfield.label,
             customfield.options,
         )
-        .where(
-            (customfield.fieldtype == "Select")
-            & (customfield.fieldname.like("%watermark%"))
-        )
+        .where((customfield.fieldtype == "Select") & (customfield.fieldname.like("%watermark%")))
         .orderby(customfield.dt)
     ).run(as_dict=True)
 
@@ -354,8 +459,10 @@ def get_watermark_docfields():
     # Filter to only include fields that have watermark-related options
     watermark_related_fields = []
     for field in all_watermark_fields:
-        options = field.get('options', '')
-        if options and any(keyword in options.lower() for keyword in ['original', 'copy', 'draft', 'duplicate']):
+        options = field.get("options", "")
+        if options and any(
+            keyword in options.lower() for keyword in ["original", "copy", "draft", "duplicate"]
+        ):
             watermark_related_fields.append(field)
 
     # Sort by parent (DocType name)
@@ -370,15 +477,9 @@ def convert_css(css_obj):
     if css_obj:
         for item in css_obj.items():
             string_css += (
-                "".join(
-                    ["-" + i.lower() if i.isupper() else i for i in item[0]]
-                ).lstrip("-")
+                "".join(["-" + i.lower() if i.isupper() else i for i in item[0]]).lstrip("-")
                 + ":"
-                + str(
-                    item[1]
-                    if item[1] != "" or item[0] != "backgroundColor"
-                    else "transparent"
-                )
+                + str(item[1] if item[1] != "" or item[0] != "backgroundColor" else "transparent")
                 + "!important;"
             )
     string_css += "user-select: all;"
@@ -450,10 +551,10 @@ def convert_uom(
         },
     )
     if only_number:
-        return round(
-            number * converstion_factor[0][f"from_{from_uom}"][0][f"to_{to_uom}"], 3
-        )
-    return f"{round(number * converstion_factor[0][f'from_{from_uom}'][0][f'to_{to_uom}'], 3)}{to_uom}"
+        return round(number * converstion_factor[0][f"from_{from_uom}"][0][f"to_{to_uom}"], 3)
+    return (
+        f"{round(number * converstion_factor[0][f'from_{from_uom}'][0][f'to_{to_uom}'], 3)}{to_uom}"
+    )
 
 
 @frappe.whitelist()
@@ -473,9 +574,7 @@ def get_barcode(
     if isinstance(barcode_value, str) and barcode_value.startswith("<svg"):
         import re
 
-        barcode_value = re.search(r'data-barcode-value="(.*?)">', barcode_value).group(
-            1
-        )
+        barcode_value = re.search(r'data-barcode-value="(.*?)">', barcode_value).group(1)
 
     if barcode_value == "":
         fallback_html_string = """
@@ -515,9 +614,7 @@ def get_barcode(
             else:
                 self._root.setAttribute("height", height)
 
-            self._root.setAttribute(
-                "viewBox", f"0 0 {vw * 3.7795275591} {vh * 3.7795275591}"
-            )
+            self._root.setAttribute("viewBox", f"0 0 {vw * 3.7795275591} {vh * 3.7795275591}")
 
     if barcode_format not in barcode.PROVIDED_BARCODES:
         return f"Barcode format {barcode_format} not supported. Valid formats are: {barcode.PROVIDED_BARCODES}"

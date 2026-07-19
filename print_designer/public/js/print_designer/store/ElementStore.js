@@ -1725,6 +1725,7 @@ export const useElementStore = defineStore("ElementStore", {
       });
       this.Elements.forEach((page) => this.setElementProperties(page));
       frappe.dom.unfreeze();
+      return Promise.resolve();
     },
     alignFooterToBottom(wrapper) {
       // Translate every direct child of the footer wrapper so the

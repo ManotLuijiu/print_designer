@@ -1,4 +1,3 @@
-
 app_name = "print_designer"
 app_title = "Print Designer"
 app_publisher = "Frappe Technologies Pvt Ltd."
