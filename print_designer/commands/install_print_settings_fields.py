@@ -41,7 +41,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "fieldtype": "Check",
             "default": "0",
             "insert_after": "copy_settings_section",
-            "description": "Enable multiple copy generation for print formats",
         },
         {
             "label": "Default Copy Count",
@@ -100,7 +99,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
             "default": "None",
             "insert_after": "watermark_settings_section",
-            "description": "Control watermark display",
         },
         {
             "label": "Watermark Position",
@@ -110,7 +108,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "Top Right",
             "insert_after": "watermark_settings",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Position where watermark appears on the page",
         },
         {
             "label": "Watermark Font Family",
@@ -120,7 +117,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "Kanit",
             "insert_after": "watermark_position",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Font family for watermark text",
         },
         {
             "label": "Watermark Font Size (px)",
@@ -129,7 +125,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "24",
             "insert_after": "watermark_font_family",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Font size in pixels",
         },
         {
             "fieldname": "watermark_col_break",
@@ -183,7 +178,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "options": "None\nShow",
             "default": "Show",
             "insert_after": "page_number_section",
-            "description": "Show or hide page number in print preview",
         },
         {
             "label": "Page Number Position",
@@ -193,7 +187,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "Bottom Center",
             "insert_after": "page_number_display",
             "depends_on": "eval:doc.page_number_display == 'Show'",
-            "description": "Position of page number on the page",
         },
         {
             "label": "Page Number Font Family",
@@ -203,7 +196,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "Sarabun",
             "insert_after": "page_number_position",
             "depends_on": "eval:doc.page_number_display == 'Show'",
-            "description": "Font family for page number",
         },
         {
             "label": "Page Number Font Size (pt)",
@@ -212,7 +204,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "10",
             "insert_after": "page_number_font_family",
             "depends_on": "eval:doc.page_number_display == 'Show'",
-            "description": "Font size for page number in points",
         },
     ]
 }
