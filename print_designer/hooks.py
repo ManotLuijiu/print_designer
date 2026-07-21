@@ -21,7 +21,7 @@ commands = [
     "print_designer.commands.install_supplier_fields.install_supplier_fields_cmd",
     "print_designer.commands.install_supplier_fields.check_supplier_fields_cmd",
     "print_designer.commands.install_supplier_fields.uninstall_supplier_fields_cmd",
-    "print_designer.commands.install_watermark_fields.install_watermark_fields",
+    "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Print Format watermark fields
     "print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi",
     "print_designer.commands.install_delivery_qr.install_delivery_qr",
     "print_designer.commands.install_complete_system.install_complete_system",
@@ -537,6 +537,7 @@ after_install = [
     # REMOVED: thailand_wht_fields.py - Now handled by separate quotation module
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
+    "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install page number fields
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Install Customer branch_code field
@@ -585,11 +586,11 @@ after_migrate = [
     # them in sync with the install_address_fields function; idempotent)
     "print_designer.commands.install_address_fields.install_address_fields",
     # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
-    "print_designer.install.ensure_custom_fields",
+    "print_designer.api.print_settings_api.ensure_custom_fields",
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
-    "print_designer.hooks.override_erpnext_install",  # Apply ERPNext overrides
+    # print_designer.hooks.override_erpnext_install,  # OBSOLETE - handled by install_print_settings_fields.py
     "print_designer.commands.install_signature_fields.create_signature_fields",  # Install signature fields using clean system
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
@@ -609,6 +610,7 @@ after_migrate = [
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
+    "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install page number fields during migration
     "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
     "print_designer.overrides.sales_invoice_thai_wht_gl.execute",  # Patch Sales Invoice GL posting for Thai WHT (Thai Tax Compliance → debit)
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration
@@ -654,6 +656,7 @@ before_uninstall = [
     # Address field label overrides removal (mirror of install)
     "print_designer.commands.install_address_fields.remove_address_fields",
     "print_designer.overrides.tax_charge_type.remove",  # Remove 'Thai Tax Compliance' from charge_type options
+    "print_designer.commands.install_print_settings_fields.uninstall_print_settings_fields",  # Remove page number fields
 ]
 # after_uninstall = "print_designer.uninstall.after_uninstall"
 
@@ -800,28 +803,10 @@ doc_events = {
 }
 
 
-# Monkey patch ERPNext install function
-def override_erpnext_install():
-    """Override ERPNext's create_print_setting_custom_fields function"""
-    try:
-        import erpnext.setup.install
-
-        from print_designer.overrides.erpnext_install import (
-            create_print_setting_custom_fields,
-        )
-
-        # Replace the function
-        erpnext.setup.install.create_print_setting_custom_fields = (
-            create_print_setting_custom_fields
-        )
-
-    except ImportError:
-        # ERPNext not installed, skip override
-        pass
-    except Exception as e:
-        import frappe
-
-        frappe.logger().error(f"Error overriding ERPNext install function: {str(e)}")
+# OBSOLETE - Print Settings fields handled by commands/install_print_settings_fields.py
+# def override_erpnext_install():
+#     """Override ERPNext's create_print_setting_custom_fields function"""
+#     ... moved to install_print_settings_fields.py
 
 
 # scheduler_events = {

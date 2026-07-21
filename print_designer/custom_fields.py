@@ -42,9 +42,11 @@ Note: Do NOT add Customer/Supplier fields here - use their dedicated installers!
 try:
     from .signature_fields import get_signature_fields
 except ImportError:
+
     def get_signature_fields():
         """Fallback when signature_fields module is not available"""
         return {}
+
 
 # Print Designer specific custom fields
 PRINT_DESIGNER_CUSTOM_FIELDS = {
@@ -107,121 +109,10 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
             "default": "print_designer",
             "insert_after": "standard",
         },
-        {
-            "depends_on": "eval:doc.print_designer",
-            "fieldname": "watermark_settings",
-            "fieldtype": "Select",
-            "label": "Watermark per Page",
-            "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
-            "default": "None",
-            "insert_after": "print_designer_template_app",
-            "description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'",
-        },
-    ],
-    "Print Settings": [
-        {
-            "label": "Copy Settings",
-            "fieldname": "copy_settings_section",
-            "fieldtype": "Section Break",
-            "insert_after": "print_taxes_with_zero_amount",
-            "collapsible": 1,
-        },
-        {
-            "label": "Enable Multiple Copies",
-            "fieldname": "enable_multiple_copies",
-            "fieldtype": "Check",
-            "default": "0",
-            "insert_after": "copy_settings_section",
-            "description": "Enable multiple copy generation for print formats",
-        },
-        {
-            "label": "Default Copy Count",
-            "fieldname": "default_copy_count",
-            "fieldtype": "Int",
-            "default": "2",
-            "insert_after": "enable_multiple_copies",
-            "depends_on": "enable_multiple_copies",
-            "description": "Default number of copies to generate",
-        },
-        {
-            "label": "Copy Labels",
-            "fieldname": "copy_labels_column",
-            "fieldtype": "Column Break",
-            "insert_after": "default_copy_count",
-        },
-        {
-            "label": "Default Original Label",
-            "fieldname": "default_original_label",
-            "fieldtype": "Data",
-            "default": "Original",
-            "insert_after": "copy_labels_column",
-            "depends_on": "enable_multiple_copies",
-            "description": "Default label for original copy",
-        },
-        {
-            "label": "Default Copy Label",
-            "fieldname": "default_copy_label",
-            "fieldtype": "Data",
-            "default": "Copy",
-            "insert_after": "default_original_label",
-            "depends_on": "enable_multiple_copies",
-            "description": "Default label for additional copies",
-        },
-        {
-            "label": "Show Copy Controls in Toolbar",
-            "fieldname": "show_copy_controls_in_toolbar",
-            "fieldtype": "Check",
-            "default": "1",
-            "insert_after": "default_copy_label",
-            "depends_on": "enable_multiple_copies",
-            "description": "Show copy controls in print preview toolbar",
-        },
-        {
-            "label": "Watermark Settings",
-            "fieldname": "watermark_settings_section",
-            "fieldtype": "Section Break",
-            "insert_after": "show_copy_controls_in_toolbar",
-            "collapsible": 1,
-        },
-        {
-            "label": "Watermark per Page",
-            "fieldname": "watermark_settings",
-            "fieldtype": "Select",
-            "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
-            "default": "None",
-            "insert_after": "watermark_settings_section",
-            "description": "Control watermark display: None=no watermarks, Original on First Page=first page shows 'Original', Copy on All Pages=all pages show 'Copy', Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'",
-        },
-        {
-            "label": "Watermark Font Size (px)",
-            "fieldname": "watermark_font_size",
-            "fieldtype": "Int",
-            "default": "12",
-            "insert_after": "watermark_settings",
-            "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Font size for watermark text in pixels (default: 24px)",
-        },
-        {
-            "label": "Watermark Position",
-            "fieldname": "watermark_position",
-            "fieldtype": "Select",
-            "options": "Top Right\nTop Left\nBottom Right\nBottom Left\nCenter",
-            "default": "Top Right",
-            "insert_after": "watermark_font_size",
-            "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Position of watermark on the page",
-        },
-        {
-            "label": "Watermark Font Family",
-            "fieldname": "watermark_font_family",
-            "fieldtype": "Select",
-            "options": "Arial\nSarabun\nTimes New Roman\nCourier New\nHelvetica\nVerdana\nGeorgia\nTahoma",
-            "default": "Sarabun",
-            "insert_after": "watermark_position",
-            "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
-            "description": "Font family for watermark text (Sarabun recommended for Thai unicode support)",
-        },
-    ],
+    ],  # Print Format watermark_settings moved to commands/install_print_format_fields.py
+    # OBSOLETE: Print Settings fields moved to commands/install_print_settings_fields.py
+    # Copy Settings, Watermark Settings, Page Number Settings
+    # See: print_designer/commands/install_print_settings_fields.py
 }
 
 # Delivery Note fields for QR approval system
