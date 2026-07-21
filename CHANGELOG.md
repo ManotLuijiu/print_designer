@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.24.2](https://github.com/ManotLuijiu/print_designer/compare/v1.28.0...v1.24.2) (2026-07-21)
+
+
+### ✨ Features
+
+* **print-sidebar:** Add Copy, Watermark, and Page Number settings with 2-column grid layout ([f7529f8](https://github.com/ManotLuijiu/print_designer/commit/f7529f8ac1ad1bdeae6ad22b147237cc8124b774))
+
 ### [1.24.1](https://github.com/ManotLuijiu/print_designer/compare/v1.27.0...v1.24.1) (2026-07-19)
 
 
