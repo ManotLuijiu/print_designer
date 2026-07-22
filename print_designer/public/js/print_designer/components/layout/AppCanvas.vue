@@ -9,6 +9,7 @@
 			:style="[MainStore.mode == 'editing' && { cursor: MainStore.cursor }]"
 		>
 			<AppPages v-for="page in ElementStore.Elements" :key="page.index" :page="page" />
+
 			<!-- Grid Overlay -->
 			<div
 				v-if="MainStore.showGrid"
@@ -114,6 +115,7 @@ import AppUserProvidedJinjaModal from "./AppUserProvidedJinjaModal.vue";
 import AppBarcodeModal from "./AppBarcodeModal.vue";
 import AppImageModal from "./AppImageModal.vue";
 import AppPreviewPdf from "./AppPreviewPdf.vue";
+// WatermarkOverlay moved to AppPages.vue
 import IconsUse from "../../icons/IconsUse.vue";
 import { watch, watchEffect, onMounted, ref, nextTick } from "vue";
 import { useMainStore } from "../../store/MainStore";
@@ -251,6 +253,10 @@ const saveHeaderFooter = async (e, isCanceled = false) => {
 	);
 	MainStore.mode = "editing";
 	await updateDynamicData();
+	
+	// Save watermark settings after header/footer save
+	await ElementStore.saveElements();
+	console.log('[AppCanvas] Header/Footer saved, watermark settings synced');
 };
 
 onMounted(() => {

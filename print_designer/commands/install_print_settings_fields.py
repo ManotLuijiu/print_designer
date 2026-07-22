@@ -43,13 +43,12 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "insert_after": "copy_settings_section",
         },
         {
-            "label": "Default Copy Count",
+            "label": "Copy Count",
             "fieldname": "default_copy_count",
             "fieldtype": "Int",
             "default": "2",
             "insert_after": "enable_multiple_copies",
             "depends_on": "enable_multiple_copies",
-            "description": "Default number of copies to generate",
         },
         {
             "label": "Copy Labels",
@@ -58,22 +57,20 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "insert_after": "default_copy_count",
         },
         {
-            "label": "Default Original Label",
+            "label": "Original Label",
             "fieldname": "default_original_label",
             "fieldtype": "Data",
             "default": "Original",
             "insert_after": "copy_labels_column",
             "depends_on": "enable_multiple_copies",
-            "description": "Default label for original copy",
         },
         {
-            "label": "Default Copy Label",
+            "label": "Copy Label",
             "fieldname": "default_copy_label",
             "fieldtype": "Data",
             "default": "Copy",
             "insert_after": "default_original_label",
             "depends_on": "enable_multiple_copies",
-            "description": "Default label for additional copies",
         },
         {
             "label": "Show Copy Controls in Toolbar",
@@ -82,7 +79,6 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "default": "1",
             "insert_after": "default_copy_label",
             "depends_on": "enable_multiple_copies",
-            "description": "Show copy controls in print preview toolbar",
         },
         # Watermark Settings Section
         {
@@ -97,7 +93,7 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "fieldname": "watermark_settings",
             "fieldtype": "Select",
             "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
-            "default": "None",
+            "default": "Original on First Page",
             "insert_after": "watermark_settings_section",
         },
         {
@@ -132,35 +128,35 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "insert_after": "watermark_font_size",
         },
         {
-            "label": "Margin Top (mm)",
-            "fieldname": "watermark_margin_top",
+            "label": "Top (mm)",
+            "fieldname": "watermark_top",
             "fieldtype": "Int",
             "default": "0",
             "insert_after": "watermark_col_break",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
         },
         {
-            "label": "Margin Right (mm)",
-            "fieldname": "watermark_margin_right",
+            "label": "Right (mm)",
+            "fieldname": "watermark_right",
             "fieldtype": "Int",
             "default": "0",
-            "insert_after": "watermark_margin_top",
+            "insert_after": "watermark_top",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
         },
         {
-            "label": "Margin Bottom (mm)",
-            "fieldname": "watermark_margin_bottom",
+            "label": "Bottom (mm)",
+            "fieldname": "watermark_bottom",
             "fieldtype": "Int",
             "default": "0",
-            "insert_after": "watermark_margin_right",
+            "insert_after": "watermark_right",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
         },
         {
-            "label": "Margin Left (mm)",
-            "fieldname": "watermark_margin_left",
+            "label": "Left (mm)",
+            "fieldname": "watermark_left",
             "fieldtype": "Int",
             "default": "0",
-            "insert_after": "watermark_margin_bottom",
+            "insert_after": "watermark_bottom",
             "depends_on": "eval:doc.watermark_settings && doc.watermark_settings != 'None'",
         },
         # Page Number Settings Section
@@ -168,7 +164,7 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "label": "Page Number Settings",
             "fieldname": "page_number_section",
             "fieldtype": "Section Break",
-            "insert_after": "watermark_margin_left",
+            "insert_after": "watermark_left",
             "collapsible": 1,
         },
         {
@@ -183,8 +179,8 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "label": "Page Number Position",
             "fieldname": "page_number_position",
             "fieldtype": "Select",
-            "options": "Bottom Center\nTop Right\nTop Left\nTop Center\nBottom Right\nBottom Left",
-            "default": "Bottom Center",
+            "options": "Top Right\nTop Left\nTop Center\nBottom Center\nBottom Right\nBottom Left",
+            "default": "Top Right",
             "insert_after": "page_number_display",
             "depends_on": "eval:doc.page_number_display == 'Show'",
         },
@@ -198,12 +194,71 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "depends_on": "eval:doc.page_number_display == 'Show'",
         },
         {
+            "fieldname": "page_number_col_break",
+            "fieldtype": "Column Break",
+            "insert_after": "page_number_font_family",
+        },
+        {
             "label": "Page Number Font Size (pt)",
             "fieldname": "page_number_font_size",
             "fieldtype": "Int",
             "default": "10",
-            "insert_after": "page_number_font_family",
+            "insert_after": "page_number_col_break",
             "depends_on": "eval:doc.page_number_display == 'Show'",
+        },
+        {
+            "label": "Page Number Font Color",
+            "fieldname": "page_number_font_color",
+            "fieldtype": "Color",
+            "default": "000000",
+            "insert_after": "page_number_font_size",
+            "depends_on": "eval:doc.page_number_display == 'Show'",
+        },
+        {
+            "label": "Page Number Border",
+            "fieldname": "page_number_border",
+            "fieldtype": "Select",
+            "options": "None\nSolid\nDashed\nDotted",
+            "default": "None",
+            "insert_after": "page_number_font_color",
+            "depends_on": "eval:doc.page_number_display == 'Show'",
+        },
+        {
+            "fieldname": "page_number_col_break_02",
+            "fieldtype": "Column Break",
+            "insert_after": "page_number_border",
+        },
+        {
+            "label": "Top (mm)",
+            "fieldname": "page_number_top",
+            "fieldtype": "Int",
+            "default": "0",
+            "insert_after": "page_number_col_break_02",
+            "depends_on": "eval:doc.page_number_display && doc.page_number_display != 'None'",
+        },
+        {
+            "label": "Right (mm)",
+            "fieldname": "page_number_right",
+            "fieldtype": "Int",
+            "default": "0",
+            "insert_after": "page_number_top",
+            "depends_on": "eval:doc.page_number_display && doc.page_number_display != 'None'",
+        },
+        {
+            "label": "Bottom (mm)",
+            "fieldname": "page_number_bottom",
+            "fieldtype": "Int",
+            "default": "0",
+            "insert_after": "page_number_right",
+            "depends_on": "eval:doc.page_number_display && doc.page_number_display != 'None'",
+        },
+        {
+            "label": "Left (mm)",
+            "fieldname": "page_number_left",
+            "fieldtype": "Int",
+            "default": "0",
+            "insert_after": "page_number_bottom",
+            "depends_on": "eval:doc.page_number_display && doc.page_number_display != 'None'",
         },
     ]
 }
@@ -225,16 +280,23 @@ ALL_FIELDNAMES = [
     "watermark_font_family",
     "watermark_font_size",
     "watermark_col_break",
-    "watermark_margin_top",
-    "watermark_margin_right",
-    "watermark_margin_bottom",
-    "watermark_margin_left",
+    "watermark_top",
+    "watermark_right",
+    "watermark_bottom",
+    "watermark_left",
     # Page number settings
     "page_number_section",
     "page_number_display",
     "page_number_position",
     "page_number_font_family",
     "page_number_font_size",
+    "page_number_font_color",
+    "page_number_border",
+    "page_number_col_break_02",
+    "page_number_top",
+    "page_number_right",
+    "page_number_bottom",
+    "page_number_left",
 ]
 
 # =============================================================================
@@ -299,7 +361,7 @@ def _uninstall_existing_fields():
 
 def _apply_property_setters():
     """Apply Property Setters to set defaults for Print Settings standard fields."""
-    from frappe.custom.doctype.property_setter.property_setter import (
+    from frappe.custom.doctype.property_setter.property_setter import (  # pyright: ignore[reportMissingImports]
         make_property_setter,
     )
 
@@ -319,7 +381,7 @@ def _fix_field_ordering():
     # Map of fieldname -> correct insert_after
     ordering_fixes = {
         # Page Number Settings (Page Number section should come AFTER Watermark margins)
-        "page_number_section": "watermark_margin_left",
+        "page_number_section": "watermark_left",
         "page_number_display": "page_number_section",
         "page_number_position": "page_number_display",
         "page_number_font_family": "page_number_position",
@@ -331,10 +393,10 @@ def _fix_field_ordering():
         "watermark_font_family": "watermark_position",
         "watermark_font_size": "watermark_font_family",
         "watermark_col_break": "watermark_font_size",
-        "watermark_margin_top": "watermark_col_break",
-        "watermark_margin_right": "watermark_margin_top",
-        "watermark_margin_bottom": "watermark_margin_right",
-        "watermark_margin_left": "watermark_margin_bottom",
+        "watermark_top": "watermark_col_break",
+        "watermark_right": "watermark_top",
+        "watermark_bottom": "watermark_right",
+        "watermark_left": "watermark_bottom",
     }
     for fieldname, correct_insert_after in ordering_fixes.items():
         existing = frappe.db.get_value(
@@ -368,19 +430,21 @@ def _set_defaults():
             "default_copy_label": "Copy",
             "show_copy_controls_in_toolbar": 1,
             # Watermark settings
-            "watermark_settings": "None",
+            "watermark_settings": "Original on First Page",
             "watermark_position": "Top Right",
             "watermark_font_family": "Kanit",
             "watermark_font_size": 24,
-            "watermark_margin_top": 0,
-            "watermark_margin_right": 0,
-            "watermark_margin_bottom": 0,
-            "watermark_margin_left": 0,
+            "watermark_top": 0,
+            "watermark_right": 0,
+            "watermark_bottom": 0,
+            "watermark_left": 0,
             # Page number settings
             "page_number_display": "Show",
-            "page_number_position": "Bottom Center",
+            "page_number_position": "Top Right",
             "page_number_font_size": 10,
             "page_number_font_family": "Sarabun",
+            "page_number_font_color": "000000",
+            "page_number_border": "None",
         }
 
         updated = False
@@ -388,6 +452,15 @@ def _set_defaults():
             if not ps.get(field):
                 ps.set(field, default_value)
                 updated = True
+
+        legacy_default_migrations = {
+            "page_number_position": ("Bottom Center", "Top Right"),
+        }
+        for field, (legacy_value, new_value) in legacy_default_migrations.items():
+            if ps.get(field) == legacy_value:
+                ps.set(field, new_value)
+                updated = True
+                print(f"   Migrated {field}: {legacy_value} -> {new_value}")
 
         if updated:
             ps.save()

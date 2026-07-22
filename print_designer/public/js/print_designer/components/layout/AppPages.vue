@@ -1,6 +1,7 @@
 <template>
 	<div :style="['pointer-events: none;', getMarginContainerStyle]" class="margin-container">
 		<div
+			:id="MainStore.mode === 'header' || MainStore.mode === 'footer' ? 'tbs__app__pages__print__design__header__wrapper' : 'tbs__app__pages__print__design__main__view__wrapper'"
 			:class="['main-container', { 'active-page': MainStore.activePage == page }]"
 			:ref="setElements(page, page.index)"
 			:style="[MainStore.getPageStyle, 'pointer-events: auto;']"
@@ -16,6 +17,8 @@
 		>
 				<!-- Grid Overlay -->
 			<div v-if="MainStore.isGridVisible" class="grid-overlay"></div>
+			<!-- Watermark Overlay -->
+			<WatermarkOverlay />
 			<template v-for="(object, index) in page.header" :key="object.id + '-' + MainStore.tableRenderKey" v-if="page.DOMRef">
 				<component
 					:is="
@@ -67,6 +70,7 @@ import BaseDynamicText from "../base/BaseDynamicText.vue";
 import BaseImage from "../base/BaseImage.vue";
 import BaseTable from "../base/BaseTable.vue";
 import BaseBarcode from "../base/BaseBarcode.vue";
+import WatermarkOverlay from "./WatermarkOverlay.vue";
 
 import { useDraw } from "../../composables/Draw";
 import { useElement } from "../../composables/Element";

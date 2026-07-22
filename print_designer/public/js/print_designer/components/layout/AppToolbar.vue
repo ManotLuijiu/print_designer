@@ -38,15 +38,24 @@
 				:title="__('Layers Panel')"
 				@click="console.log('[Toolbar] Layer clicked, isLayerPanelEnabled:', MainStore.isLayerPanelEnabled, 'toggle classes:', MainStore.isLayerPanelEnabled ? 'tool-icons active-toggle-icon' : 'tool-icons'), MainStore.isLayerPanelEnabled = !MainStore.isLayerPanelEnabled"
 			/>
+<IconsUse
+					name="gridTool"
+					:size="32"
+					:padding="8"
+					:color="MainStore.isGridVisible ? 'white' : 'var(--text-muted)'"
+					:class="['tool-icons', { 'active-toggle-icon': MainStore.isGridVisible }]"
+					:title="__('Grid View (G)')"
+					@click="console.log('[Toolbar] Grid clicked, isGridVisible:', MainStore.isGridVisible, 'toggle classes:', MainStore.isGridVisible ? 'tool-icons active-toggle-icon' : 'tool-icons'), MainStore.isGridVisible = !MainStore.isGridVisible"
+				/>
 			<IconsUse
-				name="gridTool"
-				:size="32"
-				:padding="8"
-				:color="MainStore.isGridVisible ? 'white' : 'var(--text-muted)'"
-				:class="['tool-icons', { 'active-toggle-icon': MainStore.isGridVisible }]"
-				:title="__('Grid View (G)')"
-				@click="console.log('[Toolbar] Grid clicked, isGridVisible:', MainStore.isGridVisible, 'toggle classes:', MainStore.isGridVisible ? 'tool-icons active-toggle-icon' : 'tool-icons'), MainStore.isGridVisible = !MainStore.isGridVisible"
-			/>
+					name="watermarkTool"
+					:size="32"
+					:padding="8"
+					:color="MainStore.isWatermarkPanelEnabled ? 'white' : 'var(--text-muted)'"
+					:class="['tool-icons', { 'active-toggle-icon': MainStore.isWatermarkPanelEnabled }]"
+					:title="__('Watermark Settings')"
+					@click="MainStore.isWatermarkPanelEnabled = !MainStore.isWatermarkPanelEnabled"
+				/>
 			<div class="toolbar-divider"></div>
 			<!-- Language Toggle -->
 			<div class="language-toggle-container">
@@ -127,9 +136,10 @@
 					</div>
 				</div>
 			</div>
+			<WatermarkPanel v-if="MainStore.isWatermarkPanelEnabled" />
 		</div>
 		<LayersPanel v-if="MainStore.isLayerPanelEnabled" />
-	</div>
+</div>
 </template>
 
 <script setup>
@@ -137,6 +147,7 @@ import Icons from "../../icons/Icons.vue";
 import IconsUse from "../../icons/IconsUse.vue";
 import { useMainStore } from "../../store/MainStore";
 import LayersPanel from "./LayersPanel.vue";
+import WatermarkPanel from "./WatermarkPanel.vue";
 import { ref, useAttrs, watch } from "vue";
 
 defineOptions({ inheritAttrs: false });
@@ -211,6 +222,7 @@ const iconClasses = (id, icon) => {
 	flex-direction: column;
 	align-items: center;
 	gap: 0;
+	position: relative;
 }
 .tool-icons {
 	display: flex;

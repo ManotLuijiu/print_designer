@@ -311,6 +311,14 @@
 			<line x1="0" y1="8" x2="24" y2="8" stroke="var(--icon-stroke)" stroke-width="2" />
 			<line x1="0" y1="16" x2="24" y2="16" stroke="var(--icon-stroke)" stroke-width="2" />
 		</symbol>
+		<!-- Watermark Tool Icon -->
+		<symbol id="watermarkTool" viewBox="0 0 24 24">
+			<!-- Water drop shape -->
+			<path d="M12 2C12 2 4 10 4 15C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 15C20 10 12 2 12 2Z" fill="none" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			<!-- Horizontal lines inside to represent watermark text -->
+			<line x1="7" y1="12" x2="17" y2="12" stroke="var(--icon-stroke)" stroke-width="1.5" stroke-linecap="round"/>
+			<line x1="8" y1="15" x2="16" y2="15" stroke="var(--icon-stroke)" stroke-width="1.5" stroke-linecap="round"/>
+		</symbol>
 		<!-- Border Style Icons -->
 		<symbol id="borderStyleSolid">
 			<line x1="3" y1="12" x2="21" y2="12" stroke="var(--icon-stroke)" stroke-width="2" stroke-linecap="round" />

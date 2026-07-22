@@ -1,6 +1,7 @@
+from typing import Dict
+
 import frappe
 from frappe import _
-from typing import Dict, Optional
 
 
 @frappe.whitelist()
@@ -11,9 +12,7 @@ def validate_watermark_settings(doc, method=None):
     """
     try:
         # Validate font size range
-        if doc.default_font_size and (
-            doc.default_font_size < 8 or doc.default_font_size > 72
-        ):
+        if doc.default_font_size and (doc.default_font_size < 8 or doc.default_font_size > 72):
             frappe.throw(_("Default font size must be between 8 and 72 pixels"))
 
         # Validate opacity range
@@ -24,21 +23,15 @@ def validate_watermark_settings(doc, method=None):
         template_names = []
         for template in doc.watermark_templates:
             if template.template_name in template_names:
-                frappe.throw(
-                    _("Template name '{0}' is duplicated").format(
-                        template.template_name
-                    )
-                )
+                frappe.throw(_("Template name '{0}' is duplicated").format(template.template_name))
             template_names.append(template.template_name)
 
             # Validate template settings
-            if template.font_size and (
-                template.font_size < 8 or template.font_size > 72
-            ):
+            if template.font_size and (template.font_size < 8 or template.font_size > 72):
                 frappe.throw(
-                    _(
-                        "Font size in template '{0}' must be between 8 and 72 pixels"
-                    ).format(template.template_name)
+                    _("Font size in template '{0}' must be between 8 and 72 pixels").format(
+                        template.template_name
+                    )
                 )
 
             if template.opacity and (template.opacity < 0 or template.opacity > 1):
@@ -53,9 +46,7 @@ def validate_watermark_settings(doc, method=None):
         for config in doc.print_format_configs:
             if config.print_format in format_names:
                 frappe.throw(
-                    _("Print Format '{0}' is configured multiple times").format(
-                        config.print_format
-                    )
+                    _("Print Format '{0}' is configured multiple times").format(config.print_format)
                 )
             format_names.append(config.print_format)
 
@@ -63,9 +54,9 @@ def validate_watermark_settings(doc, method=None):
             if config.override_settings:
                 if config.font_size and (config.font_size < 8 or config.font_size > 72):
                     frappe.throw(
-                        _(
-                            "Override font size for '{0}' must be between 8 and 72 pixels"
-                        ).format(config.print_format)
+                        _("Override font size for '{0}' must be between 8 and 72 pixels").format(
+                            config.print_format
+                        )
                     )
 
                 if config.opacity and (config.opacity < 0 or config.opacity > 1):
@@ -149,11 +140,11 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
         # Get global watermark settings - check if doctype exists first
         if not frappe.db.exists("DocType", "Watermark Settings"):
             return {"enabled": False, "error": "Watermark Settings DocType not installed"}
-        
+
         # Check if single record exists for this single doctype
         if not frappe.db.exists("Watermark Settings", None):
             return {"enabled": False, "error": "Watermark Settings record not configured"}
-        
+
         settings = frappe.get_single("Watermark Settings")
 
         if not settings.enabled:
@@ -169,9 +160,7 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
         if format_config:
             # Use template configuration or overrides
             if format_config.watermark_template and not format_config.override_settings:
-                template_config = get_watermark_template_config(
-                    format_config.watermark_template
-                )
+                template_config = get_watermark_template_config(format_config.watermark_template)
                 return {
                     "enabled": True,
                     "source": "template",
@@ -183,8 +172,7 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
                 return {
                     "enabled": True,
                     "source": "override",
-                    "watermark_mode": format_config.watermark_mode
-                    or settings.default_mode,
+                    "watermark_mode": format_config.watermark_mode or settings.default_mode,
                     "font_size": format_config.font_size or settings.default_font_size,
                     "position": format_config.position or settings.default_position,
                     "position_custom": format_config.position_custom,
@@ -192,26 +180,29 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
                     "position_right": format_config.position_right,
                     "position_bottom": format_config.position_bottom,
                     "position_left": format_config.position_left,
-                    "font_family": format_config.font_family
-                    or settings.default_font_family,
+                    "font_family": format_config.font_family or settings.default_font_family,
                     "color": format_config.color or settings.default_color,
                     "opacity": format_config.opacity or settings.default_opacity,
                     "custom_text": format_config.custom_text,
                 }
 
         # Return default settings
+        # IMPORTANT: Fall back to Print Settings values if Watermark Settings defaults are not set
+        ps = frappe.get_single("Print Settings")
         return {
             "enabled": True,
             "source": "default",
             "watermark_mode": settings.default_mode,
-            "font_size": settings.default_font_size,
+            "font_size": settings.default_font_size or ps.get("watermark_font_size") or 24,
             "position": settings.default_position,
             "position_custom": settings.default_position_custom,
             "position_top": settings.default_position_top,
             "position_right": settings.default_position_right,
             "position_bottom": settings.default_position_bottom,
             "position_left": settings.default_position_left,
-            "font_family": settings.default_font_family,
+            "font_family": settings.default_font_family
+            or ps.get("watermark_font_family")
+            or "Kanit",
             "color": settings.default_color,
             "opacity": settings.default_opacity,
             "custom_text": None,
@@ -236,16 +227,19 @@ def get_watermark_template_config(template_name: str) -> Dict:
     try:
         template = frappe.get_doc("Watermark Template", template_name)
 
+        # Get Print Settings fallback values
+        ps = frappe.get_single("Print Settings")
+
         return {
             "watermark_mode": template.watermark_mode,
-            "font_size": template.font_size,
+            "font_size": template.font_size or ps.get("watermark_font_size") or 24,
             "position": template.position,
             "position_custom": template.position_custom,
             "position_top": template.position_top,
             "position_right": template.position_right,
             "position_bottom": template.position_bottom,
             "position_left": template.position_left,
-            "font_family": template.font_family,
+            "font_family": template.font_family or ps.get("watermark_font_family") or "Kanit",
             "color": template.color,
             "opacity": template.opacity,
             "custom_text": template.custom_text,
@@ -282,8 +276,7 @@ def get_available_watermark_templates() -> list:
                 {
                     "name": template.template_name,
                     "watermark_mode": template.watermark_mode,
-                    "description": template.description
-                    or f"Template: {template.template_name}",
+                    "description": template.description or f"Template: {template.template_name}",
                 }
             )
 
@@ -488,38 +481,39 @@ def cleanup_watermark_cache():
     """
     try:
         cache = frappe.cache()
-        
+
         # List of cache keys to clean up
-        cache_keys_to_clean = [
-            "watermark_settings",
-            "watermark_templates"
-        ]
-        
+        cache_keys_to_clean = ["watermark_settings", "watermark_templates"]
+
         # Clean up main cache keys
         for key in cache_keys_to_clean:
             cache.delete_key(key)
-        
+
         # Clean up format-specific cache keys
         # Get all print formats and clean their watermark cache
         print_formats = frappe.get_all("Print Format", pluck="name")
-        
+
         cleaned_count = 0
         for print_format in print_formats:
             cache_key = f"watermark_config_{print_format}"
             if cache.get_value(cache_key):
                 cache.delete_key(cache_key)
                 cleaned_count += 1
-        
-        frappe.logger().info(f"Watermark cache cleanup completed. Cleaned {cleaned_count} format-specific cache entries.")
-        
+
+        frappe.logger().info(
+            f"Watermark cache cleanup completed. Cleaned {cleaned_count} format-specific cache entries."
+        )
+
         return {
             "success": True,
             "cleaned_count": cleaned_count,
-            "message": f"Cleaned up {cleaned_count} watermark cache entries"
+            "message": f"Cleaned up {cleaned_count} watermark cache entries",
         }
-        
+
     except Exception as e:
-        frappe.log_error(f"Error during watermark cache cleanup: {str(e)}", "Watermark Cache Cleanup")
+        frappe.log_error(
+            f"Error during watermark cache cleanup: {str(e)}", "Watermark Cache Cleanup"
+        )
         frappe.logger().error(f"Watermark cache cleanup failed: {str(e)}")
         return {"success": False, "error": str(e)}
 
@@ -531,11 +525,11 @@ def get_permission_query_conditions(user=None):
     """
     if not user:
         user = frappe.session.user
-        
+
     # Allow system managers and administrators full access
     if "System Manager" in frappe.get_roles(user) or user == "Administrator":
         return ""
-    
+
     # For other users, they can only see templates they created or public ones
     return f"""(
         `tabWatermark Template`.owner = '{user}' 

@@ -70,14 +70,26 @@ def get_print_settings_to_show(doctype, docname):
         copy_fields = [
             "enable_multiple_copies",
             "default_copy_count",
+            "pdf_page_size",
             "default_original_label",
             "default_copy_label",
         ]
         print(f"[PD-PRINT-SETTINGS] Copy fields to add: {copy_fields}", file=sys.stderr)
+        label_overrides = {
+            "default_copy_count": "Copy Count",
+            "default_original_label": "Original Label",
+            "default_copy_label": "Copy Label",
+        }
+        read_only_fields = {"default_original_label", "default_copy_label"}
         for fieldname in copy_fields:
             df = print_settings.meta.get_field(fieldname)
             if df:
                 df.default = print_settings.get(fieldname)
+                if fieldname in label_overrides:
+                    df.label = label_overrides[fieldname]
+                if fieldname in read_only_fields:
+                    df.read_only = 1
+                    df.description = "Driven by Watermark per Page"
                 fields_to_show.append(df)
                 print(
                     f"[PD-PRINT-SETTINGS]   + copy field: {fieldname} (label: {df.label})",
@@ -104,11 +116,11 @@ def get_print_settings_to_show(doctype, docname):
         "watermark_position",
         "watermark_font_family",
         "watermark_font_size",
-        "watermark_col_break",
-        "watermark_margin_top",
-        "watermark_margin_right",
-        "watermark_margin_bottom",
-        "watermark_margin_left",
+        # NOTE: watermark_col_break is internal - not included
+        "watermark_top",
+        "watermark_right",
+        "watermark_bottom",
+        "watermark_left",
     ]
     print(
         f"[PD-PRINT-SETTINGS] Watermark fields to add: {watermark_fields}",
@@ -148,6 +160,12 @@ def get_print_settings_to_show(doctype, docname):
         "page_number_position",
         "page_number_font_family",
         "page_number_font_size",
+        "page_number_font_color",
+        "page_number_border",
+        "page_number_top",
+        "page_number_right",
+        "page_number_bottom",
+        "page_number_left",
     ]
     print(
         f"[PD-PRINT-SETTINGS] Page Number fields to add: {page_number_fields}",
@@ -160,10 +178,12 @@ def get_print_settings_to_show(doctype, docname):
             if df.fieldtype in ("Section Break", "Column Break"):
                 print(f"[PD-PRINT-SETTINGS]   - skip {fieldname} ({df.fieldtype})", file=sys.stderr)
                 continue
-            df.default = print_settings.get(fieldname)
+            stored_value = print_settings.get(fieldname)
+            if stored_value is not None and stored_value != "":
+                df.default = stored_value
             fields_to_show.append(df)
             print(
-                f"[PD-PRINT-SETTINGS]   + page_number field: {fieldname} (label: {df.label})",
+                f"[PD-PRINT-SETTINGS]   + page_number field: {fieldname} (label: {df.label}, default: {df.default})",
                 file=sys.stderr,
             )
         else:

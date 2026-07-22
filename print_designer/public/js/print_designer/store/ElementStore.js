@@ -577,6 +577,10 @@ export const useElementStore = defineStore("ElementStore", {
           userProvidedJinja: MainStore.userProvidedJinja,
           schema_version: MainStore.schema_version,
           numberToWordsFieldPairs: MainStore.numberToWordsFieldPairs,
+          // Watermark settings (per-format)
+          watermark: { ...MainStore.watermark },
+          // Page number settings (per-format)
+          page_number: { ...MainStore.page_number },
         };
         const convertCsstoString = (stylesheet) => {
           const cssRule = Array.from(stylesheet.cssRules)
@@ -1639,7 +1643,7 @@ export const useElementStore = defineStore("ElementStore", {
         return element;
       });
     },
-    createPageElement(element, type) {
+    createPageElement(element, _type) {
       return {
         type: "page",
         childrens: [...element],

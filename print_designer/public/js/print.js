@@ -78,10 +78,10 @@ function patchPrintViewForDebug() {
       "watermark_position",
       "watermark_font_family",
       "watermark_font_size",
-      "watermark_margin_top",
-      "watermark_margin_right",
-      "watermark_margin_bottom",
-      "watermark_margin_left",
+      "watermark_top",
+      "watermark_right",
+      "watermark_bottom",
+      "watermark_left",
     ];
 
     // Find watermark fields in settings and reorder them
@@ -105,11 +105,11 @@ function patchPrintViewForDebug() {
     // INJECT COLUMN BREAK between 2nd and 3rd margin field
     // This splits margins into 2 columns: Top/Right | Bottom/Left
     const marginBottomIndex = reorderedSettings.findIndex(
-      (s) => s.fieldname === "watermark_margin_bottom",
+      (s) => s.fieldname === "watermark_bottom",
     );
     if (marginBottomIndex > 0) {
       reorderedSettings.splice(marginBottomIndex, 0, {
-        fieldname: "watermark_margin_col_break",
+        fieldname: "watermark_col_break",
         fieldtype: "Column Break",
       });
     }
@@ -127,7 +127,56 @@ function patchPrintViewForDebug() {
       const container = document.querySelector(".dynamic-settings");
       if (!container) return;
 
-      // 1. WRAP WATERMARK SETTINGS (4 fields) IN 2-COLUMN GRID
+      // 0. COPY COUNT + PDF PAGE SIZE IN 1:1 GRID
+      // Enable Multiple Copies stays standalone
+      const copyFields = ["default_copy_count", "pdf_page_size"];
+      const copyWrapper = document.createElement("div");
+      copyWrapper.className = "copy-controls-grid";
+      copyWrapper.style.cssText =
+        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
+      copyFields.forEach((fieldname) => {
+        const fieldDiv = container.querySelector(
+          `[data-fieldname="${fieldname}"]`,
+        );
+        if (fieldDiv) copyWrapper.appendChild(fieldDiv);
+      });
+      container.appendChild(copyWrapper);
+
+      // 1. WRAP COPY LABELS (Original Label, Copy Label) IN 2-COLUMN GRID
+      // This comes after Copy Count, before Watermark settings
+      const labelFields = ["default_original_label", "default_copy_label"];
+      const labelWrapper = document.createElement("div");
+      labelWrapper.className = "copy-labels-grid";
+      labelWrapper.style.cssText =
+        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+      labelFields.forEach((fieldname) => {
+        const fieldDiv = container.querySelector(
+          `[data-fieldname="${fieldname}"]`,
+        );
+        if (fieldDiv) labelWrapper.appendChild(fieldDiv);
+      });
+      container.appendChild(labelWrapper);
+
+      // Disable label fields in preview sidebar - Watermark per Page is source of truth.
+      ["default_original_label", "default_copy_label"].forEach((fieldname) => {
+        const input = container.querySelector(
+          `[data-fieldname="${fieldname}"] input`,
+        );
+        const field = container.querySelector(
+          `[data-fieldname="${fieldname}"]`,
+        );
+        if (input) {
+          input.readOnly = true;
+          input.disabled = true;
+          input.classList.add("disabled");
+        }
+        if (field) {
+          field.style.opacity = "0.7";
+          field.style.pointerEvents = "none";
+        }
+      });
+
+      // 2. WRAP WATERMARK SETTINGS (4 fields) IN 2-COLUMN GRID
       const watermarkSettingsFields = [
         "watermark_settings",
         "watermark_position",
@@ -146,12 +195,175 @@ function patchPrintViewForDebug() {
       });
       container.appendChild(watermarkWrapper);
 
+      // DEBUG: Track watermark_font_size changes
+      const fontSizeInput = container.querySelector(
+        '[data-fieldname="watermark_font_size"] input',
+      );
+      if (fontSizeInput) {
+        console.log(
+          "[DEBUG] watermark_font_size input found:",
+          fontSizeInput.value,
+        );
+        fontSizeInput.addEventListener("input", (e) => {
+          console.log(
+            "[DEBUG] watermark_font_size CHANGED to:",
+            e.target.value,
+          );
+        });
+        fontSizeInput.addEventListener("change", (e) => {
+          console.log("[DEBUG] watermark_font_size onchange:", e.target.value);
+        });
+      }
+
+      // DEBUG: Track watermark_font_family changes
+      const fontFamilySelect = container.querySelector(
+        '[data-fieldname="watermark_font_family"] select',
+      );
+      if (fontFamilySelect) {
+        console.log(
+          "[DEBUG] watermark_font_family found, current value:",
+          fontFamilySelect.value,
+        );
+        fontFamilySelect.addEventListener("change", (e) => {
+          console.log(
+            "[DEBUG] watermark_font_family CHANGED to:",
+            e.target.value,
+          );
+        });
+      }
+
+      // DEBUG: Track margin changes
+      [
+        "watermark_top",
+        "watermark_right",
+        "watermark_bottom",
+        "watermark_left",
+      ].forEach((fieldname) => {
+        const marginInput = container.querySelector(
+          `[data-fieldname="${fieldname}"] input`,
+        );
+        if (marginInput) {
+          marginInput.addEventListener("input", (e) => {
+            console.log(`[DEBUG] ${fieldname} CHANGED to:`, e.target.value);
+          });
+        }
+      });
+
+      // SMART DEFAULT: when Top Right is selected for the first time,
+      // seed Top/Right margins with 10mm if those fields are still untouched/zero.
+      const positionSelect = container.querySelector(
+        '[data-fieldname="watermark_position"] select',
+      );
+      const topInput = container.querySelector(
+        '[data-fieldname="watermark_top"] input',
+      );
+      const rightInput = container.querySelector(
+        '[data-fieldname="watermark_right"] input',
+      );
+
+      const syncFieldValue = (input, value) => {
+        if (!input) return;
+        input.value = String(value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      };
+
+      const shouldSeedTopRightDefaults = () => {
+        const topValue = (topInput?.value || "").trim();
+        const rightValue = (rightInput?.value || "").trim();
+        return ["", "0"].includes(topValue) && ["", "0"].includes(rightValue);
+      };
+
+      const applySmartPositionDefaults = () => {
+        if (!positionSelect || positionSelect.value !== "Top Right") return;
+        if (!shouldSeedTopRightDefaults()) return;
+
+        console.log(
+          "[DEBUG] Auto-seeding Top Right watermark margins to top=10, right=10",
+        );
+        syncFieldValue(topInput, 10);
+        syncFieldValue(rightInput, 10);
+      };
+
+      if (positionSelect && !positionSelect.dataset.pdSmartDefaultsBound) {
+        positionSelect.dataset.pdSmartDefaultsBound = "1";
+        positionSelect.addEventListener("change", () => {
+          setTimeout(applySmartPositionDefaults, 0);
+        });
+        setTimeout(applySmartPositionDefaults, 0);
+      }
+
+      // SMART DEFAULT: Page Number Position auto-set margins to align with watermark
+      const pagePositionSelect = container.querySelector(
+        '[data-fieldname="page_number_position"] select',
+      );
+      const pnTopInput = container.querySelector(
+        '[data-fieldname="page_number_top"] input',
+      );
+      const pnRightInput = container.querySelector(
+        '[data-fieldname="page_number_right"] input',
+      );
+      const pnBottomInput = container.querySelector(
+        '[data-fieldname="page_number_bottom"] input',
+      );
+      const pnLeftInput = container.querySelector(
+        '[data-fieldname="page_number_left"] input',
+      );
+
+      const shouldSeedPnMargins = () => {
+        const topVal = (pnTopInput?.value || "").trim();
+        const rightVal = (pnRightInput?.value || "").trim();
+        const bottomVal = (pnBottomInput?.value || "").trim();
+        const leftVal = (pnLeftInput?.value || "").trim();
+        return (
+          ["", "0", "2"].includes(topVal) &&
+          ["", "0", "2"].includes(rightVal) &&
+          ["", "0", "2"].includes(bottomVal) &&
+          ["", "0", "2"].includes(leftVal)
+        );
+      };
+
+      const applyPnSmartDefaults = () => {
+        if (!pagePositionSelect || !shouldSeedPnMargins()) return;
+        const pos = pagePositionSelect.value;
+        console.log("[DEBUG] Applying page number smart margins for:", pos);
+
+        // Reset all to 2 (default)
+        syncFieldValue(pnTopInput, 2);
+        syncFieldValue(pnRightInput, 2);
+        syncFieldValue(pnBottomInput, 2);
+        syncFieldValue(pnLeftInput, 2);
+
+        // Add 8 to align with watermark (watermark default is 10mm)
+        // Function already adds 2, so 2 + 8 = 10
+        if (pos === "Top Right") {
+          syncFieldValue(pnRightInput, 8); // 2 + 8 = 10
+        } else if (pos === "Top Left") {
+          syncFieldValue(pnLeftInput, 8); // 2 + 8 = 10
+        } else if (pos === "Bottom Right") {
+          syncFieldValue(pnRightInput, 8);
+        } else if (pos === "Bottom Left") {
+          syncFieldValue(pnLeftInput, 8);
+        }
+        // Top Center, Bottom Center, Middle positions keep default 2
+      };
+
+      if (pagePositionSelect && !pagePositionSelect.dataset.pdPnSmartBound) {
+        pagePositionSelect.dataset.pdPnSmartBound = "1";
+        pagePositionSelect.addEventListener("change", () => {
+          setTimeout(applyPnSmartDefaults, 0);
+        });
+        setTimeout(applyPnSmartDefaults, 0);
+      }
+
+      // Disable label fields in preview sidebar - Watermark per Page is source of truth.
+
       // 2. WRAP MARGIN FIELDS (4 fields) IN 2-COLUMN GRID
       const marginFields = [
-        "watermark_margin_top",
-        "watermark_margin_right",
-        "watermark_margin_bottom",
-        "watermark_margin_left",
+        "watermark_top",
+        "watermark_right",
+        "watermark_bottom",
+        "watermark_left",
       ];
       const marginWrapper = document.createElement("div");
       marginWrapper.className = "margin-fields-grid";
@@ -192,11 +404,18 @@ function patchPrintViewForDebug() {
       }
 
       // 4. WRAP PAGE NUMBER FIELDS IN 2-COLUMN GRID
+      // NOTE: page_number_col_break and page_number_col_break_02 are internal - not included
       const pageNumberFields = [
         "page_number_display",
         "page_number_position",
         "page_number_font_family",
         "page_number_font_size",
+        "page_number_font_color",
+        "page_number_border",
+        "page_number_top",
+        "page_number_right",
+        "page_number_bottom",
+        "page_number_left",
       ];
       const pageNumberWrapper = document.createElement("div");
       pageNumberWrapper.className = "page-number-grid";
@@ -219,6 +438,13 @@ function patchPrintViewForDebug() {
           label.style.minHeight = "42px";
           label.style.display = "flex";
           label.style.alignItems = "flex-start";
+        });
+
+      // 6. HIDE ALL DESCRIPTION (HELP-BOX) IN SIDEBAR - saves space
+      document
+        .querySelectorAll(".print-preview-sidebar .help-box")
+        .forEach((el) => {
+          el.style.display = "none";
         });
 
       console.log("[DEBUG] Sidebar fields wrapped in 2-column grids");
@@ -307,6 +533,42 @@ function patch_refresh_print_format() {
   };
   PV.prototype._pdRefreshPatched = true;
 }
+
+/**
+ * Patch setup_print_format_dom to add id to print-format div
+ * Line 514: this.$print_format_body.find("body").html(`<div class="print-format print-format-preview">`)
+ */
+function patch_setup_print_format_dom() {
+  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+
+  if (!PV || !PV.prototype) {
+    setTimeout(patch_setup_print_format_dom, 200);
+    return;
+  }
+
+  if (PV.prototype._pdSetupPrintFormatDomPatched) return;
+
+  const original = PV.prototype.setup_print_format_dom;
+  PV.prototype.setup_print_format_dom = function (_out, _$print_format) {
+    original.apply(this, arguments);
+
+    // Add id to the print-format div (line 514 equivalent)
+    this.$print_format_body
+      .find(".print-format")
+      .attr("id", "tbs__print__page__preview");
+
+    // Add max-width unset (lines 518-521 equivalent)
+    // Need !important because .print-format has max-width: 210.0mm !important
+    this.$print_format_body
+      .find(".print-format")
+      .css("max-width", "unset !important");
+  };
+
+  PV.prototype._pdSetupPrintFormatDomPatched = true;
+}
+
+// Start the patch
+patch_setup_print_format_dom();
 
 function queue_print_language_apply(delay = 0) {
   setTimeout(() => {

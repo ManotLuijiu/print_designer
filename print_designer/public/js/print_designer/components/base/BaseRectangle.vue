@@ -8,6 +8,7 @@
 		<p>{{ `Double Click to edit ${elementType}` }}</p>
 	</div>
 	<div
+		:id="elementType === 'header' && MainStore.mode !== 'header' && MainStore.mode !== 'footer' ? 'tbs__app__pages__print__design__main__header__view__wrapper' : undefined"
 		:style="[
 			style,
 			style.backgroundColor == '' && { backgroundColor: 'transparent' },

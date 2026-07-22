@@ -15,10 +15,13 @@ const pdfjsLibRef = shallowRef(null);
 const pdfDocumentTask = shallowRef(null);
 
 // Helper function to convert watermark settings to URL parameters
-function getWatermarkParams(watermarkSettings) {
+function getWatermarkParams(watermark) {
 	const params = new URLSearchParams();
 	
-	switch (watermarkSettings) {
+	// Get mode from watermark object (per-format) or fallback to Print Settings
+	const mode = watermark?.mode || 'None';
+	
+	switch (mode) {
 		case 'Original on First Page':
 			params.append('copy_count', '1');
 			params.append('copy_labels', 'ต้นฉบับ/Original');
@@ -48,15 +51,9 @@ const removePdfWatcher = watch(
 		if (pdfjsLib && MainStore.doctype && MainStore.printDesignName) {
 			console.time("PdfStart");
 			
-			// Get watermark settings from Print Settings
-			let watermarkSettings = null;
-			try {
-				const printSettings = await frappe.db.get_doc('Print Settings');
-				watermarkSettings = printSettings.watermark_settings;
-				console.log('Watermark settings retrieved:', watermarkSettings);
-			} catch (error) {
-				console.warn('Could not fetch watermark settings:', error);
-			}
+			// Get watermark settings from MainStore (per-format, saved in print_designer_settings)
+			const watermarkFromStore = MainStore.watermark || { mode: 'None' };
+			console.log('[Watermark] Using per-format watermark from MainStore:', watermarkFromStore);
 			
 			let url = `/api/method/frappe.utils.print_format.download_pdf?doctype=${encodeURIComponent(
 				MainStore.doctype
@@ -65,16 +62,16 @@ const removePdfWatcher = watch(
 			)}&no_letterhead=1`;
 			
 			// Add watermark parameters if watermark settings exist and are not "None"
-			if (watermarkSettings && watermarkSettings !== 'None') {
+			if (watermarkFromStore && watermarkFromStore.mode && watermarkFromStore.mode !== 'None') {
 				// Map watermark settings to appropriate parameters
-				const watermarkParams = getWatermarkParams(watermarkSettings);
-				console.log('Watermark parameters:', watermarkParams);
+				const watermarkParams = getWatermarkParams(watermarkFromStore);
+				console.log('[Watermark] Parameters:', watermarkParams);
 				if (watermarkParams) {
 					url += `&${watermarkParams}`;
-					console.log('Final PDF URL with watermarks:', url);
+					console.log('[Watermark] Final URL with watermarks:', url);
 				}
 			} else {
-				console.log('No watermark settings or set to None:', watermarkSettings);
+				console.log('[Watermark] No watermark or mode is None:', watermarkFromStore.mode);
 			}
 
 			/**

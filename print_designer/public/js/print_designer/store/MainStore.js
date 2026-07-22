@@ -82,6 +82,7 @@ export const useMainStore = defineStore("MainStore", {
     printDesignName: "",
     isLayerPanelEnabled: false,
     isGridVisible: false,
+    isWatermarkPanelEnabled: false,
     /**
      * @type {string|null} previewLanguage - Language for print preview (null = system default)
      */
@@ -111,6 +112,33 @@ export const useMainStore = defineStore("MainStore", {
       headerHeightWithMargin: 0,
       footerHeightWithMargin: 0,
       UOM: "mm",
+    },
+    // Watermark settings (per-format, saved in print_designer_settings)
+    watermark: {
+      mode: "None", // "None", "Original on First Page", "Copy on All Pages", "Original,Copy on Sequence"
+      font_size: 24,
+      position: "Top Right",
+      font_family: "Kanit",
+      font_color: "#cccccc",
+      opacity: 0.6,
+      top: 10,
+      right: 10,
+      bottom: 10,
+      left: 10,
+      custom_text: "",
+    },
+    // Page number settings (per-format, saved in print_designer_settings)
+    page_number: {
+      display: "Show", // "Show" or "Hide"
+      position: "Top Right",
+      font_family: "Sarabun",
+      font_size: 10,
+      font_color: "#666666",
+      border: "Solid",
+      top: 2,
+      right: 2,
+      bottom: 2,
+      left: 2,
     },
     controls: {
       MousePointer: {

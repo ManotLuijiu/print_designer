@@ -1,10 +1,15 @@
-import json
 import os
-import re
 
 import frappe
-from frappe import _
 from frappe.utils.print_format import download_pdf as original_download_pdf
+
+from print_designer.overrides.printview_watermark import (
+    build_pdf_watermark_html,
+    get_watermark_position_css,
+    inject_pdf_watermark_html,
+    mm_to_px,
+    resolve_basic_watermark_context,
+)
 
 """
 #    Digital Signature
@@ -18,18 +23,35 @@ from frappe.utils.print_format import download_pdf as original_download_pdf
 
 """
 
+OBSOLETE_INLINE_PDF_WATERMARK_NOTE = """
+OBSOLETE: the legacy inline PDF watermark parsing/build/injection logic that used to live
+inside download_pdf_with_signature_stamp was extracted to
+print_designer.overrides.printview_watermark.
+
+Use these shared helpers now:
+- resolve_basic_watermark_context
+- mm_to_px
+- build_pdf_watermark_html
+- inject_pdf_watermark_html
+
+The exact old inline implementation is intentionally retired from the live path to avoid
+preview/PDF drift. Recover it from git history if temporary rollback is ever needed.
+"""
+
+
 def log_to_print_designer(message, level="INFO"):
     """Log messages to Print Designer specific log file"""
     try:
         log_dir = os.path.join(frappe.get_site_path(), "logs", "print_designer")
         if not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
-        
+
         log_file = os.path.join(log_dir, "print_designer.log")
-        
+
         import datetime
+
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] [{level}] {message}\n")
     except Exception as e:
@@ -39,11 +61,11 @@ def log_to_print_designer(message, level="INFO"):
 
 def boot_session(bootinfo):
     """Add print designer settings to boot info"""
-    
+
     # Get Print Settings to include watermark configuration
     try:
         print_settings = frappe.get_single("Print Settings")
-        
+
         # Extract watermark settings
         watermark_config = {
             "watermark_settings": print_settings.get("watermark_settings", "None"),
@@ -56,15 +78,15 @@ def boot_session(bootinfo):
             "default_copy_label": print_settings.get("default_copy_label", "Copy"),
             "show_copy_controls_in_toolbar": print_settings.get("show_copy_controls_in_toolbar", 1),
         }
-        
+
         log_to_print_designer(f"Boot session watermark config: {watermark_config}")
-        
+
     except Exception as e:
         # Fallback to default values if Print Settings cannot be accessed
         watermark_config = {
             "watermark_settings": "None",
             "watermark_font_size": 12,
-            "watermark_position": "Top Right", 
+            "watermark_position": "Top Right",
             "watermark_font_family": "Arial",
             "enable_multiple_copies": 0,
             "default_copy_count": 2,
@@ -73,13 +95,13 @@ def boot_session(bootinfo):
             "show_copy_controls_in_toolbar": 1,
         }
         log_to_print_designer(f"Boot session watermark fallback due to error: {e}")
-    
+
     bootinfo.print_designer_settings = {
         "enable_digital_signatures": True,
         "enable_company_stamps": True,
         "default_signature_company_filter": True,
         # Add watermark settings for frontend availability
-        **watermark_config
+        **watermark_config,
     }
 
 
@@ -194,7 +216,7 @@ def download_pdf_with_signature_stamp(
     **kwargs,
 ):
     """Enhanced PDF download with signature, stamp, and watermark support"""
-    
+
     try:
         log_to_print_designer(f"PDF download requested for {doctype}/{name} with kwargs: {kwargs}")
         log_to_print_designer(f"Form dict: {dict(frappe.form_dict)}")
@@ -208,9 +230,7 @@ def download_pdf_with_signature_stamp(
 
     # Add signature/stamp context to frappe.local for template access
     if digital_signature or company_stamp:
-        signature_stamp_context = get_signature_and_stamp_context(
-            digital_signature, company_stamp
-        )
+        signature_stamp_context = get_signature_and_stamp_context(digital_signature, company_stamp)
 
         # Store in frappe.local so templates can access it
         if not hasattr(frappe.local, "print_context"):
@@ -219,9 +239,11 @@ def download_pdf_with_signature_stamp(
 
     # Handle watermark settings for PDF generation
     # First check URL parameters for watermark_settings
-    watermark_settings = frappe.form_dict.get("watermark_settings") or kwargs.get("watermark_settings")
+    watermark_settings = frappe.form_dict.get("watermark_settings") or kwargs.get(
+        "watermark_settings"
+    )
     print(f"watermark_settings from URL: {watermark_settings}")
-    
+
     # If not in URL, check settings parameter
     if not watermark_settings and settings:
         # Parse settings if it's a JSON string
@@ -259,265 +281,76 @@ def download_pdf_with_signature_stamp(
             as_pdf=False,
         )
 
-        # Get watermark configuration from Print Settings
-        try:
-            print_settings = frappe.get_single("Print Settings")
-            font_size = print_settings.get("watermark_font_size", 12)
-            position = print_settings.get("watermark_position", "Top Right")
-            font_family = print_settings.get("watermark_font_family", "Sarabun")
-            # Get custom margin values (default to 10mm equivalent in px)
-            margin_top = print_settings.get("watermark_margin_top", "10mm")
-            margin_bottom = print_settings.get("watermark_margin_bottom", "10mm")
-            margin_left = print_settings.get("watermark_margin_left", "10mm")
-            margin_right = print_settings.get("watermark_margin_right", "10mm")
-        except Exception:
-            font_size = 12
-            position = "Top Right"
-            font_family = "Sarabun"
-            margin_top = "10mm"
-            margin_bottom = "10mm"
-            margin_left = "10mm"
-            margin_right = "10mm"
-        
-        # Convert mm to px (1mm ≈ 3.78px at 96dpi)
-        def mm_to_px(mm_str):
-            if not mm_str:
-                return "10mm"
-            mm_val = float(mm_str.replace("mm", "").replace("px", ""))
-            if "mm" in mm_str:
-                return f"{int(mm_val * 3.78)}px"
-            return f"{int(mm_val)}px"
+        # Watermark-only logic has been extracted to printview_watermark.py so
+        # preview and PDF paths share the same parsing/normalization rules.
+        # OBSOLETE: the previous inline implementation has been removed from the
+        # live code path and preserved in git history to avoid drift.
+        watermark_context = resolve_basic_watermark_context(
+            doctype=doctype,
+            name=name,
+            settings=settings,
+            watermark_settings=watermark_settings,
+        )
+        pd_custom_watermark_text = watermark_context["watermark_text"]
 
-        # Get watermark text from multiple sources
-        pd_custom_watermark_text = ""
-
-        log_to_print_designer(f"Watermark settings: {watermark_settings}")
-        log_to_print_designer(f"Print settings loaded: font_size={font_size}, position={position}, font_family={font_family}")
-
-        # First, check the traditional watermark_settings from Print Settings
-        if watermark_settings == "Original on First Page":
-            pd_custom_watermark_text = _("Original")
-            # pd_custom_watermark_text = "Original"
-        elif watermark_settings == "Copy on All Pages":
-            pd_custom_watermark_text = _("Copy")
-            # pd_custom_watermark_text = "Copy"
-        elif watermark_settings == "Original,Copy on Sequence":
-            # For sequence watermarks, we'll use CSS to handle different text per page
-            pd_custom_watermark_text = "sequence"  # Special marker for sequence handling
-            log_to_print_designer("Sequence watermarks detected - implementing page-specific watermarks")
-
-        # Then, check for dynamic watermark from document field (if available)
-        # BUT ONLY if no watermark setting was explicitly chosen (to prevent override)
-        if not pd_custom_watermark_text and watermark_settings == "None":
-            try:
-                doc = frappe.get_cached_doc(doctype, name)
-                log_to_print_designer(f"Checking document {doctype}/{name} for dynamic watermark")
-                dynamic_watermark = doc.get("pd_custom_watermark_text")
-                if dynamic_watermark and dynamic_watermark != "None":
-                    if isinstance(dynamic_watermark, (list, tuple)):
-                        dynamic_watermark = ", ".join(
-                            str(item) for item in dynamic_watermark
-                        )
-                    pd_custom_watermark_text = frappe._(str(dynamic_watermark))
-                    log_to_print_designer(f"Using dynamic watermark: {pd_custom_watermark_text}")
-            except Exception as e:
-                log_to_print_designer(f"Error getting dynamic watermark: {e}")
+        log_to_print_designer(
+            f"[PDF WATERMARK] parsed_settings keys: {list(watermark_context['parsed_settings'].keys())}"
+        )
+        log_to_print_designer(
+            "[PDF WATERMARK] resolved values: "
+            f"mode={watermark_context['watermark_settings']}, "
+            f"font_size={watermark_context['font_size']}, "
+            f"position={watermark_context['position']}, "
+            f"font_family={watermark_context['font_family']}, "
+            f"top={watermark_context['margin_top']}, "
+            f"right={watermark_context['margin_right']}, "
+            f"bottom={watermark_context['margin_bottom']}, "
+            f"left={watermark_context['margin_left']}"
+        )
 
         if pd_custom_watermark_text:
-            # Calculate position CSS based on selection with custom margins
-            # Convert margins to CSS-compatible values
-            mt_px = mm_to_px(margin_top)
-            mb_px = mm_to_px(margin_bottom)
-            ml_px = mm_to_px(margin_left)
-            mr_px = mm_to_px(margin_right)
-            
-            position_css = ""
-            if position == "Top Right":
-                position_css = f"top: {mt_px}; right: {mr_px};"
-            elif position == "Top Left":
-                position_css = f"top: {mt_px}; left: {ml_px};"
-            elif position == "Top Center":
-                position_css = f"top: {mt_px}; left: 50%; transform: translateX(-50%);"
-            elif position == "Middle Right":
-                position_css = f"top: 50%; right: {mr_px}; transform: translateY(-50%);"
-            elif position == "Middle Left":
-                position_css = f"top: 50%; left: {ml_px}; transform: translateY(-50%);"
-            elif position == "Middle Center":
-                position_css = "top: 50%; left: 50%; transform: translate(-50%, -50%);"
-            elif position == "Bottom Right":
-                position_css = f"bottom: {mb_px}; right: {mr_px};"
-            elif position == "Bottom Left":
-                position_css = f"bottom: {mb_px}; left: {ml_px};"
-            elif position == "Bottom Center":
-                position_css = f"bottom: {mb_px}; left: 50%; transform: translateX(-50%);"
+            position_css = get_watermark_position_css(
+                watermark_context["position"],
+                margin_top=mm_to_px(watermark_context["margin_top"]),
+                margin_right=mm_to_px(watermark_context["margin_right"]),
+                margin_bottom=mm_to_px(watermark_context["margin_bottom"]),
+                margin_left=mm_to_px(watermark_context["margin_left"]),
+            )
+            log_to_print_designer(
+                f"[PDF WATERMARK] position_css={position_css}, text={pd_custom_watermark_text}"
+            )
 
-            # Add watermark CSS and HTML (CSS 2.1 compatible only)
-            if pd_custom_watermark_text == "sequence":
-                # Special handling for sequence watermarks
-                # We'll inject multiple watermarks strategically placed in the HTML
-                watermark_html = f"""
-                <style>
-                    .watermark-sequence {{
-                        position: absolute;
-                        {position_css}
-                        font-size: {font_size}px;
-                        color: #000000;
-                        font-weight: normal;
-                        font-family: {font_family}, sans-serif;
-                        z-index: 1000;
-                    }}
-                </style>
-                """
-                # We'll handle the actual insertion differently for sequence watermarks
-            else:
-                # Regular watermark handling
-                watermark_html = f"""
-                <style>
-                    .watermark {{
-                        position: absolute;
-                        {position_css}
-                        font-size: {font_size}px;
-                        color: #000000;
-                        font-weight: normal;
-                        font-family: {font_family}, sans-serif;
-                    }}
-                </style>
-                <div class="watermark">{pd_custom_watermark_text}</div>
-                """
-
-            # Insert watermark HTML inside header-html div where page numbers are located
-            if isinstance(html_content, str):
-                if pd_custom_watermark_text == "sequence":
-                    # Special handling for sequence watermarks
-                    # Insert CSS first
-                    if '<div id="header-html">' in html_content:
-                        html_content = html_content.replace(
-                            '<div id="header-html">',
-                            f'<div id="header-html">{watermark_html}',
-                        )
-                    elif "<head>" in html_content:
-                        html_content = html_content.replace(
-                            "</head>", f"{watermark_html}</head>"
-                        )
-                    elif "<body>" in html_content:
-                        html_content = html_content.replace(
-                            "<body>", f"<body>{watermark_html}"
-                        )
-                    else:
-                        html_content = watermark_html + html_content
-                    
-                    # Now insert sequence watermarks strategically
-                    # Look for page breaks and table breaks to determine where to place watermarks
-                    page_breaks = [
-                        'page-break-after: always;',
-                        'page-break-before: always;',
-                        'break-after: page;',
-                        'break-before: page;',
-                        '<div style="page-break-after:always">',
-                        '<div style="page-break-before:always">',
-                        'class="page-break"',
-                        'style="break-after: page"',
-                        'style="break-before: page"'
-                    ]
-                    
-                    # Add the first watermark (Original) at the beginning
-                    first_watermark = f'<div class="watermark-sequence">{_("Original")}</div>'
-                    
-                    # Insert first watermark at beginning of content
-                    if '<div class="print-format' in html_content:
-                        html_content = html_content.replace(
-                            '<div class="print-format',
-                            f'{first_watermark}\n<div class="print-format',
-                            1  # Only replace first occurrence
-                        )
-                    elif '<body>' in html_content:
-                        html_content = html_content.replace(
-                            '<body>',
-                            f'<body>{first_watermark}',
-                            1
-                        )
-                    
-                    # Look for page breaks and add Copy watermarks after them
-                    copy_watermark = f'<div class="watermark-sequence">{_("Copy")}</div>'
-                    
-                    # Insert Copy watermarks after page breaks
-                    for page_break in page_breaks:
-                        if page_break in html_content:
-                            # Count occurrences to add multiple Copy watermarks
-                            matches = re.findall(re.escape(page_break), html_content)
-                            for i, match in enumerate(matches):
-                                # Insert Copy watermark after each page break
-                                if 'page-break-after' in page_break or 'break-after' in page_break:
-                                    # Insert after the element with page-break-after
-                                    pattern = rf'({re.escape(page_break)}[^>]*>)'
-                                    replacement = rf'\1{copy_watermark}'
-                                    html_content = re.sub(pattern, replacement, html_content, count=1)
-                                elif 'page-break-before' in page_break or 'break-before' in page_break:
-                                    # Insert before the element with page-break-before
-                                    pattern = rf'({re.escape(page_break)})'
-                                    replacement = rf'{copy_watermark}\1'
-                                    html_content = re.sub(pattern, replacement, html_content, count=1)
-                            break  # Stop after finding the first page break type
-                    
-                    # If no explicit page breaks found, try to detect implicit page breaks
-                    # by looking for large content blocks (tables, divs) and add Copy watermarks
-                    if not any(pb in html_content for pb in page_breaks):
-                        # Look for large table rows or content sections
-                        if '</table>' in html_content:
-                            # Add Copy watermark after large tables (potential page breaks)
-                            table_count = html_content.count('</table>')
-                            if table_count > 0:
-                                # Add Copy watermark after the first major table
-                                html_content = html_content.replace('</table>', f'</table>{copy_watermark}', 1)
-                        elif '<div class="print-format' in html_content and html_content.count('<div') > 10:
-                            # For complex layouts, add Copy watermark in the middle
-                            div_positions = [m.start() for m in re.finditer('<div', html_content)]
-                            if len(div_positions) > 5:
-                                middle_pos = div_positions[len(div_positions)//2]
-                                html_content = html_content[:middle_pos] + copy_watermark + html_content[middle_pos:]
-                
-                else:
-                    # Regular watermark handling
-                    if '<div id="header-html">' in html_content:
-                        # Insert watermark right after the header-html opening tag
-                        html_content = html_content.replace(
-                            '<div id="header-html">',
-                            f'<div id="header-html">{watermark_html}',
-                        )
-                    elif '<div class="print-format' in html_content:
-                        # Fallback: insert before print-format div
-                        html_content = html_content.replace(
-                            '<div class="print-format',
-                            f'{watermark_html}\n<div class="print-format',
-                        )
-                    elif "</body>" in html_content:
-                        # Last resort: before closing body tag
-                        html_content = html_content.replace(
-                            "</body>", f"{watermark_html}</body>"
-                        )
-                    else:
-                        # Final fallback: append at the end
-                        html_content += watermark_html
-            else:
-                # If html_content is not a string, convert to string before appending watermark
-                html_content = str(html_content) + watermark_html
+            watermark_html = build_pdf_watermark_html(
+                pd_custom_watermark_text,
+                position_css,
+                watermark_context["font_size"],
+                watermark_context["font_family"],
+            )
+            html_content = inject_pdf_watermark_html(
+                html_content, watermark_html, pd_custom_watermark_text
+            )
 
         # Now generate PDF from the modified HTML
         # Try wkhtmltopdf first, fallback to WeasyPrint if it fails
         pdf_file = None
         try:
             from frappe.utils.pdf import get_pdf
+
             pdf_file = get_pdf(html_content)
-            log_to_print_designer(f"PDF generated with wkhtmltopdf (with watermark)")
+            log_to_print_designer("PDF generated with wkhtmltopdf (with watermark)")
         except Exception as wk_error:
             log_to_print_designer(f"wkhtmltopdf failed: {wk_error}, trying WeasyPrint fallback")
             try:
                 from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+
                 pdf_file = get_pdf_with_weasyprint(html_content)
-                log_to_print_designer(f"PDF generated with WeasyPrint fallback (with watermark)")
+                log_to_print_designer("PDF generated with WeasyPrint fallback (with watermark)")
             except Exception as wp_error:
                 log_to_print_designer(f"WeasyPrint also failed: {wp_error}")
-                frappe.log_error(f"Both PDF generators failed. wkhtmltopdf: {wk_error}, WeasyPrint: {wp_error}", "PDF Generation")
+                frappe.log_error(
+                    f"Both PDF generators failed. wkhtmltopdf: {wk_error}, WeasyPrint: {wp_error}",
+                    "PDF Generation",
+                )
                 frappe.throw(f"PDF generation failed: {str(wk_error)}")
 
         # Set response similar to original download_pdf
@@ -529,7 +362,9 @@ def download_pdf_with_signature_stamp(
         frappe.local.response.filecontent = pdf_file
         frappe.local.response.type = "pdf"
 
-        log_to_print_designer(f"PDF generated successfully with watermark: {pd_custom_watermark_text}")
+        log_to_print_designer(
+            f"PDF generated successfully with watermark: {pd_custom_watermark_text}"
+        )
         return pdf_file
 
     # If no watermarks needed, use original function
@@ -553,13 +388,14 @@ def download_pdf_with_signature_stamp(
     # If wkhtmltopdf fails, fallback to WeasyPrint
     try:
         result = original_download_pdf(**pdf_kwargs)
-        log_to_print_designer(f"Original PDF function completed successfully")
+        log_to_print_designer("Original PDF function completed successfully")
         return result
     except Exception as e:
         log_to_print_designer(f"Error in original PDF function: {e}, trying WeasyPrint fallback")
         # Try WeasyPrint fallback
         try:
             from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+
             # Get the HTML content for WeasyPrint
             html_content = frappe.get_print(
                 doctype,
@@ -577,11 +413,14 @@ def download_pdf_with_signature_stamp(
             frappe.local.response.filecontent = pdf_file
             frappe.local.response.type = "pdf"
 
-            log_to_print_designer(f"PDF generated with WeasyPrint fallback (no watermark)")
+            log_to_print_designer("PDF generated with WeasyPrint fallback (no watermark)")
             return pdf_file
         except Exception as wp_error:
             log_to_print_designer(f"WeasyPrint fallback also failed: {wp_error}")
-            frappe.log_error(f"Both PDF generators failed. wkhtmltopdf: {e}, WeasyPrint: {wp_error}", "PDF Generation")
+            frappe.log_error(
+                f"Both PDF generators failed. wkhtmltopdf: {e}, WeasyPrint: {wp_error}",
+                "PDF Generation",
+            )
             frappe.throw(f"PDF generation failed: {str(e)}")
 
 
