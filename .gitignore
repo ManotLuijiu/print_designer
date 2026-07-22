@@ -215,3 +215,9 @@ CLAUDE.md
 .dolt/
 *.db
 .beads-credential-key
+
+# Graphify output
+graphify-out/
+
+# Wiki documentation
+wiki/
