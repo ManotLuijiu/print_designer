@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [](https://github.com/ManotLuijiu/print_designer/compare/v1.24.2...v) (2026-07-24)
+## [1.29.0](https://github.com/ManotLuijiu/print_designer/compare/v1.24.2...v1.29.0) (2026-07-24)
 
 
 ### 🔧 Maintenance
