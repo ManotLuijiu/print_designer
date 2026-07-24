@@ -110,6 +110,7 @@ commands = [
 app_include_js = [
     "print_watermark.bundle.js",
     "print_designer.app.bundle.js",
+    # "print_override.bundle.js",
 ]
 
 app_include_css = [
@@ -514,6 +515,7 @@ override_whitelisted_methods = {
     "frappe.utils.print_format.download_pdf": "print_designer.utils.signature_stamp.download_pdf_with_signature_stamp",
     # Override print view to add watermark support from sidebar settings
     "frappe.www.printview.get_html_and_style": "print_designer.overrides.printview_watermark.get_html_and_style_with_watermark",
+    "frappe.www.printview.get_rendered_template": "print_designer.overrides.printview_watermark.get_rendered_template_with_watermark",
     "frappe.printing.get_print_format": "print_designer.api.print_format.get_print_format_with_watermark",
     # Override Print Settings API to include watermark fields in print sidebar
     "frappe.printing.page.print.print.get_print_settings_to_show": "print_designer.overrides.print_settings_api.get_print_settings_to_show",
@@ -849,6 +851,10 @@ standard_portal_menu_items = [
 ]
 
 # Website route rules for custom URLs
-website_route_rules = [{"from_route": "/app/billing", "to_route": "/app/thai-billing"}]
+# Using /print-designer-print to avoid conflict with Frappe core /printview
+website_route_rules = [
+    {"from_route": "/app/billing", "to_route": "/app/thai-billing"},
+    {"from_route": "/print-designer-print", "to_route": "/print-designer-print"},
+]
 
 # Workspace extension is handled by the existing extend_bootinfo hook

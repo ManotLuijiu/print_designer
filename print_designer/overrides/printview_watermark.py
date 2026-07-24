@@ -590,6 +590,62 @@ def build_pdf_watermark_html(watermark_text, position_css, font_size, font_famil
                 """
 
 
+def build_preview_watermark_html(
+    watermark_mode, watermark_template=None, settings=None, print_format_doc=None
+):
+    """Build watermark HTML for printview preview.
+
+    Args:
+        watermark_mode: The watermark mode (e.g., 'DRAFT', 'COPY', etc.)
+        watermark_template: Optional template name for template-based watermarks
+        settings: Dictionary of settings including position, font, etc.
+        print_format_doc: Print Format document for per-format settings
+
+    Returns:
+        HTML string for watermark or empty string if no watermark
+    """
+    if not watermark_mode or watermark_mode == "None":
+        return ""
+
+    # Get settings from various sources
+    settings = settings or {}
+
+    # Position settings
+    margin_top = int(settings.get("watermark_top", 10))
+    margin_right = int(settings.get("watermark_right", 10))
+    margin_bottom = int(settings.get("watermark_bottom", 10))
+    margin_left = int(settings.get("watermark_left", 10))
+
+    # Font settings
+    font_family = settings.get("watermark_font_family", "Sarabun")
+    font_size = int(settings.get("watermark_font_size", 48))
+    font_color = settings.get("watermark_font_color", "#000000")
+    font_weight = settings.get("watermark_font_weight", "normal")
+    watermark_opacity = float(settings.get("watermark_opacity", 0.1))
+    watermark_angle = settings.get("watermark_angle", "-45deg")
+
+    # Get watermark text from mode or template
+    watermark_text = watermark_mode
+    if watermark_template:
+        watermark_text = watermark_template
+
+    # Build position CSS
+    position_css = f"""
+        top: {margin_top}%;
+        right: {margin_right}%;
+        bottom: {margin_bottom}%;
+        left: {margin_left}%;
+        transform: rotate({watermark_angle});
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+    """
+
+    return f"""<div class="pd-preview-watermark" style="position: absolute; {position_css} z-index: 999; font-size: {font_size}px; color: {font_color}; opacity: {watermark_opacity}; font-weight: {font_weight}; font-family: {font_family}, sans-serif; pointer-events: none; text-transform: uppercase;">{html.escape(watermark_text)}</div>"""
+
+
 def normalize_checkbox_value(value, fallback=False):
     """Normalize Frappe checkbox-ish values into a bool."""
     if value is None:
@@ -1653,5 +1709,125 @@ def get_html_and_style_with_watermark(
             print(
                 f"[PAGE NUMBER DEBUG] page_number_display = '{page_number_display}' - NOT showing page number"
             )
+
+    return result
+
+
+def get_rendered_template_with_watermark(
+    doc,
+    print_format=None,
+    meta=None,
+    no_letterhead=None,
+    letterhead=None,
+    trigger_print=False,
+    settings=None,
+):
+    """
+    Override for get_rendered_template to add watermark support.
+    This is used by the /printview endpoint.
+    """
+    from frappe.www.printview import get_rendered_template as original_get_rendered_template
+
+    log_to_print_designer(
+        f"[PRINTVIEW] get_rendered_template_with_watermark called: print_format={print_format}"
+    )
+
+    # Call original function
+    result = original_get_rendered_template(
+        doc=doc,
+        print_format=print_format,
+        meta=meta,
+        no_letterhead=no_letterhead,
+        letterhead=letterhead,
+        trigger_print=trigger_print,
+        settings=settings,
+    )
+
+    if not result or not isinstance(result, str):
+        return result
+
+    # Parse settings to get watermark configuration
+    settings_dict = parse_watermark_settings_dict(settings) if settings else {}
+    log_to_print_designer(f"[PRINTVIEW] settings_dict: {settings_dict}")
+
+    # Get watermark settings from various sources
+    watermark_settings = settings_dict.get("watermark_settings")
+    watermark_template = settings_dict.get("watermark_template")
+
+    # Get print format for per-format settings
+    print_format_doc = None
+    if print_format:
+        try:
+            print_format_doc = frappe.get_doc("Print Format", print_format)
+        except Exception:
+            pass
+
+    # Read watermark from print_designer_settings if available
+    pd_watermark_settings = None
+    if print_format_doc and print_format_doc.get("print_designer_settings"):
+        try:
+            pd_settings = frappe.parse_json(print_format_doc.get("print_designer_settings"))
+            if pd_settings and isinstance(pd_settings, dict):
+                pd_watermark = pd_settings.get("watermark", {})
+                if pd_watermark:
+                    pd_watermark_settings = pd_watermark.get("mode")
+        except Exception:
+            pass
+
+    # Fall back to per-format settings if not in URL params
+    if watermark_settings is None and pd_watermark_settings:
+        watermark_settings = pd_watermark_settings
+
+    # Show watermark if configured
+    if watermark_settings and watermark_settings != "None":
+        # Build watermark HTML
+        watermark_html = build_preview_watermark_html(
+            watermark_settings,
+            watermark_template=watermark_template,
+            settings=settings_dict,
+            print_format_doc=print_format_doc,
+        )
+
+        if watermark_html:
+            # Inject watermark into HTML
+            if '<div class="print-format' in result:
+                result = result.replace(
+                    '<div class="print-format',
+                    f'{watermark_html}\n<div class="print-format',
+                )
+            elif '<div id="__print_designer"' in result:
+                result = result.replace(
+                    '<div id="__print_designer"',
+                    f'{watermark_html}\n<div id="__print_designer"',
+                )
+            log_to_print_designer(f"[PRINTVIEW] Watermark injected: {watermark_settings}")
+
+    # Handle page number settings
+    page_number_display = settings_dict.get("page_number_display")
+    if page_number_display == "Show":
+        page_number_position = settings_dict.get("page_number_position", "Top Right")
+        page_number_font_family = settings_dict.get("page_number_font_family", "Sarabun")
+        page_number_font_size = int(settings_dict.get("page_number_font_size", 10))
+        page_number_font_color = settings_dict.get("page_number_font_color", "#000000")
+        page_number_border = settings_dict.get("page_number_border", "None")
+        page_number_top = int(settings_dict.get("page_number_top", 2))
+        page_number_right = int(settings_dict.get("page_number_right", 8))
+        page_number_bottom = int(settings_dict.get("page_number_bottom", 2))
+        page_number_left = int(settings_dict.get("page_number_left", 2))
+
+        page_number_html = build_preview_page_number_html(
+            page_number_position,
+            page_number_font_family,
+            page_number_font_size,
+            font_color=page_number_font_color,
+            border_style=page_number_border,
+            margin_top=page_number_top,
+            margin_right=page_number_right,
+            margin_bottom=page_number_bottom,
+            margin_left=page_number_left,
+        )
+
+        result = inject_preview_page_number_html(result, page_number_html)
+        log_to_print_designer(f"[PRINTVIEW] Page number injected: {page_number_position}")
 
     return result

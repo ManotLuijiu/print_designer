@@ -79,7 +79,7 @@
 							"
 						>
 							<span :class="{ emptyColumnHead: !Boolean(column.label.length) }">{{
-								column?.label
+								getColumnLabel(column?.label)
 							}}</span>
 							<div
 								class="resizer"
@@ -173,6 +173,36 @@ import AppTableContextMenu from "../layout/AppTableContextMenu.vue";
 import BaseTableTd from "./BaseTableTd.vue";
 import { onClickOutside } from "@vueuse/core";
 const MainStore = useMainStore();
+
+// Translation map for column headers
+// English -> Thai translations for common print column labels
+const columnLabelTranslations = {
+  "No.": "เลขที่",
+  "Item Name": "ชื่อสินค้า",
+  "Description": "รายละเอียด",
+  "Quantity": "ปริมาณ",
+  "Rate": "อัตรา/ราคา",
+  "Amount": "จำนวน",
+  "Gross Amount": "จำนวนรวม",
+  "Discount": "ส่วนลด",
+  "Net Amount": "จำนวนสุทธิ",
+  "Tax": "ภาษี",
+  "Total": "รวม",
+  "Unit": "หน่วย",
+  "UOM": "หน่วย",
+  "Brand": "แบรนด์",
+  "Item Code": "รหัสสินค้า",
+  "Image": "รูป",
+};
+
+// Get translated column label based on previewLanguage
+const getColumnLabel = (label) => {
+  if (!label) return "";
+  if (MainStore.previewLanguage === "th" && columnLabelTranslations[label]) {
+    return columnLabelTranslations[label];
+  }
+  return label;
+};
 const props = defineProps({
 	object: {
 		type: Object,

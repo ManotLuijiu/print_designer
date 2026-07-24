@@ -90,14 +90,39 @@
 				<label>{{ __("Opacity") }}: {{ Math.round(MainStore.watermark.opacity * 100) }}%</label>
 				<input type="range" v-model.number="MainStore.watermark.opacity" min="0.1" max="1" step="0.1" />
 			</div>
+
+			<!-- Save Button -->
+			<div class="form-group" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+				<button class="btn btn-primary" style="width: 100%;" @click="saveWatermarkSettings">
+					{{ __("Save Watermark Settings") }}
+				</button>
+			</div>
 		</div>
 	</div>
 </template>
 
 <script setup>
 import { useMainStore } from "../../store/MainStore";
+import { useElementStore } from "../../store/ElementStore";
 
 const MainStore = useMainStore();
+const ElementStore = useElementStore();
+
+const saveWatermarkSettings = async () => {
+	try {
+		await ElementStore.saveElements();
+		frappe.show_alert({
+			message: __("Watermark Settings Saved"),
+			indicator: "green",
+		}, 3);
+	} catch (error) {
+		console.error("[WatermarkPanel] Error saving watermark settings:", error);
+		frappe.show_alert({
+			message: __("Error saving watermark settings"),
+			indicator: "red",
+		}, 5);
+	}
+};
 </script>
 
 <style scoped>

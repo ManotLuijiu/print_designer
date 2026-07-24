@@ -2982,3 +2982,22 @@ function initializePrintPage() {
   // Call the function to extend PrintView
   extendPrintView();
 }
+
+// Frappe AMD-style namespace exports using frappe.provide
+// This allows other scripts to use frappe.require to access these
+frappe.provide("print_designer.print_page");
+
+// Export classes and functions to the namespace
+frappe.print_designer.print_page.PDFGenerationLogger = PDFGenerationLogger;
+frappe.print_designer.print_page.initializePrintPage = initializePrintPage;
+
+// Test function for namespace verification
+frappe.print_designer.print_page.test = function() {
+  console.log("[CLIENT SCRIPTS] Namespace test function called!");
+  console.log("[CLIENT SCRIPTS] PDFGenerationLogger available:", typeof frappe.print_designer.print_page.PDFGenerationLogger);
+  console.log("[CLIENT SCRIPTS] initializePrintPage available:", typeof frappe.print_designer.print_page.initializePrintPage);
+  return "OK";
+};
+
+console.log("[CLIENT SCRIPTS] Namespace exports completed!");
+console.log("[CLIENT SCRIPTS] frappe.print_designer.print_page:", frappe.print_designer.print_page);

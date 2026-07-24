@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="{{ lang }}" dir="{{ layout_direction }}">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>{{ title }}</title>
+		<meta name="generator" content="frappe" />
+		{{ include_style('print.bundle.css') }} {% if print_style %}
+		<style>
+			{{ print_style }}
+		</style>
+		{% endif %}
+		<style>
+			/* Print Designer Print View Styles */
+			body {
+				margin: 0;
+				padding: 0;
+			}
+
+			.action-banner {
+				background: #f8f9fa;
+				border-bottom: 1px solid #dee2e6;
+				padding: 10px;
+				text-align: center;
+				position: sticky;
+				top: 0;
+				z-index: 1001;
+			}
+
+			.action-banner a {
+				display: inline-block;
+				margin: 0 10px;
+				padding: 8px 16px;
+				background: #007bff;
+				color: white;
+				text-decoration: none;
+				border-radius: 4px;
+				font-weight: 500;
+			}
+
+			.action-banner a:hover {
+				background: #0056b3;
+			}
+
+			.print-format-gutter {
+				padding: 20px;
+				background: #e9ecef;
+				min-height: 100vh;
+			}
+
+			.print-format {
+				background: white;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+				margin: 0 auto;
+			}
+
+			/* Watermark positioning */
+			.pd-printview-watermark {
+				pointer-events: none;
+			}
+
+			/* Page number positioning */
+			.pd-printview-page-number {
+				pointer-events: none;
+			}
+
+			@media print {
+				.no-print,
+				.action-banner {
+					display: none !important;
+				}
+
+				body {
+					margin: 0;
+					padding: 0;
+				}
+
+				.print-format-gutter {
+					padding: 0;
+					background: none;
+				}
+
+				.print-format {
+					box-shadow: none;
+					margin: 0;
+				}
+
+				@page {
+					margin: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="action-banner print-hide">
+			<a class="p-2" onclick="window.print()"> {{ _("Print") }} </a>
+			<a
+				class="p-2"
+				href="/api/method/frappe.utils.print_format.download_pdf?doctype={{doctype}}{{'&amp;'}}name={{name}}{{'&amp;'}}format={{print_format}}{{'&amp;'}}letterhead={{letterhead or ''}}{{'&amp;'}}no_letterhead={{no_letterhead or ''}}{{'&amp;'}}_lang={{lang}}{{'&amp;'}}key={{key or ''}}{{'&amp;'}}pdf_generator={{pdf_generator or 'wkhtmltopdf'}}"
+			>
+				{{ _('Get PDF') }}
+			</a>
+		</div>
+		<div class="print-format-gutter">
+			<div class="print-format">{{ body }}</div>
+		</div>
+		<script>
+			document.addEventListener('DOMContentLoaded', function() {
+				// Handle page breaks
+				var pageDiv = document.querySelector('.page-break');
+				if (pageDiv) {
+					pageDiv.style.display = 'flex';
+					pageDiv.style.flexDirection = 'column';
+				}
+
+				// Handle footer
+				var footerHtml = document.getElementById('footer-html');
+				if (footerHtml) {
+					footerHtml.classList.add('hidden-pdf');
+					footerHtml.classList.remove('visible-pdf');
+					footerHtml.style.order = 1;
+					footerHtml.style.marginTop = '20px';
+				}
+
+				// Trigger auto-print if requested
+				{% if trigger_print %}
+				setTimeout(function() {
+					window.print();
+				}, 1000);
+				{% endif %}
+			});
+		</script>
+	</body>
+	{%- if comment -%}
+	<!-- {{ comment }} -->
+	{%- endif -%}
+</html>

@@ -1844,8 +1844,8 @@ function initializePrintPage() {
           }
         }
 
-        // Use standard print endpoint which supports Print Designer formats
-        const url = `/printview?${params.toString()}`;
+        // Use Print Designer custom endpoint for watermark/page number support
+        const url = `/print-designer-print?${params.toString()}`;
 
         // Open in new window for printing
         let w = window.open(frappe.urllib.get_full_url(url));
@@ -1873,6 +1873,9 @@ function initializePrintPage() {
           new URLSearchParams(window.location.search).get("_lang"),
         );
 
+        // CRITICAL: Set flag to prevent parent's set_default_print_language from overriding
+        this._pdLangSet = true;
+        
         // Step 1: Set Print Format language BEFORE parent
         console.log(
           "[Language Debug] Step 1: Calling set_default_print_language()",
@@ -2182,7 +2185,7 @@ function initializePrintPage() {
 
         this.full_page_btn = this.page.add_button(
           __("Full Page"),
-          () => this.render_page("/printview?"),
+          () => this.full_page_print_designer(),
           {
             icon: "full-page",
           },

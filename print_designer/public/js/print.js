@@ -570,6 +570,138 @@ function patch_setup_print_format_dom() {
 // Start the patch
 patch_setup_print_format_dom();
 
+/**
+ * Override set_default_print_language() to PRIORITIZE Print Format language over document language.
+ *
+ * Frappe core priority (WRONG for our use case):
+ *   print_format.default_print_language || frm.doc.language || frappe.boot.lang
+ *
+ * Print Designer priority (CORRECT):
+ *   frm.doc.language || print_format.default_print_language || frappe.boot.lang
+ *
+ * Why: Document may have language="en" from customer/system defaults,
+ * but Print Format has its own default_print_language="th" which should WIN.
+ */
+function patch_set_default_print_language() {
+  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+  if (!PV || !PV.prototype) {
+    setTimeout(patch_set_default_print_language, 200);
+    return;
+  }
+  if (PV.prototype._pdSetDefaultLangPatched) return;
+
+  const original = PV.prototype.set_default_print_language;
+  PV.prototype.set_default_print_language = function () {
+    // Call original to get all the Frappe-side initialization
+    original.apply(this, arguments);
+
+    // FIXED PRIORITY: Print Format > Document > System
+    // This ensures Print Format's default_print_language wins over document's language
+    if (this.frm && this.frm.doc) {
+      const docLang = this.frm.doc.language;
+      // Access print_format from this context (it's set by core before this method is called)
+      const pfLang =
+        this.print_format && this.print_format.default_print_language;
+      const systemLang = frappe.boot.lang;
+
+      // Priority: Print Format > Document > System
+      const resolvedLang = pfLang || docLang || systemLang;
+
+      if (resolvedLang !== this.lang_code) {
+        console.log(
+          "[PD Language Override] set_default_print_language - NEW priority:",
+        );
+        console.log("  Original lang_code:", this.lang_code);
+        console.log("  Print Format language:", pfLang, "(WINS!)");
+        console.log("  Document language:", docLang, "(fallback)");
+        console.log("  System language:", systemLang, "(last fallback)");
+        console.log("  NEW lang_code:", resolvedLang);
+        this.lang_code = resolvedLang;
+      }
+    }
+  };
+
+  PV.prototype._pdSetDefaultLangPatched = true;
+  console.log("[PD Language Override] set_default_print_language() patched!");
+}
+
+/**
+ * DEBUG: Track print format column labels when rendered
+ * Logs column labels from print_designer_print_format to help debug mixed language issues
+ */
+function patch_print_format_render() {
+  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+  if (!PV || !PV.prototype) {
+    setTimeout(patch_print_format_render, 200);
+    return;
+  }
+  if (PV.prototype._pdPrintFormatRenderPatched) return;
+
+  // Override the method that sets up print format content
+  const original_render = PV.prototype.render_page;
+  PV.prototype.render_page = function () {
+    // Call original
+    const result = original_render.apply(this, arguments);
+
+    // DEBUG: Log print format data after render
+    setTimeout(() => {
+      console.log(
+        "[PD Column Labels DEBUG] ════════════════════════════════════════",
+      );
+      console.log("[PD Column Labels DEBUG] Print Format columns from DB:");
+
+      // Find table columns in the DOM
+      const tables = document.querySelectorAll(
+        '.print-format-table, [data-fieldname="items"]',
+      );
+      tables.forEach((table, tIdx) => {
+        console.log(`[PD Column Labels DEBUG] Table ${tIdx}:`, table.tagName);
+        const headers = table.querySelectorAll("th, .column-header");
+        headers.forEach((header, hIdx) => {
+          const text = header.textContent.trim();
+          const hasThai = /[\u0e00-\u0e7f]/.test(text);
+          const lang = hasThai ? "TH" : "EN";
+          console.log(
+            `[PD Column Labels DEBUG]   [${lang}] Column ${hIdx}: "${text}"`,
+          );
+        });
+      });
+
+      // Also log print format name and language
+      const pfInput = document.querySelector(
+        'input[data-fieldname="print_format"]',
+      );
+      const langInput = document.querySelector(
+        'input[data-fieldname="language"]',
+      );
+      console.log(
+        "[PD Column Labels DEBUG] Print Format:",
+        pfInput ? pfInput.value : "unknown",
+      );
+      console.log(
+        "[PD Column Labels DEBUG] Language:",
+        langInput ? langInput.value : "unknown",
+      );
+      console.log(
+        "[PD Column Labels DEBUG] URL _lang param:",
+        new URLSearchParams(window.location.search).get("_lang"),
+      );
+      console.log(
+        "[PD Column Labels DEBUG] ════════════════════════════════════════",
+      );
+    }, 100);
+
+    return result;
+  };
+
+  PV.prototype._pdPrintFormatRenderPatched = true;
+  console.log("[PD Column Labels DEBUG] render_page() patched!");
+}
+
+// Start the patch
+patch_set_default_print_language();
+patch_print_format_render();
+
 function queue_print_language_apply(delay = 0) {
   setTimeout(() => {
     apply_language_from_print_format();

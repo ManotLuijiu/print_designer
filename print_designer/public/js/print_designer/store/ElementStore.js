@@ -1668,6 +1668,42 @@ export const useElementStore = defineStore("ElementStore", {
         ],
       );
       let settings = JSON.parse(printFormat.message.print_designer_settings);
+      
+      // DEBUG: Log table column labels from print_designer_settings
+      (function debugTableColumnLabels(settings) {
+        if (!settings || !settings.page) return;
+        const bodyStr = printFormat.message.print_designer_body || '[]';
+        try {
+          const body = JSON.parse(bodyStr);
+          // Find all table elements recursively
+          const findTables = (arr) => {
+            let tables = [];
+            arr.forEach(item => {
+              if (item.table && item.table.fieldname) {
+                tables.push(item);
+              }
+              if (item.childrens) findTables(item.childrens);
+              if (item.columns) {
+                item.columns.forEach(col => {
+                  if (col.childrens) findTables([col]);
+                });
+              }
+            });
+            return tables;
+          };
+          const tables = findTables(body);
+          tables.forEach(t => {
+            if (t.childrens && t.childrens[0] && t.childrens[0].childrens) {
+              const cols = t.childrens[0].childrens;
+              const labels = cols.map((c, i) => `${i}: '${c.label || 'None'}'`).join(', ');
+              console.log(`[DEBUG Column Labels] Table '${t.table.fieldname}' columns: {${labels}}`);
+            }
+          });
+        } catch (e) {
+          console.log('[DEBUG Column Labels] Error:', e.message);
+        }
+      })(settings);
+      
       this.loadSettings(settings);
 
       // MEMORY FIX: clear store arrays that the existing code unconditionally
