@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [](https://github.com/ManotLuijiu/print_designer/compare/v1.24.2...v) (2026-07-24)
+
+
+### 🔧 Maintenance
+
+* add graphify-out/ and wiki/ to .gitignore ([9f12721](https://github.com/ManotLuijiu/print_designer/commit/9f12721f437f345e7ae5949f5f7385d1c5b47523))
+* remove graphify-out and wiki from git tracking (already in .gitignore) ([dd6098c](https://github.com/ManotLuijiu/print_designer/commit/dd6098c994e93d6449d937e2fedd184038d246dd))
+
+
+### ✨ Features
+
+* **printview:** implement position-aware page number injection ([78f54f4](https://github.com/ManotLuijiu/print_designer/commit/78f54f4219c659939caa72daf166bd9fea3b3083))
+* Watermark tool in Design View - show watermark in main view header zone ([44248f6](https://github.com/ManotLuijiu/print_designer/commit/44248f645388df8590d92a361d45ad236a0f7a8a))
+
 ### [1.24.2](https://github.com/ManotLuijiu/print_designer/compare/v1.28.0...v1.24.2) (2026-07-21)
 
 
