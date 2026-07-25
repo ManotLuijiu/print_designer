@@ -599,24 +599,48 @@ function patch_set_default_print_language() {
     // This ensures Print Format's default_print_language wins over document's language
     if (this.frm && this.frm.doc) {
       const docLang = this.frm.doc.language;
-      // Access print_format from this context (it's set by core before this method is called)
-      const pfLang =
-        this.print_format && this.print_format.default_print_language;
       const systemLang = frappe.boot.lang;
+
+      // FIX: Use this.get_print_format() instead of this.print_format
+      // this.print_format may not be populated yet in the lifecycle,
+      // causing pfLang to be undefined and demoting to document/system language
+      let pfLang = null;
+      if (typeof this.get_print_format === "function") {
+        const printFormat = this.get_print_format();
+        pfLang = printFormat && printFormat.default_print_language;
+      }
 
       // Priority: Print Format > Document > System
       const resolvedLang = pfLang || docLang || systemLang;
 
-      if (resolvedLang !== this.lang_code) {
+      // NON-DESTRUCTIVE: Only demote if we have a valid Print Format language.
+      // If pfLang is undefined/null, keep the current lang_code (don't demote th -> en).
+      // This prevents demoting th -> en when this.print_format is temporarily undefined.
+      const shouldUpdate =
+        pfLang ||  // Has Print Format language - use it
+        (!pfLang && !this.lang_code);  // No PF lang AND no current lang - use fallback
+
+      if (shouldUpdate && resolvedLang !== this.lang_code) {
         console.log(
           "[PD Language Override] set_default_print_language - NEW priority:",
         );
         console.log("  Original lang_code:", this.lang_code);
-        console.log("  Print Format language:", pfLang, "(WINS!)");
+        console.log("  Print Format language:", pfLang, "(WINS if set)");
         console.log("  Document language:", docLang, "(fallback)");
         console.log("  System language:", systemLang, "(last fallback)");
         console.log("  NEW lang_code:", resolvedLang);
         this.lang_code = resolvedLang;
+      } else if (!pfLang && this.lang_code) {
+        // pfLang unavailable but we have a current lang_code - keep it (non-destructive)
+        console.log(
+          "[PD Language Override] set_default_print_language - SKIPPED demotion:",
+        );
+        console.log("  Current lang_code:", this.lang_code, "(kept - pfLang unavailable)");
+        console.log("  Print Format language:", pfLang, "(not available in this moment)");
+        console.log("  Will re-assert via async path when Print Format loads");
+        // Queue async path to re-assert when Print Format is available
+        PDPrintLanguageState.lastAppliedFormat = null;
+        queue_print_language_apply(250);
       }
     }
   };
