@@ -71,6 +71,8 @@ def get_print_settings_to_show(doctype, docname):
             "enable_multiple_copies",
             "default_copy_count",
             "pdf_page_size",
+            "page_orientation",
+            "pdf_generator",  # PDF generator after page orientation (3-column layout)
             "default_original_label",
             "default_copy_label",
         ]

@@ -1,242 +1,164 @@
+#!/usr/bin/env python3
+# Copyright (c) 2024, Frappe Technologies Pvt. Ltd. and Contributors
+# For license information, please see license.txt
+
 """
 Print Format Custom Fields for Print Designer
-=============================================
+============================================
 Handles installation, verification, and removal of Print Format doctype
 custom fields:
+- Page Orientation (per-format override of Print Settings orientation)
 - Watermark per Page (per-format override of Print Settings watermark)
-
-Used by:
-- after_install hook
-- after_migrate hook (idempotent — safe to run multiple times)
-- before_uninstall hook (cleanup)
 
 CLI commands:
 - bench --site <site> install-print-format-fields
 - bench --site <site> uninstall-print-format-fields
-- bench --site <site> check-print-format-fields
 """
 
-import click
 import frappe
-from frappe.commands import get_site, pass_context
-
-
-def get_print_format_field_definitions():
-    """Return the complete field definitions for Print Format doctype.
-
-    Moved here from custom_fields.py (lines 112-121) to consolidate all
-    Print Format field management in one place.
-    """
-    from frappe import _
-
-    return [
-        {
-            "depends_on": "eval:doc.print_designer",
-            "fieldname": "watermark_settings",
-            "fieldtype": "Select",
-            "label": _("Watermark per Page"),
-            "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
-            "default": "None",
-            "insert_after": "print_designer_template_app",
-            "description": _(
-                "Control watermark display: "
-                "None=no watermarks, "
-                "Original on First Page=first page shows 'Original', "
-                "Copy on All Pages=all pages show 'Copy', "
-                "Original,Copy on Sequence=pages alternate between 'Original' and 'Copy'"
-            ),
-        },
-    ]
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 
 def install_print_format_fields():
-    """Install Print Format custom fields and Property Setters (callable from hooks).
-
-    Idempotent: safe to run multiple times.
     """
-    if not frappe.db.exists("DocType", "Print Format"):
-        return
-
+    Install custom fields for Print Format DocType.
+    Adds Page Orientation and Watermark per Page to 3rd column after pdf_generator.
+    """
     try:
-        from frappe.custom.doctype.custom_field.custom_field import (
-            create_custom_fields,
-        )
+        custom_fields = {
+            "Print Format": [
+                {
+                    "fieldname": "orientation_col_break",
+                    "fieldtype": "Column Break",
+                    "insert_after": "pdf_generator",
+                },
+                {
+                    "label": "Page Orientation",
+                    "fieldname": "page_orientation",
+                    "fieldtype": "Select",
+                    "options": "Portrait\nLandscape",
+                    "default": "Portrait",
+                    "insert_after": "orientation_col_break",
+                    "description": "Override page orientation for this print format",
+                },
+                {
+                    "label": "Watermark per Page",
+                    "fieldname": "watermark_settings",
+                    "fieldtype": "Select",
+                    "options": "None\nOriginal on First Page\nCopy on All Pages\nOriginal,Copy on Sequence",
+                    "default": "None",
+                    "insert_after": "page_orientation",
+                    "description": "Control watermark display per page",
+                },
+            ]
+        }
 
-        # Install custom fields
-        create_custom_fields(
-            {"Print Format": get_print_format_field_definitions()},
-            update=True,
-        )
+        print("\nInstalling Print Format orientation/watermark fields...")
+        create_custom_fields(custom_fields, update=True)
+        print("   Done: Page Orientation and Watermark per Page installed")
 
-        # Apply Property Setters for Print Format defaults
+        # Apply Property Setters
         _apply_property_setters()
 
-        # Cleanup any legacy field that conflicts with the new schema
-        _remove_legacy_fields()
         frappe.db.commit()
+        return True
+
     except Exception as e:
-        frappe.log_error(message=str(e), title="Print Format custom field install failed")
+        print(f"   Error: {str(e)}")
+        frappe.log_error("Print Format Fields Installation Error", str(e))
+        return False
 
 
 def _apply_property_setters():
-    """Apply Property Setters to set defaults for Print Format standard fields."""
-    from frappe.custom.doctype.property_setter.property_setter import (
-        make_property_setter,
-    )
-
-    # Always set pdf_generator default to chrome
-    make_property_setter(
-        doctype="Print Format",
-        fieldname="pdf_generator",
-        property="default",
-        value="chrome",
-        property_type="Data",
-        for_doctype=False,
-    )
-
-    # Set default_print_language to "th" if company is in Thailand
-    if _is_thailand_company():
-        make_property_setter(
-            doctype="Print Format",
-            fieldname="default_print_language",
-            property="default",
-            value="th",
-            property_type="Data",
-            for_doctype=False,
+    """Create property setters for Print Format DocType."""
+    try:
+        # Set pdf_generator default to chrome
+        frappe.make_property_setter(
+            {
+                "doctype": "Print Format",
+                "fieldname": "pdf_generator",
+                "property": "default",
+                "value": "chrome",
+                "property_type": "Select",
+            },
+            validate_fields_for_doctype=False,
         )
+        print("   Done: pdf_generator default = chrome")
 
-
-def _is_thailand_company():
-    """Check if any company in the site is in Thailand."""
-    return frappe.db.exists("Company", {"country": ["like", "%Thailand%"]})
-
-
-def _remove_legacy_fields():
-    """Remove legacy/renamed Print Format fields so they can be recreated cleanly."""
-    legacy = [
-        "watermark_margin",  # old Int field, now replaced by Select watermark_settings
-    ]
-    for fieldname in legacy:
-        existing = frappe.db.get_value(
-            "Custom Field",
-            {"dt": "Print Format", "fieldname": fieldname},
-            "name",
-        )
-        if existing:
-            frappe.delete_doc("Custom Field", existing, ignore_permissions=True)
+    except Exception as e:
+        print(f"   Warning: Property setter error (may already exist): {str(e)}")
 
 
 def uninstall_print_format_fields():
-    """Uninstall all Print Format custom fields created by print_designer."""
-    if not frappe.db.exists("DocType", "Print Format"):
-        return
-
+    """
+    Remove custom fields from Print Format DocType.
+    """
     try:
-        for field in get_print_format_field_definitions():
-            existing = frappe.db.get_value(
-                "Custom Field",
-                {"dt": "Print Format", "fieldname": field["fieldname"]},
-                "name",
-            )
-            if existing:
-                frappe.delete_doc("Custom Field", existing, ignore_permissions=True)
-        # Also remove legacy fields
-        _remove_legacy_fields()
+        print("\nRemoving Print Format custom fields...")
+        fields_to_remove = [
+            "page_orientation",
+            "watermark_settings",
+            "orientation_col_break",
+            # Cleanup from previous wrong install
+            "pdf_settings_section",
+            "pdf_settings_col_break",
+            "pdf_settings_col_break_02",
+            "pdf_page_size",
+            "pdf_custom_width",
+            "pdf_custom_height",
+        ]
+        for fieldname in fields_to_remove:
+            if frappe.db.exists("Custom Field", {"dt": "Print Format", "fieldname": fieldname}):
+                frappe.delete_doc("Custom Field", {"dt": "Print Format", "fieldname": fieldname})
+                print(f"   Removed: {fieldname}")
+
         frappe.db.commit()
+        print("   Done: Print Format custom fields removed")
+        return True
+
     except Exception as e:
-        frappe.log_error(message=str(e), title="Print Format custom field uninstall failed")
+        print(f"   Error: {str(e)}")
+        frappe.log_error("Print Format Fields Uninstall Error", str(e))
+        return False
 
 
 def check_print_format_fields():
-    """Check status of Print Format custom fields. Returns dict for API/UI use."""
-    result = {"installed": [], "missing": []}
-    for field in get_print_format_field_definitions():
-        fieldname = field["fieldname"]
-        existing = frappe.db.get_value(
-            "Custom Field",
-            {"dt": "Print Format", "fieldname": fieldname},
-            "name",
-        )
-        if existing:
-            result["installed"].append(f"Print Format.{fieldname}")
-        else:
-            result["missing"].append(f"Print Format.{fieldname}")
-    result["all_installed"] = bool(len(result["missing"]) == 0)
-    return result
-
-
-# ---------------------------------------------------------------------------
-# CLI commands
-# ---------------------------------------------------------------------------
-
-
-@click.command("install-print-format-fields")
-@click.option("--site", help="Site name")
-@pass_context
-def install_print_format_fields_cmd(context, site=None):
-    """Install Print Format custom fields for Print Designer."""
-    if not site:
-        site = get_site(context)
-
-    with frappe.init_site(site):
-        frappe.connect()
-
-        installed_apps = frappe.get_installed_apps()
-        if "print_designer" not in installed_apps:
-            click.echo(f"❌ Error: print_designer app is not installed on site '{site}'")
-            return
-
-        try:
-            install_print_format_fields()
-            status = check_print_format_fields()
-            click.echo(
-                f"✅ Print Format fields installed! "
-                f"Installed: {len(status['installed'])}, "
-                f"Missing: {len(status['missing'])}"
-            )
-        except Exception as e:
-            click.echo(f"❌ Error installing Print Format fields: {str(e)}")
-            frappe.db.rollback()
-
-
-@click.command("uninstall-print-format-fields")
-@click.option("--site", help="Site name")
-@pass_context
-def uninstall_print_format_fields_cmd(context, site=None):
-    """Uninstall Print Format custom fields for Print Designer."""
-    if not site:
-        site = get_site(context)
-
-    with frappe.init_site(site):
-        frappe.connect()
-
-        try:
-            uninstall_print_format_fields()
-            click.echo("✅ Print Format fields uninstalled!")
-        except Exception as e:
-            click.echo(f"❌ Error uninstalling Print Format fields: {str(e)}")
-            frappe.db.rollback()
-
-
-@click.command("check-print-format-fields")
-@click.option("--site", help="Site name")
-@pass_context
-def check_print_format_fields_cmd(context, site=None):
     """Check status of Print Format custom fields."""
-    if not site:
-        site = get_site(context)
+    required_fields = ["page_orientation", "watermark_settings"]
+    missing = []
+    installed = []
 
-    with frappe.init_site(site):
-        frappe.connect()
+    for fieldname in required_fields:
+        if frappe.db.exists("Custom Field", {"dt": "Print Format", "fieldname": fieldname}):
+            installed.append(f"Print Format.{fieldname}")
+        else:
+            missing.append(f"Print Format.{fieldname}")
 
-        status = check_print_format_fields()
-        click.echo(f"Installed: {status['installed']}")
-        click.echo(f"Missing: {status['missing']}")
-        click.echo(f"All installed: {status['all_installed']}")
+    if missing:
+        print(f"Missing: {', '.join(missing)}")
+        return False
+    print("All required Print Format custom fields are installed")
+    return True
 
 
-commands = [
-    install_print_format_fields_cmd,
-    uninstall_print_format_fields_cmd,
-    check_print_format_fields_cmd,
-]
+# CLI execution
+if __name__ == "__main__":
+    import sys
+
+    site = "digisoft-erp.bunchee.online"
+    frappe.init(site=site)
+    frappe.connect()
+
+    action = sys.argv[1] if len(sys.argv) > 1 else "install"
+
+    if action == "install":
+        install_print_format_fields()
+    elif action == "uninstall":
+        uninstall_print_format_fields()
+    elif action == "check":
+        check_print_format_fields()
+    else:
+        print(f"Unknown action: {action}")
+        print("Usage: python install_print_format_fields.py [install|uninstall|check]")
+
+    frappe.destroy()

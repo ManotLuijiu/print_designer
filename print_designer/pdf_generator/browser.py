@@ -1,11 +1,8 @@
-import time
-
 import frappe
 from bs4 import BeautifulSoup
 from frappe.utils.pdf import get_print_format_styles as get_styles_print_format_class
 from frappe.utils.pdf import toggle_visible_pdf
 
-from print_designer.pdf import measure_time
 from print_designer.pdf_generator.cdp_connection import CDPSocketClient
 from print_designer.pdf_generator.page import Page
 from print_designer.print_designer.page.print_designer.print_designer import (
@@ -79,13 +76,9 @@ class Browser:
 
     def create_browser_context(self):
         # create browser context
-        result, error = self.session.send(
-            "Target.createBrowserContext", {"disposeOnDetach": True}
-        )
+        result, error = self.session.send("Target.createBrowserContext", {"disposeOnDetach": True})
         if error:
-            frappe.log_error(
-                title="Error creating browser context:", message=f"{error}"
-            )
+            frappe.log_error(title="Error creating browser context:", message=f"{error}")
         self.browser_context_id = result["browserContextId"]
 
     def set_html(self, html):
@@ -102,18 +95,12 @@ class Browser:
             if self.options
             else [frappe._("Original"), frappe._("Copy")]
         )
-        self.copy_watermark = (
-            self.options.get("copy_watermark", True) if self.options else True
-        )
+        self.copy_watermark = self.options.get("copy_watermark", True) if self.options else True
 
         # Extract watermark-related options
-        self.watermark_mode = (
-            self.options.get("watermark_mode") if self.options else None
-        )
+        self.watermark_mode = self.options.get("watermark_mode") if self.options else None
         self.watermark_labels = (
-            self.options.get(
-                "watermark_labels", [frappe._("Original"), frappe._("Copy")]
-            )
+            self.options.get("watermark_labels", [frappe._("Original"), frappe._("Copy")])
             if self.options
             else [frappe._("Original"), frappe._("Copy")]
         )
@@ -156,9 +143,7 @@ class Browser:
 
         # Loop through the classes to check
         for class_name in classes_to_check:
-            if soup.find(
-                class_=class_name
-            ):  # Check if any element with the class is found
+            if soup.find(class_=class_name):  # Check if any element with the class is found
                 return True  # Return True if class is found
 
         return False
@@ -192,17 +177,13 @@ class Browser:
         if self.header_page:
             self.header_page.wait_for_navigate()
             self.header_page.set_content(
-                self.get_rendered_header_footer(
-                    self.header_content, "header", head, styles, css=[]
-                )
+                self.get_rendered_header_footer(self.header_content, "header", head, styles, css=[])
             )
 
         if self.footer_page:
             self.footer_page.wait_for_navigate()
             self.footer_page.set_content(
-                self.get_rendered_header_footer(
-                    self.footer_content, "footer", head, styles, css=[]
-                )
+                self.get_rendered_header_footer(self.footer_content, "footer", head, styles, css=[])
             )
         if self.header_page:
             self.header_page.wait_for_set_content()
@@ -245,9 +226,7 @@ class Browser:
             "page-width",
             "page-height",
         )
-        options |= {
-            style.name: style.value for style in print_format_css if style.name in attrs
-        }
+        options |= {style.name: style.value for style in print_format_css if style.name in attrs}
         self.options.update(options)
 
     def _set_default_page_size(self):
@@ -259,14 +238,21 @@ class Browser:
         )
 
         if pdf_page_size == "Custom":
-            options["page-height"] = options.get(
-                "page-height"
-            ) or frappe.db.get_single_value("Print Settings", "pdf_page_height")
-            options["page-width"] = options.get(
-                "page-width"
-            ) or frappe.db.get_single_value("Print Settings", "pdf_page_width")
+            options["page-height"] = options.get("page-height") or frappe.db.get_single_value(
+                "Print Settings", "pdf_page_height"
+            )
+            options["page-width"] = options.get("page-width") or frappe.db.get_single_value(
+                "Print Settings", "pdf_page_width"
+            )
         else:
             options["page-size"] = pdf_page_size
+
+        # Set default orientation from Print Settings if not in HTML
+        if not options.get("orientation"):
+            page_orientation = (
+                frappe.db.get_single_value("Print Settings", "page_orientation") or "Portrait"
+            )
+            options["orientation"] = page_orientation
 
     def prepare_options_for_pdf(self):
         self._parse_pdf_options_from_html()
@@ -297,9 +283,7 @@ class Browser:
             if not (page_size := self.options.get("page-size")):
                 raise frappe.ValidationError("Page size is required")
             if page_size == "CUSTOM":
-                raise frappe.ValidationError(
-                    "Custom page size requires page-height and page-width"
-                )
+                raise frappe.ValidationError("Custom page size requires page-height and page-width")
 
             size = PageSize.get(page_size)
             if not size:
@@ -308,12 +292,8 @@ class Browser:
                 # For now, let's raise a validation error.
                 raise frappe.ValidationError(f"Invalid page size: {page_size}")
 
-            options["page-height"] = convert_uom(
-                size["height"], "mm", "px", only_number=True
-            )
-            options["page-width"] = convert_uom(
-                size["width"], "mm", "px", only_number=True
-            )
+            options["page-height"] = convert_uom(size["height"], "mm", "px", only_number=True)
+            options["page-width"] = convert_uom(size["width"], "mm", "px", only_number=True)
 
         if type(options["page-height"]) == str:
             options["page-height"] = self._get_converted_num(options["page-height"])
@@ -361,9 +341,7 @@ class Browser:
             header_spacing = options.get("header-spacing", 0)
             header_with_spacing_top_margin = header_with_top_margin + header_spacing
             self.header_page.options["paperHeight"] = (
-                convert_uom(
-                    header_with_spacing_top_margin, "px", "in", only_number=True
-                )
+                convert_uom(header_with_spacing_top_margin, "px", "in", only_number=True)
                 if header_with_spacing_top_margin
                 else 0
             )
@@ -378,9 +356,7 @@ class Browser:
         if self.footer_page:
             footer_height = self.footer_height
             self.footer_page.options["paperHeight"] = (
-                convert_uom(footer_height, "px", "in", only_number=True)
-                if footer_height
-                else 0
+                convert_uom(footer_height, "px", "in", only_number=True) if footer_height else 0
             )
             footer_with_bottom_margin = self.footer_height + margin_bottom
 
@@ -479,36 +455,44 @@ class Browser:
         """Enhanced cleanup with better resource management"""
         try:
             # Enhanced: Close pages explicitly before disconnecting
-            if hasattr(self, 'header_page') and self.header_page:
+            if hasattr(self, "header_page") and self.header_page:
                 try:
                     self.header_page.close()
                 except Exception as e:
-                    frappe.log_error(f"Error closing header page: {str(e)}", "Print Designer Cleanup")
-                    
-            if hasattr(self, 'footer_page') and self.footer_page:
+                    frappe.log_error(
+                        f"Error closing header page: {str(e)}", "Print Designer Cleanup"
+                    )
+
+            if hasattr(self, "footer_page") and self.footer_page:
                 try:
                     self.footer_page.close()
                 except Exception as e:
-                    frappe.log_error(f"Error closing footer page: {str(e)}", "Print Designer Cleanup")
-                    
-            if hasattr(self, 'body_page') and self.body_page:
+                    frappe.log_error(
+                        f"Error closing footer page: {str(e)}", "Print Designer Cleanup"
+                    )
+
+            if hasattr(self, "body_page") and self.body_page:
                 try:
                     self.body_page.close()
                 except Exception as e:
                     frappe.log_error(f"Error closing body page: {str(e)}", "Print Designer Cleanup")
-                    
+
             # Enhanced: Dispose browser context before disconnecting
-            if hasattr(self, 'browser_context_id') and hasattr(self, 'session'):
+            if hasattr(self, "browser_context_id") and hasattr(self, "session"):
                 try:
-                    self.session.send("Target.disposeBrowserContext", 
-                        {"browserContextId": self.browser_context_id})
+                    self.session.send(
+                        "Target.disposeBrowserContext",
+                        {"browserContextId": self.browser_context_id},
+                    )
                 except Exception as e:
-                    frappe.log_error(f"Error disposing browser context: {str(e)}", "Print Designer Cleanup")
-                    
+                    frappe.log_error(
+                        f"Error disposing browser context: {str(e)}", "Print Designer Cleanup"
+                    )
+
             # Finally disconnect session
-            if hasattr(self, 'session'):
+            if hasattr(self, "session"):
                 self.session.disconnect()
-                
+
         except Exception as e:
             frappe.log_error(f"Error during browser cleanup: {str(e)}", "Print Designer Cleanup")
             # Don't re-raise as this is cleanup code

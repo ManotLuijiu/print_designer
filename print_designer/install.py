@@ -511,9 +511,9 @@ def set_wkhtmltopdf_as_default_for_print_designer():
 
         for format_doc in print_designer_formats:
             try:
-                frappe.db.set_value("Print Format", format_doc.name, "pdf_generator", "wkhtmltopdf")
+                frappe.db.set_value("Print Format", format_doc.name, "pdf_generator", "chrome")
                 click.echo(
-                    f"Set wkhtmltopdf PDF generator for Print Designer format: {format_doc.name}"
+                    f"Set chrome PDF generator for Print Designer format: {format_doc.name}"
                 )
             except Exception as e:
                 click.echo(f"Failed to update format '{format_doc.name}': {str(e)}")
@@ -521,29 +521,24 @@ def set_wkhtmltopdf_as_default_for_print_designer():
         frappe.db.commit()
         if print_designer_formats:
             click.echo(
-                f"Updated {len(print_designer_formats)} Print Designer formats to use wkhtmltopdf PDF generator"
+                f"Updated {len(print_designer_formats)} Print Designer formats to use chrome PDF generator"
             )
     except Exception as e:
-        click.echo(f"Error setting wkhtmltopdf as default for Print Designer formats: {str(e)}")
+        click.echo(f"Error setting chrome as default for Print Designer formats: {str(e)}")
 
 
 def set_wkhtmltopdf_for_print_designer_format(doc, method):
     """Set appropriate PDF generator for Print Designer formats"""
     if doc.print_designer:
-        # If no generator specified, set a default (prefer WeasyPrint if available)
+        # If no generator specified, set a default (prefer Chrome if available)
         if not doc.pdf_generator:
-            try:
-                import weasyprint
-
-                doc.pdf_generator = "WeasyPrint"
-            except ImportError:
-                doc.pdf_generator = "wkhtmltopdf"
+            doc.pdf_generator = "chrome"
 
         # Validate that the selected generator is supported
         supported_generators = ["wkhtmltopdf", "WeasyPrint", "chrome"]
         if doc.pdf_generator not in supported_generators:
-            # Fallback to wkhtmltopdf for unsupported generators
-            doc.pdf_generator = "wkhtmltopdf"
+            # Fallback to chrome for unsupported generators
+            doc.pdf_generator = "chrome"
 
 
 def set_pdf_generator_option(action: Literal["add", "remove", "add_chrome"]):

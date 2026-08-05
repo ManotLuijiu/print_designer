@@ -16,7 +16,6 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-
 # Thai translations mapping for income categories
 THAI_TRANSLATIONS = {
     # Income Categories
@@ -133,16 +132,47 @@ def parse_csv_data():
             if not form_type:
                 continue
 
-            records.append({
-                "form_type": form_type,
-                "recipient_type": row.get("Recipient Type", "").strip(),
-                "income_category": row.get("Income Category", "").strip(),
-                "income_description": row.get("Income Description", "").strip(),
-                "conditions": row.get("Conditions", "").strip(),
-                "tax_rate": flt(row.get("Tax Rate (%)", 0)),
-            })
+            records.append(
+                {
+                    "form_type": form_type,
+                    "recipient_type": row.get("Recipient Type", "").strip(),
+                    "income_category": row.get("Income Category", "").strip(),
+                    "income_description": row.get("Income Description", "").strip(),
+                    "conditions": row.get("Conditions", "").strip(),
+                    "tax_rate": flt(row.get("Tax Rate (%)", 0)),
+                }
+            )
 
     return records
+
+
+def _cleanup_invalid_tax_withholding_category_links():
+    """
+    Clean up Thai WHT Income Type records with invalid tax_withholding_category links.
+
+    Old records (e.g., "PND3-Rental Income") have tax_withholding_category set to
+    values like "Rental 5% (PND3)" which no longer exist in Tax Withholding Category.
+    These cause LinkValidationError when doc.save() is called.
+    """
+    # Find all Thai WHT Income Types with tax_withholding_category set
+    sql = """
+        SELECT twi.name, twi.tax_withholding_category
+        FROM `tabThai WHT Income Type` twi
+        WHERE twi.tax_withholding_category IS NOT NULL AND twi.tax_withholding_category != ''
+    """
+    records_with_links = frappe.db.sql(sql, as_dict=True)
+
+    cleared_count = 0
+    for r in records_with_links:
+        twc_name = r.tax_withholding_category
+        # Check if the linked Tax Withholding Category exists
+        if not frappe.db.exists("Tax Withholding Category", twc_name):
+            frappe.db.set_value("Thai WHT Income Type", r.name, "tax_withholding_category", None)
+            cleared_count += 1
+
+    if cleared_count > 0:
+        frappe.db.commit()
+        print(f"   Cleared {cleared_count} invalid tax_withholding_category links")
 
 
 def install_thai_wht_income_types():
@@ -157,9 +187,14 @@ def install_thai_wht_income_types():
     if not frappe.db.exists("DocType", "Thai WHT Income Type"):
         frappe.log_error(
             "Thai WHT Income Type DocType does not exist. Run bench migrate first.",
-            "WHT Income Type Installation"
+            "WHT Income Type Installation",
         )
         return
+
+    # Step 0: Clean up old records with invalid tax_withholding_category links
+    # These old records (e.g., "PND3-Rental Income") have broken links to
+    # Tax Withholding Categories that no longer exist
+    _cleanup_invalid_tax_withholding_category_links()
 
     records = parse_csv_data()
     created_count = 0
@@ -168,6 +203,7 @@ def install_thai_wht_income_types():
     # Pre-build collision map: (form_type, income_category) -> has multiple records?
     # Only add suffix when collision exists.
     from collections import defaultdict
+
     form_cat_counts = defaultdict(int)
     for record in records:
         form_cat_counts[(record["form_type"], record["income_category"])] += 1
@@ -198,11 +234,15 @@ def install_thai_wht_income_types():
             "form_type": record["form_type"],
             "form_type_th": FORM_TYPE_TH.get(record["form_type"], record["form_type"]),
             "recipient_type": record["recipient_type"],
-            "recipient_type_th": RECIPIENT_TYPE_TH.get(record["recipient_type"], record["recipient_type"]),
+            "recipient_type_th": RECIPIENT_TYPE_TH.get(
+                record["recipient_type"], record["recipient_type"]
+            ),
             "income_category": record["income_category"],
             "income_category_th": translate_to_thai(record["income_category"]),
             "income_description": record["income_description"],
-            "income_description_th": translate_to_thai(record["income_description"]) if record["income_description"] else "",
+            "income_description_th": translate_to_thai(record["income_description"])
+            if record["income_description"]
+            else "",
             "conditions": conditions_val,
             "conditions_th": translate_to_thai(conditions_val),
             "tax_rate": record["tax_rate"],
@@ -249,7 +289,7 @@ def install_thai_wht_income_types():
 
     frappe.db.commit()
 
-    print(f"Thai WHT Income Type installation complete:")
+    print("Thai WHT Income Type installation complete:")
     print(f"  - Created: {created_count} records")
     print(f"  - Updated: {updated_count} records")
     print(f"  - Total: {created_count + updated_count} records")
@@ -257,7 +297,7 @@ def install_thai_wht_income_types():
     return {
         "created": created_count,
         "updated": updated_count,
-        "total": created_count + updated_count
+        "total": created_count + updated_count,
     }
 
 

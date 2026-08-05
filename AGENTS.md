@@ -111,3 +111,111 @@ bd close <id>         # Complete work
 **`title_field`** = `doc_title_th` — compound Thai display
 
 e.g. `ค่าโฆษณา นิติบุคคล 2 ภงด.53`
+
+## E2E Testing
+
+### Credentials
+
+Credentials for testing are stored in `print_designer/.env`:
+
+```bash
+SITE_URL="https://digisoft-erp.bunchee.online"
+SITE_USERNAME="Administrator"
+SITE_PASSWORD="manlucha"
+```
+
+Load credentials in Python tests:
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path="/home/frappe/frappe-bench/apps/print_designer/.env")
+
+site_url = os.getenv("SITE_URL")
+username = os.getenv("SITE_USERNAME")
+password = os.getenv("SITE_PASSWORD")
+```
+
+### Test Location
+
+All E2E tests are in `print_designer/print_designer/tests/`:
+
+```
+print_designer/print_designer/tests/
+├── test_page_orientation.py       # Page orientation feature tests
+├── test_watermark_system.py       # Watermark functionality tests
+├── test_company_preview.py        # Company logo/branding tests
+└── ...
+```
+
+### Running Tests
+
+```bash
+# Run specific test
+cd /home/frappe/frappe-bench/apps/print_designer
+python -m pytest print_designer/tests/test_page_orientation.py -v
+
+# Run all tests
+bench run-tests --app print_designer
+```
+
+### Test Pattern (Python Playwright)
+
+```python
+from playwright.sync_api import sync_playwright
+import os
+import time
+from dotenv import load_dotenv
+
+# Load credentials from .env
+load_dotenv(dotenv_path="/home/frappe/frappe-bench/apps/print_designer/.env")
+site_url = os.getenv("SITE_URL")
+username = os.getenv("SITE_USERNAME")
+password = os.getenv("SITE_PASSWORD")
+
+def test_page_orientation_api_fetch():
+    """Test that page_orientation is auto-populated from Print Format."""
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            executable_path="/home/frappe/frappe-bench/chromium/chrome-linux/headless_shell"
+        )
+        page = browser.new_page(viewport={"width": 1400, "height": 900})
+        
+        # Login
+        page.goto(f"{site_url}/desk/login")
+        page.fill("#login_email", username)
+        page.fill("#login_password", password)
+        page.click(".btn-login")
+        page.wait_for_url(f"{site_url}/desk/**", timeout=30000)
+        time.sleep(5)
+        
+        # Navigate to print preview
+        page.goto(f"{site_url}/desk/print/Stock%20Entry/MAT-STE-2026-00004")
+        page.wait_for_load_state("networkidle")
+        time.sleep(5)
+        
+        # Check page_orientation dropdown value
+        result = page.evaluate('''() => {
+            const field = document.querySelector('[data-fieldname="page_orientation"]');
+            if (!field) return { found: false };
+            const select = field.querySelector('select');
+            return { found: true, value: select ? select.value : null };
+        }''')
+        
+        print(f"page_orientation value: {result}")
+        
+        # Verify it matches Print Format value (Landscape)
+        assert result['found'], "page_orientation field not found"
+        assert result['value'] == 'Landscape', f"Expected Landscape, got {result['value']}"
+        
+        browser.close()
+```
+
+### Key Test Scenarios
+
+1. **API Fetch**: Verify `page_orientation` is auto-populated from Print Format doctype
+2. **Manual Override**: User can change orientation, preview updates with `.landscape` class
+3. **CSS Injection**: Landscape CSS is injected with `!important` to override defaults
+4. **Print Format Change**: When print format changes, orientation resets to new format's value

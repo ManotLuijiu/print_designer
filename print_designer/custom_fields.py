@@ -106,6 +106,7 @@ PRINT_DESIGNER_CUSTOM_FIELDS = {
             "fieldname": "print_designer_template_app",
             "fieldtype": "Select",
             "label": "Print Designer Template Location",
+            "options": "print_designer",
             "default": "print_designer",
             "insert_after": "standard",
         },

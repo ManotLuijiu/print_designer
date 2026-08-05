@@ -4,6 +4,10 @@ Replaces /printview to support watermark and page numbers for browser printing.
 
 FIX: Now reuses shared logic from overrides/printview_watermark.py
 instead of maintaining separate hardcoded fallbacks.
+
+IMPORTANT: This file handles the WEBSITE print view (/printview URL).
+The API endpoint frappe.www.printview.get_html_and_style is NOT overridden here.
+It comes from the core Frappe file: frappe/frappe/www/printview.py
 """
 
 import html as html_module
@@ -15,16 +19,40 @@ from frappe.www.printview import get_context as core_get_context
 
 # Import shared helpers from the newer override path
 from print_designer.overrides.printview_watermark import (
+    build_preview_copy_watermark_html,
+    get_copy_watermark_text,
     get_page_number_border_css,
     get_page_number_position_css,
     get_watermark_position_css,
     log_to_print_designer,
+    normalize_checkbox_value,
+    normalize_copy_count,
     normalize_preview_color,
     normalize_watermark_font_size,
     normalize_watermark_measure,
     parse_watermark_settings_dict,
     resolve_basic_watermark_context,
 )
+
+
+def debug_get_html_and_style():
+    """
+    DEBUG: Check if this custom printview.py has get_html_and_style.
+    It should NOT - the API endpoint comes from core Frappe.
+    """
+    print("[DEBUG PRINTVIEW] This is the CUSTOM printview.py (website print view)")
+    print(
+        "[DEBUG PRINTVIEW] The API endpoint frappe.www.printview.get_html_and_style comes from CORE frappe/frappe/www/printview.py"
+    )
+    print(
+        "[DEBUG PRINTVIEW] This file only handles get_context for /printview URL (website sharing)"
+    )
+
+
+# Run debug on import
+debug_get_html_and_style()
+
+# Import shared helpers from the newer override path
 
 
 def get_context(context: Any) -> dict:
@@ -71,6 +99,9 @@ def get_context(context: Any) -> dict:
 
         # Inject page numbers if configured (using shared logic)
         body_html = inject_page_numbers(body_html, settings, print_format_doc)
+
+        # Inject multi-copy if enabled
+        body_html = inject_multi_copy(body_html, settings, print_format_doc)
 
         # Update context with modified body
         print_context["body"] = body_html
@@ -529,3 +560,145 @@ def inject_page_numbers(html_content: str, settings: dict, print_format_doc) -> 
             log_to_print_designer("[PRINTVIEW] Page number appended (fallback)")
 
     return html_content
+
+
+def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> str:
+    """
+    Inject multi-copy support into HTML content.
+
+    When enable_multiple_copies is true and default_copy_count > 1,
+    duplicates the HTML with per-copy watermarks.
+    """
+    # Parse settings using shared helper
+    parsed_settings = parse_watermark_settings_dict(settings)
+
+    # Try to get print settings for fallback
+    try:
+        print_settings = frappe.get_single("Print Settings")
+    except Exception:
+        print_settings = {}
+
+    # Get copy settings with fallback chain
+    copy_enabled = normalize_checkbox_value(
+        parsed_settings.get("enable_multiple_copies"),
+        normalize_checkbox_value(
+            getattr(print_settings, "enable_multiple_copies", None) if print_settings else None,
+            False,
+        ),
+    )
+    copy_count = normalize_copy_count(
+        parsed_settings.get("default_copy_count"),
+        getattr(print_settings, "default_copy_count", 1) if print_settings else 1,
+    )
+
+    log_to_print_designer(
+        f"[PRINTVIEW] Multi-copy check: enabled={copy_enabled}, count={copy_count}"
+    )
+
+    if not copy_enabled or copy_count <= 1:
+        return html_content
+
+    log_to_print_designer(f"[PRINTVIEW] Applying multi-copy: count={copy_count}")
+
+    # Get watermark settings for per-copy watermarks
+    watermark_mode = parsed_settings.get("watermark_settings") or "None"
+    watermark_position = parsed_settings.get("watermark_position") or "Top Right"
+    font_size = normalize_watermark_font_size(parsed_settings.get("watermark_font_size"), 24)
+    font_family = parsed_settings.get("watermark_font_family") or "Kanit"
+    watermark_color = normalize_preview_color(
+        parsed_settings.get("watermark_font_color"), "#999999"
+    )
+    try:
+        watermark_opacity = float(parsed_settings.get("watermark_opacity", 0.6))
+    except (ValueError, TypeError):
+        watermark_opacity = 0.6
+
+    # Get margin values
+    margin_top = normalize_watermark_measure(parsed_settings.get("watermark_top"), "0mm")
+    margin_right = normalize_watermark_measure(parsed_settings.get("watermark_right"), "0mm")
+    margin_bottom = normalize_watermark_measure(parsed_settings.get("watermark_bottom"), "0mm")
+    margin_left = normalize_watermark_measure(parsed_settings.get("watermark_left"), "0mm")
+
+    position_config = {
+        "position_top": parsed_settings.get("position_top"),
+        "position_right": parsed_settings.get("position_right"),
+        "position_bottom": parsed_settings.get("position_bottom"),
+        "position_left": parsed_settings.get("position_left"),
+    }
+
+    # Build separator style
+    separator_style = """
+<style>
+    .pd-preview-copy-separator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 24px;
+        background-color: #6c757d !important;
+    }
+    .pd-preview-copy-separator-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: min(960px, 100%);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .pd-preview-copy-separator-label::before,
+    .pd-preview-copy-separator-label::after {
+        content: "";
+        flex: 1;
+        border-top: 1px dashed #bdbdbd;
+    }
+    @media print {
+        .pd-preview-copy-separator {
+            display: none !important;
+        }
+    }
+</style>
+"""
+
+    # Build copies with per-copy watermarks
+    copies = []
+    for idx in range(copy_count):
+        copy_index = idx + 1
+        watermark_text = get_copy_watermark_text(watermark_mode, copy_index)
+
+        # Build per-copy watermark
+        copy_watermark_html = ""
+        if watermark_text:
+            position_css = get_watermark_position_css(
+                watermark_position,
+                position_config,
+                margin_top=margin_top,
+                margin_right=margin_right,
+                margin_bottom=margin_bottom,
+                margin_left=margin_left,
+            )
+            copy_watermark_html = build_preview_copy_watermark_html(
+                watermark_text,
+                position_css,
+                font_size,
+                font_family,
+                watermark_color,
+                watermark_opacity,
+            )
+
+        # Build separator and page break for copies after first
+        page_break = ""
+        separator_html = ""
+        if idx > 0:
+            page_break = " page-break-before: always; break-before: page;"
+            separator_html = f'<div class="pd-preview-copy-separator"><div class="pd-preview-copy-separator-label">{frappe._("Copy")} {copy_index}</div></div>'
+
+        # Wrap copy with watermark
+        copies.append(
+            f'{separator_html}<div class="pd-preview-copy" data-copy-index="{copy_index}" style="position: relative;{page_break}">\n{copy_watermark_html}\n{html_content}\n</div>'
+        )
+
+    # Return multi-copy HTML
+    return separator_style + "\n".join(copies)

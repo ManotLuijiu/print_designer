@@ -85,7 +85,24 @@
 					margin: 0;
 				}
 
+				/*
+				 * Page margins and Chrome headers/footers control
+				 * 
+				 * IMPORTANT: For physical printers, Chrome's "Headers and footers" setting
+				 * in the print dialog adds page numbers by default. The CSS below helps
+				 * minimize Chrome's native headers/footers, but users may still need
+				 * to manually uncheck "Headers and footers" in Chrome's print dialog.
+				 * 
+				 * - PDF output: Respects margin: 0 fully, no Chrome page numbers
+				 * - Physical printers: May add headers/footers regardless of CSS
+				 * 
+				 * Note: Chrome's "Headers and footers" checkbox is a user preference
+				 * that cannot be controlled via CSS/JavaScript for security reasons.
+				 */
 				@page {
+					/* Explicit page size helps Chrome understand exact dimensions */
+					size: A4;
+					/* Zero margin = no room for Chrome's headers/footers in printed output */
 					margin: 0;
 				}
 			}
@@ -93,7 +110,21 @@
 	</head>
 	<body>
 		<div class="action-banner print-hide">
-			<a class="p-2" onclick="window.print()"> {{ _("Print") }} </a>
+			<!--
+				Print button: PDF-first approach
+				
+				Instead of window.print() which uses Chrome's native HTML print pipeline
+				(and may add conflicting page numbers like "1/2" on physical printers),
+				we open the PDF which already has correct watermark and page numbering.
+				
+				Users print from the PDF preview, which gives consistent output.
+			-->
+			<a
+				class="p-2"
+				onclick="window.open('/api/method/frappe.utils.print_format.download_pdf?doctype={{doctype}}&amp;name={{name}}&amp;format={{print_format}}&amp;letterhead={{letterhead or ''}}&amp;no_letterhead={{no_letterhead or ''}}&amp;_lang={{lang}}&amp;key={{key or ''}}&amp;pdf_generator={{pdf_generator or 'wkhtmltopdf'}}', '_blank')"
+			>
+				{{ _("Print") }}
+			</a>
 			<a
 				class="p-2"
 				href="/api/method/frappe.utils.print_format.download_pdf?doctype={{doctype}}{{'&amp;'}}name={{name}}{{'&amp;'}}format={{print_format}}{{'&amp;'}}letterhead={{letterhead or ''}}{{'&amp;'}}no_letterhead={{no_letterhead or ''}}{{'&amp;'}}_lang={{lang}}{{'&amp;'}}key={{key or ''}}{{'&amp;'}}pdf_generator={{pdf_generator or 'wkhtmltopdf'}}"
@@ -105,27 +136,33 @@
 			<div class="print-format">{{ body }}</div>
 		</div>
 		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				// Handle page breaks
-				var pageDiv = document.querySelector('.page-break');
-				if (pageDiv) {
-					pageDiv.style.display = 'flex';
-					pageDiv.style.flexDirection = 'column';
-				}
+				document.addEventListener('DOMContentLoaded', function() {
+					// Handle page breaks
+					var pageDiv = document.querySelector('.page-break');
+					if (pageDiv) {
+						pageDiv.style.display = 'flex';
+						pageDiv.style.flexDirection = 'column';
+					}
 
-				// Handle footer
-				var footerHtml = document.getElementById('footer-html');
-				if (footerHtml) {
-					footerHtml.classList.add('hidden-pdf');
-					footerHtml.classList.remove('visible-pdf');
-					footerHtml.style.order = 1;
-					footerHtml.style.marginTop = '20px';
-				}
+					// Handle footer
+					var footerHtml = document.getElementById('footer-html');
+					if (footerHtml) {
+						footerHtml.classList.add('hidden-pdf');
+						footerHtml.classList.remove('visible-pdf');
+						footerHtml.style.order = 1;
+						footerHtml.style.marginTop = '20px';
+					}
 
 				// Trigger auto-print if requested
+				// Changed from window.print() to PDF-first: open PDF in new tab for printing
 				{% if trigger_print %}
 				setTimeout(function() {
-					window.print();
+					// Open PDF for printing instead of raw HTML print
+					// This avoids Chrome's native page numbering conflict with our custom page numbers
+					window.open(
+						'/api/method/frappe.utils.print_format.download_pdf?doctype={{doctype}}&name={{name}}&format={{print_format}}&letterhead={{letterhead or ""}}&no_letterhead={{no_letterhead or ""}}&_lang={{lang}}&key={{key or ""}}&pdf_generator={{pdf_generator or "wkhtmltopdf"}}',
+						'_blank'
+					);
 				}, 1000);
 				{% endif %}
 			});

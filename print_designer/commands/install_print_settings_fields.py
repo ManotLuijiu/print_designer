@@ -27,6 +27,15 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 # All Print Settings custom fields for Print Designer
 PRINT_SETTINGS_CUSTOM_FIELDS = {
     "Print Settings": [
+        # PDF Settings Section
+        {
+            "label": "Page Orientation",
+            "fieldname": "page_orientation",
+            "fieldtype": "Select",
+            "options": "Portrait\nLandscape",
+            "default": "Portrait",
+            "insert_after": "pdf_page_size",
+        },
         # Copy Settings Section
         {
             "label": "Copy Settings",
@@ -265,6 +274,8 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
 
 # All fieldnames for verification + uninstall
 ALL_FIELDNAMES = [
+    # PDF Settings
+    "page_orientation",
     # Copy settings
     "copy_settings_section",
     "enable_multiple_copies",
@@ -360,12 +371,36 @@ def _uninstall_existing_fields():
 
 
 def _apply_property_setters():
-    """Apply Property Setters to set defaults for Print Settings standard fields."""
+    """
+    Apply Property Setters to override Print Settings standard field behavior.
+
+    Property Setters can modify:
+    - default: Set default value for a field
+    - options: Add/modify Select field options
+    - hidden: Hide/show fields
+    - read_only: Make fields read-only
+    - reqd: Make fields required
+    - field_order: Reorder fields (on DocType level)
+
+    Note: Field ordering for standard fields is controlled via field_order in DocType JSON.
+    Custom field ordering is controlled via insert_after property.
+    """
     from frappe.custom.doctype.property_setter.property_setter import (  # pyright: ignore[reportMissingImports]
         make_property_setter,
     )
 
-    # Always set pdf_generator default to chrome
+    # 1. Add WeasyPrint option to pdf_generator in Print Settings
+    # This extends the standard wkhtmltopdf/chrome options with WeasyPrint
+    make_property_setter(
+        doctype="Print Settings",
+        fieldname="pdf_generator",
+        property="options",
+        value="wkhtmltopdf\nWeasyPrint\nchrome",
+        property_type="Text",
+        for_doctype=False,
+    )
+
+    # 2. Set pdf_generator default to chrome (future-proof, no letterhead dependency)
     make_property_setter(
         doctype="Print Settings",
         fieldname="pdf_generator",
@@ -374,6 +409,75 @@ def _apply_property_setters():
         property_type="Data",
         for_doctype=False,
     )
+
+    # 3. Create 3-column layout for PDF Settings (like Page Number Settings)
+    _apply_pdf_settings_3column_layout()
+
+
+def _apply_pdf_settings_3column_layout():
+    """
+    Add Column Break to PDF Settings section to create 3 columns.
+
+    Layout:
+    - Column 1: send_print_as_pdf, repeat_header_footer
+    - Column 2: pdf_page_size, page_orientation, pdf_page_height
+    - Column 3: pdf_generator, pdf_page_width
+    """
+    import json
+
+    # 1. Create Column Break custom field if not exists
+    existing_cf = frappe.db.exists(
+        "Custom Field", {"dt": "Print Settings", "fieldname": "pdf_generator_column_break"}
+    )
+    if not existing_cf:
+        cf = frappe.get_doc(
+            {
+                "doctype": "Custom Field",
+                "dt": "Print Settings",
+                "fieldname": "pdf_generator_column_break",
+                "fieldtype": "Column Break",
+                "label": "",  # No label for Column Break fields
+                "insert_after": "pdf_page_height",
+            }
+        )
+        cf.insert()
+        print("   Created: pdf_generator_column_break")
+    else:
+        print("   pdf_generator_column_break already exists")
+
+    # 2. Update field_order to include column break
+    meta = frappe.get_meta("Print Settings")
+    current_order = [df.fieldname for df in meta.fields]
+
+    if "pdf_generator_column_break" not in current_order:
+        # Insert column break after pdf_page_height, before pdf_generator
+        if "pdf_page_height" in current_order and "pdf_generator" in current_order:
+            height_idx = current_order.index("pdf_page_height")
+            current_order.insert(height_idx + 1, "pdf_generator_column_break")
+            print("   Inserted pdf_generator_column_break in field_order")
+
+    # 3. Update field_order Property Setter
+    existing_ps = frappe.db.exists(
+        "Property Setter", {"doc_type": "Print Settings", "property": "field_order"}
+    )
+    if existing_ps:
+        frappe.delete_doc("Property Setter", existing_ps, force=True)
+
+    ps = frappe.get_doc(
+        {
+            "doctype": "Property Setter",
+            "doctype_or_field": "DocType",
+            "doc_type": "Print Settings",
+            "field_name": None,
+            "property": "field_order",
+            "value": json.dumps(current_order),
+            "property_type": "Text",
+            "is_system_generated": 1,
+        }
+    )
+    ps.flags.ignore_permissions = True
+    ps.insert()
+    print("   Updated field_order with 3-column PDF Settings layout")
 
 
 def _fix_field_ordering():
@@ -423,6 +527,8 @@ def _set_defaults():
         ps = frappe.get_single("Print Settings")
 
         defaults = {
+            # PDF Settings
+            "page_orientation": "Portrait",
             # Copy settings
             "enable_multiple_copies": 0,
             "default_copy_count": 2,

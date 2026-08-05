@@ -862,9 +862,6 @@ function initializePrintPage() {
         canvasContainer.classList.add("preview-mode");
 
         canvasContainer.style.display = "block";
-        const wrapperContainer = document.getElementsByClassName(
-          "print-designer-wrapper",
-        )[0];
         // canvasContainer.style.minHeight = page_settings.height + 'px';
         // canvasContainer.style.width = page_settings.width + 'px';
 
@@ -895,12 +892,12 @@ function initializePrintPage() {
             params.set("copy_labels", this.copy_labels_item.value);
           }
 
-          // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+          // For copies, use Chrome (letterhead is embedded in print format HTML)
           if (
             !this.selected_pdf_generator ||
             this.selected_pdf_generator === "auto"
           ) {
-            params.set("pdf_generator", "wkhtmltopdf");
+            params.set("pdf_generator", "chrome");
           }
 
           console.log("Copy parameters added to preview:", {
@@ -1169,12 +1166,12 @@ function initializePrintPage() {
                       );
                     }
 
-                    // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+                    // For copies, use Chrome (letterhead is embedded in print format HTML)
                     if (
                       !this.selected_pdf_generator ||
                       this.selected_pdf_generator === "auto"
                     ) {
-                      retryParams.set("pdf_generator", "wkhtmltopdf");
+                      retryParams.set("pdf_generator", "chrome");
                     }
                   }
 
@@ -1875,7 +1872,7 @@ function initializePrintPage() {
 
         // CRITICAL: Set flag to prevent parent's set_default_print_language from overriding
         this._pdLangSet = true;
-        
+
         // Step 1: Set Print Format language BEFORE parent
         console.log(
           "[Language Debug] Step 1: Calling set_default_print_language()",
@@ -3141,23 +3138,12 @@ function initializePrintPage() {
             : __("Copy");
           params.set("copy_labels", `${originalLabel}, ${copyLabel}`);
 
-          // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+          // For copies, use Chrome (letterhead is embedded in print format HTML)
           if (
             !this.selected_pdf_generator ||
             this.selected_pdf_generator === "auto"
           ) {
-            params.set("pdf_generator", "wkhtmltopdf");
-
-            // Inform user about the change
-            frappe.show_alert(
-              {
-                message: __(
-                  "Copy functionality works best with wkhtmltopdf. Letter Head is available.",
-                ),
-                indicator: "blue",
-              },
-              5,
-            );
+            params.set("pdf_generator", "chrome");
           }
         } else if (this.enable_copies_item && this.enable_copies_item.value) {
           // Fallback to sidebar controls if top-right controls are not available
@@ -3166,23 +3152,12 @@ function initializePrintPage() {
             params.set("copy_labels", this.copy_labels_item.value);
           }
 
-          // For copies, prefer wkhtmltopdf unless Chrome is explicitly selected
+          // For copies, use Chrome (letterhead is embedded in print format HTML)
           if (
             !this.selected_pdf_generator ||
             this.selected_pdf_generator === "auto"
           ) {
-            params.set("pdf_generator", "wkhtmltopdf");
-
-            // Inform user about the change
-            frappe.show_alert(
-              {
-                message: __(
-                  "Copy functionality works best with wkhtmltopdf. Letter Head is available.",
-                ),
-                indicator: "blue",
-              },
-              5,
-            );
+            params.set("pdf_generator", "chrome");
           }
         }
 

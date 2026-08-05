@@ -21,7 +21,8 @@ commands = [
     "print_designer.commands.install_supplier_fields.install_supplier_fields_cmd",
     "print_designer.commands.install_supplier_fields.check_supplier_fields_cmd",
     "print_designer.commands.install_supplier_fields.uninstall_supplier_fields_cmd",
-    "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Print Format watermark fields
+    "print_designer.commands.install_print_format_fields.install_print_format_fields_cmd",  # Print Format custom fields
+    "print_designer.commands.install_print_format_fields.check_print_format_fields_cmd",  # Check status
     "print_designer.commands.install_thai_form_50_twi.install_thai_form_50_twi",
     "print_designer.commands.install_delivery_qr.install_delivery_qr",
     "print_designer.commands.install_complete_system.install_complete_system",
@@ -540,6 +541,7 @@ after_install = [
     "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
     "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
     "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install page number fields
+    "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Install Print Format custom fields (page_orientation)
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Install Customer branch_code field
@@ -613,6 +615,7 @@ after_migrate = [
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
     "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install page number fields during migration
+    "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Install Print Format custom fields (page_orientation) during migration
     "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
     "print_designer.overrides.sales_invoice_thai_wht_gl.execute",  # Patch Sales Invoice GL posting for Thai WHT (Thai Tax Compliance → debit)
     "print_designer.commands.install_thai_wht_income_type.install_thai_wht_income_types",  # Install Thai WHT Income Type master data during migration

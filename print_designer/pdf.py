@@ -93,7 +93,7 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
     print(f"[DEBUG] pdf_header_footer_html called with html_id: {html_id}")
 
     if soup.find(id="__print_designer"):
-        pdf_generator = frappe.form_dict.get("pdf_generator", "wkhtmltopdf")
+        pdf_generator = frappe.form_dict.get("pdf_generator", "chrome")
         print(f"[DEBUG] PDF generator: {pdf_generator}")
 
         if pdf_generator == "chrome":
@@ -137,7 +137,7 @@ def pdf_header_footer_html(soup, head, content, styles, html_id, css):
 
         # same default path is defined in fw pdf_header_html function if no path is passed it will use default path
         path = "templates/print_formats/pdf_header_footer.html"
-        if frappe.local.form_dict.get("pdf_generator", "wkhtmltopdf") == "chrome":
+        if frappe.local.form_dict.get("pdf_generator", "chrome") == "chrome":
             path = "print_designer/pdf_generator/framework_formats/pdf_header_footer_chrome.html"
 
         if html_id == "header-html":
@@ -195,7 +195,7 @@ def pdf_body_html(print_format, jenv, args, template):
                 "bodyElement": json.loads(print_format.print_designer_body or "[]"),
                 "footerElement": json.loads(print_format.print_designer_footer or "[]"),
                 "settings": settings,
-                "pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
+                "pdf_generator": frappe.form_dict.get("pdf_generator", "chrome"),
                 "effective_lang": effective_lang,
                 "is_thai": is_thai_language(effective_lang),
             }
@@ -561,7 +561,7 @@ def _prepare_print_designer_context(print_format, args):
                 "bodyElement": body_element,
                 "footerElement": footer_element,
                 "settings": settings,
-                "pdf_generator": frappe.form_dict.get("pdf_generator", "wkhtmltopdf"),
+                "pdf_generator": frappe.form_dict.get("pdf_generator", "chrome"),
                 "effective_lang": effective_lang,
                 "is_thai": is_thai_language(effective_lang),
             }

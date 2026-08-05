@@ -61,17 +61,116 @@ const observer = new MutationObserver((mutations) => {
   });
 });
 
+// Global reference to PrintView instance (set in constructor patch)
+let _pdPrintViewInstance = null;
+
 // DEBUG: Intercept PrintView.add_settings_to_sidebar to reorder watermark fields
 function patchPrintViewForDebug() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
-  if (!PV || !PV.prototype) {
+  let PrintViewClass = frappe.ui.form && frappe.ui.form.PrintView;
+  if (!PrintViewClass || !PrintViewClass.prototype) {
     setTimeout(patchPrintViewForDebug, 200);
     return;
   }
-  if (PV.prototype._debugPatched) return;
+  if (PrintViewClass.prototype._debugPatched) return;
 
-  const original_add = PV.prototype.add_settings_to_sidebar;
-  PV.prototype.add_settings_to_sidebar = function (settings) {
+  // Override setup_print_format_dom to add landscape class
+  const original_setup = PrintViewClass.prototype.setup_print_format_dom;
+  PrintViewClass.prototype.setup_print_format_dom = function (
+    out,
+    $print_format,
+  ) {
+    console.log(
+      "[PD DEBUG] setup_print_format_dom called, page_orientation:",
+      this.additional_settings?.page_orientation,
+    );
+    // Add landscape class if orientation is Landscape
+    const orientationClass =
+      this.additional_settings?.page_orientation === "Landscape"
+        ? "landscape"
+        : "";
+    console.log("[PD DEBUG] orientationClass:", orientationClass);
+    // Continue with original
+    original_setup.call(this, out, $print_format);
+
+    // After original setup, update the div class and iframe width if needed
+    if (orientationClass) {
+      // Add landscape class to print-format inside iframe
+      this.$print_format_body?.find(".print-format").addClass("landscape");
+
+      // Inject landscape CSS into IFRAME (for .print-format.landscape)
+      const iframeLandscapeCSS = `
+        @media screen {
+          .print-format.landscape {
+            min-height: 8.3in !important;
+            max-width: 11.69in !important;
+            padding: 0.2in !important;
+          }
+        }
+      `;
+      this.$print_format_body
+        ?.find("head")
+        .append(
+          `<style id="pd-landscape-iframe">${iframeLandscapeCSS}</style>`,
+        );
+
+      // Inject landscape CSS into MAIN DOCUMENT (for .print-preview)
+      // .print-preview is in the parent document, NOT inside the iframe
+      // First, add .landscape class to .print-preview element
+      const printPreviewEl = document.querySelector(".print-preview");
+      if (printPreviewEl) {
+        printPreviewEl.classList.add("landscape");
+      }
+
+      let mainStyle = document.getElementById("pd-landscape-main");
+      if (!mainStyle) {
+        mainStyle = document.createElement("style");
+        mainStyle.id = "pd-landscape-main";
+        document.head.appendChild(mainStyle);
+      }
+      mainStyle.textContent = `
+        @media screen {
+          .print-preview.landscape {
+            max-width: 297mm !important;  /* Landscape A4 width */
+            min-height: 8.3in !important;  /* Swap: was 11.69in, now 8.3in */
+          }
+        }
+      `;
+      console.log(
+        "[PD DEBUG] Landscape CSS injected: iframe (.print-format) + main doc (.print-preview)",
+      );
+    } else {
+      // Portrait - remove landscape CSS from both iframe and main doc
+      this.$print_format_body?.find(".print-format").removeClass("landscape");
+      this.$print_format_body?.find("head style#pd-landscape-iframe").remove();
+
+      // Remove .landscape class from .print-preview in main doc
+      const printPreviewEl = document.querySelector(".print-preview");
+      if (printPreviewEl) {
+        printPreviewEl.classList.remove("landscape");
+      }
+
+      // Remove main document style
+      const mainStyle = document.getElementById("pd-landscape-main");
+      if (mainStyle) {
+        mainStyle.textContent = "";
+      }
+    }
+  };
+
+  // Also patch the constructor to store instance globally
+  const OriginalPrintView = PrintViewClass;
+  const NewPrintView = function (wrapper) {
+    const instance = new OriginalPrintView(wrapper);
+    _pdPrintViewInstance = instance;
+    console.log("[DEBUG] PrintView instance stored globally");
+    return instance;
+  };
+  NewPrintView.prototype = OriginalPrintView.prototype;
+  frappe.ui.form.PrintView = NewPrintView;
+  PrintViewClass = NewPrintView; // Update for subsequent patches
+
+  const original_add = PrintViewClass.prototype.add_settings_to_sidebar;
+  PrintViewClass.prototype.add_settings_to_sidebar = function (settings) {
     // REORDER: watermark_settings -> position -> font_family -> font_size -> margins
     const desiredOrder = [
       "watermark_settings",
@@ -127,9 +226,14 @@ function patchPrintViewForDebug() {
       const container = document.querySelector(".dynamic-settings");
       if (!container) return;
 
-      // 0. COPY COUNT + PDF PAGE SIZE IN 1:1 GRID
+      // 0. COPY COUNT + PDF PAGE SIZE + PAGE ORIENTATION + PDF GENERATOR IN 2x2 GRID
       // Enable Multiple Copies stays standalone
-      const copyFields = ["default_copy_count", "pdf_page_size"];
+      const copyFields = [
+        "default_copy_count",
+        "pdf_page_size",
+        "page_orientation",
+        "pdf_generator",
+      ];
       const copyWrapper = document.createElement("div");
       copyWrapper.className = "copy-controls-grid";
       copyWrapper.style.cssText =
@@ -141,6 +245,11 @@ function patchPrintViewForDebug() {
         if (fieldDiv) copyWrapper.appendChild(fieldDiv);
       });
       container.appendChild(copyWrapper);
+
+      // NOTE: We do NOT add a separate change listener here.
+      // The page_orientation change is handled by Frappe's core change callback
+      // in add_settings_to_sidebar (which calls this.preview() when the field changes).
+      // We only need to ensure the .landscape class is added in setup_print_format_dom.
 
       // 1. WRAP COPY LABELS (Original Label, Copy Label) IN 2-COLUMN GRID
       // This comes after Copy Count, before Watermark settings
@@ -452,7 +561,7 @@ function patchPrintViewForDebug() {
 
     return result;
   };
-  PV.prototype._debugPatched = true;
+  PrintViewClass.prototype._debugPatched = true;
   console.log(
     "[DEBUG] PrintView.add_settings_to_sidebar patched for field reordering!",
   );
@@ -477,11 +586,36 @@ const PDPrintLanguageState = {
   patchMaxRetries: 50,
 };
 
+// Page Orientation state - defined before first use
+const PDPageOrientationState = {
+  retries: 0,
+  maxRetries: 20,
+  applying: false,
+  lastAppliedFormat: null,
+};
+
 apply_print_language();
+apply_page_orientation_from_print_format();
 patch_refresh_print_format();
 
 $(document).on("change", 'input[data-fieldname="print_format"]', () => {
   queue_print_language_apply(150);
+  PDPageOrientationState.lastAppliedFormat = null;
+  apply_page_orientation_from_print_format();
+});
+
+// Trigger preview when page_orientation changes in the sidebar
+$(document).on("change", 'select[data-fieldname="page_orientation"]', () => {
+  console.log(
+    "[PD Page Orientation] User changed orientation, triggering preview",
+  );
+  // Find PrintView instance and trigger preview
+  if (
+    _pdPrintViewInstance &&
+    typeof _pdPrintViewInstance.preview === "function"
+  ) {
+    _pdPrintViewInstance.preview();
+  }
 });
 
 function apply_print_language() {
@@ -617,8 +751,8 @@ function patch_set_default_print_language() {
       // If pfLang is undefined/null, keep the current lang_code (don't demote th -> en).
       // This prevents demoting th -> en when this.print_format is temporarily undefined.
       const shouldUpdate =
-        pfLang ||  // Has Print Format language - use it
-        (!pfLang && !this.lang_code);  // No PF lang AND no current lang - use fallback
+        pfLang || // Has Print Format language - use it
+        (!pfLang && !this.lang_code); // No PF lang AND no current lang - use fallback
 
       if (shouldUpdate && resolvedLang !== this.lang_code) {
         console.log(
@@ -635,8 +769,16 @@ function patch_set_default_print_language() {
         console.log(
           "[PD Language Override] set_default_print_language - SKIPPED demotion:",
         );
-        console.log("  Current lang_code:", this.lang_code, "(kept - pfLang unavailable)");
-        console.log("  Print Format language:", pfLang, "(not available in this moment)");
+        console.log(
+          "  Current lang_code:",
+          this.lang_code,
+          "(kept - pfLang unavailable)",
+        );
+        console.log(
+          "  Print Format language:",
+          pfLang,
+          "(not available in this moment)",
+        );
         console.log("  Will re-assert via async path when Print Format loads");
         // Queue async path to re-assert when Print Format is available
         PDPrintLanguageState.lastAppliedFormat = null;
@@ -795,4 +937,157 @@ function set_language(lang_code) {
     lang_display.attr("data-name", lang_code);
     lang_display.attr("data-value", lang_code);
   }
+}
+
+// =============================================================================
+// Page Orientation from Print Format
+// =============================================================================
+
+/**
+ * Fetch page_orientation from Print Format and set the sidebar dropdown.
+ * Called on page load and when print format changes.
+ */
+function apply_page_orientation_from_print_format() {
+  const route = frappe.get_route();
+  if (route[0] !== "print") {
+    console.log("[PD Page Orientation] DEBUG: Not on print route, skipping");
+    return;
+  }
+
+  const print_format = $('input[data-fieldname="print_format"]').val();
+  const orientation_select = $('select[data-fieldname="page_orientation"]');
+
+  console.log("[PD Page Orientation] DEBUG: Called", {
+    route: route,
+    print_format: print_format,
+    hasOrientationField: orientation_select.length > 0,
+    orientationValue:
+      orientation_select.length > 0 ? orientation_select.val() : null,
+    retries: PDPageOrientationState.retries,
+    lastAppliedFormat: PDPageOrientationState.lastAppliedFormat,
+    applying: PDPageOrientationState.applying,
+  });
+
+  // FIXED: Separate checks for print_format vs dropdown
+  // Check 1: No print format yet (or Standard) → retry
+  if (!print_format || print_format === "Standard") {
+    console.log(
+      "[PD Page Orientation] DEBUG: Skipping - no print_format or Standard",
+    );
+    if (PDPageOrientationState.retries < PDPageOrientationState.maxRetries) {
+      PDPageOrientationState.retries += 1;
+      console.log(
+        "[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
+        PDPageOrientationState.retries + ")",
+      );
+      setTimeout(apply_page_orientation_from_print_format, 250);
+    }
+    return;
+  }
+
+  // Check 2: Print format exists but dropdown not ready yet → retry
+  if (!orientation_select.length) {
+    console.log(
+      "[PD Page Orientation] DEBUG: Print format exists but dropdown not ready yet",
+    );
+    if (PDPageOrientationState.retries < PDPageOrientationState.maxRetries) {
+      PDPageOrientationState.retries += 1;
+      console.log(
+        "[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
+        PDPageOrientationState.retries + ")",
+      );
+      setTimeout(apply_page_orientation_from_print_format, 250);
+    }
+    return;
+  }
+
+  PDPageOrientationState.retries = 0;
+
+  // Skip if already applied this format
+  if (
+    PDPageOrientationState.applying ||
+    PDPageOrientationState.lastAppliedFormat === print_format
+  ) {
+    console.log(
+      "[PD Page Orientation] DEBUG: Skipping - already applied for this format:",
+      print_format,
+    );
+    return;
+  }
+
+  PDPageOrientationState.applying = true;
+  console.log(
+    "[PD Page Orientation] DEBUG: Fetching Print Format:",
+    print_format,
+  );
+
+  frappe.call({
+    method: "frappe.client.get",
+    args: {
+      doctype: "Print Format",
+      name: print_format,
+    },
+    callback: function (r) {
+      PDPageOrientationState.applying = false;
+
+      console.log("[PD Page Orientation] DEBUG: API callback", {
+        success: !r.exc,
+        hasMessage: !!r.message,
+        page_orientation: r.message?.page_orientation,
+        watermark_settings: r.message?.watermark_settings,
+        pdf_page_size: r.message?.pdf_page_size,
+      });
+
+      if (r && r.message) {
+        PDPageOrientationState.lastAppliedFormat = print_format;
+        console.log(
+          "[PD Page Orientation] DEBUG: Calling set_page_orientation with:",
+          r.message.page_orientation,
+        );
+        set_page_orientation(r.message.page_orientation);
+      }
+    },
+    error: function (err) {
+      PDPageOrientationState.applying = false;
+      console.log("[PD Page Orientation] DEBUG: API error:", err);
+    },
+  });
+}
+
+/**
+ * Set the page_orientation select dropdown value.
+ * After setting, triggers a preview refresh to apply the orientation CSS.
+ */
+function set_page_orientation(orientation) {
+  const orientation_select = $('select[data-fieldname="page_orientation"]');
+  if (!orientation_select.length || !orientation) return;
+
+  const currentValue = orientation_select.val();
+  if (currentValue === orientation) return;
+
+  console.log("[PD Page Orientation] Setting to:", orientation);
+
+  // Set the select value and trigger change
+  orientation_select.val(orientation).trigger("change");
+
+  // Also update the display value
+  const displayEl = orientation_select
+    .closest(".frappe-control")
+    .find(".control-value");
+  if (displayEl.length) {
+    displayEl.text(orientation);
+  }
+
+  // Trigger preview to apply the orientation CSS (since initial render already happened)
+  setTimeout(() => {
+    if (
+      _pdPrintViewInstance &&
+      typeof _pdPrintViewInstance.preview === "function"
+    ) {
+      console.log(
+        "[PD Page Orientation] Triggering preview refresh after setting orientation",
+      );
+      _pdPrintViewInstance.preview();
+    }
+  }, 100);
 }
