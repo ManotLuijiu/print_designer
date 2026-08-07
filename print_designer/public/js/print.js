@@ -101,9 +101,11 @@ function patchPrintViewForDebug() {
       const iframeLandscapeCSS = `
         @media screen {
           .print-format.landscape {
-            min-height: 8.3in !important;
+            min-height: 8.27in !important;
             max-width: 11.69in !important;
             padding: 0.2in !important;
+            height: 210mm !important;
+            width: 297mm !important;
           }
         }
       `;
@@ -538,7 +540,149 @@ function patchPrintViewForDebug() {
       });
       container.appendChild(pageNumberWrapper);
 
-      // 5. SET MIN-HEIGHT ON ALL LABELS IN GRID WRAPPERS (prevent label overflow)
+      // 5. LOCALSTORAGE HELPER FUNCTIONS
+      const lsKey = "pd_print_settings_" + frappe.session.user;
+
+      // Save settings to localStorage
+      window.savePDPrintSettings = () => {
+        const settings = {};
+        // Get all print settings fields
+        const fields = [
+          "compact_item_print",
+          "print_uom_after_quantity",
+          "enable_multiple_copies",
+          "default_copy_count",
+          "pdf_page_size",
+          "page_orientation",
+          "pdf_generator",
+          "watermark_settings",
+          "watermark_position",
+          "watermark_font_family",
+          "watermark_font_size",
+          "watermark_top",
+          "watermark_right",
+          "watermark_bottom",
+          "watermark_left",
+          "page_number_display",
+          "page_number_position",
+          "page_number_font_family",
+          "page_number_font_size",
+          "page_number_font_color",
+          "page_number_border",
+          "page_number_top",
+          "page_number_right",
+          "page_number_bottom",
+          "page_number_left",
+        ];
+
+        fields.forEach((fieldname) => {
+          const input = container.querySelector(
+            `[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
+          );
+          if (input) {
+            settings[fieldname] = input.value;
+          }
+          // Handle checkbox
+          const checkbox = container.querySelector(
+            `[data-fieldname="${fieldname}"] input[type="checkbox"]`,
+          );
+          if (checkbox) {
+            settings[fieldname] = checkbox.checked ? 1 : 0;
+          }
+        });
+
+        localStorage.setItem(lsKey, JSON.stringify(settings));
+        console.log("[DEBUG] Print settings saved to localStorage", settings);
+        return settings;
+      };
+
+      // Load settings from localStorage
+      window.loadPDPrintSettings = () => {
+        const saved = localStorage.getItem(lsKey);
+        if (!saved) return null;
+
+        try {
+          const settings = JSON.parse(saved);
+          console.log(
+            "[DEBUG] Print settings loaded from localStorage",
+            settings,
+          );
+
+          // Apply settings to form fields
+          Object.keys(settings).forEach((fieldname) => {
+            const input = container.querySelector(
+              `[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
+            );
+            if (input) {
+              input.value = settings[fieldname];
+              // Trigger change event for Frappe to update
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            // Handle checkbox
+            const checkbox = container.querySelector(
+              `[data-fieldname="${fieldname}"] input[type="checkbox"]`,
+            );
+            if (checkbox) {
+              checkbox.checked =
+                settings[fieldname] === 1 || settings[fieldname] === true;
+              checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          });
+
+          return settings;
+        } catch (e) {
+          console.error("[DEBUG] Failed to load print settings", e);
+          return null;
+        }
+      };
+
+      // 6. ADD SAVE BUTTON AT BOTTOM OF SIDEBAR
+      const saveButtonWrapper = document.createElement("div");
+      saveButtonWrapper.style.cssText =
+        "margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+
+      const saveButton = document.createElement("button");
+      saveButton.className = "btn btn-primary btn-sm btn-block";
+      saveButton.style.cssText = "width: 100%; align-items: center;";
+
+      // Create SVG icon
+      const svgIcon = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "svg",
+      );
+      svgIcon.setAttribute("class", "icon icon-sm");
+      svgIcon.setAttribute("aria-hidden", "true");
+      const useIcon = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "use",
+      );
+      useIcon.setAttribute("href", "#icon-save");
+      svgIcon.appendChild(useIcon);
+
+      // Create text span
+      const spanText = document.createElement("span");
+      spanText.textContent = "Save Settings";
+
+      saveButton.appendChild(svgIcon);
+      saveButton.appendChild(spanText);
+
+      saveButton.addEventListener("click", async () => {
+        window.savePDPrintSettings();
+        frappe.show_alert({
+          message: __("Settings saved successfully"),
+          indicator: "green",
+        });
+      });
+
+      saveButtonWrapper.appendChild(saveButton);
+      container.appendChild(saveButtonWrapper);
+
+      // Load saved settings after a short delay (wait for fields to render)
+      setTimeout(() => {
+        window.loadPDPrintSettings();
+      }, 500);
+
+      // 6. SET MIN-HEIGHT ON ALL LABELS IN GRID WRAPPERS (prevent label overflow)
       document
         .querySelectorAll(
           ".watermark-settings-grid label, .margin-fields-grid label, .top-fields-grid label, .page-number-grid label",
@@ -687,15 +831,40 @@ function patch_setup_print_format_dom() {
     original.apply(this, arguments);
 
     // Add id to the print-format div (line 514 equivalent)
-    this.$print_format_body
-      .find(".print-format")
-      .attr("id", "tbs__print__page__preview");
+    const $el = this.$print_format_body.find(".print-format");
+    $el.attr("id", "tbs__print__page__preview");
 
-    // Add max-width unset (lines 518-521 equivalent)
-    // Need !important because .print-format has max-width: 210.0mm !important
-    this.$print_format_body
-      .find(".print-format")
-      .css("max-width", "unset !important");
+    // Add position relative (needed for .section-footer absolute positioning)
+    // DO NOT unset max-width - it breaks iframe aspect ratio
+    // See orientation_table.md: unset=835px, 11.69in=797px (correct for A4 Landscape)
+    $el.attr(
+      "style",
+      ($el.attr("style") || "") + "; position: relative !important",
+    );
+
+    // Debug: measure height of tbs__print__page__preview
+    const height = $el[0]?.offsetHeight;
+    console.log(
+      "[PD DEBUG] tbs__print__page__preview height(expected 793.91):",
+      height,
+      "px",
+    );
+
+    // Measure section-header and section-footer
+    const $sectionHeader = this.$print_format_body.find(".section-header");
+    const $sectionFooter = this.$print_format_body.find(".section-footer");
+    const headerHeight = $sectionHeader[0]?.offsetHeight || 0;
+    const footerHeight = $sectionFooter[0]?.offsetHeight || 0;
+    console.log(
+      "[PD DEBUG] section-header height(expected 188.97px;):",
+      headerHeight,
+      "px",
+    );
+    console.log(
+      "[PD DEBUG] section-footer height(expected 136.21px;):",
+      footerHeight,
+      "px",
+    );
   };
 
   PV.prototype._pdSetupPrintFormatDomPatched = true;
@@ -1091,3 +1260,214 @@ function set_page_orientation(orientation) {
     }
   }, 100);
 }
+
+/**
+ * Generate dynamic table rows based on actual .items-bg computed height.
+ * This replaces hardcoded rows with JavaScript-calculated rows.
+ */
+/**
+ * Get the iframe document containing .items-bg
+ * Frappe print preview renders inside an iframe
+ */
+function getPrintFrame() {
+  // Try to find the iframe containing .items-bg
+  for (let i = 0; i < window.frames.length; i++) {
+    try {
+      const frame = window.frames[i];
+      if (frame.document.querySelector(".items-bg")) {
+        return frame;
+      }
+    } catch (e) {
+      // Cross-origin frame, skip
+    }
+  }
+  // Fallback to first frame if it looks like print preview
+  if (window.frames.length > 0) {
+    try {
+      return window.frames[0];
+    } catch (e) {}
+  }
+  return null;
+}
+
+function generateDynamicTableRows() {
+  // Get the iframe containing print format
+  const frame = getPrintFrame();
+  if (!frame) {
+    console.log("[PD Dynamic Rows] Print frame not found, skipping");
+    return;
+  }
+
+  const doc = frame.document;
+  const itemsBg = doc.querySelector(".items-bg");
+  const thead = doc.querySelector(".items-bg table.items thead");
+  const tbody = doc.querySelector(".items-bg table.items tbody");
+  const sectionFooter = doc.querySelector(".section-footer");
+  const sectionContent = doc.querySelector(".section-content");
+  const sectionContentHeight = sectionContent ? sectionContent.offsetHeight : 0;
+
+  if (!itemsBg || !tbody) {
+    console.log("[PD Dynamic Rows] Elements not found in frame, skipping");
+    return;
+  }
+
+  // Get actual computed heights from DOM
+  const bgHeight = itemsBg.offsetHeight;
+  const headerHeight = thead ? thead.offsetHeight : 50;
+  const footerHeight = sectionFooter ? sectionFooter.offsetHeight : 0;
+
+  console.log("[PD Dynamic Rows] thead:", thead);
+  console.log("[PD Dynamic Rows] bgHeight:", bgHeight);
+  console.log("[PD Dynamic Rows] headerHeight:", headerHeight);
+  console.log("[PD Dynamic Rows] sectionFooter:", sectionFooter);
+  console.log("[PD Dynamic Rows] footerHeight(expected 136px):", footerHeight);
+  console.log("[PD Dynamic Rows] sectionContent:", sectionContent);
+  console.log("[PD Dynamic Rows] sectionContentHeight:", sectionContentHeight);
+
+  // Row height from CSS
+  const rowHeight = 20;
+  const headerHeightFixed = 46; // Hardcoded to avoid timing measurement bugs
+  const totalRowReserve = 2; // Reserve 2 rows worth (40px) for Total Row (36px)
+
+  // Calculate how many rows can fit
+  // Use sectionContentHeight instead of bgHeight, reserve 2 rows for Total Row
+  const availableHeight = sectionContentHeight - headerHeightFixed;
+  const computedRows = availableHeight / rowHeight;
+  const rowCount = Math.max(1, Math.floor(computedRows - totalRowReserve));
+
+  console.log(
+    "[PD Dynamic Rows] sectionContent:",
+    sectionContentHeight,
+    "headerFixed:",
+    headerHeightFixed,
+    "computedRows:",
+    computedRows,
+    "reserveRows:",
+    totalRowReserve,
+    "finalRowCount:",
+    rowCount,
+  );
+
+  // Clear existing rows
+  while (tbody.firstChild) {
+    tbody.removeChild(tbody.firstChild);
+  }
+
+  // Generate rows using DOM methods (avoid innerHTML for XSS safety)
+  const fragment = document.createDocumentFragment();
+  for (let i = 0; i < rowCount; i++) {
+    const tr = document.createElement("tr");
+    tr.style.height = rowHeight + "px";
+    if (i === rowCount - 1) {
+      tr.classList.add("last-row");
+    }
+
+    // Create 14 cells
+    for (let j = 0; j < 14; j++) {
+      const td = document.createElement("td");
+      if (j === 13) {
+        td.classList.add("col-unit");
+      }
+      tr.appendChild(td);
+    }
+    fragment.appendChild(tr);
+  }
+  tbody.appendChild(fragment);
+
+  console.log("[PD Dynamic Rows] Generated", rowCount, "rows");
+}
+
+// Call dynamic row generation after preview renders
+// We need to wait for the print format HTML to be in the DOM
+function scheduleDynamicRows(delay = 500) {
+  setTimeout(() => {
+    generateDynamicTableRows();
+  }, delay);
+}
+
+/**
+ * MutationObserver to watch for .items-bg height changes.
+ * This handles orientation changes that happen after initial page load.
+ */
+let dynamicRowsObserver = null;
+
+function startDynamicRowsObserver() {
+  // Clean up existing observer
+  if (dynamicRowsObserver) {
+    dynamicRowsObserver.disconnect();
+  }
+
+  const frame = getPrintFrame();
+  if (!frame) return;
+
+  // Watch .print-format for .landscape class changes (orientation changes)
+  const printFormat = frame.document.querySelector(".print-format");
+  if (!printFormat) return;
+
+  let lastOrientation = printFormat.classList.contains("landscape")
+    ? "landscape"
+    : "portrait";
+
+  dynamicRowsObserver = new MutationObserver(() => {
+    const currentOrientation = printFormat.classList.contains("landscape")
+      ? "landscape"
+      : "portrait";
+    if (currentOrientation !== lastOrientation) {
+      console.log(
+        "[PD Dynamic Rows] Orientation changed:",
+        lastOrientation,
+        "->",
+        currentOrientation,
+        ", waiting for CSS to apply...",
+      );
+      lastOrientation = currentOrientation;
+      // Use requestAnimationFrame to wait for CSS media query to apply
+      // Need 2 frames to ensure paint is complete
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          generateDynamicTableRows();
+        });
+      });
+    }
+  });
+
+  // Watch for class changes on .print-format (where .landscape is added)
+  dynamicRowsObserver.observe(printFormat, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+
+  console.log(
+    "[PD Dynamic Rows] Observer started on .print-format for class changes",
+  );
+}
+
+// Listen for orientation changes and regenerate rows
+$(document).on("change", 'select[data-fieldname="page_orientation"]', () => {
+  console.log("[PD Dynamic Rows] User changed orientation, regenerating rows");
+  // Delay to let Frappe apply the CSS first
+  scheduleDynamicRows(800);
+  // Also restart observer
+  setTimeout(startDynamicRowsObserver, 1000);
+});
+
+// Also call on format changes
+$(document).on("change", 'input[data-fieldname="print_format"]', () => {
+  console.log("[PD Dynamic Rows] Format changed, scheduling rows");
+  // Longer delay for format changes
+  scheduleDynamicRows(1500);
+});
+
+// Initial call when print page loads
+$(document).ready(() => {
+  // Use requestAnimationFrame to wait for initial CSS to apply
+  // Need multiple frames for reliable measurement
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        generateDynamicTableRows();
+        startDynamicRowsObserver();
+      });
+    });
+  });
+});

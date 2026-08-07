@@ -83,6 +83,17 @@ bd close <id>         # Complete work
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
 
+## Test Credentials
+
+**Location:** `apps/print_designer/.env`
+
+Contains:
+
+- `SITE_USERNAME`
+- `SITE_PASSWORD`
+
+**Note:** Actual credentials are stored in this file - do NOT commit to git or share.
+
 ---
 
 ## WHT DocType Naming (Tier 2)
