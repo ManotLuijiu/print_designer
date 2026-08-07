@@ -106,7 +106,7 @@ def setup_default_print_settings_values():
             "watermark_margin_left": 0,
             "page_number_display": "Show",
             "page_number_position": "Bottom Center",
-            "page_number_font_size": 10,
+            "page_number_font_size": 8,
             "page_number_font_family": "Sarabun",
         }
 
