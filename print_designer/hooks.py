@@ -534,7 +534,7 @@ after_install = [
     "print_designer.install.after_install",
     # REMOVED: after_app_install is legacy and redundant
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
-    "print_designer.install.handle_erpnext_override",
+    # REMOVED: handle_erpnext_override - never implemented, ERPNext overrides handled by override_whitelisted_methods and doc_events
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
     # REMOVED: thailand_wht_fields.py - Now handled by separate quotation module
