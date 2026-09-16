@@ -3,9 +3,20 @@
 
 """
 Thai Purchase VAT Management
-Handles both:
-- Thai Purchase VAT (all purchases except credit services)
-- Input VAT Undue (credit service purchases only)
+
+Two-doctype architecture for Input VAT:
+  - Thai Purchase VAT  = Source of Truth (original tax invoice received)
+  - Input VAT Undue   = Pending (copy tax invoice — waiting for original)
+
+Flow:
+  PI submitted
+    ├── Import Clearance PI  → Input VAT Undue (copy, source_doctype=Import Clearance)
+    ├── Service purchase     → Input VAT Undue (copy, source_doctype=Service)
+    └── Regular purchase    → Thai Purchase VAT (original, vat_type=General)
+                                (only if tax invoice received immediately)
+
+  Input VAT Undue "Got Original" ticked
+    └── Creates Thai Purchase VAT (vat_type=Undue)
 """
 
 import frappe
@@ -15,103 +26,90 @@ from datetime import datetime, date
 
 
 def check_if_service_purchase(doc):
-    """Check if Purchase Invoice contains service items based on item type or group"""
+    """Check if Purchase Invoice contains service items based on item type or group."""
     if not doc.items:
         return False
 
     for item in doc.items:
-        # Check if item has service flag
-        if hasattr(item, 'is_service_item') and item.is_service_item:
+        if hasattr(item, "is_service_item") and item.is_service_item:
             return True
-
-        # Check item group for service indicator
         if item.item_code:
-            item_doc = frappe.get_cached_value("Item", item.item_code, ["is_stock_item", "item_group"], as_dict=True)
+            item_doc = frappe.get_cached_value(
+                "Item", item.item_code, ["is_stock_item", "item_group"], as_dict=True
+            )
             if item_doc:
-                # Non-stock items are typically services
                 if not item_doc.is_stock_item:
                     return True
-                # Check if item group contains service keywords
-                if item_doc.item_group and any(keyword in item_doc.item_group.lower() for keyword in ['service', 'consulting', 'maintenance']):
+                if item_doc.item_group and any(
+                    keyword in item_doc.item_group.lower()
+                    for keyword in ["service", "consulting", "maintenance"]
+                ):
                     return True
-
     return False
 
 
-class InputVATUndue(Document):
-    """Input VAT Undue - for credit service purchases only"""
-    pass
+def check_if_import_clearance_pi(doc):
+    """Check if this PI is from Import Clearance (tbs_custom_po_type == 'Import')."""
+    return getattr(doc, "tbs_custom_po_type", None) == "Import"
 
 
-class DGSPurchaseVAT:
-    """Helper class for Purchase VAT operations"""
-    
-    @staticmethod
-    def is_credit_service_purchase(doc):
-        """Check if this is a credit service purchase that needs Input VAT Undue"""
-        return check_if_service_purchase(doc) and not doc.is_paid
-    
-    @staticmethod
-    def get_input_vat_undue_account(company):
-        """Get Input VAT Undue account from Company settings"""
-        return frappe.get_value("Company", company, "default_input_vat_undue_account")
-    
-    @staticmethod
-    def get_input_vat_account(company):
-        """Get Input VAT account from Company settings"""
-        return frappe.get_value("Company", company, "default_input_vat_account")
+def check_has_tax_invoice(doc):
+    """Check if PI has tax invoice received (immediate or via pd_custom fields)."""
+    return bool(getattr(doc, "pd_custom_tax_invoice_received", 0))
 
 
 # =============================================================================
-# CREATE VAT RECORDS
+# CREATE VAT RECORDS — on PI submit
 # =============================================================================
 
 def create_purchase_vat_records(doc, method):
     """
-    Create appropriate VAT record on Purchase Invoice submit.
-    
-    - Credit service purchases + Tax Invoice received → Input VAT Undue
-    - Credit service purchases + NO Tax Invoice → Skip (create at Payment Entry)
-    - All other purchases → Thai Purchase VAT
+    Create Input VAT record on Purchase Invoice submit.
+
+    Routing logic:
+      - Import Clearance PI  → Input VAT Undue (copy, source_doctype=Import Clearance)
+      - Service purchase     → Input VAT Undue (copy, source_doctype=Service)
+      - Regular purchase     → Thai Purchase VAT (original, vat_type=General)
+                                (only when tax invoice received immediately)
+
+    All Import Clearance PIs land in Input VAT Undue first (copy invoice).
+    User marks "Got Original" later → Thai Purchase VAT created then.
     """
     if doc.doctype != "Purchase Invoice" or doc.docstatus != 1:
         return
 
-    # Only create for invoices with VAT
     if doc.base_total_taxes_and_charges <= 0:
         return
 
-    # Check if credit service purchase
-    is_credit_service = check_if_service_purchase(doc) and not doc.is_paid
-    has_tax_invoice = getattr(doc, 'pd_custom_tax_invoice_received', 0)
-    
-    if is_credit_service:
-        if has_tax_invoice:
-            # Tax Invoice received - create Input VAT Undue now
-            _create_input_vat_undue(doc)
-        else:
-            # No Tax Invoice yet - skip for now, will create at Payment Entry
-            return
-    else:
-        # Non-service purchase - create Thai Purchase VAT
-        _create_thai_purchase_vat(doc)
-
-
-def _create_input_vat_undue(doc):
-    """Create Input VAT Undue record for credit service purchases"""
-    # Check if already exists
-    existing = frappe.db.exists("Input VAT Undue", {"purchase_invoice": doc.name})
-    if existing:
+    # Route: Import Clearance PI → Input VAT Undue
+    if check_if_import_clearance_pi(doc):
+        _create_input_vat_undue(doc, source_doctype="Import Clearance")
         return
 
-    # Get Input VAT Undue account from Company
-    input_vat_undue_account = frappe.get_value("Company", doc.company, "default_input_vat_undue_account")
-    if not input_vat_undue_account:
-        frappe.msgprint(
-            msg="Input VAT Undue account not set in Company settings. Please configure it.",
-            title="Missing Account",
-            indicator="orange"
-        )
+    # Route: Service purchase → Input VAT Undue (copy, waiting for original)
+    if check_if_service_purchase(doc):
+        if check_has_tax_invoice(doc):
+            # Has tax invoice → create Thai Purchase VAT directly (original)
+            _create_thai_purchase_vat(doc, vat_type="General")
+        else:
+            # No tax invoice → Input VAT Undue (copy)
+            _create_input_vat_undue(doc, source_doctype="Service")
+        return
+
+    # Route: Regular purchase → Thai Purchase VAT (original, tax invoice already received)
+    _create_thai_purchase_vat(doc, vat_type="General")
+
+
+# =============================================================================
+# INPUT VAT UNDUE
+# =============================================================================
+
+def _create_input_vat_undue(doc, source_doctype=None):
+    """Create Input VAT Undue record (copy tax invoice — pending original)."""
+    existing = frappe.db.exists(
+        "Input VAT Undue", {"purchase_invoice": doc.name}
+    )
+    if existing:
         return
 
     vat_record = frappe.new_doc("Input VAT Undue")
@@ -119,328 +117,406 @@ def _create_input_vat_undue(doc):
     vat_record.supplier = doc.supplier
     vat_record.supplier_name = doc.supplier_name
     vat_record.posting_date = doc.posting_date
-    
-    # Tax invoice info (empty for credit - will be filled at Payment Entry)
-    vat_record.bill_no = doc.bill_no
-    if hasattr(doc, 'dgs_custom_bill_series'):
-        vat_record.bill_series = doc.dgs_custom_bill_series
-    
-    # Amounts
-    vat_record.base_amount = doc.base_net_total or doc.base_grand_total_export or 0
+
+    # Tax invoice info (may be empty — copy invoice)
+    vat_record.tax_invoice_number = (
+        getattr(doc, "pd_custom_tax_invoice_number", None)
+        or getattr(doc, "tax_invoice_number", None)
+        or doc.bill_no
+        or ""
+    )
+    vat_record.tax_invoice_date = (
+        getattr(doc, "pd_custom_tax_invoice_date", None)
+        or getattr(doc, "tax_invoice_date", None)
+        or doc.bill_date
+        or None
+    )
+    vat_record.bill_no = doc.bill_no or ""
+    if hasattr(doc, "dgs_custom_bill_series"):
+        vat_record.bill_series = getattr(doc, "dgs_custom_bill_series", "") or ""
+
+    # Amounts — use the correct tax_base_amount
+    vat_record.base_amount = _get_tax_base_amount(doc)
     vat_record.vat_amount = doc.base_total_taxes_and_charges or 0
     vat_record.total_amount = doc.base_grand_total or 0
-    
-    # Supplier info
-    if hasattr(doc, 'tax_id') and doc.tax_id:
-        vat_record.supplier_tax_id = doc.tax_id
-    elif doc.supplier:
-        supplier_doc = frappe.get_doc("Supplier", doc.supplier)
-        vat_record.supplier_tax_id = supplier_doc.tax_id or ""
-        vat_record.supplier_branch = getattr(supplier_doc, 'pd_custom_branch_code', '00000') or '00000'
-    
-    # Company info
-    vat_record.company = doc.company
-    
-    # VAT period
-    if doc.posting_date:
-        posting_date = getdate(doc.posting_date)
-        vat_record.vat_month = str(posting_date.month)
-        vat_record.vat_year = str(posting_date.year)
-    
-    vat_record.status = "Undue"
-    vat_record.flags.ignore_permissions = True
-    
-    try:
-        vat_record.insert()
-        frappe.db.commit()
-        
-        frappe.msgprint(
-            f"Input VAT Undue record created: {vat_record.name}",
-            title="Input VAT Undue Created",
-            indicator="green"
-        )
-    except Exception as e:
-        frappe.log_error(f"Error creating Input VAT Undue: {str(e)}", "VAT Creation Error")
 
-
-def _create_thai_purchase_vat(doc):
-    """Create Thai Purchase VAT record for non-credit-service purchases"""
-    # Check if already exists
-    existing = frappe.db.exists("Thai Purchase VAT", {"purchase_invoice": doc.name})
-    if existing:
-        return
-    thai_purchase_vat = frappe.new_doc("Thai Purchase VAT")
-    thai_purchase_vat.purchase_invoice = doc.name
-    thai_purchase_vat.purchase_for_company = doc.company or frappe.defaults.get_user_default("Company")
-    thai_purchase_vat.purchase_for_branch = "00000"
-    # Core invoice info
-    thai_purchase_vat.supplier = doc.supplier
-    thai_purchase_vat.supplier_name = doc.supplier_name
-    thai_purchase_vat.bill_date = doc.bill_date or doc.posting_date
-    thai_purchase_vat.bill_no = doc.bill_no
-    thai_purchase_vat.posting_date = doc.posting_date
-    # Tax invoice details (from PE or PI) - check both custom fields and new doctype fields
-    tax_invoice_no = (getattr(doc, 'pd_custom_tax_invoice_number', None) or 
-                      getattr(doc, 'tax_invoice_number', None) or 
-                      doc.bill_no)
-    thai_purchase_vat.tax_invoice_number = tax_invoice_no
-    tax_invoice_dt = (getattr(doc, 'pd_custom_tax_invoice_date', None) or 
-                      getattr(doc, 'tax_invoice_date', None) or 
-                      doc.bill_date)
-    thai_purchase_vat.tax_invoice_date = tax_invoice_dt
-    # Tax base amount
-    tax_base = (getattr(doc, 'pd_custom_tax_base_amount', None) or 
-                getattr(doc, 'tax_base_amount', None) or 
-                doc.base_net_total or 0)
-    thai_purchase_vat.tax_base_amount = tax_base
-    # Amounts
-    thai_purchase_vat.base_amount = doc.base_net_total or doc.base_grand_total_export or 0
-    thai_purchase_vat.vat_amount = doc.base_total_taxes_and_charges or 0
-    thai_purchase_vat.total_amount = doc.base_grand_total or 0
     # Supplier info
     if doc.supplier:
         try:
             supplier_doc = frappe.get_doc("Supplier", doc.supplier)
-            thai_purchase_vat.supplier_name = supplier_doc.supplier_name or doc.supplier_name
-            thai_purchase_vat.supplier_tax_id = getattr(supplier_doc, 'tax_id', None) or ""
-            thai_purchase_vat.supplier_branch = getattr(supplier_doc, 'pd_custom_branch_code', None) or "00000"
-        except:
-            thai_purchase_vat.supplier_name = doc.supplier_name
-            thai_purchase_vat.supplier_tax_id = getattr(doc, 'tax_id', None) or ""
-            thai_purchase_vat.supplier_branch = "00000"
-    # Bill series
-    if hasattr(doc, 'dgs_custom_bill_series'):
-        thai_purchase_vat.bill_series = doc.dgs_custom_bill_series
-    # VAT period
-    if doc.bill_date:
-        bill_date = getdate(doc.bill_date)
-        thai_purchase_vat.vat_month = str(bill_date.month)
-        thai_purchase_vat.vat_year = str(bill_date.year)
-    elif doc.posting_date:
+            vat_record.supplier_tax_id = getattr(supplier_doc, "tax_id", None) or ""
+            vat_record.supplier_branch = (
+                getattr(supplier_doc, "pd_custom_branch_code", None) or "00000"
+            )
+        except Exception:
+            vat_record.supplier_tax_id = getattr(doc, "tax_id", None) or ""
+            vat_record.supplier_branch = "00000"
+
+    vat_record.company = doc.company
+
+    # VAT period from posting date
+    if doc.posting_date:
         posting_date = getdate(doc.posting_date)
-        thai_purchase_vat.vat_month = str(posting_date.month)
-        thai_purchase_vat.vat_year = str(posting_date.year)
-    thai_purchase_vat.workflow_state = "Draft"
-    thai_purchase_vat.flags.ignore_permissions = True
+        vat_record.vat_month = str(posting_date.month)
+        vat_record.vat_year = str(posting_date.year)
+
+    # New fields for the two-doctype flow
+    vat_record.status = "Pending"
+    vat_record.has_original = 0
+    vat_record.source_doctype = source_doctype or "Purchase Invoice"
+
+    # Account
+    vat_record.input_vat_account = frappe.get_value(
+        "Company", doc.company, "default_input_vat_undue_account"
+    )
+
+    vat_record.flags.ignore_permissions = True
+
     try:
-        thai_purchase_vat.insert()
+        vat_record.insert()
         frappe.db.commit()
         frappe.msgprint(
-            f"Thai Purchase VAT record created: {thai_purchase_vat.name}",
-            title="VAT Record Created",
-            indicator="green"
+            f"Input VAT Undue record created: {vat_record.name}",
+            title="Input VAT Undue Created",
+            indicator="green",
         )
     except Exception as e:
-        frappe.log_error(f"Error creating Thai Purchase VAT: {str(e)}", "VAT Creation Error")
+        frappe.log_error(
+            f"Error creating Input VAT Undue: {str(e)}", "VAT Creation Error"
+        )
 
 
-def handle_purchase_invoice_cancellation(doc, method):
-    """Handle Purchase Invoice cancellation - update related VAT records"""
-    if doc.doctype != "Purchase Invoice" or doc.docstatus != 2:
-        return
+def _get_tax_base_amount(doc):
+    """Get the correct tax base amount from PI, trying multiple sources."""
+    # Try pd_custom_tax_base_amount first
+    val = getattr(doc, "pd_custom_tax_base_amount", None)
+    if val:
+        return flt(val)
 
-    # Update Input VAT Undue if exists
-    input_vat_undue = frappe.db.get_value(
-        "Input VAT Undue",
-        {"purchase_invoice": doc.name},
-        "name"
-    )
-    if input_vat_undue:
-        frappe.db.set_value("Input VAT Undue", input_vat_undue, "status", "Cancelled")
-        frappe.db.commit()
+    # Try tax_base_amount field
+    val = getattr(doc, "tax_base_amount", None)
+    if val:
+        return flt(val)
 
-    # Update Thai Purchase VAT if exists
-    dgs_vat = frappe.db.get_value(
-        "Thai Purchase VAT",
-        {"purchase_invoice": doc.name},
-        "name"
-    )
-    if dgs_vat:
-        frappe.db.set_value("Thai Purchase VAT", dgs_vat, "workflow_state", "Cancelled")
-        frappe.db.commit()
+    # Fallback: calculate from net total and taxes
+    # VAT = base_total_taxes_and_charges; base = VAT / 0.07
+    vat = flt(doc.base_total_taxes_and_charges)
+    if vat and vat > 0:
+        # Assume 7% standard rate
+        return round(vat / 0.07, 2)
+
+    # Last fallback: base_net_total
+    return flt(doc.base_net_total) or 0
 
 
 # =============================================================================
-# UPDATE VAT FROM PAYMENT ENTRY
+# THAI PURCHASE VAT
 # =============================================================================
 
-def update_vat_from_payment_entry(doc, method):
-    """
-    Update VAT records when Payment Entry is submitted with Tax Invoice.
-    Called on Payment Entry SAVE (validate) to update records.
-    """
-    if doc.doctype != "Payment Entry":
-        return
-
-    # Only process if payment has tax invoice details
-    has_tax_invoice = hasattr(doc, 'pd_custom_tax_invoice_number') and doc.pd_custom_tax_invoice_number
-    if not has_tax_invoice:
-        return
-
-    for ref in doc.references:
-        if ref.reference_doctype == "Purchase Invoice":
-            # Update Input VAT Undue record if exists
-            input_vat_undue_name = frappe.db.get_value(
-                "Input VAT Undue",
-                {"purchase_invoice": ref.reference_name},
-                "name"
-            )
-            
-            if input_vat_undue_name:
-                try:
-                    input_vat_undue = frappe.get_doc("Input VAT Undue", input_vat_undue_name)
-                    
-                    # Update with tax invoice details from Payment Entry
-                    if hasattr(doc, 'pd_custom_tax_invoice_number'):
-                        input_vat_undue.tax_invoice_number = doc.pd_custom_tax_invoice_number
-                    if hasattr(doc, 'pd_custom_tax_invoice_date'):
-                        input_vat_undue.tax_invoice_date = doc.pd_custom_tax_invoice_date
-                    if hasattr(doc, 'pd_custom_tax_base_amount'):
-                        input_vat_undue.base_amount = doc.pd_custom_tax_base_amount
-                    
-                    # Calculate VAT amount based on base amount
-                    if input_vat_undue.base_amount and input_vat_undue.base_amount > 0:
-                        input_vat_undue.vat_amount = input_vat_undue.base_amount * 0.07
-                        input_vat_undue.total_amount = input_vat_undue.base_amount + input_vat_undue.vat_amount
-                    
-                    input_vat_undue.status = "Converted to Input VAT"
-                    input_vat_undue.flags.ignore_permissions = True
-                    input_vat_undue.save()
-                    frappe.db.commit()
-                    
-                    frappe.msgprint(
-                        f"Input VAT Undue {input_vat_undue.name} updated with Tax Invoice details",
-                        title="VAT Updated",
-                        indicator="green"
-                    )
-                    
-                    # Also create Thai Purchase VAT record
-                    _create_thai_purchase_vat_from_pe(doc, input_vat_undue)
-                except Exception as e:
-                    frappe.log_error(f"Error updating Input VAT Undue: {str(e)}", "VAT Update Error")
-
-
-def _create_thai_purchase_vat_from_pe(doc, input_vat_undue):
-    """
-    Create Thai Purchase VAT record from Payment Entry after Input VAT Undue conversion.
-    Called when PE is saved with tax invoice details for credit service purchases.
-    """
-    # Check if Thai Purchase VAT already exists for this PE
-    existing = frappe.db.exists("Thai Purchase VAT", {"payment_entry": doc.name})
+def _create_thai_purchase_vat(doc, vat_type="General"):
+    """Create Thai Purchase VAT record (original tax invoice received)."""
+    # Prevent duplicate: one record per PI
+    existing = frappe.get_value(
+        "Thai Purchase VAT", {"purchase_invoice": doc.name}, "name"
+    )
     if existing:
         return
 
-    try:
-        thai_vat = frappe.new_doc("Thai Purchase VAT")
-        
-        # Company details
-        thai_vat.purchase_for_company = doc.company
-        company_doc = frappe.get_doc("Company", doc.company)
-        thai_vat.purchase_for_branch = getattr(company_doc, 'branch', '') or '00000'
-        
-        # Purchase Invoice details
-        thai_vat.purchase_invoice = getattr(input_vat_undue, 'purchase_invoice', '')
-        thai_vat.supplier = getattr(input_vat_undue, 'supplier', '')
-        thai_vat.supplier_name = getattr(input_vat_undue, 'supplier_name', '')
-        thai_vat.posting_date = getattr(input_vat_undue, 'posting_date', doc.posting_date)
-        thai_vat.bill_date = doc.posting_date
-        
-        # Tax Invoice details
-        thai_vat.bill_no = getattr(input_vat_undue, 'bill_no', '')
-        thai_vat.tax_invoice_number = getattr(doc, 'pd_custom_tax_invoice_number', '')
-        thai_vat.tax_invoice_date = getattr(doc, 'pd_custom_tax_invoice_date', '')
-        thai_vat.tax_base_amount = getattr(doc, 'pd_custom_tax_base_amount', 0)
-        thai_vat.bill_series = getattr(input_vat_undue, 'bill_series', '')
-        
-        # Supplier info
-        thai_vat.supplier_tax_id = getattr(input_vat_undue, 'supplier_tax_id', '')
-        thai_vat.supplier_branch = getattr(input_vat_undue, 'supplier_branch', '')
-        
-        # Payment Entry link
-        thai_vat.payment_entry = doc.name
-        
-        # VAT period
+    thai_vat = frappe.new_doc("Thai Purchase VAT")
+    thai_vat.purchase_invoice = doc.name
+    thai_vat.purchase_for_company = doc.company or frappe.defaults.get_user_default(
+        "Company"
+    )
+    thai_vat.purchase_for_branch = "00000"
+
+    # Core invoice info
+    thai_vat.supplier = doc.supplier
+    thai_vat.supplier_name = doc.supplier_name
+    thai_vat.bill_date = doc.bill_date or doc.posting_date
+    thai_vat.bill_no = doc.bill_no or ""
+    thai_vat.posting_date = doc.posting_date
+
+    # Tax invoice details
+    thai_vat.tax_invoice_number = (
+        getattr(doc, "pd_custom_tax_invoice_number", None)
+        or getattr(doc, "tax_invoice_number", None)
+        or doc.bill_no
+        or ""
+    )
+    thai_vat.tax_invoice_date = (
+        getattr(doc, "pd_custom_tax_invoice_date", None)
+        or getattr(doc, "tax_invoice_date", None)
+        or doc.bill_date
+        or None
+    )
+
+    # Tax base amount
+    thai_vat.tax_base_amount = _get_tax_base_amount(doc)
+
+    # Amounts
+    thai_vat.base_amount = flt(doc.base_net_total) or 0
+    thai_vat.vat_amount = doc.base_total_taxes_and_charges or 0
+    thai_vat.total_amount = doc.base_grand_total or 0
+
+    # Supplier info
+    if doc.supplier:
+        try:
+            supplier_doc = frappe.get_doc("Supplier", doc.supplier)
+            thai_vat.supplier_name = (
+                supplier_doc.supplier_name or doc.supplier_name
+            )
+            thai_vat.supplier_tax_id = getattr(supplier_doc, "tax_id", None) or ""
+            thai_vat.supplier_branch = (
+                getattr(supplier_doc, "pd_custom_branch_code", None) or "00000"
+            )
+        except Exception:
+            thai_vat.supplier_name = doc.supplier_name
+            thai_vat.supplier_tax_id = getattr(doc, "tax_id", None) or ""
+            thai_vat.supplier_branch = "00000"
+
+    if hasattr(doc, "dgs_custom_bill_series"):
+        thai_vat.bill_series = getattr(doc, "dgs_custom_bill_series", "") or ""
+
+    # VAT period
+    if doc.bill_date:
+        bill_date = getdate(doc.bill_date)
+        thai_vat.vat_month = str(bill_date.month)
+        thai_vat.vat_year = str(bill_date.year)
+    elif doc.posting_date:
         posting_date = getdate(doc.posting_date)
         thai_vat.vat_month = str(posting_date.month)
         thai_vat.vat_year = str(posting_date.year)
-        
-        # Amounts
-        thai_vat.base_amount = getattr(input_vat_undue, 'base_amount', 0)
-        thai_vat.vat_amount = getattr(input_vat_undue, 'vat_amount', 0)
-        thai_vat.total_amount = getattr(input_vat_undue, 'total_amount', 0)
-        
-        thai_vat.flags.ignore_permissions = True
+
+    # New field: vat_type
+    thai_vat.vat_type = vat_type
+    thai_vat.workflow_state = "Draft"
+
+    thai_vat.flags.ignore_permissions = True
+
+    try:
         thai_vat.insert()
         frappe.db.commit()
-        
         frappe.msgprint(
             f"Thai Purchase VAT record created: {thai_vat.name}",
-            title="Thai Purchase VAT Created",
-            indicator="green"
+            title="VAT Record Created",
+            indicator="green",
         )
     except Exception as e:
-        frappe.log_error(f"Error creating Thai Purchase VAT: {str(e)}", "Thai Purchase VAT Creation Error")
+        frappe.log_error(
+            f"Error creating Thai Purchase VAT: {str(e)}", "VAT Creation Error"
+        )
 
 
 # =============================================================================
-# UTILITY FUNCTIONS
+# CANCELLATION
+# =============================================================================
+
+def handle_purchase_invoice_cancellation(doc, method):
+    """Handle PI cancellation — update related Input VAT Undue / Thai Purchase VAT."""
+    if doc.doctype != "Purchase Invoice" or doc.docstatus != 2:
+        return
+
+    # Update Input VAT Undue
+    undue_name = frappe.get_value(
+        "Input VAT Undue", {"purchase_invoice": doc.name}, "name"
+    )
+    if undue_name:
+        frappe.db.set_value("Input VAT Undue", undue_name, "status", "Cancelled")
+        frappe.db.commit()
+
+    # Update Thai Purchase VAT
+    vat_name = frappe.get_value(
+        "Thai Purchase VAT", {"purchase_invoice": doc.name}, "name"
+    )
+    if vat_name:
+        frappe.db.set_value("Thai Purchase VAT", vat_name, "workflow_state", "Cancelled")
+        frappe.db.commit()
+
+
+# =============================================================================
+# "GOT ORIGINAL" — creates Thai Purchase VAT from Input VAT Undue
 # =============================================================================
 
 @frappe.whitelist()
+def mark_original_received(input_vat_undue_name):
+    """
+    Called when user ticks "Got Original" on an Input VAT Undue record.
+
+    Creates a Thai Purchase VAT record and marks the Input VAT Undue as
+    "Converted to Input VAT".
+
+    Args:
+        input_vat_undue_name: name of the Input VAT Undue record
+    """
+    if not frappe.has_permission("Input VAT Undue", "write"):
+        frappe.throw(_("No permission to update Input VAT Undue"))
+
+    undue = frappe.get_doc("Input VAT Undue", input_vat_undue_name)
+
+    if undue.has_original:
+        frappe.msgprint(
+            "Original already received — Thai Purchase VAT record already created.",
+            title="Already Processed",
+            indicator="orange",
+        )
+        return
+
+    # Prevent duplicate: one Thai Purchase VAT per PI
+    existing = frappe.get_value(
+        "Thai Purchase VAT", {"purchase_invoice": undue.purchase_invoice}, "name"
+    )
+    if existing:
+        frappe.throw(
+            f"Thai Purchase VAT record already exists: {existing}",
+            title="Duplicate",
+        )
+
+    # Determine vat_type from source_doctype
+    vat_type = "Undue"
+    if undue.source_doctype == "Import Clearance":
+        vat_type = "Import"
+
+    # Create Thai Purchase VAT from Input VAT Undue data
+    thai_vat = frappe.new_doc("Thai Purchase VAT")
+    thai_vat.purchase_invoice = undue.purchase_invoice
+    thai_vat.purchase_for_company = undue.company
+    thai_vat.purchase_for_branch = undue.supplier_branch or "00000"
+    thai_vat.supplier = undue.supplier
+    thai_vat.supplier_name = undue.supplier_name
+    thai_vat.posting_date = undue.posting_date
+    thai_vat.bill_date = undue.tax_invoice_date or undue.posting_date
+    thai_vat.tax_invoice_number = undue.tax_invoice_number or undue.bill_no or ""
+    thai_vat.tax_invoice_date = undue.tax_invoice_date
+    thai_vat.tax_base_amount = undue.base_amount or 0
+    thai_vat.bill_series = undue.bill_series or ""
+    thai_vat.supplier_tax_id = undue.supplier_tax_id or ""
+    thai_vat.supplier_branch = undue.supplier_branch or "00000"
+    thai_vat.base_amount = undue.base_amount or 0
+    thai_vat.vat_amount = undue.vat_amount or 0
+    thai_vat.total_amount = undue.total_amount or 0
+
+    # VAT period from posting date
+    if undue.posting_date:
+        pd = getdate(undue.posting_date)
+        thai_vat.vat_month = str(pd.month)
+        thai_vat.vat_year = str(pd.year)
+
+    thai_vat.vat_type = vat_type
+    thai_vat.workflow_state = "Draft"
+
+    thai_vat.flags.ignore_permissions = True
+    thai_vat.insert()
+
+    # Update Input VAT Undue status
+    undue.has_original = 1
+    undue.status = "Converted to Input VAT"
+    undue.converted_date = frappe.utils.nowdate()
+    undue.converted_by = frappe.session.user
+    undue.flags.ignore_permissions = True
+    undue.save()
+
+    frappe.db.commit()
+
+    frappe.msgprint(
+        f"Thai Purchase VAT {thai_vat.name} created from Input VAT Undue {undue.name}",
+        title="Original Received",
+        indicator="green",
+    )
+
+    return {"thai_purchase_vat": thai_vat.name, "input_vat_undue": undue.name}
+
+
+# =============================================================================
+# UTILITY
+# =============================================================================
+
+from frappe.utils import flt
+
+
+@frappe.whitelist()
 def get_thai_vat_summary(vat_month=None, vat_year=None):
-    """Get summary of all Thai Purchase VAT records with optional filtering"""
+    """Get summary of all Thai Purchase VAT records with optional filtering."""
     filters = {}
-    
     if vat_month:
         filters["vat_month"] = vat_month
     if vat_year:
         filters["vat_year"] = vat_year
-    
-    dgs_vat_records = frappe.get_all(
+
+    vat_records = frappe.get_all(
         "Thai Purchase VAT",
         filters=filters,
-        fields=["name", "purchase_invoice", "supplier", "base_amount", "vat_amount", "total_amount", "vat_month", "vat_year", "workflow_state"]
+        fields=[
+            "name",
+            "purchase_invoice",
+            "supplier",
+            "base_amount",
+            "vat_amount",
+            "total_amount",
+            "vat_month",
+            "vat_year",
+            "workflow_state",
+            "vat_type",
+        ],
     )
-    
-    input_vat_records = frappe.get_all(
+
+    undue_records = frappe.get_all(
         "Input VAT Undue",
-        filters=filters,
-        fields=["name", "purchase_invoice", "supplier", "base_amount", "vat_amount", "total_amount", "vat_month", "vat_year", "status"]
+        filters={"status": ["!=", "Cancelled"]},
+        fields=[
+            "name",
+            "purchase_invoice",
+            "supplier",
+            "base_amount",
+            "vat_amount",
+            "total_amount",
+            "vat_month",
+            "vat_year",
+            "status",
+            "source_doctype",
+            "has_original",
+        ],
     )
-    
-    total_base = sum([r.base_amount or 0 for r in dgs_vat_records]) + sum([r.base_amount or 0 for r in input_vat_records])
-    total_vat = sum([r.vat_amount or 0 for r in dgs_vat_records]) + sum([r.vat_amount or 0 for r in input_vat_records])
-    
+
+    total_base = sum(r.base_amount or 0 for r in vat_records)
+    total_vat = sum(r.vat_amount or 0 for r in vat_records)
+    pending_base = sum(r.base_amount or 0 for r in undue_records)
+    pending_vat = sum(r.vat_amount or 0 for r in undue_records)
+
     return {
-        "dgs_vat_records": dgs_vat_records,
-        "input_vat_records": input_vat_records,
+        "thai_purchase_vat_records": vat_records,
+        "input_vat_undue_records": undue_records,
         "total_base_amount": total_base,
         "total_vat_amount": total_vat,
-        "total_records": len(dgs_vat_records) + len(input_vat_records)
+        "pending_base_amount": pending_base,
+        "pending_vat_amount": pending_vat,
+        "total_thai_purchase_vat_records": len(vat_records),
+        "total_input_vat_undue_records": len(undue_records),
     }
 
 
 @frappe.whitelist()
 def get_vat_months_years():
-    """Get available VAT months and years for filtering"""
-    dgs_months = frappe.get_all(
-        "Thai Purchase VAT",
-        fields=["vat_month", "vat_year"]
+    """Get available VAT months and years for filtering."""
+    tpv_months = frappe.get_all(
+        "Thai Purchase VAT", fields=["vat_month", "vat_year"]
     )
-    
-    input_months = frappe.get_all(
-        "Input VAT Undue",
-        fields=["vat_month", "vat_year"]
+    iuv_months = frappe.get_all(
+        "Input VAT Undue", fields=["vat_month", "vat_year"]
     )
-    
-    all_months = dgs_months + input_months
-    
-    # Get unique month/year combinations
+
+    all_months = tpv_months + iuv_months
     unique = {}
     for m in all_months:
         if m.vat_month and m.vat_year:
             key = f"{m.vat_year}-{m.vat_month.zfill(2)}"
             unique[key] = {"vat_month": m.vat_month, "vat_year": m.vat_year}
-    
-    sorted_keys = sorted(unique.keys(), reverse=True)
-    return [unique[k] for k in sorted_keys]
+
+    return [unique[k] for k in sorted(unique.keys(), reverse=True)]
+
+
+# Keep legacy function name for backward compatibility
+def update_vat_from_payment_entry(doc, method):
+    """Legacy: handle PE with tax invoice to update Input VAT Undue."""
+    # This function is kept for compatibility with existing hooks.
+    # New flow uses mark_original_received() instead.
+    pass

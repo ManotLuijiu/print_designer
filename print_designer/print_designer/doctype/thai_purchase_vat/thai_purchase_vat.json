@@ -31,6 +31,7 @@
   "vat_month",
   "column_break_vat_period",
   "vat_year",
+  "vat_type",
   "vat_details_section",
   "base_amount",
   "vat_amount",
@@ -212,6 +213,15 @@
    "label": "VAT Year",
    "length": 4,
    "reqd": 1
+  },
+  {
+   "fieldname": "vat_type",
+   "fieldtype": "Select",
+   "label": "VAT Type",
+   "options": "General\nImport\nUndue",
+   "default": "General",
+   "in_list_view": 1,
+   "description": "General = regular purchase, Import = from Import Clearance, Undue = converted from Input VAT Undue"
   },
   {
    "fieldname": "vat_details_section",

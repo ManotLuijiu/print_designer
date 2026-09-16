@@ -27,6 +27,8 @@
   "account_section",
   "input_vat_account",
   "status",
+  "has_original",
+  "source_doctype",
   "column_break_4",
   "converted_date",
   "converted_by",
@@ -160,6 +162,21 @@
    "label": "Status",
    "options": "Pending\nConverted to Input VAT\nCancelled",
    "default": "Pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "has_original",
+   "fieldtype": "Check",
+   "label": "Got Original",
+   "description": "Tick when the original tax invoice has been received. This will create a Thai Purchase VAT record.",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Select",
+   "label": "Source Type",
+   "options": "Import Clearance\nPurchase Invoice\nService",
+   "default": "Purchase Invoice",
    "in_list_view": 1
   },
   {
