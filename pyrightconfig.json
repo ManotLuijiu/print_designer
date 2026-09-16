@@ -1,0 +1,7 @@
+{
+  "include": ["print_designer/**/*.py"],
+  "exclude": ["print_designer/public/**"],
+  "venvPath": "/home/frappe/frappe-bench/apps",
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic"
+}

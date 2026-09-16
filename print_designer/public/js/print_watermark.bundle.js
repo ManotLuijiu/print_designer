@@ -876,3 +876,148 @@ $(document).ready(() => {
     });
   }
 })();
+
+
+/**
+ * TBS PDF navbar button for the Frappe print page.
+ *
+ * This lives in app_include_js because this site does not load the print page's
+ * page_js assets on /desk/print reliably. The patch is idempotent and runs
+ * after the core print page has rendered its standard toolbar.
+ */
+(function () {
+  function get_tbs_pdf_route_context() {
+    if (!frappe.get_route) return null;
+
+    const route = frappe.get_route();
+    if (!route || route[0] !== "print" || !route[1] || route.length < 3) {
+      return null;
+    }
+
+    const current_url = new URL(window.location.href);
+    const doctype = route[1];
+    const name = route.slice(2).join("/");
+    const print_format =
+      current_url.searchParams.get("format") ||
+      current_url.searchParams.get("print_format") ||
+      document.querySelector('[data-fieldname="print_format"] input')?.value ||
+      "";
+
+    return {
+      doctype,
+      name,
+      print_format,
+      no_letterhead:
+        current_url.searchParams.get("no_letterhead") ||
+        (document.querySelector('[data-fieldname="letterhead"] input')?.value ? "0" : "1"),
+      letterhead:
+        current_url.searchParams.get("letterhead") ||
+        document.querySelector('[data-fieldname="letterhead"] input')?.value ||
+        "",
+      settings: current_url.searchParams.get("settings") || "{}",
+      language:
+        current_url.searchParams.get("language") ||
+        current_url.searchParams.get("_lang") ||
+        document.querySelector('[data-fieldname="language"] input')?.value ||
+        "",
+    };
+  }
+
+  function get_tbs_pdf_url() {
+    const context = get_tbs_pdf_route_context();
+    if (!context) return null;
+
+    const params = new URLSearchParams({
+      doctype: context.doctype,
+      name: context.name,
+      print_format: context.print_format,
+      no_letterhead: context.no_letterhead,
+      letterhead: context.letterhead,
+      settings: context.settings,
+      language: context.language,
+    });
+
+    return `/api/method/print_designer.api.tbs_pdf.tbs_html_preview?${params}`;
+  }
+
+  function open_tbs_pdf() {
+    const url = get_tbs_pdf_url();
+    if (!url) {
+      frappe.msgprint(__("Could not determine the current print document."));
+      return;
+    }
+    const opened = window.open(url, "_blank");
+    if (!opened) {
+      window.location.href = url;
+    }
+  }
+
+  function ensure_tbs_pdf_navbar_button(attempt = 0) {
+    if (!window.frappe || !frappe.get_route || !get_tbs_pdf_route_context()) {
+      if (attempt < 50) setTimeout(() => ensure_tbs_pdf_navbar_button(attempt + 1), 100);
+      return;
+    }
+
+    const custom_actions = document.querySelector(".page-actions .custom-actions");
+    if (!custom_actions) {
+      if (attempt < 50) setTimeout(() => ensure_tbs_pdf_navbar_button(attempt + 1), 100);
+      return;
+    }
+
+    if (!custom_actions.querySelector('[data-label="TBS PDF"]')) {
+      const button = document.createElement("button");
+      button.className = "btn btn-default btn-sm ellipsis";
+      button.dataset.label = "TBS PDF";
+      button.innerHTML = `${frappe.utils.icon("printer", "sm")}
+				TBS PDF
+		`;
+      button.addEventListener("click", open_tbs_pdf);
+
+      const pdf_button = Array.from(custom_actions.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent.trim() === "PDF",
+      );
+      if (pdf_button) {
+        pdf_button.insertAdjacentElement("afterend", button);
+      } else {
+        custom_actions.appendChild(button);
+      }
+    }
+
+    const dropdown = document.querySelector(".page-actions .menu-btn-group .dropdown-menu");
+    if (dropdown && !dropdown.querySelector('[data-label="TBS%20PDF"], [data-label="TBS PDF"]')) {
+      const pdf_item = Array.from(dropdown.querySelectorAll(".menu-item-label")).find(
+        (candidate) => decodeURIComponent(candidate.dataset.label || "") === "PDF",
+      )?.closest("li");
+      const item = document.createElement("li");
+      item.className = "user-action hidden-xl";
+      item.innerHTML = `<a class="grey-link dropdown-item" href="#" onclick="return false;">
+						<span class="menu-item-label" data-label="TBS%20PDF"><span>TBS PDF</span></span>
+					</a>`;
+      item.querySelector("a").addEventListener("click", open_tbs_pdf);
+
+      if (pdf_item) {
+        pdf_item.insertAdjacentElement("afterend", item);
+      } else {
+        dropdown.appendChild(item);
+      }
+    }
+  }
+
+  function boot_tbs_pdf_navbar_patch() {
+    ensure_tbs_pdf_navbar_button();
+    setTimeout(() => ensure_tbs_pdf_navbar_button(), 500);
+    setTimeout(() => ensure_tbs_pdf_navbar_button(), 1500);
+  }
+
+  if (frappe.ready) {
+    frappe.ready(boot_tbs_pdf_navbar_patch);
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot_tbs_pdf_navbar_patch);
+  } else {
+    boot_tbs_pdf_navbar_patch();
+  }
+
+  if (frappe.router && frappe.router.on) {
+    frappe.router.on("change", () => setTimeout(boot_tbs_pdf_navbar_patch, 100));
+  }
+})();

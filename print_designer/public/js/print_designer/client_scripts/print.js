@@ -429,9 +429,6 @@ function initializePrintPage() {
     }
   }
 
-  safeInitializePrintPage();
-
-  // Ensure the core PrintView class is available before extending it
   function extendPrintView() {
     if (!frappe.ui.form.PrintView) {
       console.log("Core PrintView not available yet, waiting...");
@@ -2196,6 +2193,15 @@ function initializePrintPage() {
           },
         );
 
+        // TBS PDF button - standalone clean PDF using only Print Format CSS
+        this.tbs_pdf_btn = this.page.add_button(
+          __("TBS PDF"),
+          () => this.render_tbs_pdf(),
+          {
+            icon: "printer",
+          },
+        );
+
         this.refresh_btn = this.page.add_button(
           __("Refresh"),
           () => this.refresh_print_format(),
@@ -2213,6 +2219,29 @@ function initializePrintPage() {
           __("Form"),
         );
       }
+
+      /**
+       * TBS PDF - Download a clean PDF using only the Print Format CSS.
+       * Uses Chrome via frappe.get_print with pdf_generator="chrome".
+       */
+      render_tbs_pdf() {
+        const print_format = this.get_print_format();
+        const settings = this.additional_settings || {};
+
+        const params = new URLSearchParams({
+          doctype: this.frm.doc.doctype,
+          name: this.frm.doc.name,
+          print_format: this.selected_format() || print_format?.name || "",
+          no_letterhead: this.with_letterhead() ? "0" : "1",
+          letterhead: this.get_letterhead() || "",
+          settings: JSON.stringify(settings),
+          language: this.lang_code || "",
+        });
+
+        const url = `/api/method/print_designer.api.tbs_pdf.tbs_html_preview?${params}`;
+        window.open(url, "_blank");
+      }
+
       setup_sidebar() {
         console.log("[WATERMARK DEBUG] *** setup_sidebar() called ***");
         this.sidebar = this.page.sidebar.addClass("print-preview-sidebar");
@@ -3345,10 +3374,166 @@ function initializePrintPage() {
     }; // End of PrintView class
   } // End of extendPrintView function
 
-  // Call the function to extend PrintView
+  // Extend the PrintView class after the core print page and class exist.
   console.log("[Language Debug] Calling extendPrintView()...");
   extendPrintView();
   console.log("[Language Debug] extendPrintView() returned");
+}
+
+// Boot the PrintView extension at file top level.
+// initializePrintPage() polls for frappe.pages["print"] via setTimeout if needed,
+// so this call works whether this script loads before or after the core print page.
+initializePrintPage();
+
+function get_tbs_pdf_route_context() {
+  if (!frappe.get_route) return null;
+
+  const route = frappe.get_route();
+  if (!route || route[0] !== "print" || !route[1] || route.length < 3) {
+    return null;
+  }
+
+  const current_url = new URL(window.location.href);
+  const doctype = route[1];
+  const name = route.slice(2).join("/");
+  const print_format =
+    current_url.searchParams.get("format") ||
+    current_url.searchParams.get("print_format") ||
+    document.querySelector('[data-fieldname="print_format"] input')?.value ||
+    "";
+
+  return {
+    doctype,
+    name,
+    print_format,
+    no_letterhead:
+      current_url.searchParams.get("no_letterhead") ||
+      (document.querySelector('[data-fieldname="letterhead"] input')?.value
+        ? "0"
+        : "1"),
+    letterhead:
+      current_url.searchParams.get("letterhead") ||
+      document.querySelector('[data-fieldname="letterhead"] input')?.value ||
+      "",
+    settings: current_url.searchParams.get("settings") || "{}",
+    language:
+      current_url.searchParams.get("language") ||
+      current_url.searchParams.get("_lang") ||
+      document.querySelector('[data-fieldname="language"] input')?.value ||
+      "",
+  };
+}
+
+function get_tbs_pdf_url() {
+  const context = get_tbs_pdf_route_context();
+  if (!context) return null;
+
+  const params = new URLSearchParams({
+    doctype: context.doctype,
+    name: context.name,
+    print_format: context.print_format,
+    no_letterhead: context.no_letterhead,
+    letterhead: context.letterhead,
+    settings: context.settings,
+    language: context.language,
+  });
+
+  return `/api/method/print_designer.api.tbs_pdf.tbs_html_preview?${params}`;
+}
+
+function open_tbs_pdf() {
+  const url = get_tbs_pdf_url();
+  if (!url) {
+    frappe.msgprint(__("Could not determine the current print document."));
+    return;
+  }
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    window.location.href = url;
+  }
+}
+
+function ensure_tbs_pdf_navbar_button(attempt = 0) {
+  if (!window.frappe || !frappe.get_route) {
+    if (attempt < 50)
+      setTimeout(() => ensure_tbs_pdf_navbar_button(attempt + 1), 100);
+    return;
+  }
+
+  if (!get_tbs_pdf_route_context()) return;
+
+  const custom_actions = document.querySelector(
+    ".page-actions .custom-actions",
+  );
+  if (!custom_actions) {
+    if (attempt < 50)
+      setTimeout(() => ensure_tbs_pdf_navbar_button(attempt + 1), 100);
+    return;
+  }
+
+  if (!custom_actions.querySelector('[data-label="TBS PDF"]')) {
+    const button = document.createElement("button");
+    button.className = "btn btn-default btn-sm ellipsis";
+    button.dataset.label = "TBS PDF";
+    button.innerHTML = `${frappe.utils.icon("printer", "sm")}
+				TBS PDF
+		`;
+    button.addEventListener("click", open_tbs_pdf);
+
+    const pdf_button = Array.from(
+      custom_actions.querySelectorAll("button"),
+    ).find((candidate) => candidate.textContent.trim() === "PDF");
+    if (pdf_button) {
+      pdf_button.insertAdjacentElement("afterend", button);
+    } else {
+      custom_actions.appendChild(button);
+    }
+  }
+
+  const dropdown = document.querySelector(
+    ".page-actions .menu-btn-group .dropdown-menu",
+  );
+  if (
+    dropdown &&
+    !dropdown.querySelector('[data-label="TBS%20PDF"], [data-label="TBS PDF"]')
+  ) {
+    const pdf_item = Array.from(dropdown.querySelectorAll(".menu-item-label"))
+      .find(
+        (candidate) =>
+          decodeURIComponent(candidate.dataset.label || "") === "PDF",
+      )
+      ?.closest("li");
+    const item = document.createElement("li");
+    item.className = "user-action hidden-xl";
+    item.innerHTML = `<a class="grey-link dropdown-item" href="#" onclick="return false;">
+						<span class="menu-item-label" data-label="TBS%20PDF"><span>TBS PDF</span></span>
+					</a>`;
+    item.querySelector("a").addEventListener("click", open_tbs_pdf);
+
+    if (pdf_item) {
+      pdf_item.insertAdjacentElement("afterend", item);
+    } else {
+      dropdown.appendChild(item);
+    }
+  }
+}
+
+function boot_tbs_pdf_navbar_patch() {
+  ensure_tbs_pdf_navbar_button();
+  setTimeout(() => ensure_tbs_pdf_navbar_button(), 500);
+  setTimeout(() => ensure_tbs_pdf_navbar_button(), 1500);
+}
+
+if (frappe.ready) {
+  frappe.ready(boot_tbs_pdf_navbar_patch);
+} else if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", boot_tbs_pdf_navbar_patch);
+} else {
+  boot_tbs_pdf_navbar_patch();
+}
+
+if (frappe.router && frappe.router.on) {
+  frappe.router.on("change", () => setTimeout(boot_tbs_pdf_navbar_patch, 100));
 }
 
 console.log("[Language Debug] ✅ print.js FILE FULLY LOADED");
