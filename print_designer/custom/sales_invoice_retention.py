@@ -1,6 +1,10 @@
 """
 Sales Invoice Retention Calculation
 Backend handler for retention field calculations
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import frappe

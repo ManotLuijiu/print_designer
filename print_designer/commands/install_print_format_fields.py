@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 # Copyright (c) 2024, Frappe Technologies Pvt. Ltd. and Contributors
 # For license information, please see license.txt
 

@@ -1,3 +1,7 @@
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 import click
 import frappe
 from frappe.commands import pass_context

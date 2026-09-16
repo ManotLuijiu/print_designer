@@ -1,0 +1,157 @@
+<!-- Copyright (c) 2026, AWS Solution Ltd. and contributors
+     For license information, please see license.txt -->
+
+<div class="fade-in-up" style="animation-delay: 0ms">
+    <!-- Page Header -->
+    <div class="page-head flex align-center justify-between mb-4">
+        <div>
+            <h5 class="page-title mb-1" style="font-size: 1.5rem; font-weight: 600;">
+                Get Original VAT
+            </h5>
+            <p class="text-muted text-small mb-0">
+                Mark original tax invoices as received — converts copy records to Thai Purchase VAT
+            </p>
+        </div>
+        <div class="page-actions"></div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card" style="border-left: 4px solid #4caf50;">
+                <div class="card-body">
+                    <div class="text-muted text-small">Pending Records</div>
+                    <div class="text-large font-bold">{{ total_pending }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card" style="border-left: 4px solid #ff9800;">
+                <div class="card-body">
+                    <div class="text-muted text-small">Total Pending VAT</div>
+                    <div class="text-large font-bold">{{ total_pending_vat }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card" style="border-left: 4px solid #2196f3;">
+                <div class="card-body">
+                    <div class="text-muted text-small">Already Converted</div>
+                    <div class="text-large font-bold">{{ converted_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- By Source Type -->
+    {% if source_stats %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">By Source Type</h6>
+                    <div class="row">
+                        {% for src, data in source_stats.items() %}
+                        <div class="col-auto">
+                            <span class="badge badge-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; margin-right: 0.5rem;">
+                                {{ src }}: {{ data.count }} records ({{ frappe.utils.fmt_money(data.vat, currency='THB') }})
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending Records Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Pending Copy Invoices</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if pending_records %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="select-all" />
+                            </th>
+                            <th>Input VAT Undue</th>
+                            <th>Purchase Invoice</th>
+                            <th>Supplier</th>
+                            <th>Posting Date</th>
+                            <th class="text-right">Base Amount</th>
+                            <th class="text-right">VAT Amount</th>
+                            <th>Source</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in pending_records %}
+                        <tr data-name="{{ record.name }}" data-vat-amount="{{ record.vat_amount }}">
+                            <td>
+                                <input type="checkbox" class="record-checkbox"
+                                       data-name="{{ record.name }}"
+                                       data-vat-amount="{{ record.vat_amount }}" />
+                            </td>
+                            <td>
+                                <a href="/app/input-vat-undue/{{ record.name }}"
+                                   target="_blank">{{ record.name }}</a>
+                            </td>
+                            <td>
+                                <a href="/app/purchase-invoice/{{ record.purchase_invoice }}"
+                                   target="_blank">{{ record.purchase_invoice }}</a>
+                            </td>
+                            <td>{{ record.supplier_name or record.supplier }}</td>
+                            <td>{{ frappe.format_date(record.posting_date) }}</td>
+                            <td class="text-right">{{ frappe.utils.fmt_money(record.base_amount or 0, currency='THB') }}</td>
+                            <td class="text-right">
+                                <strong>{{ frappe.utils.fmt_money(record.vat_amount or 0, currency='THB') }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ 'warning' if record.source_doctype == 'Import Clearance' else 'info' }}">
+                                    {{ record.source_doctype or 'Purchase Invoice' }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success mark-received"
+                                        data-name="{{ record.name }}">
+                                    <i class="fa fa-check mr-1"></i> Got Original
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Action Bar -->
+            <div class="card-footer" id="bulk-action-bar" style="display: none;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span id="selected-count">0 selected</span>
+                    <button class="btn btn-success" id="bulk-mark-received">
+                        <i class="fa fa-check mr-1"></i>
+                        Mark Selected as Received
+                    </button>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="p-5 text-center text-muted">
+                <i class="fa fa-check-circle-o fa-3x mb-3" style="color: #4caf50;"></i>
+                <h5>No pending records</h5>
+                <p class="text-small">All copy invoices have been processed.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+frappe.require(["assets/print_designer/page/get_original_vat/get_original_vat.bundle.js"], function() {
+    // JS loaded via asset bundle
+});
+</script>

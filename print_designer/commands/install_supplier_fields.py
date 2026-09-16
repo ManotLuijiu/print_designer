@@ -1,6 +1,10 @@
 """
 Custom Field Management Commands for Supplier DocType
 Handles installation, verification, and removal of Print Designer-specific Supplier custom fields.
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 
 Features:
 - Branch Code for Thai tax invoice compliance (00000 default for head office)

@@ -1,6 +1,10 @@
 """
 Test PDF Generators command for Print Designer
 Tests availability and functionality of all PDF generators
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import click

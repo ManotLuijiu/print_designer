@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 Console Utilities for Print Designer
 Provides convenient database access and debugging functions for development

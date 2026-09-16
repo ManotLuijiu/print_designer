@@ -5,6 +5,11 @@ Handles system-wide font stack management through Global Defaults integration.
 Provides dynamic CSS generation and application for typography settings.
 """
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
+
 import os
 
 import frappe

@@ -1,6 +1,10 @@
 """
 Print Settings Custom Fields for Print Designer
 ============================================
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 Consolidates all Print Settings custom fields:
 - Copy Settings (enable_multiple_copies, etc.)
 - Watermark Settings (watermark_settings, position, font, margins)

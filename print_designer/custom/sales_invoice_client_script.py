@@ -1,6 +1,10 @@
 """
 Server-side client script for Sales Invoice retention fields
 Handles field visibility without API calls
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import frappe

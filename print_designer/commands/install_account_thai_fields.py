@@ -1,6 +1,10 @@
 """
 Thai Account Translation Fields Installer for Print Designer
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 This module installs custom fields to enable Thai translation for Chart of Accounts.
 Supports automatic translation of common accounting terms and manual translation for custom accounts.
 """

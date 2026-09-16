@@ -1,6 +1,10 @@
 """
 Signature Field Management Commands for Print Designer
 Handles installation, verification, and removal of signature image fields across multiple DocTypes.
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 
 Signature fields enable digital signature capture and display in print formats for:
 - HR documents (Employee, Appraisal, Job Offer)

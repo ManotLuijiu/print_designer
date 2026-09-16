@@ -1,6 +1,10 @@
 """
 Thai Withholding Tax Management System for Print Designer
 Handles WHT calculations, certificate generation, and compliance reporting
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import frappe

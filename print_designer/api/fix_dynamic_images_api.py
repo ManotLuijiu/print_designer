@@ -1,6 +1,10 @@
 import frappe
 from frappe import _
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 @frappe.whitelist()
 def diagnose_and_fix_dynamic_images():
     """

@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 # -*- coding: utf-8 -*-
 
 """

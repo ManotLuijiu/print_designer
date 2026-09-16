@@ -1,0 +1,10 @@
+{
+ "doctype": "Page",
+ "name": "get-original-vat",
+ "module": "Print Designer",
+ "standard": 1,
+ "title": "Get Original VAT",
+ "icon": "fa fa-file-text",
+ "route": "get-original-vat",
+ "public": 0
+}

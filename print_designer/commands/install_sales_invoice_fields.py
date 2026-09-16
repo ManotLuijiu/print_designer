@@ -1,3 +1,7 @@
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 # install_sales_invoice_fields.py
 # Enhanced Sales Invoice custom fields installation with comprehensive validation
 # Following patterns established in Quotation and Sales Order

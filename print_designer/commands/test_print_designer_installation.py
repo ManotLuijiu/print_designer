@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 Complete Print Designer Installation Test
 Comprehensive test to verify all print_designer components are properly installed

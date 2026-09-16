@@ -13,6 +13,11 @@ Functions:
 - setup_default_print_settings_values() - Set defaults
 """
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
+
 import frappe
 
 

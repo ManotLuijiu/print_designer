@@ -1,6 +1,10 @@
 """
 Address Field Label Override for Thai Localization
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 Overrides default Address doctype field labels to use clearer English terms.
 Frappe handles Thai translation automatically via the translation system.
 

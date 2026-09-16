@@ -1,4 +1,4 @@
-# Copyright (c) 2026, Print Designer
+# Copyright (c) 2026, AWS Solution Ltd.
 # For license information, please see license.txt
 
 """

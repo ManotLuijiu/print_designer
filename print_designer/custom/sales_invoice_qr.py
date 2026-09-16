@@ -1,6 +1,10 @@
 """
 Sales Invoice QR Code Generation System
 Thai e-Tax Format QR codes for B2B document exchange
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import json

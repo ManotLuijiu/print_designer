@@ -11,6 +11,10 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 
 @frappe.whitelist()
 def enable_print_designer_for_format(print_format_name):
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
     """
     Enable Print Designer for a specific Print Format.
     Makes the 'Edit Format' button route to print-designer instead of print-format-builder.

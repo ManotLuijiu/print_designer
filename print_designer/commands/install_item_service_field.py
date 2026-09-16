@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 import click
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields

@@ -1,6 +1,10 @@
 """
 Custom Field: pd_custom_apply_wht_to_contract_installments on Tax Withholding Category
 Adds Thai contract installment WHT flag to each WHT category.
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import click

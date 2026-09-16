@@ -1,6 +1,14 @@
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 Custom Field Management Commands for Stock Entry DocType
 Handles installation of receiver field for print format.
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 
 import click

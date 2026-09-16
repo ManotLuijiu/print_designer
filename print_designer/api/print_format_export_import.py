@@ -3,6 +3,10 @@ Export and Import functionality for Print Designer formats
 """
 
 import importlib.util
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 import json
 import re
 

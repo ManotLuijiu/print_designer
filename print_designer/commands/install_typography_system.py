@@ -1,6 +1,10 @@
 """
 Install Typography System Command
 
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 Installs the Global Defaults typography integration system for Print Designer.
 This command ensures that font selection through Global Defaults is properly
 configured and all necessary fields and functionality are available.

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# For license information, please see license.txt
+
+
 """
 Comprehensive Print Designer Custom Fields Uninstall Command
 Allows testing and executing the complete custom field removal process
