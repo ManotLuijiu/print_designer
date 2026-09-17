@@ -139,7 +139,7 @@ page_js = {
         "print_designer/js/print_designer/client_scripts/print.js",
     ],
     "point-of-sale": "print_designer/print_designer/client_scripts/point_of_sale.js",
-    "get-original-vat": "print_designer/page/get_original_vat/get_original_vat.js",
+
 }
 
 # include js in doctype views

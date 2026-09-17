@@ -1,5 +1,6 @@
 <!-- Copyright (c) 2026, AWS Solution Ltd. and contributors
      For license information, please see license.txt -->
+<!-- jinja -->
 
 <div class="fade-in-up" style="animation-delay: 0ms">
     <!-- Page Header -->
@@ -29,7 +30,7 @@
             <div class="card" style="border-left: 4px solid #ff9800;">
                 <div class="card-body">
                     <div class="text-muted text-small">Total Pending VAT</div>
-                    <div class="text-large font-bold">{{ total_pending_vat }}</div>
+                    <div class="text-large font-bold">{{ total_pending_vat or 0 }}</div>
                 </div>
             </div>
         </div>
@@ -54,7 +55,7 @@
                         {% for src, data in source_stats.items() %}
                         <div class="col-auto">
                             <span class="badge badge-secondary" style="font-size: 0.85rem; padding: 0.5rem 1rem; margin-right: 0.5rem;">
-                                {{ src }}: {{ data.count }} records ({{ frappe.utils.fmt_money(data.vat, currency='THB') }})
+                                {{ src }}: {{ data.count }} records ({{ data.vat }})
                             </span>
                         </div>
                         {% endfor %}
@@ -107,9 +108,9 @@
                             </td>
                             <td>{{ record.supplier_name or record.supplier }}</td>
                             <td>{{ frappe.format_date(record.posting_date) }}</td>
-                            <td class="text-right">{{ frappe.utils.fmt_money(record.base_amount or 0, currency='THB') }}</td>
+                            <td class="text-right">{{ record.base_amount or 0 }}</td>
                             <td class="text-right">
-                                <strong>{{ frappe.utils.fmt_money(record.vat_amount or 0, currency='THB') }}</strong>
+                                <strong>{{ record.vat_amount or 0 }}</strong>
                             </td>
                             <td>
                                 <span class="badge badge-{{ 'warning' if record.source_doctype == 'Import Clearance' else 'info' }}">

@@ -52,6 +52,7 @@ bd close <id>         # Complete work
 - Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+- **NEVER auto-commit or auto-push code** — always present changes and ask for approval before committing or pushing
 
 ## Session Completion
 
@@ -81,6 +82,7 @@ bd close <id>         # Complete work
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
+- **NEVER auto-commit or auto-push without presenting changes first** — always ask for approval before committing and before pushing
 <!-- END BEADS INTEGRATION -->
 
 ## Test Credentials
@@ -230,3 +232,28 @@ def test_page_orientation_api_fetch():
 2. **Manual Override**: User can change orientation, preview updates with `.landscape` class
 3. **CSS Injection**: Landscape CSS is injected with `!important` to override defaults
 4. **Print Format Change**: When print format changes, orientation resets to new format's value
+
+## PI Customs Entries / Import Clearance Item Table
+
+**The child table for customs/VAT entries in Purchase Invoices is `tabImport Clearance Item`** — NOT a separate `tbs_customs_entries` table. It stores per-row VAT data with `parenttype='Purchase Invoice'`.
+
+Key columns:
+- `parent` = PI name
+- `parenttype` = 'Purchase Invoice' (distinguishes from Import Clearance ICI rows)
+- `vendor_name` = Supplier code (join to `tabSupplier.name`)
+- `vendor_display_name` = Display name (often empty — use JOIN to `tabSupplier.supplier_name`)
+- `vat_type` = Customs VAT / Inclusive VAT / Exclusive VAT / No VAT
+- `base_amount` = Base amount in THB
+- `vat_amount` = VAT amount
+- `description` = Expense description
+
+**Important**: The Doctype for this child table is `Import Clearance Item`, and the actual DB table is `tabImport Clearance Item`.
+
+**Query pattern** (always JOIN to `tabSupplier` for vendor names):
+```sql
+SELECT ici.*, COALESCE(s.supplier_name, ici.vendor_name) AS vendor_display_name
+FROM `tabImport Clearance Item` ici
+INNER JOIN `tabPurchase Invoice` pi ON pi.name = ici.parent
+LEFT JOIN `tabSupplier` s ON s.name = ici.vendor_name
+WHERE ici.parenttype = 'Purchase Invoice' AND ici.vat_amount > 0
+```

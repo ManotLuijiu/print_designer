@@ -447,18 +447,44 @@ def _clear_pe_vat_fields(doc):
 def validate(doc, method):
     """
     Called before Payment Entry is saved.
-    1. Auto-fill pd_custom_tax_base_amount (amount before VAT)
+    1. Sync tbs_total_expense_amount = tbs_balance_payable (when advance PE is linked)
+    2. Auto-fill pd_custom_tax_base_amount (amount before VAT)
+    3. Validate mandatory Thai tax fields
     """
-    # Only process for Pay payment type with Thai tax
-    # Only process for Pay payment type with Thai tax
+    # Step 1: Sync Total Expense Amount = Balance Payable (advance payment mode)
+    _sync_total_expense_from_balance(doc)
+
     if doc.payment_type != "Pay":
         return
-    # Step 1: Auto-fill pd_custom_tax_base_amount
+    # Step 2: Auto-fill pd_custom_tax_base_amount
     _auto_fill_tax_base_amount(doc)
-    # Step 2: Validate mandatory Thai tax fields
+    # Step 3: Validate mandatory Thai tax fields
     _validate_mandatory_tax_invoice_fields(doc)
-    # Step 3: Validate Thai tax fields consistency
+    # Step 4: Validate Thai tax fields consistency
     _validate_thai_tax_consistency(doc)
+def _sync_total_expense_from_balance(doc):
+    """
+    Sync tbs_total_expense_amount = tbs_balance_payable when an advance PE exists.
+    This only applies to the SECOND PE (balance payment) where:
+      - tbs_advance_payment_entry links to the advance PE
+      - tbs_balance_payable = remaining balance after advance
+      - tbs_total_expense_amount must show the balance, not auto-calc (which returns 0)
+
+    The FIRST PE (advance payment) is unaffected because tbs_balance_payable = 0.
+    """
+    # Only run for Pay payment type
+    if doc.payment_type != "Pay":
+        return
+    # Only apply if an advance PE is linked AND balance payable > 0
+    if not doc.tbs_advance_payment_entry:
+        return
+    balance = flt(getattr(doc, "tbs_balance_payable", 0) or 0)
+    if balance <= 0:
+        return
+    # Second PE: balance payable is the correct amount to pay
+    doc.tbs_total_expense_amount = balance
+
+
 def _auto_fill_tax_base_amount(doc):
     """
     Auto-fill pd_custom_tax_base_amount (amount before VAT).
