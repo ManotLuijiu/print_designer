@@ -49,7 +49,7 @@ def get_payment_entry_with_thai_tax(dt, dn, **kwargs):
                 if thai_tax_data:
                     # Populate Payment Entry header fields for Purchase Invoice scenario
                     _populate_payment_entry_purchase_fields(pe, thai_tax_data)
-    
+
     return pe
 
 
