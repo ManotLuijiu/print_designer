@@ -207,29 +207,21 @@ class CustomCompany(Company):
 
     def create_default_accounts(self):
         """
-        Create Chart of Accounts from selected template
+        Create the Chart of Accounts from the selected template.
 
-        Phase 1 (Current): Basic auto-import only
-        - Import CoA from JSON template
-        - Skip default account assignment (Phase 2)
-        - Skip tax template creation (Phase 3)
+        Delegates to ERPNext so that:
 
-        See CHART_OF_ACCOUNTS_AUTOMATION.md for full roadmap
+        - the chart is looked up with the correct `existing_company` argument
+          (``create_charts(company, chart_template, existing_company)``), and
+        - the default receivable/payable accounts are assigned to the company.
+
+        NOTE: this method used to pass ``self.country`` as the third positional
+        argument of ``create_charts()``. ``get_chart()`` then treated the country
+        as an existing company and returned an empty chart, so the whole Chart of
+        Accounts import was skipped silently and the company ended up without any
+        account.
         """
-        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
-
-        # Import the chart
-        frappe.local.flags.ignore_root_company_validation = True
-        create_charts(
-            self.name,
-            self.chart_of_accounts,
-            self.country
-        )
-
-        # TODO Phase 2: Auto-assign default accounts
-        # TODO Phase 3: Auto-create tax templates
-        # TODO Phase 4: Industry-specific configuration
-        # TODO Phase 5: Validation and compliance checks
+        return super().create_default_accounts()
 
     def has_retention_data(self):
         """Check if company has any retention-related data"""
