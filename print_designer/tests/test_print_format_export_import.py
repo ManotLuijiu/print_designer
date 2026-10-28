@@ -14,7 +14,7 @@ from print_designer.api.print_format_export_import import (
     export_print_format,
     import_print_format, 
     duplicate_print_format,
-    validate_export_data
+    validate_import_data
 )
 
 
@@ -124,23 +124,24 @@ class TestPrintFormatExportImport(FrappeTestCase):
         """Test validation of valid export data"""
         export_data = export_print_format(self.test_format_name)
         export_json = json.dumps(export_data)
-        
-        # Should not raise any exception
-        validate_export_data(export_json)
+
+        # The validator reports the result instead of raising
+        result = validate_import_data(export_json)
+        self.assertTrue(result.get("valid"), result.get("message"))
     
     def test_validate_export_data_invalid_json(self):
         """Test validation of invalid JSON"""
-        with self.assertRaises(frappe.ValidationError) as context:
-            validate_export_data("invalid json")
-        self.assertIn("Invalid JSON", str(context.exception))
+        result = validate_import_data("invalid json")
+        self.assertFalse(result.get("valid"))
+        self.assertIn("Invalid JSON", result.get("message", ""))
     
     def test_validate_export_data_missing_fields(self):
         """Test validation of export data with missing required fields"""
         invalid_data = json.dumps({"invalid": "data"})
-        
-        with self.assertRaises(frappe.ValidationError) as context:
-            validate_export_data(invalid_data)
-        self.assertIn("Missing required field", str(context.exception))
+
+        result = validate_import_data(invalid_data)
+        self.assertFalse(result.get("valid"))
+        self.assertIn("Missing print_format", result.get("message", ""))
     
     def test_import_print_format_success(self):
         """Test successful import of Print Designer format"""
@@ -298,12 +299,14 @@ class TestPrintFormatValidation(unittest.TestCase):
             }
         }
         
-        # Should not raise exception
-        validate_export_data(json.dumps(valid_data))
+        # Should be reported as valid
+        result = validate_import_data(json.dumps(valid_data))
+        self.assertTrue(result.get("valid"), result.get("message"))
         
-        # Invalid structure - missing version
+        # Invalid structure - missing the print_designer flag
         invalid_data = valid_data.copy()
-        del invalid_data["version"]
+        invalid_data["print_format"] = dict(valid_data["print_format"])
+        del invalid_data["print_format"]["print_designer"]
         
-        with self.assertRaises(frappe.ValidationError):
-            validate_export_data(json.dumps(invalid_data))
+        result = validate_import_data(json.dumps(invalid_data))
+        self.assertFalse(result.get("valid"))

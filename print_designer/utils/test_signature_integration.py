@@ -4,7 +4,7 @@ Test script to verify signature field integration with Print Designer
 
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from print_designer.signature_fields import get_signature_fields
+from print_designer.utils.signature_integration import get_signature_fields
 
 @frappe.whitelist()
 def test_signature_integration():

@@ -844,6 +844,13 @@ regional_overrides = {
 }
 
 
+# Test bootstrap: make the ERPNext test records work on a site that already
+# runs a local company (duplicate price lists, fiscal years, Thai mandatory
+# fields). The shim is a no-op when thai_business_suite is not installed.
+before_tests = [
+    "print_designer.testing_bootstrap.prepare_test_bootstrap",
+]
+
 # Standard portal menu items
 standard_portal_menu_items = [
     {
