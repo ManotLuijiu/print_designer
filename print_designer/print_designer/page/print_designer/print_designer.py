@@ -13,6 +13,7 @@ from print_designer.utils.number_to_words_fields import (
     apply_number_to_words_pairs,
     convert_amount_to_words,
     get_number_to_words_pairs,
+    get_primary_amount,
     normalize_language,
     resolve_print_language,
 )
@@ -151,12 +152,20 @@ def get_number_to_words_preview(doctype, docname, print_format, language=None):
         document_language=doc.get("language"),
         user_language=frappe.local.lang,
     )
-    return apply_number_to_words_pairs(
-        doc,
-        frappe.get_meta(doctype),
-        get_number_to_words_pairs(print_format_doc),
-        effective_language,
-    )
+    meta = frappe.get_meta(doctype)
+    pairs = get_number_to_words_pairs(print_format_doc)
+    values = apply_number_to_words_pairs(doc, meta, pairs, effective_language)
+
+    # Mirror the print pipeline: the legacy `in_words` field describes the
+    # same amount as the configured pairs (the configured source field wins),
+    # so the Design View shows the same text as the generated PDF.  For a
+    # non-Thai print language the stored value is kept, exactly like
+    # `_handle_thai_amount_enhancement` does when it renders the document.
+    if meta.get_field("in_words") and normalize_language(effective_language) == "th":
+        primary_amount = get_primary_amount(doc, meta, pairs)
+        values["in_words"] = convert_amount_to_words(primary_amount, "th")
+
+    return values
 
 
 @frappe.whitelist()
