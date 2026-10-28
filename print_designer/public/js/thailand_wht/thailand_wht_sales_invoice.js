@@ -128,6 +128,9 @@ frappe.ui.form.on('Sales Invoice', {
         // Calculate WHT amounts
         pd_calculate_wht_amounts(frm);
         console.log('🇹🇭 WHT calculated on refresh');
+
+        // Keep "Subject to Withholding Tax" in sync with the item groups
+        pd_apply_subject_to_wht_from_items(frm);
     },
     
     before_save: function(frm) {
@@ -247,6 +250,17 @@ frappe.ui.form.on('Sales Invoice', {
     taxes_and_charges: function(frm) {
         console.log('🇹🇭 Thailand WHT: taxes_and_charges event triggered');
         pd_override_thai_tax_charge_type(frm);
+    }
+});
+
+// Hook into Sales Invoice Item child table
+// Keep "Subject to Withholding Tax" in sync with the item groups
+frappe.ui.form.on('Sales Invoice Item', {
+    item_code: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row && row.item_code) {
+            pd_apply_subject_to_wht_from_items(frm);
+        }
     }
 });
 

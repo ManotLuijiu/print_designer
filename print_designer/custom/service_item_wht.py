@@ -1,8 +1,8 @@
 """Auto-set ``pd_custom_subject_to_wht`` from the Item Group of the document items.
 
-Thai withholding tax applies to service supplies.  A Sales Order / Quotation that
-contains at least one item whose *Item Group* is ``Services`` is therefore subject
-to withholding tax, so the flag is switched on automatically.
+Thai withholding tax applies to service supplies.  A Sales Order / Quotation /
+Sales Invoice that contains at least one item whose *Item Group* is ``Services``
+is therefore subject to withholding tax, so the flag is switched on automatically.
 
 Rules
 -----
@@ -17,7 +17,7 @@ Rules
   ``pd_custom_subject_to_wht`` field (the field is installed per site).
 
 The server side is authoritative - the client script
-``public/js/thailand_wht/thailand_wht_service_items.js`` only mirrors the result
+``public/js/thailand_wht/thailand_wht_vat_helper.js`` only mirrors the result
 while the user edits the form.
 """
 

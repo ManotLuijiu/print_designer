@@ -51,6 +51,16 @@ class FakeDoc:
 		self._values[key] = value
 
 
+class FakeSalesInvoice(FakeDoc):
+	"""Sales Invoice variant - the field is installed for Sales Invoice as well."""
+
+	doctype = "Sales Invoice"
+
+	def __init__(self, items, **values):
+		super().__init__(items, **values)
+		self.name = "SINV-TEST-0001"
+
+
 class TestIsServiceItemGroup(unittest.TestCase):
 	def test_exact_match(self):
 		self.assertTrue(is_service_item_group("Services"))
@@ -145,6 +155,28 @@ class TestApplySubjectToWhtFromItems(unittest.TestCase):
 		doc = FakeDoc([])
 		self.assertEqual(apply_subject_to_wht_from_items(doc), [])
 		self.assertIsNone(doc.get(SUBJECT_TO_WHT_FIELD))
+
+
+class TestSalesInvoice(unittest.TestCase):
+	"""The rule applies to Sales Invoice as well (the field is installed there)."""
+
+	def test_enables_flag_for_service_item(self):
+		doc = FakeSalesInvoice([{"item_code": "Dashboard for BI", "item_group": "Services"}])
+		self.assertEqual(apply_subject_to_wht_from_items(doc), ["Dashboard for BI"])
+		self.assertEqual(doc.get(SUBJECT_TO_WHT_FIELD), 1)
+
+	def test_keeps_flag_untouched_without_service_item(self):
+		doc = FakeSalesInvoice([{"item_code": "Laptop", "item_group": "Products"}])
+		self.assertEqual(apply_subject_to_wht_from_items(doc), [])
+		self.assertIsNone(doc.get(SUBJECT_TO_WHT_FIELD))
+
+	def test_never_clears_a_manually_set_flag(self):
+		doc = FakeSalesInvoice(
+			[{"item_code": "Laptop", "item_group": "Products"}],
+			**{SUBJECT_TO_WHT_FIELD: 1},
+		)
+		apply_subject_to_wht_from_items(doc)
+		self.assertEqual(doc.get(SUBJECT_TO_WHT_FIELD), 1)
 
 
 if __name__ == "__main__":
