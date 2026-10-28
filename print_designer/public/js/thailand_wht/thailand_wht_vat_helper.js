@@ -1,6 +1,22 @@
 // Shared VAT Treatment auto-detection helper
 // Used by SI, SO, QT, PI, PO to auto-set pd_custom_vat_treatment based on Item properties
 
+// Tax Category -> VAT treatment.  A supply of an "Exempt" or "Zero-Rated"
+// customer is outside the standard VAT, so the items must not change the
+// treatment of the document (the Tax Category decides).
+const PD_CATEGORY_TREATMENTS = {
+	'Exempt': 'Exempt from VAT',
+	'Zero-Rated': 'Zero-rated for Export',
+};
+
+// The Tax Category of the document as a plain string.  `frappe.db.get_value`
+// can hand over an object ({field: null}) for an empty field, which must not
+// be used as a key.
+function pd_tax_category(frm) {
+	const category = frm && frm.doc && frm.doc.tax_category;
+	return typeof category === 'string' ? category : '';
+}
+
 /**
  * Fill the WHT fields of the form from the items of the document.
  *
@@ -109,6 +125,10 @@ function pd_check_vat_treatment_from_items(frm, trigger_item) {
 	const current = frm.doc.pd_custom_vat_treatment;
 	if (current === 'Exempt from VAT' || current === 'Zero-rated for Export') return;
 
+	// The Tax Category of the customer decides the treatment of the supply
+	// (Exempt / Zero-Rated), the items must not override it.
+	if (PD_CATEGORY_TREATMENTS[pd_tax_category(frm)]) return;
+
 	// Collect all unique item codes
 	const item_codes = [...new Set(
 		frm.doc.items
@@ -169,6 +189,10 @@ function pd_check_single_item_vat(frm, item_code) {
 	// Skip if user has manually set to Exempt or Zero-rated
 	const current = frm.doc.pd_custom_vat_treatment;
 	if (current === 'Exempt from VAT' || current === 'Zero-rated for Export') return;
+
+	// The Tax Category of the customer decides the treatment of the supply
+	// (Exempt / Zero-Rated), the items must not override it.
+	if (PD_CATEGORY_TREATMENTS[pd_tax_category(frm)]) return;
 
 	frappe.db.get_value('Item', item_code, 'pd_custom_is_service_item').then(r => {
 		if (r.message && r.message.pd_custom_is_service_item) {
