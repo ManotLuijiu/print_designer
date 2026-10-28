@@ -12,6 +12,7 @@ from frappe.utils.pdf import pdf_body_html as fw_pdf_body_html
 from print_designer.utils.number_to_words_fields import (
     apply_number_to_words_pairs,
     get_number_to_words_pairs,
+    get_primary_amount,
     resolve_print_language,
 )
 
@@ -407,12 +408,9 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
 
     try:
         effective_lang = get_effective_language(print_format.name, doc=doc)
-        apply_number_to_words_pairs(
-            doc,
-            frappe.get_meta(doc.doctype),
-            get_number_to_words_pairs(print_format),
-            effective_lang,
-        )
+        meta = frappe.get_meta(doc.doctype)
+        pairs = get_number_to_words_pairs(print_format)
+        apply_number_to_words_pairs(doc, meta, pairs, effective_lang)
 
         # Check if document has the in_words field used as the gate. We
         # intentionally do NOT require `grand_total` here — Payment Entry
@@ -431,11 +429,13 @@ def _handle_thai_amount_enhancement(print_format, doc, args):
                 from print_designer.utils.thai_amount_to_word import thai_money_in_words
 
                 # Determine the primary amount for the words conversion.
-                # Prefer grand_total (Sales/Purchase Invoice), fall back
-                # to paid_amount (Payment Entry), then 0 as last resort.
-                primary_amount = (
-                    getattr(doc, "grand_total", None) or getattr(doc, "paid_amount", None) or 0
-                )
+                # The Print Format declares the field that carries the
+                # amount it wants in words (for a Payment Entry: the amount
+                # after the withholding tax).  Only when the format does
+                # not declare one, fall back to the document totals
+                # (grand_total for Sales/Purchase Invoice, paid_amount for
+                # Payment Entry), then 0 as last resort.
+                primary_amount = get_primary_amount(doc, meta, pairs)
 
                 # Set Thai amount in words
                 original_in_words = doc.in_words

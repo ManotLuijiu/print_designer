@@ -1,13 +1,17 @@
 from contextlib import contextmanager
 
 import frappe
-from frappe.utils import money_in_words
+from frappe.utils import flt, money_in_words
 
 from print_designer.utils.thai_amount_to_word import thai_money_in_words
 
 NUMERIC_FIELD_TYPES = frozenset({"Currency", "Float", "Int", "Percent"})
 TEXT_FIELD_TYPES = frozenset({"Data", "Small Text", "Text", "Long Text"})
 THAI_LANGUAGES = frozenset({"th", "th-th", "thai", "ไทย"})
+
+# Fallback order for the amount that the words fields describe when the
+# Print Format does not declare a source field.
+PRIMARY_AMOUNT_FALLBACKS = ("grand_total", "paid_amount", "received_amount", "total_amount")
 
 
 def validate_number_to_words_pairs(meta, pairs):
@@ -116,6 +120,31 @@ def _resolve_currency(doc, currency_field=None):
             return value
 
     return frappe.defaults.get_global_default("currency") or "THB"
+
+
+def get_primary_amount(doc, meta, pairs):
+    """Return the amount that the amount-in-words fields have to describe.
+
+    The Print Format declares which field carries the amount it wants in
+    words (the first configured pair).  That field is authoritative: on a
+    Payment Entry it holds the amount **after** the withholding tax, while
+    ``paid_amount`` is the gross amount that was paid.
+
+    A source field without a value (or with a zero value) is ignored so a
+    Payment Entry without a withholding tax still falls back to the amount
+    that was actually paid.
+    """
+    for pair in validate_number_to_words_pairs(meta, pairs):
+        value = _doc_value(doc, pair.get("source_field"))
+        if value not in (None, "") and flt(value):
+            return flt(value)
+
+    for fieldname in PRIMARY_AMOUNT_FALLBACKS:
+        value = _doc_value(doc, fieldname)
+        if value not in (None, "") and flt(value):
+            return flt(value)
+
+    return 0
 
 
 def convert_amount_to_words(amount, language, currency="THB"):
