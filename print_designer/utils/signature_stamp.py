@@ -200,6 +200,23 @@ def get_company_stamp_url(stamp_name):
     return stamp_data["image_url"] if stamp_data else None
 
 
+def resolve_print_format_name(doctype, format=None):
+    """Resolve the Print Format name the same way the print view does.
+
+    Frappe resolves it as `frappe.form_dict.format` -> `meta.default_print_format`
+    -> `Standard`. The PDF generators need the resolved name to load the Print
+    Format settings (page size, header/footer, page numbers).
+    """
+    if format:
+        return format
+
+    try:
+        meta = frappe.get_meta(doctype)
+        return meta.default_print_format or "Standard"
+    except Exception:
+        return "Standard"
+
+
 @frappe.whitelist()
 def download_pdf_with_signature_stamp(
     doctype,
@@ -330,28 +347,49 @@ def download_pdf_with_signature_stamp(
                 html_content, watermark_html, pd_custom_watermark_text
             )
 
-        # Now generate PDF from the modified HTML
-        # Try wkhtmltopdf first, fallback to WeasyPrint if it fails
+        # Now generate PDF from the modified HTML.
+        # Use the Chrome pipeline (same generator as the standard download path) so
+        # the Print Designer header/footer merge, the page numbers and the designer
+        # page geometry are preserved. wkhtmltopdf renders the print view in print
+        # media, where the designer hides the footer and drops the page numbers.
         pdf_file = None
         try:
-            from frappe.utils.pdf import get_pdf
+            from frappe.utils.pdf import get_chrome_pdf
 
-            pdf_file = get_pdf(html_content)
-            log_to_print_designer("PDF generated with wkhtmltopdf (with watermark)")
-        except Exception as wk_error:
-            log_to_print_designer(f"wkhtmltopdf failed: {wk_error}, trying WeasyPrint fallback")
+            pdf_file = get_chrome_pdf(
+                print_format=resolve_print_format_name(doctype, format),
+                html=html_content,
+                options={},
+                output=None,
+                pdf_generator="chrome",
+            )
+            log_to_print_designer("PDF generated with chrome (with watermark)")
+        except Exception as chrome_error:
+            log_to_print_designer(f"chrome failed: {chrome_error}, trying wkhtmltopdf fallback")
             try:
-                from print_designer.weasyprint_integration import get_pdf_with_weasyprint
+                from frappe.utils.pdf import get_pdf
 
-                pdf_file = get_pdf_with_weasyprint(html_content)
-                log_to_print_designer("PDF generated with WeasyPrint fallback (with watermark)")
-            except Exception as wp_error:
-                log_to_print_designer(f"WeasyPrint also failed: {wp_error}")
-                frappe.log_error(
-                    f"Both PDF generators failed. wkhtmltopdf: {wk_error}, WeasyPrint: {wp_error}",
-                    "PDF Generation",
-                )
-                frappe.throw(f"PDF generation failed: {str(wk_error)}")
+                pdf_file = get_pdf(html_content)
+                log_to_print_designer("PDF generated with wkhtmltopdf fallback (with watermark)")
+            except Exception as wk_error:
+                log_to_print_designer(f"wkhtmltopdf failed: {wk_error}, trying WeasyPrint fallback")
+                try:
+                    from print_designer.weasyprint_integration import (
+                        get_pdf_with_weasyprint,
+                    )
+
+                    pdf_file = get_pdf_with_weasyprint(html_content)
+                    log_to_print_designer(
+                        "PDF generated with WeasyPrint fallback (with watermark)"
+                    )
+                except Exception as wp_error:
+                    log_to_print_designer(f"WeasyPrint also failed: {wp_error}")
+                    frappe.log_error(
+                        f"All PDF generators failed. chrome: {chrome_error}, "
+                        f"wkhtmltopdf: {wk_error}, WeasyPrint: {wp_error}",
+                        "PDF Generation",
+                    )
+                    frappe.throw(f"PDF generation failed: {str(chrome_error)}")
 
         # Set response similar to original download_pdf
         if not doc:

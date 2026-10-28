@@ -680,6 +680,13 @@ get_print_format_template = "print_designer.pdf.get_print_format_template"
 
 pdf_generator = "print_designer.pdf_generator.pdf.get_pdf"
 
+# Selects the PDF generator for the `download_pdf` endpoint.
+# Frappe core defaults `download_pdf` to wkhtmltopdf; these hooks let the
+# Print Designer Chrome pipeline (header/footer merge, page numbers, watermark)
+# take over for the download endpoint.
+before_request = ["print_designer.pdf_generator.pdf.before_request"]
+after_request = ["print_designer.pdf_generator.pdf.after_request"]
+
 override_doctype_class = {
     "Print Format": "print_designer.print_designer.overrides.print_format.PDPrintFormat",
     "Company": "print_designer.overrides.company.CustomCompany",
