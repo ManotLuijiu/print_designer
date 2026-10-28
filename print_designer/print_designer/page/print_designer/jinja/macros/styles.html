@@ -58,7 +58,11 @@
 	           left: 0 !important;
 	           width: 100% !important;
 	           height: calc(100% - var(--header-height) - var(--footer-height)) !important;
-	           overflow: visible !important;
+	           /* The body band is a fixed region between the header and the footer.
+	              Content that is taller than the band must stay inside it, otherwise it
+	              slides under the absolutely positioned footer (z-index 10) and overlaps
+	              it. `auto` keeps the content scrollable inside the band. */
+	           overflow: auto !important;
 	           box-sizing: border-box !important;
 	           z-index: 1;
 	       }
