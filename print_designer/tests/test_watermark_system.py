@@ -1,8 +1,21 @@
 # File: print_designer/tests/test_watermark_system.py
 
-import frappe
 import unittest
-from frappe.test_runner import make_test_records
+
+import frappe
+
+
+def get_watermark_settings():
+    """Return the Watermark Settings document (or None).
+
+    The DocType is not a Single DocType, so `frappe.get_single` and
+    `frappe.db.exists(dt, dt)` do not resolve the record. The record is
+    looked up by its actual name.
+    """
+    name = frappe.db.get_value("Watermark Settings", {}, "name")
+    if not name:
+        return None
+    return frappe.get_doc("Watermark Settings", name)
 
 
 class TestWatermarkSystem(unittest.TestCase):
@@ -24,14 +37,29 @@ class TestWatermarkSystem(unittest.TestCase):
             print_format.html = "<div>Test Print Format</div>"
             print_format.insert()
 
-    def setUp(self):
-        """Setup for each test"""
-        # Ensure clean Watermark Settings
-        if frappe.db.exists("Watermark Settings", "Watermark Settings"):
-            frappe.delete_doc("Watermark Settings", "Watermark Settings")
+        # The print format is referenced by the print format configs, it has
+        # to survive the rollback of every single test.
+        frappe.db.commit()
 
-        # Create fresh settings
-        settings = frappe.new_doc("Watermark Settings")
+    def get_settings(self):
+        """Return the Watermark Settings document."""
+        return get_watermark_settings()
+
+    def setUp(self):
+        """Setup for each test
+
+        The Watermark Settings record of the site is reused and reset inside
+        the test transaction. The test never deletes the record and never
+        commits, so the site data is restored by the rollback of the tearDown.
+        """
+        settings = get_watermark_settings()
+        if settings is None:
+            settings = frappe.new_doc("Watermark Settings")
+            settings.insert(ignore_permissions=True)
+
+        # Reset the record for the test
+        settings.watermark_templates = []
+        settings.print_format_configs = []
         settings.enabled = 1
         settings.default_mode = "Copy on All Pages"
         settings.default_font_size = 24
@@ -39,13 +67,13 @@ class TestWatermarkSystem(unittest.TestCase):
         settings.default_font_family = "Sarabun"
         settings.default_color = "#999999"
         settings.default_opacity = 0.6
-        settings.insert()
+        settings.save(ignore_permissions=True)
 
-        frappe.db.commit()
+        self.settings_name = settings.name
 
     def test_watermark_settings_creation(self):
         """Test Watermark Settings DocType creation and validation"""
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
         self.assertTrue(settings.enabled)
         self.assertEqual(settings.default_mode, "Copy on All Pages")
         self.assertEqual(settings.default_font_size, 24)
@@ -53,7 +81,7 @@ class TestWatermarkSystem(unittest.TestCase):
 
     def test_watermark_settings_validation(self):
         """Test validation rules for Watermark Settings"""
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
 
         # Test invalid font size
         settings.default_font_size = 100
@@ -68,7 +96,7 @@ class TestWatermarkSystem(unittest.TestCase):
 
     def test_watermark_template_creation(self):
         """Test Watermark Template creation"""
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
 
         template_data = {
             "template_name": "Test Template",
@@ -94,7 +122,7 @@ class TestWatermarkSystem(unittest.TestCase):
 
     def test_print_format_config_creation(self):
         """Test Print Format specific configuration"""
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
 
         config_data = {
             "print_format": "Test Watermark Format",
@@ -129,10 +157,13 @@ class TestWatermarkSystem(unittest.TestCase):
 
     def test_api_get_watermark_config_with_template(self):
         """Test API with template configuration"""
-        from print_designer.api.watermark import get_watermark_config_for_print_format
+        from print_designer.api.watermark import (
+            get_watermark_config_for_print_format,
+            save_print_format_watermark_config,
+        )
 
         # Create template first
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
         template_data = {
             "template_name": "API Test Template",
             "watermark_mode": "Original on First Page",
@@ -142,15 +173,17 @@ class TestWatermarkSystem(unittest.TestCase):
             "opacity": 0.5,
         }
         settings.append("watermark_templates", template_data)
+        settings.save()
 
         # Create print format config using template
-        config_data = {
-            "print_format": "Test Watermark Format",
-            "watermark_template": "API Test Template",
-            "override_settings": 0,
-        }
-        settings.append("print_format_configs", config_data)
-        settings.save()
+        result = save_print_format_watermark_config(
+            "Test Watermark Format",
+            {
+                "watermark_template": "API Test Template",
+                "override_settings": 0,
+            },
+        )
+        self.assertTrue(result["success"])
 
         # Test API response
         config = get_watermark_config_for_print_format("Test Watermark Format")
@@ -164,7 +197,7 @@ class TestWatermarkSystem(unittest.TestCase):
         """Test API with override configuration"""
         from print_designer.api.watermark import get_watermark_config_for_print_format
 
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
 
         # Create print format config with overrides
         config_data = {
@@ -194,7 +227,7 @@ class TestWatermarkSystem(unittest.TestCase):
         from print_designer.api.watermark import get_available_watermark_templates
 
         # Add multiple templates
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
 
         templates = [
             {
@@ -240,7 +273,7 @@ class TestWatermarkSystem(unittest.TestCase):
         self.assertTrue(result["success"])
 
         # Verify saved configuration
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
         self.assertEqual(len(settings.print_format_configs), 1)
 
         config = settings.print_format_configs[0]
@@ -268,7 +301,7 @@ class TestWatermarkSystem(unittest.TestCase):
         self.assertEqual(result["template_name"], "New API Template")
 
         # Verify template was created
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
         template_names = [t.template_name for t in settings.watermark_templates]
         self.assertIn("New API Template", template_names)
 
@@ -277,7 +310,7 @@ class TestWatermarkSystem(unittest.TestCase):
         from print_designer.api.watermark import get_watermark_config_for_print_format
 
         # Disable watermark system
-        settings = frappe.get_single("Watermark Settings")
+        settings = self.get_settings()
         settings.enabled = 0
         settings.save()
 
@@ -302,6 +335,11 @@ class TestWatermarkSystem(unittest.TestCase):
         """Cleanup after all tests"""
         frappe.db.rollback()
 
+        # Remove the test print format again
+        if frappe.db.exists("Print Format", "Test Watermark Format"):
+            frappe.delete_doc("Print Format", "Test Watermark Format", ignore_permissions=True)
+            frappe.db.commit()
+
 
 def run_watermark_system_tests():
     """
@@ -315,7 +353,7 @@ def run_watermark_system_tests():
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
-    print(f"\nTest Results:")
+    print("\nTest Results:")
     print(f"Tests run: {result.testsRun}")
     print(f"Failures: {len(result.failures)}")
     print(f"Errors: {len(result.errors)}")
@@ -352,14 +390,14 @@ def validate_watermark_installation():
         checks.append((f"DocType '{doctype}' exists", exists))
 
     # Check if Watermark Settings document exists
-    settings_exists = frappe.db.exists("Watermark Settings", "Watermark Settings")
+    settings_exists = get_watermark_settings() is not None
     checks.append(("Watermark Settings document exists", settings_exists))
 
     # Check API methods are accessible
     try:
         from print_designer.api.watermark import get_watermark_config_for_print_format
 
-        api_accessible = True
+        api_accessible = callable(get_watermark_config_for_print_format)
     except ImportError:
         api_accessible = False
     checks.append(("API methods accessible", api_accessible))
@@ -372,7 +410,7 @@ def validate_watermark_installation():
         import os
 
         js_exists = os.path.exists(js_path)
-    except:
+    except Exception:
         js_exists = False
     checks.append(("JavaScript files exist", js_exists))
 
@@ -384,7 +422,7 @@ def validate_watermark_installation():
         import os
 
         css_exists = os.path.exists(css_path)
-    except:
+    except Exception:
         css_exists = False
     checks.append(("CSS files exist", css_exists))
 
@@ -399,13 +437,13 @@ def validate_watermark_installation():
 
     if all_passed:
         print(
-            f"\n🎉 All validation checks passed! Watermark system is properly installed."
+            "\n🎉 All validation checks passed! Watermark system is properly installed."
         )
 
         # Test basic functionality
         try:
             if settings_exists:
-                settings = frappe.get_single("Watermark Settings")
+                settings = get_watermark_settings()
                 print(
                     f"\nWatermark system status: {'Enabled' if settings.enabled else 'Disabled'}"
                 )
@@ -414,7 +452,7 @@ def validate_watermark_installation():
         except Exception as e:
             print(f"\nWarning: Could not retrieve settings details: {e}")
     else:
-        print(f"\n❌ Some validation checks failed. Please review the installation.")
+        print("\n❌ Some validation checks failed. Please review the installation.")
 
     return all_passed
 

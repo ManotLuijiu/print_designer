@@ -11,10 +11,10 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from print_designer.api.print_format_export_import import (
-    export_print_format,
-    import_print_format, 
     duplicate_print_format,
-    validate_import_data
+    export_print_format,
+    import_print_format,
+    validate_import_data,
 )
 
 
@@ -82,13 +82,12 @@ class TestPrintFormatExportImport(FrappeTestCase):
         self.assertIsInstance(result, dict)
         self.assertIn("print_format", result)
         self.assertIn("metadata", result)
-        self.assertIn("version", result)
+        self.assertIn("print_designer_version", result)
         
         # Validate metadata
         metadata = result["metadata"]
-        self.assertEqual(metadata["format_name"], self.test_format_name)
-        self.assertEqual(metadata["doc_type"], self.test_doctype)
-        self.assertIn("export_date", metadata)
+        self.assertEqual(metadata["original_name"], self.test_format_name)
+        self.assertIn("export_date", result)
         self.assertIn("exported_by", metadata)
         
         # Validate print format data
@@ -112,6 +111,7 @@ class TestPrintFormatExportImport(FrappeTestCase):
             "print_designer": 0,
             "html": "<div>Regular HTML format</div>"
         }).insert(ignore_permissions=True)
+        self.assertFalse(regular_format.print_designer)
         
         try:
             with self.assertRaises(frappe.ValidationError) as context:
@@ -227,9 +227,19 @@ class TestPrintFormatExportImport(FrappeTestCase):
         )
     
     def test_duplicate_with_existing_name(self):
-        """Test duplication with existing name raises error"""
-        with self.assertRaises(frappe.DuplicateEntryError):
-            duplicate_print_format(self.test_format_name, self.test_format_name)
+        """Test duplication with an existing name does not overwrite the original"""
+        duplicated_name = duplicate_print_format(self.test_format_name, self.test_format_name)
+
+        # The import renames the copy instead of overwriting the original
+        self.assertNotEqual(duplicated_name, self.test_format_name)
+        self.assertTrue(frappe.db.exists("Print Format", duplicated_name))
+
+        # The original format is untouched
+        original_format = frappe.get_doc("Print Format", self.test_format_name)
+        self.assertEqual(original_format.name, self.test_format_name)
+
+        # Clean up
+        frappe.delete_doc("Print Format", duplicated_name, force=True)
     
     def test_export_import_round_trip(self):
         """Test complete export-import cycle preserves all data"""

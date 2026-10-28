@@ -3,8 +3,9 @@ Test script to verify signature field integration with Print Designer
 """
 
 import frappe
-from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
 from print_designer.utils.signature_integration import get_signature_fields
+
 
 @frappe.whitelist()
 def test_signature_integration():
@@ -24,7 +25,9 @@ def test_signature_integration():
         results["signature_fields_available"] = len(signature_fields) > 0
         
         # 2. Check if image fields API includes signatures
-        from print_designer.print_designer.page.print_designer.print_designer import get_image_docfields
+        from print_designer.print_designer.page.print_designer.print_designer import (
+            get_image_docfields,
+        )
         image_fields = get_image_docfields()
         
         # Look for signature fields in image fields

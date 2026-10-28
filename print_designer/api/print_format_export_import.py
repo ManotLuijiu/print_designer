@@ -3,10 +3,9 @@ Export and Import functionality for Print Designer formats
 """
 
 import importlib.util
+
 # Copyright (c) 2026, AWS Solution Ltd. and contributors
 # For license information, please see license.txt
-
-
 import json
 import re
 
@@ -103,7 +102,9 @@ def export_print_format(print_format_name):
         JSON string containing all print designer data
     """
     if not frappe.has_permission("Print Format", "read", print_format_name):
-        frappe.throw(_("You don't have permission to export this Print Format"))
+        frappe.throw(
+            _("You don't have permission to export this Print Format"), frappe.PermissionError
+        )
 
     print_format = frappe.get_doc("Print Format", print_format_name)
 
@@ -179,7 +180,7 @@ def import_print_format(export_data, new_name=None, overwrite=False):
         Name of the imported print format
     """
     if not frappe.has_permission("Print Format", "create"):
-        frappe.throw(_("You don't have permission to import Print Formats"))
+        frappe.throw(_("You don't have permission to import Print Formats"), frappe.PermissionError)
 
     # Parse JSON if string
     if isinstance(export_data, str):
@@ -220,7 +221,9 @@ def import_print_format(export_data, new_name=None, overwrite=False):
         else:
             # Delete existing format if overwrite is True
             if not frappe.has_permission("Print Format", "delete", format_name):
-                frappe.throw(_("You don't have permission to overwrite this Print Format"))
+                frappe.throw(
+                    _("You don't have permission to overwrite this Print Format"), frappe.PermissionError
+                )
             frappe.delete_doc("Print Format", format_name, force=True)
 
     # Create new Print Format document
@@ -327,10 +330,10 @@ def duplicate_print_format(source_name, new_name):
         Name of the duplicated print format
     """
     if not frappe.has_permission("Print Format", "create"):
-        frappe.throw(_("You don't have permission to duplicate Print Formats"))
+        frappe.throw(_("You don't have permission to duplicate Print Formats"), frappe.PermissionError)
 
     if not frappe.has_permission("Print Format", "read", source_name):
-        frappe.throw(_("You don't have permission to read the source Print Format"))
+        frappe.throw(_("You don't have permission to read the source Print Format"), frappe.PermissionError)
 
     # Export the source format
     export_data = export_print_format(source_name)
@@ -589,7 +592,9 @@ def export_print_format_as_jinja_bundle(print_format_name, doc_name=None):
         frappe.throw(_("print_format_name is required"))
 
     if not frappe.has_permission("Print Format", "read", print_format_name):
-        frappe.throw(_("You don't have permission to export this Print Format"))
+        frappe.throw(
+            _("You don't have permission to export this Print Format"), frappe.PermissionError
+        )
 
     print_format = frappe.get_doc("Print Format", print_format_name)
 

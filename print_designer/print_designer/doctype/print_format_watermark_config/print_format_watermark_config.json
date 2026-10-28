@@ -33,10 +33,10 @@
      },
      {
       "fieldname": "watermark_template",
-      "fieldtype": "Link",
+      "fieldtype": "Data",
       "in_list_view": 1,
       "label": "Watermark Template",
-      "options": "Watermark Template"
+      "description": "Name of the watermark template configured in the Watermark Settings"
      },
      {
       "default": "0",

@@ -71,6 +71,22 @@ def validate_watermark_settings(doc, method=None):
         frappe.throw(_("Validation error: {0}").format(str(e)))
 
 
+def get_watermark_settings():
+    """
+    Return the Watermark Settings document (or None when it does not exist).
+
+    The DocType is not a Single DocType, so neither `frappe.get_single` nor
+    `frappe.db.exists(dt, dt)` resolves the record: `get_single` looks for a
+    row named after the DocType and `exists(dt, dt)` always returns a value
+    ("single always exists"). The record is looked up by its actual name.
+    """
+    name = frappe.db.get_value("Watermark Settings", {}, "name")
+    if not name:
+        return None
+
+    return frappe.get_doc("Watermark Settings", name)
+
+
 def clear_watermark_cache(doc=None, method=None):
     """
     Clear watermark cache when settings are updated
@@ -141,11 +157,9 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
         if not frappe.db.exists("DocType", "Watermark Settings"):
             return {"enabled": False, "error": "Watermark Settings DocType not installed"}
 
-        # Check if single record exists for this single doctype
-        if not frappe.db.exists("Watermark Settings", None):
+        settings = get_watermark_settings()
+        if not settings:
             return {"enabled": False, "error": "Watermark Settings record not configured"}
-
-        settings = frappe.get_single("Watermark Settings")
 
         if not settings.enabled:
             return {"enabled": False}
@@ -202,7 +216,7 @@ def get_watermark_config_for_print_format(print_format: str) -> Dict:
             "position_left": settings.default_position_left,
             "font_family": settings.default_font_family
             or ps.get("watermark_font_family")
-            or "Kanit",
+            or "Sarabun",
             "color": settings.default_color,
             "opacity": settings.default_opacity,
             "custom_text": None,
@@ -225,7 +239,18 @@ def get_watermark_template_config(template_name: str) -> Dict:
         Dict containing template configuration
     """
     try:
-        template = frappe.get_doc("Watermark Template", template_name)
+        # The watermark templates are child rows of the Watermark Settings, they
+        # are stored with the template name and not with a document name.
+        settings = get_watermark_settings()
+        template = None
+        if settings:
+            for row in settings.watermark_templates:
+                if row.template_name == template_name:
+                    template = row
+                    break
+
+        if template is None:
+            frappe.throw(_("Watermark Template '{0}' not found").format(template_name))
 
         # Get Print Settings fallback values
         ps = frappe.get_single("Print Settings")
@@ -239,15 +264,15 @@ def get_watermark_template_config(template_name: str) -> Dict:
             "position_right": template.position_right,
             "position_bottom": template.position_bottom,
             "position_left": template.position_left,
-            "font_family": template.font_family or ps.get("watermark_font_family") or "Kanit",
+            "font_family": template.font_family or ps.get("watermark_font_family") or "Sarabun",
             "color": template.color,
             "opacity": template.opacity,
             "custom_text": template.custom_text,
             "description": template.description,
         }
 
-    except frappe.DoesNotExistError:
-        frappe.throw(_("Watermark Template '{0}' not found").format(template_name))
+    except frappe.ValidationError:
+        raise
     except Exception as e:
         frappe.log_error(f"Error getting template config: {str(e)}")
         frappe.throw(_("Error retrieving template configuration"))
@@ -265,10 +290,9 @@ def get_available_watermark_templates() -> list:
         # Check if Watermark Settings doctype exists
         if not frappe.db.exists("DocType", "Watermark Settings"):
             return []
-        # Check if single record exists
-        if not frappe.db.exists("Watermark Settings", None):
+        settings = get_watermark_settings()
+        if not settings:
             return []
-        settings = frappe.get_single("Watermark Settings")
         templates = []
 
         for template in settings.watermark_templates:
@@ -303,14 +327,17 @@ def save_print_format_watermark_config(print_format: str, config: Dict) -> Dict:
         # Check if Watermark Settings doctype exists
         if not frappe.db.exists("DocType", "Watermark Settings"):
             return {"success": False, "error": "Watermark Settings DocType not installed"}
-        # Check if single record exists, create if not
-        if not frappe.db.exists("Watermark Settings", None):
+        settings = get_watermark_settings()
+        if not settings:
             try:
                 ws = frappe.get_doc({"doctype": "Watermark Settings", "enabled": 0})
                 ws.insert(ignore_permissions=True)
+                settings = get_watermark_settings()
             except Exception:
                 pass
-        settings = frappe.get_single("Watermark Settings")
+
+        if not settings:
+            return {"success": False, "error": "Watermark Settings record not configured"}
 
         # Find existing configuration
         existing_config = None
@@ -351,6 +378,13 @@ def save_print_format_watermark_config(print_format: str, config: Dict) -> Dict:
             # Add new configuration
             settings.append("print_format_configs", config_data)
 
+        # The "watermark_template" field stores the name of a watermark
+        # template. It used to be a Link to the child table "Watermark
+        # Template", a Link to a child table can never be validated because the
+        # child rows are stored with a hash as name. The link validation is
+        # skipped so the configuration also works on sites where the field is
+        # not migrated to a Data field yet.
+        settings.flags.ignore_links = True
         settings.save()
 
         return {
@@ -378,14 +412,18 @@ def create_watermark_template(template_data: Dict) -> Dict:
         # Check if Watermark Settings exists and has record
         if not frappe.db.exists("DocType", "Watermark Settings"):
             return {"success": False, "error": "Watermark Settings DocType not installed"}
-        if not frappe.db.exists("Watermark Settings", None):
+        settings = get_watermark_settings()
+        if not settings:
             # Create initial record
             try:
                 ws = frappe.get_doc({"doctype": "Watermark Settings", "enabled": 0})
                 ws.insert(ignore_permissions=True)
+                settings = get_watermark_settings()
             except Exception:
                 pass
-        settings = frappe.get_single("Watermark Settings")
+
+        if not settings:
+            return {"success": False, "error": "Watermark Settings record not configured"}
 
         # Validate template name uniqueness
         existing_names = [t.template_name for t in settings.watermark_templates]
@@ -422,9 +460,8 @@ def migrate_legacy_watermark_settings():
         migration_report = {"migrated_settings": 0, "migrated_formats": 0, "errors": []}
 
         # Create or update Watermark Settings
-        if frappe.db.exists("Watermark Settings", None):
-            watermark_settings = frappe.get_single("Watermark Settings")
-        else:
+        watermark_settings = get_watermark_settings()
+        if not watermark_settings:
             watermark_settings = frappe.new_doc("Watermark Settings")
             watermark_settings.insert(ignore_permissions=True)
 

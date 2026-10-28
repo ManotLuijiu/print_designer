@@ -4,6 +4,7 @@ Based on apps/erpnext/erpnext/tests/test_init.py
 """
 
 import unittest
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -73,9 +74,9 @@ class TestPrintDesignerInit(FrappeTestCase):
     def test_print_designer_pdf_generators(self):
         """Test that PDF generators are available"""
         try:
-            from print_designer.pdf_generator.wkhtmltopdf_generator import WkhtmltopdfGenerator
-            from print_designer.pdf_generator.weasyprint_generator import WeasyprintGenerator
             from print_designer.pdf_generator.chrome_cdp_generator import ChromeCDPGenerator
+            from print_designer.pdf_generator.weasyprint_generator import WeasyprintGenerator
+            from print_designer.pdf_generator.wkhtmltopdf_generator import WkhtmltopdfGenerator
             
             # Basic instantiation test
             generators = [
@@ -94,9 +95,8 @@ class TestPrintDesignerInit(FrappeTestCase):
     def test_print_designer_templates_folder(self):
         """Test that default templates folder exists"""
         import os
-        from print_designer import get_app_path
         
-        templates_path = os.path.join(get_app_path(), "default_templates")
+        templates_path = frappe.get_app_path("print_designer", "default_templates")
         self.assertTrue(
             os.path.exists(templates_path),
             "Default templates folder not found"
@@ -149,7 +149,8 @@ class TestPrintDesignerUtilities(unittest.TestCase):
             from print_designer.utils import signature_stamp
             
             # Test that signature utilities are importable
-            self.assertTrue(hasattr(signature_stamp, 'get_signature_stamp'))
+            self.assertTrue(hasattr(signature_stamp, 'get_signature_image'))
+            self.assertTrue(hasattr(signature_stamp, 'get_company_stamp_image'))
             
         except ImportError:
             self.skipTest("Signature utilities not available")

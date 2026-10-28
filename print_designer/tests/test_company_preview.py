@@ -1,8 +1,8 @@
 # File: print_designer/tests/test_company_preview.py
 
-import frappe
 import unittest
-from frappe.test_runner import make_test_records
+
+import frappe
 
 
 class TestCompanyPreview(unittest.TestCase):
@@ -53,15 +53,17 @@ class TestCompanyPreview(unittest.TestCase):
         """Test API with sample stamps and signatures"""
         from print_designer.api.company_preview_api import get_company_stamps_and_signatures
         
-        # Create test company stamp
-        stamp = frappe.new_doc("Company Stamp")
-        stamp.title = "Test Official Stamp"
+        # The API reads the stamps from "Signature Basic Information" with the
+        # category "Company Stamp" (the "Company Stamp" DocType is not used)
+        stamp = frappe.new_doc("Signature Basic Information")
+        stamp.signature_name = "Test Official Stamp"
         stamp.company = self.test_company
-        stamp.stamp_type = "Official"
-        stamp.usage_purpose = "Invoice"
+        stamp.signature_category = "Company Stamp"
+        stamp.signature_type = "Uploaded Image"
+        stamp.stamp_type = "Official Seal"
+        stamp.stamp_authority = "Invoice"
         stamp.is_active = 1
-        stamp.description = "Test stamp for API"
-        stamp.stamp_image = "/files/test_stamp.png"  # Mock image path
+        stamp.signature_image = "/files/test_stamp.png"  # Mock image path
         stamp.insert(ignore_mandatory=True)
         
         # Create test digital signature
@@ -103,7 +105,7 @@ class TestCompanyPreview(unittest.TestCase):
         # Verify stamp data
         stamp_data = result["stamps"][0]
         self.assertEqual(stamp_data["title"], "Test Official Stamp")
-        self.assertEqual(stamp_data["stamp_type"], "Official")
+        self.assertEqual(stamp_data["stamp_type"], "Official Seal")
         self.assertEqual(stamp_data["usage_purpose"], "Invoice")
         
         # Verify signature data
@@ -119,15 +121,19 @@ class TestCompanyPreview(unittest.TestCase):
         """Test stamp preview HTML generation"""
         from print_designer.api.company_preview_api import get_stamp_preview_html
         
-        # Create test stamp
-        stamp = frappe.new_doc("Company Stamp")
-        stamp.title = "Test HTML Stamp"
+        # The stamp preview is rendered from "Signature Basic Information"
+        # with the category "Company Stamp"
+        stamp = frappe.new_doc("Signature Basic Information")
+        stamp.signature_name = "Test HTML Stamp"
         stamp.company = self.test_company
-        stamp.stamp_type = "Approval"
-        stamp.usage_purpose = "General"
-        stamp.description = "Test stamp for HTML preview"
+        stamp.signature_category = "Company Stamp"
+        stamp.signature_type = "Uploaded Image"
+        stamp.stamp_type = "Official Seal"
+        stamp.stamp_authority = "General"
+        stamp.stamp_number = "ST-01"
+        stamp.signature_title = "Accountant"
         stamp.is_active = 1
-        stamp.stamp_image = "/files/test_html_stamp.png"  # Mock image path
+        stamp.signature_image = "/files/test_html_stamp.png"  # Mock image path
         stamp.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -137,9 +143,9 @@ class TestCompanyPreview(unittest.TestCase):
         
         self.assertIsInstance(html, str)
         self.assertIn("Test HTML Stamp", html)
-        self.assertIn("Approval", html)
+        self.assertIn("Official Seal", html)
         self.assertIn("General", html)
-        self.assertIn("Test stamp for HTML preview", html)
+        self.assertIn("ST-01", html)
         self.assertIn("stamp-preview", html)
 
     def test_api_get_signature_preview_html_digital(self):
@@ -216,20 +222,25 @@ class TestCompanyPreview(unittest.TestCase):
         """Test that inactive stamps and signatures are filtered out"""
         from print_designer.api.company_preview_api import get_company_stamps_and_signatures
         
-        # Create active stamp
-        active_stamp = frappe.new_doc("Company Stamp")
-        active_stamp.title = "Active Stamp"
+        # Create active stamp (a "Signature Basic Information" of the category
+        # "Company Stamp")
+        active_stamp = frappe.new_doc("Signature Basic Information")
+        active_stamp.signature_name = "Active Stamp"
         active_stamp.company = self.test_company
+        active_stamp.signature_category = "Company Stamp"
+        active_stamp.signature_type = "Uploaded Image"
         active_stamp.is_active = 1
-        active_stamp.stamp_image = "/files/active_stamp.png"
+        active_stamp.signature_image = "/files/active_stamp.png"
         active_stamp.insert(ignore_mandatory=True)
         
         # Create inactive stamp
-        inactive_stamp = frappe.new_doc("Company Stamp")
-        inactive_stamp.title = "Inactive Stamp"
+        inactive_stamp = frappe.new_doc("Signature Basic Information")
+        inactive_stamp.signature_name = "Inactive Stamp"
         inactive_stamp.company = self.test_company
+        inactive_stamp.signature_category = "Company Stamp"
+        inactive_stamp.signature_type = "Uploaded Image"
         inactive_stamp.is_active = 0
-        inactive_stamp.stamp_image = "/files/inactive_stamp.png"
+        inactive_stamp.signature_image = "/files/inactive_stamp.png"
         inactive_stamp.insert(ignore_mandatory=True)
         
         # Create active signature
@@ -280,7 +291,7 @@ def run_company_preview_tests():
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     
-    print(f"\nTest Results:")
+    print("\nTest Results:")
     print(f"Tests run: {result.testsRun}")
     print(f"Failures: {len(result.failures)}")
     print(f"Errors: {len(result.errors)}")
@@ -308,10 +319,16 @@ def validate_company_preview_installation():
     
     # Check if API methods are accessible
     try:
-        from print_designer.api.company_preview_api import get_company_stamps_and_signatures
-        from print_designer.api.company_preview_api import get_stamp_preview_html
-        from print_designer.api.company_preview_api import get_signature_preview_html
-        api_accessible = True
+        from print_designer.api.company_preview_api import (
+            get_company_stamps_and_signatures,
+            get_signature_preview_html,
+            get_stamp_preview_html,
+        )
+        api_accessible = (
+            callable(get_company_stamps_and_signatures)
+            and callable(get_stamp_preview_html)
+            and callable(get_signature_preview_html)
+        )
     except ImportError as e:
         api_accessible = False
         print(f"Import error: {e}")
@@ -323,7 +340,7 @@ def validate_company_preview_installation():
         import print_designer.hooks as hooks
         if hasattr(hooks, 'doctype_js') and 'Company' in hooks.doctype_js:
             hooks_registered = True
-    except:
+    except Exception:
         pass
     checks.append(("Client script registered in hooks", hooks_registered))
     
@@ -333,7 +350,7 @@ def validate_company_preview_installation():
         import print_designer.hooks as hooks
         if hasattr(hooks, 'app_include_css'):
             css_registered = 'company_preview.bundle.css' in hooks.app_include_css
-    except:
+    except Exception:
         pass
     checks.append(("CSS bundle registered in hooks", css_registered))
     
@@ -353,7 +370,7 @@ def validate_company_preview_installation():
             all_passed = False
     
     if all_passed:
-        print(f"\n🎉 All validation checks passed! Company Preview system is properly installed.")
+        print("\n🎉 All validation checks passed! Company Preview system is properly installed.")
         
         # Test basic functionality
         try:
@@ -367,7 +384,7 @@ def validate_company_preview_installation():
         except Exception as e:
             print(f"\nWarning: Could not test API functionality: {e}")
     else:
-        print(f"\n❌ Some validation checks failed. Please review the installation.")
+        print("\n❌ Some validation checks failed. Please review the installation.")
     
     return all_passed
 
