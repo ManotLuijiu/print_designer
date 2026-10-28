@@ -103,6 +103,7 @@ function pd_check_single_item_vat(frm, item_code) {
 // immediate feedback while the user edits the form.
 
 const PD_SERVICE_ITEM_GROUP = 'services';
+const PD_WHT_PREVIEW_SECTION = 'pd_custom_wht_preview_section';
 
 /**
  * Resolve the item codes of the form that belong to the "Services" item group.
@@ -145,12 +146,73 @@ function pd_get_service_item_codes(frm) {
 }
 
 /**
+ * Keep the "Thai Ecosystem (Withholding Tax & Retention)" section in sync with
+ * the items of the document.
+ *
+ * - document subject to withholding tax (service item or manually enabled
+ *   flag) -> the section is always open and cannot be collapsed
+ *   (collapsible = 0)
+ * - no service item -> the section stays collapsible and is collapsed by
+ *   default (collapsible = 1)
+ *
+ * Mirrors the server side definition in
+ * print_designer/custom/service_item_wht.py (CLIENT_SERVICE_ITEM_CONDITION).
+ *
+ * @param {Object} frm - Frappe form object
+ * @param {string[]} [service_codes] - optional resolved service item codes
+ */
+function pd_sync_wht_preview_section(frm, service_codes) {
+	if (!frm || !frm.doc) return;
+
+	const section = frm.fields_dict && frm.fields_dict[PD_WHT_PREVIEW_SECTION];
+	const meta_df = ((frm.meta && frm.meta.fields) || []).find(
+		f => f.fieldname === PD_WHT_PREVIEW_SECTION
+	);
+	if (!section) return;
+
+	// The section works on its own copy of the docfield, the meta entry is kept
+	// in sync so both stay consistent
+	const df = section.df || meta_df;
+	if (!df) return;
+
+	const rows = frm.doc.items || [];
+	const has_service_item = rows.some(row =>
+		row.item_group && String(row.item_group).trim().toLowerCase() === PD_SERVICE_ITEM_GROUP
+	);
+
+	const is_subject_to_wht = !!frm.doc.pd_custom_subject_to_wht;
+	const has_service_codes = Array.isArray(service_codes) && service_codes.length > 0;
+
+	// The section stays open when the document is subject to withholding tax
+	const expanded = is_subject_to_wht || has_service_item || has_service_codes;
+	const is_collapsible = !expanded;
+
+	df.collapsible = is_collapsible ? 1 : 0;
+	if (meta_df && meta_df !== df) meta_df.collapsible = df.collapsible;
+
+	if (section.head) {
+		section.head.toggleClass('collapsible', is_collapsible);
+		section.indicator && section.indicator.toggle(is_collapsible);
+
+		// Guard the click handler - a section that has to stay open cannot be collapsed
+		if (!section.pd_collapse_guarded) {
+			section.head.off('click').on('click', () => {
+				if (section.df.collapsible) section.collapse();
+			});
+			section.pd_collapse_guarded = true;
+		}
+	}
+
+	section.collapse(!expanded);
+}
+
+/**
  * Tick "Subject to Withholding Tax" when the form contains a service item.
  * The flag is never unticked automatically - a user may still set it manually.
  *
  * @param {Object} frm - Frappe form object
  */
-function pd_apply_subject_to_wht_from_items(frm) {
+async function pd_apply_subject_to_wht_from_items(frm) {
 	if (!frm || !frm.doc) return;
 
 	// The field is installed per doctype - do nothing when it is missing
@@ -159,16 +221,25 @@ function pd_apply_subject_to_wht_from_items(frm) {
 	if (!df) return;
 
 	// Already enabled - never untick it automatically
-	if (frm.doc.pd_custom_subject_to_wht) return;
+	if (frm.doc.pd_custom_subject_to_wht) {
+		pd_sync_wht_preview_section(frm);
+		return;
+	}
 
-	return pd_get_service_item_codes(frm).then(codes => {
-		if (!codes.length) return;
-		if (frm.doc.pd_custom_subject_to_wht) return;
+	const codes = await pd_get_service_item_codes(frm);
+	if (!codes.length) {
+		pd_sync_wht_preview_section(frm, codes);
+		return;
+	}
+	if (frm.doc.pd_custom_subject_to_wht) {
+		pd_sync_wht_preview_section(frm, codes);
+		return;
+	}
 
-		frm.set_value('pd_custom_subject_to_wht', 1);
-		frappe.show_alert({
-			message: __('Subject to Withholding Tax enabled (service item: {0})', [codes[0]]),
-			indicator: 'blue'
-		}, 5);
-	});
+	frm.set_value('pd_custom_subject_to_wht', 1);
+	frappe.show_alert({
+		message: __('Subject to Withholding Tax enabled (service item: {0})', [codes[0]]),
+		indicator: 'blue'
+	}, 5);
+	pd_sync_wht_preview_section(frm, codes);
 }

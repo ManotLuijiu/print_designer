@@ -13,6 +13,8 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils import flt, cint
 
+from print_designer.custom.service_item_wht import CLIENT_SERVICE_ITEM_CONDITION
+
 
 def migrate_wht_income_type_field(doctype):
     """
@@ -250,7 +252,10 @@ def get_quotation_custom_fields_definition():
                 "insert_after": "named_place",
                 "read_only": 1,
                 "hidden": 0,
+                # Collapsed by default, but kept open when the document is
+                # subject to withholding tax (service item in the items table)
                 "collapsible": 1,
+                "collapsible_depends_on": CLIENT_SERVICE_ITEM_CONDITION,
                 "length": 0,
                 "bold": 0,
             },

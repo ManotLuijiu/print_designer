@@ -26,6 +26,18 @@ import frappe
 SERVICE_ITEM_GROUP = "Services"
 SUBJECT_TO_WHT_FIELD = "pd_custom_subject_to_wht"
 
+#: Client side expression used as ``collapsible_depends_on`` of the
+#: "Thai Ecosystem (Withholding Tax & Retention)" section break.
+#:
+#: Frappe expands a collapsible section while the expression evaluates to true
+#: and collapses it otherwise, so the section stays open exactly when the
+#: document is subject to withholding tax (a service item or a manually
+#: enabled flag).  Keep it in sync with :func:`is_service_item_group`.
+CLIENT_SERVICE_ITEM_CONDITION = (
+	"doc.pd_custom_subject_to_wht || "
+	"(doc.items || []).some(i => (i.item_group || '').trim().toLowerCase() == 'services')"
+)
+
 
 def is_service_item_group(item_group):
 	"""Return True when ``item_group`` is the ``Services`` item group."""

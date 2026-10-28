@@ -13,6 +13,8 @@ from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.utils import flt, cint
 
+from print_designer.custom.service_item_wht import CLIENT_SERVICE_ITEM_CONDITION
+
 
 def migrate_wht_income_type_field(doctype):
     """
@@ -84,8 +86,10 @@ def get_sales_order_custom_fields_definition():
                 "fieldtype": "Section Break",
                 "label": "Thai Ecosystem (Withholding Tax & Retention)",
                 "insert_after": "named_place",
-                "collapsible": 0,
-                "collapsible_depends_on": "eval:doc.pd_custom_subject_to_wht",
+                # Collapsed by default, but kept open when the document is
+                # subject to withholding tax (service item in the items table)
+                "collapsible": 1,
+                "collapsible_depends_on": CLIENT_SERVICE_ITEM_CONDITION,
                 "no_copy": 1,
                 "read_only": 1,
                 "hidden": 0,

@@ -47,6 +47,11 @@ frappe.ui.form.on('Sales Order', {
         pd_apply_subject_to_wht_from_items(frm);
     },
     
+    // Keep the WHT preview section in sync when the flag is toggled manually
+    pd_custom_subject_to_wht: function(frm) {
+        pd_sync_wht_preview_section(frm);
+    },
+
     // Handle WHT income type changes for description updates (language-aware)
     pd_custom_wht_income_type: function(frm) {
         if (frm.doc.pd_custom_wht_income_type && frm.doc.pd_custom_subject_to_wht) {
@@ -81,5 +86,7 @@ frappe.ui.form.on('Sales Order Item', {
     },
     items_remove: function(frm) {
         setTimeout(() => pd_check_vat_treatment_from_items(frm), 100);
+        // Re-sync the WHT flag and the WHT preview section with the remaining items
+        pd_apply_subject_to_wht_from_items(frm);
     }
 });

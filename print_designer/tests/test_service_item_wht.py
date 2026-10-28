@@ -13,6 +13,7 @@ Run standalone (no site required):
 import unittest
 
 from print_designer.custom.service_item_wht import (
+	CLIENT_SERVICE_ITEM_CONDITION,
 	SERVICE_ITEM_GROUP,
 	SUBJECT_TO_WHT_FIELD,
 	apply_subject_to_wht_from_items,
@@ -177,6 +178,51 @@ class TestSalesInvoice(unittest.TestCase):
 		)
 		apply_subject_to_wht_from_items(doc)
 		self.assertEqual(doc.get(SUBJECT_TO_WHT_FIELD), 1)
+
+
+class TestCollapsibleCondition(unittest.TestCase):
+	"""The WHT preview section expands while the document is subject to WHT."""
+
+	def test_condition_checks_the_flag_and_the_item_group(self):
+		self.assertIn(SUBJECT_TO_WHT_FIELD, CLIENT_SERVICE_ITEM_CONDITION)
+		self.assertIn("item_group", CLIENT_SERVICE_ITEM_CONDITION)
+		self.assertIn(SERVICE_ITEM_GROUP.lower(), CLIENT_SERVICE_ITEM_CONDITION)
+
+	def test_condition_uses_the_service_item_group(self):
+		# the condition must not depend on a site specific item group name
+		self.assertNotIn("PD_CUSTOM", CLIENT_SERVICE_ITEM_CONDITION)
+
+
+class TestPreviewSectionDefinition(unittest.TestCase):
+	"""The installers must ship a collapsible section that follows the rule."""
+
+	def _section(self, module_path, doctype_label):
+		import importlib
+
+		module = importlib.import_module(module_path)
+		fields = module.get_sales_order_custom_fields_definition() if (
+			"sales_order" in module_path
+		) else module.get_quotation_custom_fields_definition()
+		# the definitions are keyed by doctype
+		fields = fields.get(doctype_label, [])
+		for field in fields:
+			if field.get("fieldname") == "pd_custom_wht_preview_section":
+				return field
+		raise AssertionError(f"no pd_custom_wht_preview_section in {doctype_label}")
+
+	def test_quotation_section_is_collapsible_and_condition_aware(self):
+		section = self._section(
+			"print_designer.commands.install_quotation_fields", "Quotation"
+		)
+		self.assertEqual(section.get("collapsible"), 1)
+		self.assertEqual(section.get("collapsible_depends_on"), CLIENT_SERVICE_ITEM_CONDITION)
+
+	def test_sales_order_section_is_collapsible_and_condition_aware(self):
+		section = self._section(
+			"print_designer.commands.install_sales_order_fields", "Sales Order"
+		)
+		self.assertEqual(section.get("collapsible"), 1)
+		self.assertEqual(section.get("collapsible_depends_on"), CLIENT_SERVICE_ITEM_CONDITION)
 
 
 if __name__ == "__main__":

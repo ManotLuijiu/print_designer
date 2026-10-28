@@ -218,6 +218,11 @@ frappe.ui.form.on('Sales Invoice', {
         });
     },
     
+    // Keep the WHT preview section in sync when the flag is toggled manually
+    pd_custom_subject_to_wht: function(frm) {
+        pd_sync_wht_preview_section(frm);
+    },
+
     // Handle WHT income type changes for description updates (language-aware)
     pd_custom_wht_income_type: function(frm) {
         if (frm.doc.pd_custom_wht_income_type && frm.doc.pd_custom_subject_to_wht) {
