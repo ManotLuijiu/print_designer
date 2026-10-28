@@ -42,6 +42,9 @@ frappe.ui.form.on('Sales Order', {
             // Trigger company event to populate fields
             frm.events.company(frm);
         }
+
+        // Keep "Subject to Withholding Tax" in sync with the item groups
+        pd_apply_subject_to_wht_from_items(frm);
     },
     
     // Handle WHT income type changes for description updates (language-aware)
@@ -73,6 +76,7 @@ frappe.ui.form.on('Sales Order Item', {
         const row = locals[cdt][cdn];
         if (row.item_code) {
             pd_check_single_item_vat(frm, row.item_code);
+            pd_apply_subject_to_wht_from_items(frm);
         }
     },
     items_remove: function(frm) {

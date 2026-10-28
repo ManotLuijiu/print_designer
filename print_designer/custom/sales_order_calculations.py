@@ -7,6 +7,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint
 
+from print_designer.custom.service_item_wht import apply_subject_to_wht_from_items
+
 
 def sales_order_calculate_thailand_amounts(doc, method=None):
     """
@@ -41,6 +43,9 @@ def sales_order_calculate_thailand_amounts(doc, method=None):
     
     # Apply Company defaults if Sales Order fields are not specified
     apply_company_defaults_for_sales_order(doc)
+    
+    # Enable withholding tax automatically when the order contains a service item
+    apply_subject_to_wht_from_items(doc)
     
     # Calculate withholding tax amounts
     calculate_withholding_tax_amounts_for_sales_order(doc)

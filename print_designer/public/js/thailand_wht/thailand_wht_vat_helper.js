@@ -95,3 +95,80 @@ function pd_check_single_item_vat(frm, item_code) {
 		}
 	});
 }
+// Auto-enable "Subject to Withholding Tax" when the document contains a service item.
+//
+// Rule (mirrors the server side in print_designer/custom/service_item_wht.py):
+// an item whose Item Group is "Services" makes the document subject to
+// withholding tax.  The server side stays authoritative - this script only gives
+// immediate feedback while the user edits the form.
+
+const PD_SERVICE_ITEM_GROUP = 'services';
+
+/**
+ * Resolve the item codes of the form that belong to the "Services" item group.
+ *
+ * @param {Object} frm - Frappe form object
+ * @returns {Promise<string[]>} service item codes
+ */
+function pd_get_service_item_codes(frm) {
+	const rows = (frm.doc.items || []).filter(row => row.item_code);
+	if (!rows.length) return Promise.resolve([]);
+
+	const item_codes = [...new Set(rows.map(row => row.item_code))];
+
+	return new Promise(resolve => {
+		frappe.call({
+			method: 'frappe.client.get_list',
+			args: {
+				doctype: 'Item',
+				filters: { name: ['in', item_codes] },
+				fields: ['name', 'item_group'],
+				limit_page_length: 0
+			},
+			callback: function(r) {
+				const group_map = {};
+				((r && r.message) || []).forEach(item => {
+					group_map[item.name] = item.item_group;
+				});
+
+				const codes = rows
+					.filter(row => {
+						const group = row.item_group || group_map[row.item_code];
+						return group && String(group).trim().toLowerCase() === PD_SERVICE_ITEM_GROUP;
+					})
+					.map(row => row.item_code);
+
+				resolve([...new Set(codes)]);
+			}
+		});
+	});
+}
+
+/**
+ * Tick "Subject to Withholding Tax" when the form contains a service item.
+ * The flag is never unticked automatically - a user may still set it manually.
+ *
+ * @param {Object} frm - Frappe form object
+ */
+function pd_apply_subject_to_wht_from_items(frm) {
+	if (!frm || !frm.doc) return;
+
+	// The field is installed per doctype - do nothing when it is missing
+	const meta = frm.meta || frappe.get_meta(frm.doc.doctype);
+	const df = (meta.fields || []).find(f => f.fieldname === 'pd_custom_subject_to_wht');
+	if (!df) return;
+
+	// Already enabled - never untick it automatically
+	if (frm.doc.pd_custom_subject_to_wht) return;
+
+	return pd_get_service_item_codes(frm).then(codes => {
+		if (!codes.length) return;
+		if (frm.doc.pd_custom_subject_to_wht) return;
+
+		frm.set_value('pd_custom_subject_to_wht', 1);
+		frappe.show_alert({
+			message: __('Subject to Withholding Tax enabled (service item: {0})', [codes[0]]),
+			indicator: 'blue'
+		}, 5);
+	});
+}
