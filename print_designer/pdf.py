@@ -90,8 +90,39 @@ def is_thai_language(language):
     return is_thai
 
 
+def get_update_page_no_script() -> str:
+    """Return the JS that exposes `clone_and_update` for the Chrome header/footer pages."""
+    script_path = frappe.get_app_path(
+        "print_designer",
+        "print_designer",
+        "page",
+        "print_designer",
+        "update_page_no.js",
+    )
+    return frappe.read_file(script_path)
+
+
+def add_update_page_no_script(soup, head):
+    """Make `clone_and_update` available in the header/footer page.
+
+    Frappe's Chrome generator replicates the header/footer once per body page by
+    calling `clone_and_update` inside the header/footer page. That function is
+    defined in `update_page_no.js`, which was only injected by the Print
+    Designer PDF generator. With the Frappe generator the call silently failed,
+    so the header/footer PDF stayed a single page and merging it with a multi
+    page body failed with an IndexError.
+    """
+    head = list(head or [])
+    script_tag = soup.new_tag("script")
+    script_tag.append(soup.new_string(get_update_page_no_script()))
+    head.append(script_tag)
+    return head
+
+
 def pdf_header_footer_html(soup, head, content, styles, html_id, css):
     print(f"[DEBUG] pdf_header_footer_html called with html_id: {html_id}")
+
+    head = add_update_page_no_script(soup, head)
 
     if soup.find(id="__print_designer"):
         pdf_generator = frappe.form_dict.get("pdf_generator", "chrome")
