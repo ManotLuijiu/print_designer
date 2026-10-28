@@ -55,20 +55,9 @@ frappe.ui.form.on('Sales Order', {
     // Handle WHT income type changes for description updates (language-aware)
     pd_custom_wht_income_type: function(frm) {
         if (frm.doc.pd_custom_wht_income_type && frm.doc.pd_custom_subject_to_wht) {
-            // Fetch description from Thai WHT Income Type DocType based on user language
-            const lang = frappe.boot.lang || 'en';
-            const desc_field = lang === 'th' ? 'income_description_th' : 'income_description';
-            const category_field = lang === 'th' ? 'income_category_th' : 'income_category';
-
-            frappe.db.get_value('Thai WHT Income Type', frm.doc.pd_custom_wht_income_type,
-                [desc_field, category_field, 'tax_rate'], function(r) {
-                    if (r) {
-                        const category = r[category_field] || '';
-                        const description = r[desc_field] || '';
-                        const display_text = category ? `${category} - ${description}` : description;
-                        frm.set_value('pd_custom_wht_description', display_text);
-                    }
-                });
+            // The field links to "Tax Withholding Category" - fetch the
+            // description from the category (Thai / English label)
+            pd_set_wht_description(frm);
         } else if (!frm.doc.pd_custom_wht_income_type) {
             frm.set_value('pd_custom_wht_description', '');
         }
@@ -82,11 +71,15 @@ frappe.ui.form.on('Sales Order Item', {
         if (row.item_code) {
             pd_check_single_item_vat(frm, row.item_code);
             pd_apply_subject_to_wht_from_items(frm);
+            // Fill the WHT income type / rate from the item master
+            pd_apply_item_wht_config(frm);
         }
     },
     items_remove: function(frm) {
         setTimeout(() => pd_check_vat_treatment_from_items(frm), 100);
         // Re-sync the WHT flag and the WHT preview section with the remaining items
         pd_apply_subject_to_wht_from_items(frm);
+        // Re-sync the WHT income type / rate with the remaining items
+        pd_apply_item_wht_config(frm);
     }
 });

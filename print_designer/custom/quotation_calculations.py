@@ -7,6 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint
 
+from print_designer.custom.item_wht_config import apply_item_wht_config
 from print_designer.custom.service_item_wht import apply_subject_to_wht_from_items
 
 
@@ -40,6 +41,11 @@ def quotation_calculate_thailand_amounts(doc, method=None):
         print(f"🔍 Quotation Calc: No company set, skipping")
         return
     
+    # Fill VAT treatment, WHT income type and rate from the items of the
+    # quotation (runs before the company defaults, so the rate of the item
+    # wins over the company default rate)
+    apply_item_wht_config(doc)
+
     # Apply Company defaults if Quotation fields are not specified
     apply_company_defaults(doc)
     

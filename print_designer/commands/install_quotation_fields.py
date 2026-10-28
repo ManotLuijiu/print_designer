@@ -178,6 +178,10 @@ def get_quotation_custom_fields_definition():
                 "fieldtype": "Percent",
                 "insert_after": "pd_custom_retention_amount",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
+                "description": _(
+                    "Filled from the rate of the WHT Income Type of the items. "
+                    "A percentage entered manually is kept."
+                ),
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -190,6 +194,10 @@ def get_quotation_custom_fields_definition():
                 "fieldtype": "Currency",
                 "insert_after": "pd_custom_withholding_tax_pct",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
+                "description": _(
+                    "Calculated from the net total and the withholding rate of the WHT Income Type "
+                    "of the items."
+                ),
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -266,6 +274,10 @@ def get_quotation_custom_fields_definition():
                 "insert_after": "pd_custom_wht_amounts_cb",
                 "default": "Standard VAT",
                 "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "description": _(
+                    "Filled from the items: an item that is a service (Item > Is Service) sets 'VAT Undue'. "
+                    "A manual choice ('Exempt from VAT' / 'Zero-rated for Export') is kept."
+                ),
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -317,6 +329,10 @@ def get_quotation_custom_fields_definition():
                 "insert_after": "pd_custom_subject_to_wht",
                 "depends_on": "eval:doc.pd_custom_subject_to_wht",
                 "options": "Tax Withholding Category",
+                "description": _(
+                    "Filled from the items: the first item that defines a WHT Income Type "
+                    "(Item > WHT Income Type) is used. A value entered manually is kept."
+                ),
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,

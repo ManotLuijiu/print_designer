@@ -2,6 +2,98 @@
 // Used by SI, SO, QT, PI, PO to auto-set pd_custom_vat_treatment based on Item properties
 
 /**
+ * Fill the WHT fields of the form from the items of the document.
+ *
+ * - pd_custom_wht_income_type  <- Item.pd_custom_wht_income_type
+ *   (the Tax Withholding Category of the first item that defines one; a
+ *   value the user entered manually is kept)
+ * - pd_custom_withholding_tax_pct <- the rate of that income type (only
+ *   when the field is still empty; a manual rate is kept)
+ * - pd_custom_vat_treatment <- "VAT Undue" when one of the items is flagged
+ *   as a service item (Item.pd_custom_is_service_item).  A deliberate manual
+ *   choice ("Exempt from VAT" / "Zero-rated for Export") is kept.
+ *
+ * Mirrors the server side in print_designer/custom/item_wht_config.py.
+ *
+ * @param {Object} frm - Frappe form object
+ */
+/**
+ * Fill the description of the selected WHT income type.
+ *
+ * The description is taken from the linked "Tax Withholding Category"
+ * (Thai or English label, depending on the user language).
+ *
+ * @param {Object} frm - Frappe form object
+ * @param {String} [income_type] - Income type, defaults to the current value
+ */
+function pd_set_wht_description(frm, income_type) {
+	if (!frm) return;
+
+	const name = income_type || (frm.doc && frm.doc.pd_custom_wht_income_type);
+	if (!name) {
+		if (frm.doc && frm.doc.pd_custom_wht_description) {
+			frm.set_value('pd_custom_wht_description', '');
+		}
+		return;
+	}
+
+	const lang = frappe.boot.lang || 'en';
+	const desc_field = lang === 'th' ? 'category_name' : 'category_name_en';
+
+	frappe.db.get_value('Tax Withholding Category', name, [desc_field], function(r) {
+		if (r) {
+			frm.set_value('pd_custom_wht_description', r[desc_field] || '');
+		}
+	});
+}
+
+function pd_apply_item_wht_config(frm) {
+	if (!frm || !frm.doc || !frm.doc.items || !frm.doc.items.length) return;
+
+	const item_codes = [...new Set(
+		frm.doc.items
+			.filter(row => row.item_code)
+			.map(row => row.item_code)
+	)];
+	if (!item_codes.length) return;
+
+	frappe.call({
+		method: 'print_designer.custom.item_wht_config.get_item_wht_config',
+		args: { item_codes: item_codes },
+		callback: function(r) {
+			const config = (r && r.message) || {};
+			const changes = [];
+
+			if (config.income_type && !frm.doc.pd_custom_wht_income_type) {
+				frm.set_value('pd_custom_wht_income_type', config.income_type);
+				// The description is filled here as well: the WHT flag may
+				// only be set after this call returns.
+				pd_set_wht_description(frm, config.income_type);
+				changes.push(__('WHT Income Type: {0}', [config.income_type]));
+			}
+
+			if (config.wht_rate && !frm.doc.pd_custom_withholding_tax_pct) {
+				frm.set_value('pd_custom_withholding_tax_pct', config.wht_rate);
+				changes.push(__('WHT Rate: {0}%', [config.wht_rate]));
+			}
+
+			if (config.is_service_item &&
+				(!frm.doc.pd_custom_vat_treatment || frm.doc.pd_custom_vat_treatment === 'Standard VAT')) {
+				frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
+				changes.push(__('VAT Treatment: VAT Undue'));
+			}
+
+			if (changes.length) {
+				frappe.show_alert({
+					message: changes.join(' | '),
+					indicator: 'blue'
+				}, 5);
+			}
+		}
+	});
+}
+
+/**
  * Check all items in the transaction and auto-set VAT treatment.
  * Rule: If ANY item is a service (pd_custom_is_service_item=1), set "VAT Undue".
  *       If ALL items are goods, set "Standard VAT".
