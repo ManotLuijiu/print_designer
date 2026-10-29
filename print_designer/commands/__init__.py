@@ -14,6 +14,9 @@ from print_designer.commands.install_print_settings_fields import (
     uninstall_print_settings_fields,
 )
 from print_designer.commands.restructure_retention_fields import restructure_retention_fields
+from print_designer.commands.set_service_item_wht_income_type import (
+	set_service_item_wht_income_type_cmd,
+)
 
 
 @click.command("setup-chrome", help="setup chrome (server-side) for pdf generation")
@@ -103,6 +106,7 @@ commands = [
     add_weasyprint_option_cmd,
     emergency_fix_watermark,
     restructure_retention_fields,
+    set_service_item_wht_income_type_cmd,
     install_print_format_fields_cmd,
     uninstall_print_format_fields_cmd,
     check_print_format_fields_cmd,
