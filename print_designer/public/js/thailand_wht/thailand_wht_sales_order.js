@@ -45,6 +45,12 @@ frappe.ui.form.on('Sales Order', {
 
         // Keep "Subject to Withholding Tax" in sync with the item groups
         pd_apply_subject_to_wht_from_items(frm);
+
+        // Fill the WHT income type / rate from the item master.  This has to
+        // happen on every refresh as well: a document that was created from
+        // another document (or loaded from a draft) never fires the
+        // "item_code" handler of the child table.
+        pd_apply_item_wht_config(frm);
     },
     
     // Keep the WHT preview section in sync when the flag is toggled manually

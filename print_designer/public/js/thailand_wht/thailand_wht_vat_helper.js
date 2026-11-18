@@ -18,22 +18,6 @@ function pd_tax_category(frm) {
 }
 
 /**
- * Fill the WHT fields of the form from the items of the document.
- *
- * - pd_custom_wht_income_type  <- Item.pd_custom_wht_income_type
- *   (the Tax Withholding Category of the first item that defines one; a
- *   value the user entered manually is kept)
- * - pd_custom_withholding_tax_pct <- the rate of that income type (only
- *   when the field is still empty; a manual rate is kept)
- * - pd_custom_vat_treatment <- "VAT Undue" when one of the items is flagged
- *   as a service item (Item.pd_custom_is_service_item).  A deliberate manual
- *   choice ("Exempt from VAT" / "Zero-rated for Export") is kept.
- *
- * Mirrors the server side in print_designer/custom/item_wht_config.py.
- *
- * @param {Object} frm - Frappe form object
- */
-/**
  * Fill the description of the selected WHT income type.
  *
  * The description is taken from the linked "Tax Withholding Category"
@@ -63,15 +47,42 @@ function pd_set_wht_description(frm, income_type) {
 	});
 }
 
-function pd_apply_item_wht_config(frm) {
-	if (!frm || !frm.doc || !frm.doc.items || !frm.doc.items.length) return;
+/**
+ * Fill the WHT fields of the form from the items of the document.
+ *
+ * - pd_custom_wht_income_type  <- Item.pd_custom_wht_income_type
+ *   (the Tax Withholding Category of the first item that defines one; a
+ *   value the user entered manually is kept)
+ * - pd_custom_withholding_tax_pct <- the rate of that income type (only
+ *   when the field is still empty; a manual rate is kept)
+ * - pd_custom_vat_treatment <- "VAT Undue" when one of the items is flagged
+ *   as a service item (Item.pd_custom_is_service_item).  A deliberate manual
+ *   choice ("Exempt from VAT" / "Zero-rated for Export") is kept.
+ *
+ * Mirrors the server side in print_designer/custom/item_wht_config.py.
+ *
+ * @param {Object} frm - Frappe form object
+ * @param {Function} [after] - Called when the configuration has been applied.
+ *   The call is asynchronous, so a caller that derives values from the
+ *   configuration (e.g. the withholding tax amount) has to wait for it.
+ */
+function pd_apply_item_wht_config(frm, after) {
+	const done = typeof after === 'function' ? after : function() {};
+
+	if (!frm || !frm.doc || !frm.doc.items || !frm.doc.items.length) {
+		done();
+		return;
+	}
 
 	const item_codes = [...new Set(
 		frm.doc.items
 			.filter(row => row.item_code)
 			.map(row => row.item_code)
 	)];
-	if (!item_codes.length) return;
+	if (!item_codes.length) {
+		done();
+		return;
+	}
 
 	frappe.call({
 		method: 'print_designer.custom.item_wht_config.get_item_wht_config',
@@ -105,6 +116,13 @@ function pd_apply_item_wht_config(frm) {
 					indicator: 'blue'
 				}, 5);
 			}
+
+			done();
+		},
+		error: function() {
+			// The configuration could not be read - the caller continues with
+			// the values the form already holds.
+			done();
 		}
 	});
 }

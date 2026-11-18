@@ -96,7 +96,7 @@ def get_sales_order_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-             {
+            {
                 "fieldname": "pd_custom_wht_amounts_cb",
                 "fieldtype": "Column Break",
                 "label": None,
@@ -108,14 +108,14 @@ def get_sales_order_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-             {
+            {
                 "fieldname": "pd_custom_vat_treatment",
                 "fieldtype": "Select",
                 "label": "VAT Treatment",
                 "insert_after": "pd_custom_wht_amounts_cb",
                 "description": "Select VAT treatment: Standard for regular sales, Exempt for fresh food/services, Zero-rated for export sales",
-                "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
-                "default": "Standard VAT",
+                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "default": "VAT Due",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
                 "translatable": 1,
@@ -154,7 +154,7 @@ def get_sales_order_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-             {
+            {
                 "fieldname": "pd_custom_wht_description",
                 "fieldtype": "Data",
                 "label": "WHT Description",
@@ -538,8 +538,7 @@ def validate_sales_order_fields_installation():
             "installed_count": len(installed_fields),
             "missing_fields": missing_fields,
             "field_mismatches": field_mismatches,
-            "validation_passed": len(missing_fields) == 0
-            and len(field_mismatches) == 0,
+            "validation_passed": len(missing_fields) == 0 and len(field_mismatches) == 0,
         }
 
     except Exception as e:
@@ -578,13 +577,9 @@ def check_sales_order_fields_status():
             print("\n📋 Current Field Order:")
             for i, field in enumerate(current_fields, 1):
                 insert_after = (
-                    f" | after: {field['insert_after']}"
-                    if field["insert_after"]
-                    else ""
+                    f" | after: {field['insert_after']}" if field["insert_after"] else ""
                 )
-                print(
-                    f"{i:2d}. {field['fieldname']:<40} | {field['fieldtype']:<15}{insert_after}"
-                )
+                print(f"{i:2d}. {field['fieldname']:<40} | {field['fieldtype']:<15}{insert_after}")
         else:
             print("❌ No Sales Order custom fields found")
 
@@ -615,9 +610,7 @@ def reinstall_sales_order_custom_fields():
 
         # Get current status
         status = check_sales_order_fields_status()
-        print(
-            f"Current status: {status['current_count']}/{status['expected_count']} fields"
-        )
+        print(f"Current status: {status['current_count']}/{status['expected_count']} fields")
 
         # Perform installation (with update=True to modify existing fields)
         result = install_sales_order_custom_fields()

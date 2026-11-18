@@ -272,8 +272,8 @@ def get_quotation_custom_fields_definition():
                 "label": "VAT Treatment",
                 "fieldtype": "Select",
                 "insert_after": "pd_custom_wht_amounts_cb",
-                "default": "Standard VAT",
-                "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "default": "VAT Due",
+                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export",
                 "description": _(
                     "Filled from the items: an item that is a service (Item > Is Service) sets 'VAT Undue'. "
                     "A manual choice ('Exempt from VAT' / 'Zero-rated for Export') is kept."
@@ -446,8 +446,7 @@ def validate_quotation_fields_installation():
             "installed_count": len(installed_fields),
             "missing_fields": missing_fields,
             "field_mismatches": field_mismatches,
-            "validation_passed": len(missing_fields) == 0
-            and len(field_mismatches) == 0,
+            "validation_passed": len(missing_fields) == 0 and len(field_mismatches) == 0,
         }
 
     except Exception as e:
@@ -486,13 +485,9 @@ def check_quotation_fields_status():
             print("\n📋 Current Field Order:")
             for i, field in enumerate(current_fields, 1):
                 insert_after = (
-                    f" | after: {field['insert_after']}"
-                    if field["insert_after"]
-                    else ""
+                    f" | after: {field['insert_after']}" if field["insert_after"] else ""
                 )
-                print(
-                    f"{i:2d}. {field['fieldname']:<35} | {field['fieldtype']:<15}{insert_after}"
-                )
+                print(f"{i:2d}. {field['fieldname']:<35} | {field['fieldtype']:<15}{insert_after}")
         else:
             print("❌ No Quotation custom fields found")
 
@@ -523,9 +518,7 @@ def reinstall_quotation_custom_fields():
 
         # Get current status
         status = check_quotation_fields_status()
-        print(
-            f"Current status: {status['current_count']}/{status['expected_count']} fields"
-        )
+        print(f"Current status: {status['current_count']}/{status['expected_count']} fields")
 
         # Perform installation (with update=True to modify existing fields)
         result = install_quotation_custom_fields()

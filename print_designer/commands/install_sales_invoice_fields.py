@@ -160,8 +160,8 @@ def get_sales_invoice_custom_fields_definition():
                 "label": "VAT Treatment",
                 "insert_after": "pd_custom_company_thailand_service_business",
                 "description": "Select VAT treatment: Standard for regular sales, Exempt for fresh food/services, Zero-rated for export sales",
-                "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
-                "default": "Standard VAT",
+                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "default": "VAT Due",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
                 "translatable": 1,
@@ -208,7 +208,7 @@ def get_sales_invoice_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
-             {
+            {
                 "fieldname": "pd_custom_wht_description",
                 "fieldtype": "Data",
                 "label": "WHT Description",

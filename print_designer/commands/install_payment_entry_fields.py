@@ -128,7 +128,7 @@ def get_payment_entry_custom_fields_definition():
                 "label": "VAT Treatment",
                 "insert_after": "pd_custom_wht_amounts_cb",
                 "description": "VAT treatment from invoices in this payment",
-                "options": "\nStandard VAT\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export",
                 "read_only": 1,
                 "in_list_view": 1,
                 "in_standard_filter": 1,

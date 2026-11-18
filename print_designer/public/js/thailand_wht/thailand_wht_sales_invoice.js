@@ -125,9 +125,13 @@ frappe.ui.form.on('Sales Invoice', {
             frm.events.company(frm);
         }
         
-        // Calculate WHT amounts
-        pd_calculate_wht_amounts(frm);
-        console.log('🇹🇭 WHT calculated on refresh');
+        // Apply the item driven WHT configuration first: the withholding tax
+        // amount has to be calculated with the rate that comes from the item
+        // master, not with the rate the form happens to hold.
+        pd_apply_item_wht_config(frm, function() {
+            pd_calculate_wht_amounts(frm);
+            console.log('🇹🇭 WHT calculated on refresh');
+        });
 
         // Keep "Subject to Withholding Tax" in sync with the item groups
         pd_apply_subject_to_wht_from_items(frm);
@@ -255,8 +259,11 @@ frappe.ui.form.on('Sales Invoice Item', {
         const row = locals[cdt][cdn];
         if (row && row.item_code) {
             pd_apply_subject_to_wht_from_items(frm);
-            // Fill the WHT income type / rate from the item master
-            pd_apply_item_wht_config(frm);
+            // Fill the WHT income type / rate from the item master and
+            // recalculate the amounts with the rate that came with it.
+            pd_apply_item_wht_config(frm, function() {
+                pd_calculate_wht_amounts(frm);
+            });
         }
     }
 });
