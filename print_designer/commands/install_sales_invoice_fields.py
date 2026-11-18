@@ -164,7 +164,7 @@ def get_sales_invoice_custom_fields_definition():
                 "default": "VAT Due",
                 "in_list_view": 1,
                 "in_standard_filter": 1,
-                "translatable": 1,
+                "translatable": 0,
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
