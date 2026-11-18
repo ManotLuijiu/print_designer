@@ -14,9 +14,14 @@ import unittest
 import frappe
 
 from print_designer.custom.item_wht_config import (
+	DEFAULT_VAT_TREATMENTS,
 	DEFAULT_VAT_TREATMENT,
+	EXEMPT_VAT_TREATMENT,
+	LEGACY_VAT_TREATMENT,
 	SERVICE_VAT_TREATMENT,
+	VAT_UNDUE_TREATMENTS,
 	get_description,
+	is_vat_undue,
 	parse_rate_from_name,
 	resolve_wht_fields,
 )
@@ -121,6 +126,55 @@ class TestResolveWhtFields(unittest.TestCase):
 		self.assertIsNone(result["income_type"])
 		self.assertIsNone(result["wht_rate"])
 		self.assertIsNone(result["vat_treatment"])
+
+	def test_the_legacy_value_is_treated_like_the_default(self):
+		result = self.resolve(doc_vat_treatment=LEGACY_VAT_TREATMENT)
+		self.assertEqual(result["vat_treatment"], SERVICE_VAT_TREATMENT)
+
+	def test_an_exempt_company_overrides_the_service_item(self):
+		result = self.resolve(doc_vat_treatment=DEFAULT_VAT_TREATMENT, vat_exempt=True)
+		self.assertEqual(result["vat_treatment"], EXEMPT_VAT_TREATMENT)
+
+	def test_an_exempt_company_keeps_a_manual_choice(self):
+		result = self.resolve(doc_vat_treatment="Zero-rated for Export", vat_exempt=True)
+		self.assertEqual(result["vat_treatment"], "Zero-rated for Export")
+
+	def test_an_exempt_company_overrides_the_undue_treatment(self):
+		result = self.resolve(doc_vat_treatment=SERVICE_VAT_TREATMENT, vat_exempt=True)
+		self.assertEqual(result["vat_treatment"], EXEMPT_VAT_TREATMENT)
+
+
+class TestVatTreatmentValues(unittest.TestCase):
+	"""The canonical value of a taxable supply is "VAT Due"."""
+
+	def test_the_default_value_is_the_canonical_one(self):
+		self.assertEqual(DEFAULT_VAT_TREATMENT, "VAT Due")
+		self.assertEqual(LEGACY_VAT_TREATMENT, "Standard VAT")
+		self.assertIn(DEFAULT_VAT_TREATMENT, DEFAULT_VAT_TREATMENTS)
+		self.assertIn(LEGACY_VAT_TREATMENT, DEFAULT_VAT_TREATMENTS)
+
+
+class TestIsVatUndue(unittest.TestCase):
+	"""The browser writes "VAT Undue"; the server has to recognise it."""
+
+	def test_the_canonical_value_is_recognised(self):
+		self.assertTrue(is_vat_undue("VAT Undue"))
+		self.assertEqual(SERVICE_VAT_TREATMENT, "VAT Undue")
+
+	def test_the_legacy_percentage_variant_is_still_recognised(self):
+		self.assertTrue(is_vat_undue("VAT Undue (7%)"))
+		self.assertIn("VAT Undue (7%)", VAT_UNDUE_TREATMENTS)
+
+	def test_the_other_treatments_are_not_undue(self):
+		for treatment in (
+			None,
+			"",
+			"VAT Due",
+			"Standard VAT",
+			"Exempt from VAT",
+			"Zero-rated for Export",
+		):
+			self.assertFalse(is_vat_undue(treatment))
 
 
 class TestGetDescription(unittest.TestCase):

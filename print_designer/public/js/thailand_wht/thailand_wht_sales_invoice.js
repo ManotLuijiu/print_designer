@@ -234,7 +234,9 @@ frappe.ui.form.on('Sales Invoice', {
             // description from the category (Thai / English label)
             pd_set_wht_description(frm);
         } else if (!frm.doc.pd_custom_wht_income_type) {
-            frm.set_value('pd_custom_wht_description', '');
+            // The helper is guarded: a submitted or cancelled document is
+            // never modified by the desk.
+            pd_set_wht_description(frm, '');
         }
     },
 
@@ -402,6 +404,12 @@ window.pd_calculate_wht_amounts = pd_calculate_wht_amounts;
 // pd_custom_withholding_tax_amount = total * pd_custom_withholding_tax_pct / 100
 // pd_custom_net_total_after_wht = total - pd_custom_withholding_tax_amount
 function pd_calculate_wht_amounts(frm) {
+    // A submitted or cancelled document is never modified by the desk: the
+    // amount, the net total after WHT and the words are document fields.
+    if (!pd_is_editable(frm)) {
+        return;
+    }
+
     // Get values
     const total = frm.doc.total || 0;
     const whtPct = frm.doc.pd_custom_withholding_tax_pct || 0;

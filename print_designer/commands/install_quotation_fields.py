@@ -273,10 +273,15 @@ def get_quotation_custom_fields_definition():
                 "fieldtype": "Select",
                 "insert_after": "pd_custom_wht_amounts_cb",
                 "default": "VAT Due",
-                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export",
+                "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export\nStandard VAT",
                 "description": _(
-                    "Filled from the items: an item that is a service (Item > Is Service) sets 'VAT Undue'. "
-                    "A manual choice ('Exempt from VAT' / 'Zero-rated for Export') is kept."
+                    "The VAT treatment of the supply: 'VAT Due' (the tax point has been reached), "
+                    "'VAT Undue' (a service - the VAT becomes due on the payment), "
+                    "'Exempt from VAT' (the selling company is not registered for the VAT) or "
+                    "'Zero-rated for Export'. The VAT registration of the selling company and the "
+                    "selected tax template decide; a manual choice ('Exempt from VAT' / "
+                    "'Zero-rated for Export') is kept. 'Standard VAT' is the legacy name of "
+                    "'VAT Due': it is only read for historical documents and never written."
                 ),
                 "read_only": 0,
                 "hidden": 0,
@@ -327,7 +332,10 @@ def get_quotation_custom_fields_definition():
                 "label": "WHT Income Type",
                 "fieldtype": "Link",
                 "insert_after": "pd_custom_subject_to_wht",
-                "depends_on": "eval:doc.pd_custom_subject_to_wht",
+                # The stored reference stays visible on a submitted document
+                # even when the historical WHT flag is 0.  The flag is never
+                # ticked to expose the field.
+                "depends_on": "eval:doc.pd_custom_subject_to_wht || doc.pd_custom_wht_income_type",
                 "options": "Tax Withholding Category",
                 "description": _(
                     "Filled from the items: the first item that defines a WHT Income Type "

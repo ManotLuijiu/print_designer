@@ -11,7 +11,9 @@ Key Concept:
 
 VAT Treatment Logic:
 - "VAT Undue" → Use Company's default_output_vat_undue_account
-- "Standard VAT" → Use Company's default_output_vat_account
+- "VAT Due" → Use Company's default_output_vat_account
+
+The legacy value "Standard VAT" is still understood as "VAT Due".
 """
 
 import frappe
@@ -71,12 +73,12 @@ def make_regional_gl_entries(gl_entries, doc):
         frappe.logger().debug(
             f"[Sales Invoice {doc.name}] VAT Treatment: {pd_custom_vat_treatment} → Using VAT Undue account: {target_vat_account}"
         )
-    elif "Standard VAT" in pd_custom_vat_treatment or "Standard" in pd_custom_vat_treatment:
+    elif "VAT Due" in pd_custom_vat_treatment or "Standard" in pd_custom_vat_treatment:
         # VAT point occurred (goods, immediate VAT)
         # Use standard VAT account
         target_vat_account = output_vat_account
         frappe.logger().debug(
-            f"[Sales Invoice {doc.name}] VAT Treatment: {pd_custom_vat_treatment} → Using Standard VAT account: {target_vat_account}"
+            f"[Sales Invoice {doc.name}] VAT Treatment: {pd_custom_vat_treatment} → Using Output VAT account: {target_vat_account}"
         )
 
     # If no target VAT account determined, return unchanged GL entries

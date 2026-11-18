@@ -56,9 +56,38 @@ DOC_VAT_TREATMENT_FIELD = "pd_custom_vat_treatment"
 DOC_DESCRIPTION_FIELD = "pd_custom_wht_description"
 
 #: VAT treatment values
-DEFAULT_VAT_TREATMENT = "Standard VAT"
+#:
+#: ``VAT Due`` is the canonical stored value of a taxable supply whose VAT is
+#: due.  It replaces the legacy value ``Standard VAT``, which is still read
+#: (and understood as "VAT Due") but never written again.
+DEFAULT_VAT_TREATMENT = "VAT Due"
+LEGACY_VAT_TREATMENT = "Standard VAT"
+DEFAULT_VAT_TREATMENTS = (DEFAULT_VAT_TREATMENT, LEGACY_VAT_TREATMENT)
 SERVICE_VAT_TREATMENT = "VAT Undue"
-MANUAL_VAT_TREATMENTS = ("Exempt from VAT", "Zero-rated for Export")
+EXEMPT_VAT_TREATMENT = "Exempt from VAT"
+ZERO_RATED_VAT_TREATMENT = "Zero-rated for Export"
+MANUAL_VAT_TREATMENTS = (EXEMPT_VAT_TREATMENT, ZERO_RATED_VAT_TREATMENT)
+
+#: ``VAT Undue`` and the legacy percentage variant that the migration
+#: replaces.  Both are read, only the canonical value is written.
+LEGACY_VAT_UNDUE_TREATMENT = "VAT Undue (7%)"
+VAT_UNDUE_TREATMENTS = (SERVICE_VAT_TREATMENT, LEGACY_VAT_UNDUE_TREATMENT)
+
+
+def is_vat_undue(treatment: str | None) -> bool:
+    """True when the treatment is the "VAT Undue" treatment.
+
+    The canonical value is ``VAT Undue``; the legacy percentage variant
+    ``VAT Undue (7%)`` is still recognised, because a document that was not
+    migrated yet can still carry it.
+    """
+    return treatment in VAT_UNDUE_TREATMENTS
+
+#: The VAT registration status of the selling company that means "not
+#: registered for the VAT" (Thai Company Settings.vat_registration_status).
+VAT_STATUS_NOT_REGISTERED = "Not Registered"
+VAT_STATUS_UNCONFIRMED = "Unconfirmed"
+THAI_COMPANY_SETTINGS_DOCTYPE = "Thai Company Settings"
 
 #: "Service Fees 3% (PND53)" -> 3
 _PERCENT_PATTERN = re.compile(r"(\d+(?:\.\d+)?)\s*%")
@@ -200,6 +229,7 @@ def resolve_wht_fields(
 	rows=None,
 	item_config_map=None,
 	rate_map=None,
+	vat_exempt=False,
 ):
 	"""Resolve the WHT fields of a document from its items (pure function).
 
@@ -209,6 +239,9 @@ def resolve_wht_fields(
 	:param rows: the ``items`` child rows of the document
 	:param item_config_map: ``{item_code: {"income_type": ..., "is_service_item": ...}}``
 	:param rate_map: ``{income_type: rate}``
+	:param vat_exempt: True when the selling company is not registered for
+		the VAT - the supply is exempt and a service item must not force
+		"VAT Undue" on it
 
 	:return: dict with the resolved values
 	"""
@@ -239,9 +272,17 @@ def resolve_wht_fields(
 	if rate is not None and not pct:
 		pct = rate
 
-	# A deliberate manual VAT treatment (exempt / zero rated) is kept
+	# A deliberate manual VAT treatment (exempt / zero rated) is kept.
+	#
+	# A company that is not registered for the VAT is exempt: the service
+	# item flag alone must not force "VAT Undue" on an exempt supply.
 	vat_treatment = doc_vat_treatment
-	if has_service_item and (not vat_treatment or vat_treatment == DEFAULT_VAT_TREATMENT):
+	if vat_exempt:
+		if vat_treatment not in MANUAL_VAT_TREATMENTS:
+			vat_treatment = EXEMPT_VAT_TREATMENT
+	elif has_service_item and (
+		not vat_treatment or vat_treatment in DEFAULT_VAT_TREATMENTS
+	):
 		vat_treatment = SERVICE_VAT_TREATMENT
 
 	return {
@@ -260,6 +301,103 @@ def _doc_has_field(doc, fieldname):
 	if meta is None:
 		return True
 	return bool(meta.has_field(fieldname))
+
+
+def _tbs_vat_resolver():
+	"""Return the authoritative VAT resolver of the Thai Business Suite app.
+
+	The app is optional - on a site without it the local fallback of
+	:func:`get_company_vat_exemption` is used.
+	"""
+	try:
+		from thai_business_suite.overrides.thai_tax_category import (
+			resolve_vat_treatment,
+		)
+	except Exception:
+		return None
+
+	return resolve_vat_treatment
+
+
+def get_company_vat_exemption(company):
+	"""True when the selling company is not registered for the VAT.
+
+	The authoritative decision lives in the Thai Business Suite app (the
+	company settings carry the VAT registration status); the local fallback
+	reads the same setting directly.
+	"""
+	if not company:
+		return False
+
+	resolver = _tbs_vat_resolver()
+	if resolver:
+		treatment, _warning = resolver(company=company)
+		return treatment == EXEMPT_VAT_TREATMENT
+
+	try:
+		if not frappe.db.exists("DocType", THAI_COMPANY_SETTINGS_DOCTYPE):
+			return False
+
+		status = frappe.db.get_value(
+			THAI_COMPANY_SETTINGS_DOCTYPE,
+			{"company": company},
+			"vat_registration_status",
+		)
+	except Exception:
+		return False
+
+	return status in (VAT_STATUS_NOT_REGISTERED, VAT_STATUS_UNCONFIRMED)
+
+
+def resolve_vat_treatment(
+	company=None,
+	tax_template=None,
+	tax_category=None,
+	current=None,
+	has_service_item=False,
+	posting_date=None,
+):
+	"""Return the VAT treatment of a document.
+
+	The authoritative decision lives in the Thai Business Suite app (it knows
+	the VAT registration status of the company and the tax template); the
+	local fallback only knows the company registration and the items.
+
+	A deliberate manual choice ("Exempt from VAT" / "Zero-rated for Export")
+	is never overwritten, and a deliberate "VAT Undue" is kept as well - only
+	the default value is replaced by the decision.
+	"""
+	if current in MANUAL_VAT_TREATMENTS:
+		return current
+
+	resolver = _tbs_vat_resolver()
+	if resolver:
+		decision, _warning = resolver(
+			company=company,
+			tax_template=tax_template,
+			tax_category=tax_category,
+			posting_date=posting_date,
+			has_service_item=has_service_item,
+		)
+	else:
+		decision = None
+		if get_company_vat_exemption(company):
+			decision = EXEMPT_VAT_TREATMENT
+		elif has_service_item and (
+			not current or current in DEFAULT_VAT_TREATMENTS
+		):
+			decision = SERVICE_VAT_TREATMENT
+		else:
+			decision = current or DEFAULT_VAT_TREATMENT
+
+	if decision == EXEMPT_VAT_TREATMENT:
+		return decision
+
+	if current and current not in DEFAULT_VAT_TREATMENTS:
+		# A deliberate choice that is not the default value is kept.
+		return current
+
+	return decision
 
 
 def apply_item_wht_config(doc):
@@ -295,6 +433,19 @@ def apply_item_wht_config(doc):
 		rows=rows,
 		item_config_map=item_config_map,
 		rate_map=rate_map,
+		vat_exempt=get_company_vat_exemption(doc.get("company")),
+	)
+
+	# The VAT treatment is decided by the VAT registration of the selling
+	# company and the selected tax template; the items only matter for a
+	# service supply (the tax point of a service is the payment).
+	resolved["vat_treatment"] = resolve_vat_treatment(
+		company=doc.get("company"),
+		tax_template=doc.get("taxes_and_charges"),
+		tax_category=doc.get("tax_category"),
+		current=doc_vat_treatment,
+		has_service_item=resolved["has_service_item"],
+		posting_date=doc.get("posting_date") or doc.get("transaction_date"),
 	)
 
 	if _doc_has_field(doc, DOC_INCOME_TYPE_FIELD) and resolved["income_type_auto"]:
@@ -326,14 +477,14 @@ def apply_item_wht_config(doc):
 
 
 @frappe.whitelist()
-def get_item_wht_config(item_codes=None, item_code=None):
+def get_item_wht_config(item_codes=None, item_code=None, company=None):
 	"""Return the WHT configuration of one or many items.
 
 	Used by the client script to mirror the server side behaviour while the
 	user edits the form.
 
-	:return: dict with ``income_type``, ``is_service_item``, ``wht_rate`` and
-		the per item configuration
+	:return: dict with ``income_type``, ``is_service_item``, ``wht_rate``,
+		``vat_treatment`` and the per item configuration
 	"""
 	if item_codes:
 		if isinstance(item_codes, str):
@@ -361,12 +512,20 @@ def get_item_wht_config(item_codes=None, item_code=None):
 		rows=rows,
 		item_config_map=item_config_map,
 		rate_map=rate_map,
+		vat_exempt=get_company_vat_exemption(company),
+	)
+
+	resolved["vat_treatment"] = resolve_vat_treatment(
+		company=company,
+		current=None,
+		has_service_item=resolved["has_service_item"],
 	)
 
 	return {
 		"income_type": resolved["income_type"],
 		"is_service_item": 1 if resolved["has_service_item"] else 0,
 		"wht_rate": resolved["wht_rate"],
+		"vat_treatment": resolved["vat_treatment"],
 		"description": get_description(resolved["income_type"]),
 		"per_item": item_config_map,
 	}

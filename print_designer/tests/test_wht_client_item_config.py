@@ -200,6 +200,8 @@ if (scenario === 'refresh') {
 	handlers[idt].item_code(frm, idt, 1);
 } else if (scenario === 'items_remove') {
 	handlers[ITEM_DT[doctype]].items_remove(frm);
+} else if (scenario === 'income_type') {
+	handlers[doctype].pd_custom_wht_income_type(frm);
 }
 
 // The client helpers are asynchronous (a frappe.call callback and a promise),
@@ -325,6 +327,106 @@ class TestItemDrivenWhtOnItemChange(unittest.TestCase):
                 )
 
                 self.assertEqual(result["income_type"], "Contracting 3% (PND53)")
+
+
+class TestSubmittedDocumentIsNotModified(unittest.TestCase):
+    """A submitted or cancelled document is never changed by the desk.
+
+    Opening such a document must not tick the WHT flag, fill the income
+    type, write the description, change the VAT treatment or recalculate an
+    amount.  Only a display update (the preview section) is allowed.
+    """
+
+    def test_the_subject_to_wht_flag_is_not_ticked(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "refresh", {"docstatus": docstatus})
+
+                    self.assertEqual(result["subject_to_wht"], 0)
+
+    def test_the_income_type_and_the_rate_are_not_filled(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "refresh", {"docstatus": docstatus})
+
+                    self.assertEqual(result["income_type"], "")
+                    self.assertEqual(result["pct"], 0)
+
+    def test_the_vat_treatment_is_not_changed(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "refresh", {"docstatus": docstatus})
+
+                    self.assertEqual(result["vat_treatment"], "")
+
+    def test_the_description_is_not_written(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "refresh", {"docstatus": docstatus})
+
+                    self.assertEqual(result["description"], "")
+
+    def test_no_alert_is_shown(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "refresh", {"docstatus": docstatus})
+
+                    self.assertEqual(result["alerts"], [])
+
+    def test_the_item_code_handler_does_not_change_the_document(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(doctype, "item_code", {"docstatus": docstatus})
+
+                    self.assertEqual(result["subject_to_wht"], 0)
+                    self.assertEqual(result["income_type"], "")
+                    self.assertEqual(result["pct"], 0)
+                    self.assertEqual(result["vat_treatment"], "")
+
+    def test_the_amounts_are_not_recalculated(self):
+        # The harness only reports the amount fields when they were written.
+        for docstatus in (1, 2):
+            with self.subTest(docstatus=docstatus):
+                result = run_client("Sales Invoice", "refresh", {"docstatus": docstatus})
+
+                self.assertNotIn("wht_amount", result)
+                self.assertNotIn("net_after_wht", result)
+
+    def test_the_description_handler_does_not_write_on_a_submitted_document(self):
+        for doctype in CLIENT_FILES:
+            for docstatus in (1, 2):
+                with self.subTest(doctype=doctype, docstatus=docstatus):
+                    result = run_client(
+                        doctype,
+                        "income_type",
+                        {
+                            "docstatus": docstatus,
+                            "pd_custom_wht_income_type": "Service Fees 3% (PND53)",
+                            "pd_custom_subject_to_wht": 1,
+                        },
+                    )
+
+                    self.assertEqual(result["description"], "")
+
+    def test_the_description_is_filled_on_a_draft(self):
+        for doctype in CLIENT_FILES:
+            with self.subTest(doctype=doctype):
+                result = run_client(
+                    doctype,
+                    "income_type",
+                    {
+                        "pd_custom_wht_income_type": "Service Fees 3% (PND53)",
+                        "pd_custom_subject_to_wht": 1,
+                    },
+                )
+
+                self.assertEqual(result["description"], "Service Fees 3% (PND53)")
 
 
 class TestSalesInvoiceAmountOrdering(unittest.TestCase):

@@ -65,7 +65,9 @@ frappe.ui.form.on('Quotation', {
             // description from the category (Thai / English label)
             pd_set_wht_description(frm);
         } else if (!frm.doc.pd_custom_wht_income_type) {
-            frm.set_value('pd_custom_wht_description', '');
+            // The helper is guarded: a submitted or cancelled document is
+            // never modified by the desk.
+            pd_set_wht_description(frm, '');
         }
     }
 });

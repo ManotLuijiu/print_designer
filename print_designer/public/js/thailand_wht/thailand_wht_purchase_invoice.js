@@ -118,8 +118,8 @@ frappe.ui.form.on('Purchase Invoice', {
                 field_options: frm.get_field('pd_custom_vat_treatment') ? frm.get_field('pd_custom_vat_treatment').df.options : 'field not found'
             });
 
-            // Auto-change from Standard VAT to VAT Undue for TDS transactions
-            if (!frm.doc.pd_custom_vat_treatment || frm.doc.pd_custom_vat_treatment === '' || frm.doc.pd_custom_vat_treatment === 'Standard VAT') {
+            // Auto-change from the default treatment to VAT Undue for TDS transactions
+            if (!frm.doc.pd_custom_vat_treatment || frm.doc.pd_custom_vat_treatment === '' || PD_DEFAULT_TREATMENTS.includes(frm.doc.pd_custom_vat_treatment)) {
                 console.log('⚡ Setting VAT Treatment to VAT Undue...');
                 frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
             } else {
@@ -140,7 +140,7 @@ frappe.ui.form.on('Purchase Invoice', {
             }
 
             if (frm.doc.pd_custom_vat_treatment === 'VAT Undue') {
-                frm.set_value('pd_custom_vat_treatment', 'Standard VAT');
+                frm.set_value('pd_custom_vat_treatment', PD_DUE_TREATMENT);
             }
 
             frappe.show_alert({
@@ -373,9 +373,9 @@ function smart_configure_wht_from_item(frm, item_wht_config, item_code) {
         });
     }
 
-    // Auto-select VAT Undue if Standard VAT is set
-    if (frm.doc.pd_custom_vat_treatment === 'Standard VAT') {
-        console.log('🔄 DEBUG: Converting Standard VAT to VAT Undue');
+    // Auto-select VAT Undue if the default treatment is set
+    if (PD_DEFAULT_TREATMENTS.includes(frm.doc.pd_custom_vat_treatment)) {
+        console.log('🔄 DEBUG: Converting the default VAT treatment to VAT Undue');
         frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
         changes_made.push('VAT → VAT Undue');
         console.log('✅ DEBUG: Changed VAT treatment to VAT Undue');
@@ -441,7 +441,7 @@ function check_remaining_wht_items(frm) {
                     frm.set_value('pd_custom_subject_to_wht', 0);
                     frm.set_value('pd_custom_wht_income_type', '');
                     if (frm.doc.pd_custom_vat_treatment === 'VAT Undue') {
-                        frm.set_value('pd_custom_vat_treatment', 'Standard VAT');
+                        frm.set_value('pd_custom_vat_treatment', PD_DUE_TREATMENT);
                     }
 
                     frappe.show_alert({

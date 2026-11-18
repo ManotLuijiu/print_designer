@@ -18,6 +18,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt, getdate, nowdate
 
+from print_designer.custom.item_wht_config import is_vat_undue
+
 
 def payment_entry_calculate_retention_amounts(doc, method=None):
     """Calculate Thai tax amounts (VAT + WHT + Retention) when Payment Entry references are updated."""
@@ -479,7 +481,7 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
         print(f"   pd_custom_vat_treatment field: {pd_custom_vat_treatment}")
         
         # Check if this is VAT Undue treatment
-        has_vat_undue = pd_custom_vat_treatment == "VAT Undue (7%)"
+        has_vat_undue = is_vat_undue(pd_custom_vat_treatment)
         tax_info["pd_custom_vat_treatment"] = pd_custom_vat_treatment
         tax_info["has_vat_undue"] = has_vat_undue
         
@@ -494,7 +496,7 @@ def _get_invoice_thai_tax_info(reference_doctype, reference_name):
             else:
                 print(f"   ⚠️ VAT Undue treatment but no VAT amount found in taxes")
         else:
-            print(f"   ✅ Standard VAT treatment: {pd_custom_vat_treatment}")
+            print(f"   ✅ VAT treatment: {pd_custom_vat_treatment}")
         
         # ENHANCED: Fetch Company Thai tax account configuration
         company_tax_accounts = _get_company_thai_tax_accounts(invoice.company)
@@ -1133,7 +1135,7 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
 
                     # VAT Undue amount - get from Sales Taxes and Charges
                     vat_undue_amount = 0
-                    if pd_custom_vat_treatment == "VAT Undue (7%)" and hasattr(sales_invoice, 'taxes'):
+                    if is_vat_undue(pd_custom_vat_treatment) and hasattr(sales_invoice, 'taxes'):
                         has_vat_undue = True
                         for tax in sales_invoice.taxes:
                             if 'vat' in str(tax.account_head).lower() and 'undue' in str(tax.account_head).lower():
@@ -1196,7 +1198,7 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
 
                     # VAT Undue amount - get from Purchase Taxes and Charges
                     vat_undue_amount = 0
-                    if pd_custom_vat_treatment == "VAT Undue (7%)" and hasattr(purchase_invoice, 'taxes'):
+                    if is_vat_undue(pd_custom_vat_treatment) and hasattr(purchase_invoice, 'taxes'):
                         has_vat_undue = True
                         for tax in purchase_invoice.taxes:
                             if 'vat' in str(tax.account_head).lower() and 'undue' in str(tax.account_head).lower():

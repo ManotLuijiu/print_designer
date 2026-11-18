@@ -9,6 +9,8 @@ import frappe
 from frappe.utils import flt, cint, getdate
 from frappe import _
 
+from print_designer.custom.item_wht_config import EXEMPT_VAT_TREATMENT, is_vat_undue
+
 def override_purchase_invoice_wht_calculation(doc, method=None):
     """
     Override ERPNext's standard WHT calculation for Thai compliance.
@@ -1106,14 +1108,18 @@ def validate_thai_wht_configuration(doc, method=None):
     # Validate VAT treatment for TDS transactions
     # Only suggest VAT Undue if document has single item type (not mixed assets + services)
     pd_custom_vat_treatment = getattr(doc, "pd_custom_vat_treatment", "")
-    if pd_custom_vat_treatment and pd_custom_vat_treatment not in ["VAT Undue (7%)", "Exempt from VAT"]:
+    if (
+        pd_custom_vat_treatment
+        and not is_vat_undue(pd_custom_vat_treatment)
+        and pd_custom_vat_treatment != EXEMPT_VAT_TREATMENT
+    ):
         # Check if document has mixed item types
         has_mixed_item_types = _check_mixed_item_types(doc)
 
         if not has_mixed_item_types:
             frappe.msgprint(
                 _(
-                    "Consider using 'VAT Undue (7%)' for TDS transactions to comply with Thai tax regulations"
+                    "Consider using 'VAT Undue' for TDS transactions to comply with Thai tax regulations"
                 ),
                 indicator="yellow",
             )

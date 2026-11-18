@@ -9,6 +9,48 @@ const PD_CATEGORY_TREATMENTS = {
 	'Zero-Rated': 'Zero-rated for Export',
 };
 
+// The canonical value of a taxable supply whose VAT is due.  It replaces the
+// legacy value "Standard VAT", which is still read (and understood as
+// "VAT Due") but never written again.
+const PD_DUE_TREATMENT = 'VAT Due';
+const PD_LEGACY_DUE_TREATMENT = 'Standard VAT';
+const PD_DEFAULT_TREATMENTS = [PD_DUE_TREATMENT, PD_LEGACY_DUE_TREATMENT];
+const PD_SERVICE_TREATMENT = 'VAT Undue';
+const PD_EXEMPT_TREATMENT = 'Exempt from VAT';
+// A deliberate manual choice is never overwritten.
+const PD_MANUAL_TREATMENTS = ['Exempt from VAT', 'Zero-rated for Export'];
+
+/**
+ * True when the desk may write the suggested VAT treatment on the form.
+ *
+ * A deliberate manual choice is never overwritten, an exemption always
+ * wins, and any other suggestion only replaces the default value.
+ *
+ * @param {String} current - the value of the form
+ * @param {String} suggested - the value the server suggests
+ * @returns {Boolean}
+ */
+function pd_should_apply_treatment(current, suggested) {
+	if (!suggested) return false;
+	if (current && PD_MANUAL_TREATMENTS.includes(current)) return false;
+	if (suggested === PD_EXEMPT_TREATMENT) return true;
+	if (!current || PD_DEFAULT_TREATMENTS.includes(current)) return true;
+	return false;
+}
+
+/**
+ * True when the document may be modified by the desk.
+ *
+ * A submitted or cancelled document is never modified by a refresh.
+ *
+ * @param {Object} frm - Frappe form object
+ * @returns {Boolean}
+ */
+function pd_is_editable(frm) {
+	if (!frm || !frm.doc) return false;
+	return !frm.doc.docstatus || frm.doc.docstatus === 0;
+}
+
 // The Tax Category of the document as a plain string.  `frappe.db.get_value`
 // can hand over an object ({field: null}) for an empty field, which must not
 // be used as a key.
@@ -28,6 +70,10 @@ function pd_tax_category(frm) {
  */
 function pd_set_wht_description(frm, income_type) {
 	if (!frm) return;
+
+	// A submitted or cancelled document is never modified by the desk: the
+	// description is a document field, not a display value.
+	if (!pd_is_editable(frm)) return;
 
 	const name = income_type || (frm.doc && frm.doc.pd_custom_wht_income_type);
 	if (!name) {
@@ -74,6 +120,13 @@ function pd_apply_item_wht_config(frm, after) {
 		return;
 	}
 
+	// A submitted document is never modified by the desk - opening it must
+	// not change its stored VAT treatment.
+	if (!pd_is_editable(frm)) {
+		done();
+		return;
+	}
+
 	const item_codes = [...new Set(
 		frm.doc.items
 			.filter(row => row.item_code)
@@ -86,7 +139,7 @@ function pd_apply_item_wht_config(frm, after) {
 
 	frappe.call({
 		method: 'print_designer.custom.item_wht_config.get_item_wht_config',
-		args: { item_codes: item_codes },
+		args: { item_codes: item_codes, company: frm.doc.company },
 		callback: function(r) {
 			const config = (r && r.message) || {};
 			const changes = [];
@@ -104,10 +157,13 @@ function pd_apply_item_wht_config(frm, after) {
 				changes.push(__('WHT Rate: {0}%', [config.wht_rate]));
 			}
 
-			if (config.is_service_item &&
-				(!frm.doc.pd_custom_vat_treatment || frm.doc.pd_custom_vat_treatment === 'Standard VAT')) {
-				frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
-				changes.push(__('VAT Treatment: VAT Undue'));
+			// The VAT treatment is decided by the server (the VAT
+			// registration of the selling company, the tax template and the
+			// items); the browser only mirrors that decision.
+			const current = frm.doc.pd_custom_vat_treatment;
+			if (pd_should_apply_treatment(current, config.vat_treatment)) {
+				frm.set_value('pd_custom_vat_treatment', config.vat_treatment);
+				changes.push(__('VAT Treatment: {0}', [config.vat_treatment]));
 			}
 
 			if (changes.length) {
@@ -130,18 +186,23 @@ function pd_apply_item_wht_config(frm, after) {
 /**
  * Check all items in the transaction and auto-set VAT treatment.
  * Rule: If ANY item is a service (pd_custom_is_service_item=1), set "VAT Undue".
- *       If ALL items are goods, set "Standard VAT".
+ *       If ALL items are goods, set "VAT Due".
  *       User can still override manually.
  *
  * @param {Object} frm - Frappe form object
  * @param {Object} [trigger_item] - Optional: the item that triggered the check (for alert message)
  */
 function pd_check_vat_treatment_from_items(frm, trigger_item) {
+	if (!frm || !frm.doc) return;
+
+	// A submitted document is never modified by the desk.
+	if (!pd_is_editable(frm)) return;
+
 	if (!frm.doc.items || !frm.doc.items.length) return;
 
 	// Skip if user has manually set to Exempt or Zero-rated (deliberate override)
 	const current = frm.doc.pd_custom_vat_treatment;
-	if (current === 'Exempt from VAT' || current === 'Zero-rated for Export') return;
+	if (current && PD_MANUAL_TREATMENTS.includes(current)) return;
 
 	// The Tax Category of the customer decides the treatment of the supply
 	// (Exempt / Zero-Rated), the items must not override it.
@@ -156,40 +217,25 @@ function pd_check_vat_treatment_from_items(frm, trigger_item) {
 
 	if (!item_codes.length) return;
 
-	// Batch fetch service flag for all items
+	// The server decides (the VAT registration of the selling company, the
+	// tax template and the items); the browser mirrors that decision.
 	frappe.call({
-		method: 'frappe.client.get_list',
-		args: {
-			doctype: 'Item',
-			filters: { name: ['in', item_codes] },
-			fields: ['name', 'pd_custom_is_service_item'],
-			limit_page_length: 0
-		},
-		async: false,
+		method: 'print_designer.custom.item_wht_config.get_item_wht_config',
+		args: { item_codes: item_codes, company: frm.doc.company },
 		callback: function(r) {
-			if (!r.message) return;
+			const suggested = (r && r.message && r.message.vat_treatment) || null;
+			if (!suggested) return;
+			if (!pd_should_apply_treatment(current, suggested)) return;
 
-			const service_map = {};
-			r.message.forEach(item => {
-				service_map[item.name] = item.pd_custom_is_service_item;
-			});
+			frm.set_value('pd_custom_vat_treatment', suggested);
 
-			const has_service = item_codes.some(code => service_map[code]);
-			const suggested = has_service ? 'VAT Undue' : 'Standard VAT';
-
-			if (current !== suggested) {
-				frm.set_value('pd_custom_vat_treatment', suggested);
-
-				const item_name = trigger_item ? trigger_item.item_code : '';
-				if (has_service) {
-					frappe.show_alert({
-						message: item_name
-							? __('VAT Treatment → VAT Undue (service item: {0})', [item_name])
-							: __('VAT Treatment → VAT Undue (service items detected)'),
-						indicator: 'blue'
-					}, 5);
-				}
-			}
+			const item_name = trigger_item ? trigger_item.item_code : '';
+			frappe.show_alert({
+				message: item_name
+					? __('VAT Treatment → {0} ({1})', [suggested, item_name])
+					: __('VAT Treatment → {0}', [suggested]),
+				indicator: 'blue'
+			}, 5);
 		}
 	});
 }
@@ -203,31 +249,19 @@ function pd_check_vat_treatment_from_items(frm, trigger_item) {
  */
 function pd_check_single_item_vat(frm, item_code) {
 	if (!item_code) return;
+	if (!pd_is_editable(frm)) return;
 
 	// Skip if user has manually set to Exempt or Zero-rated
 	const current = frm.doc.pd_custom_vat_treatment;
-	if (current === 'Exempt from VAT' || current === 'Zero-rated for Export') return;
+	if (current && PD_MANUAL_TREATMENTS.includes(current)) return;
 
 	// The Tax Category of the customer decides the treatment of the supply
 	// (Exempt / Zero-Rated), the items must not override it.
 	if (PD_CATEGORY_TREATMENTS[pd_tax_category(frm)]) return;
 
-	frappe.db.get_value('Item', item_code, 'pd_custom_is_service_item').then(r => {
-		if (r.message && r.message.pd_custom_is_service_item) {
-			// This item is a service — set VAT Undue
-			if (current !== 'VAT Undue') {
-				frm.set_value('pd_custom_vat_treatment', 'VAT Undue');
-				frappe.show_alert({
-					message: __('VAT Treatment → VAT Undue (service item: {0})', [item_code]),
-					indicator: 'blue'
-				}, 5);
-			}
-		} else if (current === 'VAT Undue' || !current) {
-			// This item is NOT a service. Re-check all items —
-			// maybe VAT Undue was set by a previous service item that's still in the list
-			pd_check_vat_treatment_from_items(frm);
-		}
-	});
+	// The decision is taken by the server for all items of the document -
+	// a single item may still be one of many service items.
+	pd_check_vat_treatment_from_items(frm, { item_code: item_code });
 }
 // Auto-enable "Subject to Withholding Tax" when the document contains a service item.
 //
@@ -353,6 +387,16 @@ async function pd_apply_subject_to_wht_from_items(frm) {
 	const meta = frm.meta || frappe.get_meta(frm.doc.doctype);
 	const df = (meta.fields || []).find(f => f.fieldname === 'pd_custom_subject_to_wht');
 	if (!df) return;
+
+	// A submitted or cancelled document is never modified by the desk: the
+	// flag may only be set on a draft.  Without this guard the refresh of a
+	// submitted service quotation ticked the WHT flag in the browser, which
+	// revealed the (empty) income field without changing the database.
+	// The preview section is still kept in sync - that is a display update.
+	if (!pd_is_editable(frm)) {
+		pd_sync_wht_preview_section(frm);
+		return;
+	}
 
 	// Already enabled - never untick it automatically
 	if (frm.doc.pd_custom_subject_to_wht) {
