@@ -6,7 +6,7 @@ set min_rows = element.get("minRows") or element.get("min_rows") or 0 -%} {%- se
 {%- set actual_row_count = source_rows | length -%} {%- set padded_row_count = [min_rows,
 actual_row_count] | max -%}
 <table
-	style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'fixed' and heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;"
+	style="position:{%- if heightType != 'fixed' -%}relative{% else %}absolute{%- endif -%}; {%- if heightType == 'fixed' -%}top: {%- else -%}margin-top: {%- endif -%}{{ element.startY }}px; left:{{ element.startX }}px; width:{{ element.width }}px;{%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px;{%- endif -%} max-width:{{ element.width }}px;"
 	class="table-container printTable {{ element.classes | join(' ') }}"
 >
 	<thead>

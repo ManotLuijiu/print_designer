@@ -12,14 +12,17 @@
 	       margin-left:{{convert_uom(number=settings.page.marginLeft, to_uom='mm')}};
 	       margin-right:{{convert_uom(number=settings.page.marginRight, to_uom='mm')}};
 	   }
+	   /* Share dimensions with the standalone browser print layout. Custom
+	      properties alone do not change the server PDF generator's layout. */
+	   #__print_designer {
+	       --page-width: {{convert_uom(number=settings.page.width, to_uom='px')}};
+	       --page-height: {{convert_uom(number=settings.page.height, to_uom='px')}};
+	       --header-height: {{settings.page.headerHeightWithMargin or settings.page.marginTop}}px;
+	       --footer-height: {{settings.page.footerHeightWithMargin or settings.page.marginBottom}}px;
+	   }
 	   @media screen {
 	       #__print_designer {
 	           position: relative;
-	           /* Use CSS custom properties for page dimensions */
-	           --page-width: {{convert_uom(number=settings.page.width, to_uom='px')}};
-	           --page-height: {{convert_uom(number=settings.page.height, to_uom='px')}};
-	           --header-height: {{settings.page.headerHeightWithMargin or settings.page.marginTop}}px;
-	           --footer-height: {{settings.page.footerHeightWithMargin or settings.page.marginBottom}}px;
 	           width: var(--page-width);
 	           height: var(--page-height);
 	           margin: 0 auto;
@@ -87,14 +90,11 @@
 	           display: block !important;
 	       }
 
-	       /* Add CSS-based page numbering for browser print */
+	       /* Page numbers come from the configured Print Designer helper.
+	          A CSS margin counter would be repeated on the separately rendered
+	          header, body, and footer PDFs before they are merged. */
 	       @page {
 	           margin: 20mm;
-	           @top-right {
-	               content: counter(page) " / " counter(pages);
-	               font-size: 12px;
-	               color: #666;
-	           }
 	       }
 
 	       /* Reset page counter for each document */

@@ -89,8 +89,8 @@
 										column.DOMRef = el;
 									}
 								"
-								@mousedown.left="mouseDownHandler($event, column)"
-								@mouseup.left="mouseUpHandler"
+								@mousedown.left.stop.prevent="mouseDownHandler($event, column)"
+								@mouseup.left.stop="handleMouseUp($event, width)"
 								:style="{
 									height: DOMRef
 										? DOMRef.firstChild.getBoundingClientRect().height + 'px'
@@ -456,6 +456,14 @@ const drop = (ev, index) => {
 	draggableEl.value = null;
 };
 const mouseDownHandler = (e, column) => {
+	MainStore.setActiveControl("MousePointer");
+	setCurrentElement(e, props.object);
+	handleColumnClick(column);
+	console.log("[TableSizing] Column resize started", {
+		tableId: props.object.id,
+		column: column.label,
+		width: column.width,
+	});
 	column.x = e.clientX;
 	columnDragging.value = false;
 	isResizeOn.value = true;
@@ -509,6 +517,11 @@ const handleMouseDown = (e, element = null) => {
 
 const handleMouseUp = (e, tablewidth) => {
 	if (currentColumn.value) {
+		console.log("[TableSizing] Column resize finished", {
+			tableId: props.object.id,
+			column: currentColumn.value.label,
+			width: currentColumn.value.width,
+		});
 		document.querySelector(".resizer-active").classList.remove("resizer-active");
 		currentColumn.value = null;
 		isResizeOn.value = false;

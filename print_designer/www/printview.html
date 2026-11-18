@@ -85,6 +85,49 @@
 					margin: 0;
 				}
 
+				/* Keep the designed page bands when Chrome switches to print media.
+				   Scope this to the browser print view, not server PDF rendering. */
+				.pd-browser-printview #__print_designer {
+					position: relative;
+					width: var(--page-width);
+					height: var(--page-height);
+					margin: 0 auto;
+					box-sizing: border-box;
+					overflow: hidden;
+					break-inside: avoid;
+				}
+
+				.pd-browser-printview #__print_designer #header-html,
+				.pd-browser-printview #__print_designer #footer-html {
+					position: absolute !important;
+					left: 0 !important;
+					width: 100% !important;
+					margin: 0 !important;
+					box-sizing: border-box;
+					overflow: hidden;
+					z-index: 10;
+				}
+
+				.pd-browser-printview #__print_designer #header-html {
+					top: 0 !important;
+					height: var(--header-height);
+				}
+
+				.pd-browser-printview #__print_designer #footer-html {
+					bottom: 0 !important;
+					height: var(--footer-height);
+				}
+
+				.pd-browser-printview #__print_designer #body-content {
+					position: absolute !important;
+					top: var(--header-height) !important;
+					left: 0 !important;
+					width: 100% !important;
+					height: calc(var(--page-height) - var(--header-height) - var(--footer-height));
+					box-sizing: border-box;
+					overflow: hidden;
+				}
+
 				/*
 				 * Page margins and Chrome headers/footers control
 				 * 
@@ -137,6 +180,19 @@
 		</div>
 		<script>
 				document.addEventListener('DOMContentLoaded', function() {
+					// Server PDF rendering also loads this template at the site root.
+					// Activate the page geometry only on the standalone browser route.
+					var isBrowserPrintView = /\/(printview|print-designer-print)\/?$/.test(window.location.pathname);
+					if (isBrowserPrintView && document.querySelector('[id="__print_designer"]')) {
+						document.body.classList.add('pd-browser-printview');
+						// Append after the format CSS: its generic @page margin otherwise
+						// shrinks the whole design into a smaller printable rectangle.
+						var pageStyle = document.createElement('style');
+						pageStyle.textContent = '@media print { @page { size: A4; margin: 0; @top-right { content: none; } } }';
+						document.body.appendChild(pageStyle);
+						console.log('[PrintViewFooter] Designed browser page geometry enabled');
+					}
+
 					// Handle page breaks
 					var pageDiv = document.querySelector('.page-break');
 					if (pageDiv) {
@@ -144,14 +200,25 @@
 						pageDiv.style.flexDirection = 'column';
 					}
 
-					// Handle footer
-					var footerHtml = document.getElementById('footer-html');
-					if (footerHtml) {
-						footerHtml.classList.add('hidden-pdf');
-						footerHtml.classList.remove('visible-pdf');
-						footerHtml.style.order = 1;
-						footerHtml.style.marginTop = '20px';
-					}
+					// Designer footers are part of the page, including single-copy prints.
+					// Process every copy; getElementById only found the first footer.
+					document.querySelectorAll('[id="footer-html"]').forEach(function(footerHtml) {
+						var isDesignerFooter = Boolean(footerHtml.closest('[id="__print_designer"]'));
+						if (isDesignerFooter) {
+							footerHtml.classList.remove('hidden-pdf');
+							footerHtml.classList.remove('visible-pdf');
+						} else {
+							footerHtml.classList.add('hidden-pdf');
+							footerHtml.classList.remove('visible-pdf');
+							footerHtml.style.order = 1;
+							footerHtml.style.marginTop = '20px';
+						}
+						console.log('[PrintViewFooter] Footer prepared', {
+							isDesignerFooter: isDesignerFooter,
+							copyIndex: footerHtml.closest('.pd-preview-copy')?.dataset.copyIndex || '1',
+							classes: footerHtml.className
+						});
+					});
 
 				// Trigger auto-print if requested
 				// Changed from window.print() to PDF-first: open PDF in new tab for printing

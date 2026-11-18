@@ -21,7 +21,17 @@ export function useElement({ draggable = true, resizable = true }) {
 	const setElements = (element, index) => (DOMElement) => {
 		if (!element) return;
 		element.index = index;
-		if (element.DOMRef) return;
+		if (!DOMElement || element.DOMRef === DOMElement) return;
+		if (element.DOMRef) {
+			if (interact.isSet(element.DOMRef)) interact(element.DOMRef).unset();
+			delete element.DOMRef.piniaElementRef;
+			if (element.type === "table") {
+				console.log("[TableSizing] Rebinding table DOM after render", {
+					tableId: element.id,
+					previousConnected: element.DOMRef.isConnected,
+				});
+			}
+		}
 		if (element && DOMElement) {
 			setReferance(element)(DOMElement);
 			draggable && setDraggable(element);

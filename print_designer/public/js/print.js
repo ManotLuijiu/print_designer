@@ -551,6 +551,7 @@ function patchPrintViewForDebug() {
           "compact_item_print",
           "print_uom_after_quantity",
           "enable_multiple_copies",
+          "pd_print_document_number",
           "default_copy_count",
           "pdf_page_size",
           "page_orientation",

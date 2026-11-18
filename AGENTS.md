@@ -33,6 +33,71 @@ then invoke the nextjs-doc skill for documentation.
 - Any Vue, Pinia, build-tool, or lockfile change must include an updated `yarn.lock`, the frontend dependency regression test, `bench build --app print_designer`, target-site cache clearing, and authenticated Playwright verification of `/desk/print-designer/Receipt`.
 - A successful build alone is insufficient. Vue `3.5.12` with inherited Pinia `2.1.7` loaded saved data into Pinia but did not trigger Vue component rerenders, leaving the canvas blank without a runtime exception.
 
+## Table editing: collapse, selection, and column width fixes
+
+Regression investigated on 2026-11-19 in `Quotation - AWS Solution` on
+`aws-solution.bunchee.online` (tracking issue: `print_designer-wsg`).
+Symptoms: clicking a table collapsed it to one line, cleared the selected
+column, and prevented normal width editing. Removing the console exception
+alone did not fix the interaction.
+
+### Causes and fixes
+
+- **Undefined callback argument** — In
+  `print_designer/public/js/print_designer/PropertiesPanelState.js`, the
+  `tableStyleEditMode` callback accepted `_value` but read `value`. Keep the
+  parameter and references consistent. Selecting `main` must retain the column;
+  other style modes clear it.
+- **Min Rows initialization overwrote saved height** — In
+  `print_designer/public/js/print_designer/frappeControl.js`, an immediate
+  watcher recalculated height when the properties panel opened. An unset
+  `minRows` became `0`; measurements from a detached table produced a zero
+  header height, changing the saved height from about 221 pixels to 0.
+  Normalize the displayed default with `object?.minRows ?? 0` without writing
+  it back on selection. Watch table identity and row count together, and
+  recalculate height only when the count changes on the same table. Require
+  mounted, measurable rows and include visible data rows in the minimum height.
+- **Stale DOM reference after refresh** — In
+  `print_designer/public/js/print_designer/composables/Element.js`, do not skip
+  binding merely because `element.DOMRef` exists. If Vue replaces the node
+  during a table refresh, remove the old Interact.js binding and bind the new
+  node. An obsolete, detached reference makes `onClickOutside` treat header
+  clicks as outside clicks and gives incorrect layout measurements.
+- **Column resizing triggered header reordering** — In
+  `print_designer/public/js/print_designer/components/base/BaseTable.vue`, use
+  `@mousedown.left.stop.prevent` on the column resizer, select its table and
+  column explicitly, and route mouseup through the existing cleanup handler.
+  A resize gesture must change width without starting native header dragging.
+
+### Diagnostics and verification
+
+- **Keep console logs until the user explicitly asks to remove them.** This is
+  an explicit user instruction. Retain the `[TableSizing]` logs for DOM
+  rebinding, Min Rows synchronization, height recalculation, and column resize
+  start/finish. Existing selection logs are also useful for this investigation.
+- For Vue fixes, use the installed `vue-best-practices`, `vue-debug-guides`, and
+  `vue-testing-best-practices` skills as applicable.
+- Verify with real Playwright mouse clicks and dragging. Directly dispatching
+  header events or inspecting Pinia state alone missed this regression.
+- Assert that selection and reselection preserve table height, the column stays
+  selected, dragging changes its visible width, header order stays unchanged,
+  and no page errors occur. Do not save test edits to the production format.
+- Regression test: `print_designer/tests/test_table_column_editing.py`.
+  Credentials come from the app `.env`; never put them in tests or logs.
+
+```bash
+PRINT_DESIGNER_E2E=1 \
+PRINT_DESIGNER_E2E_SITE_URL=https://aws-solution.bunchee.online \
+python -m pytest print_designer/tests/test_table_column_editing.py \
+  print_designer/tests/test_properties_panel_label_neutralized.py -q
+bench build --app print_designer
+bench --site aws-solution.bunchee.online clear-cache
+```
+
+Build and clear the target-site cache before running browser verification
+against changed frontend assets. The regression test changes only the browser's
+unsaved design state.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 

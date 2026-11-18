@@ -18,6 +18,26 @@ Called from Frappe core print.js setup_additional_settings() (line ~236).
 import frappe
 
 
+def _field_with_stored_value(print_settings, fieldname):
+	"""The sidebar field with the value that is stored in the Print Settings.
+
+	A value that was never stored falls back to the default of the field.
+	Frappe does not fill the defaults of a single doctype that exists
+	already, so a checkbox without a stored value would show up unchecked
+	although its default is on.
+	"""
+	df = print_settings.meta.get_field(fieldname)
+	if not df:
+		return None
+
+	value = print_settings.get(fieldname)
+	if value is None:
+		value = df.default
+
+	df.default = value
+	return df
+
+
 @frappe.whitelist()
 def get_print_settings_to_show(doctype, docname):
     """
@@ -69,6 +89,9 @@ def get_print_settings_to_show(doctype, docname):
     if print_settings.get("show_copy_controls_in_toolbar"):
         copy_fields = [
             "enable_multiple_copies",
+            # Print the root document number of an amended document.
+            # Placed directly under "Enable Multiple Copies" in the sidebar.
+            "pd_print_document_number",
             "default_copy_count",
             "pdf_page_size",
             "page_orientation",
@@ -84,9 +107,8 @@ def get_print_settings_to_show(doctype, docname):
         }
         read_only_fields = {"default_original_label", "default_copy_label"}
         for fieldname in copy_fields:
-            df = print_settings.meta.get_field(fieldname)
+            df = _field_with_stored_value(print_settings, fieldname)
             if df:
-                df.default = print_settings.get(fieldname)
                 if fieldname in label_overrides:
                     df.label = label_overrides[fieldname]
                 if fieldname in read_only_fields:
@@ -107,6 +129,16 @@ def get_print_settings_to_show(doctype, docname):
             "[PD-PRINT-SETTINGS]   Skip copy fields (show_copy_controls_in_toolbar is disabled)",
             file=sys.stderr,
         )
+
+        # The root document number switch is independent of the copy controls,
+        # so it is always available in the print preview sidebar.
+        df = _field_with_stored_value(print_settings, "pd_print_document_number")
+        if df:
+            fields_to_show.append(df)
+            print(
+                f"[PD-PRINT-SETTINGS]   + field: pd_print_document_number (label: {df.label})",
+                file=sys.stderr,
+            )
 
     # ===========================================================================
     # 2. WATERMARK SETTINGS

@@ -176,50 +176,57 @@ export const makeFeild = ({
       propertyName === "minRows" &&
       !MainStore.frappeControls[name].vueWatcher
     ) {
-      // Separate watcher for minRows - directly sync form field from element's minRows property
-      // AND recalculate container height from the new minRows value.
-      // One-way: minRows input -> height update. No feedback loop because Resize.js
-      // only fires on drag operations, not on programmatic height changes.
+      // Opening the panel must only display the saved row count. Resize only
+      // when minRows changes on the same table, never on initial selection.
       MainStore.frappeControls[name].vueWatcher = watch(
-        () => MainStore.getCurrentElementsValues[0]?.minRows,
         () => {
+          const element = reactiveObject();
+          return [element, element?.minRows ?? 0];
+        },
+        ([element, val], [previousElement, previousVal] = []) => {
           nextTick(() => {
             if (!MainStore.frappeControls[name]) return;
-            const val = MainStore.getCurrentElementsValues[0]?.minRows ?? 0;
-            MainStore.frappeControls[name]?.set_value(val);
+            MainStore.frappeControls[name].set_value(val);
+            console.log("[TableSizing] Min Rows control synchronized", {
+              tableId: element?.id,
+              minRows: val,
+              previousMinRows: previousVal,
+              sameTable: element === previousElement,
+              height: element?.height,
+              selectionOnly: element !== previousElement || val === previousVal,
+            });
+            if (
+              !element ||
+              element !== previousElement ||
+              val === previousVal ||
+              element.type !== "table"
+            ) return;
 
-            // Also update container height to fit the new minRows value.
-            // This is the minRows -> height direction (opposite of Resize.js drag resize).
-            const element = MainStore.getCurrentElementsValues[0];
-            if (element && element.type === "table") {
-              const tableEl = element.DOMRef;
-              if (!tableEl) return;
+            const tableEl = element.DOMRef;
+            const headerRow = tableEl?.querySelector("thead tr");
+            const dataRows = tableEl?.querySelectorAll("tbody tr:not(.reserved-row)");
+            const sampleRow = dataRows?.[0] || tableEl?.querySelector("tbody tr.reserved-row");
+            if (!headerRow || !sampleRow) {
+              console.log("[TableSizing] Preserving height: table rows are not mounted", {
+                tableId: element.id,
+                height: element.height,
+              });
+              return;
+            }
 
-              const headerRow = tableEl.querySelector("thead tr");
-              const dataRow = tableEl.querySelector(
-                "tbody tr:not(.reserved-row)",
-              );
-              const reservedRow = tableEl.querySelector(
-                "tbody tr.reserved-row",
-              );
-              const sampleRow = dataRow || reservedRow;
-
-              let rowHeightPx = 30;
-              if (sampleRow) {
-                rowHeightPx = sampleRow.getBoundingClientRect().height || 30;
-              }
-
-              // Calculate new height: header + (minRows * rowHeight)
-              // element.height is in pixels (same as getBoundingClientRect)
-              const headerHeightPx = headerRow
-                ? headerRow.getBoundingClientRect().height || 0
-                : 0;
-              const newHeightPx = headerHeightPx + val * rowHeightPx;
-
-              // Only update if significantly different (avoid floating-point noise)
-              if (Math.abs(element.height - newHeightPx) > 0.5) {
-                element.height = newHeightPx;
-              }
+            const rowHeightPx = sampleRow.getBoundingClientRect().height;
+            const headerHeightPx = headerRow.getBoundingClientRect().height;
+            if (!rowHeightPx || !headerHeightPx) return;
+            const newHeightPx = headerHeightPx + Math.max(val, dataRows.length) * rowHeightPx;
+            if (Math.abs(element.height - newHeightPx) > 0.5) {
+              console.log("[TableSizing] Resizing after Min Rows change", {
+                tableId: element.id,
+                minRows: val,
+                visibleRows: dataRows.length,
+                previousHeight: element.height,
+                nextHeight: newHeightPx,
+              });
+              element.height = newHeightPx;
             }
           });
         },

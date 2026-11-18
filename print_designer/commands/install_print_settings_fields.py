@@ -49,6 +49,14 @@ PRINT_SETTINGS_CUSTOM_FIELDS = {
             "collapsible": 1,
         },
         {
+            "label": "Print Root Document Number",
+            "fieldname": "pd_print_document_number",
+            "fieldtype": "Check",
+            "default": "1",
+            "insert_after": "enable_multiple_copies",
+            "description": "On (default): an amended document is printed with the number of the original document (the root of the amendment chain), e.g. SAL-QTN-2026-00001. Off: the amendment's own number is printed, e.g. SAL-QTN-2026-00001-2.",
+        },
+        {
             "label": "Enable Multiple Copies",
             "fieldname": "enable_multiple_copies",
             "fieldtype": "Check",
@@ -282,6 +290,7 @@ ALL_FIELDNAMES = [
     "page_orientation",
     # Copy settings
     "copy_settings_section",
+    "pd_print_document_number",
     "enable_multiple_copies",
     "default_copy_count",
     "copy_labels_column",
@@ -416,6 +425,20 @@ def _apply_property_setters():
 
     # 3. Create 3-column layout for PDF Settings (like Page Number Settings)
     _apply_pdf_settings_3column_layout()
+
+    # 4. Show the description of the root document number switch as a "?"
+    #    next to the label (in the Print Settings form and in the print
+    #    preview sidebar) instead of a help box under the field.
+    #    The Custom Field doctype has no "show_description_on_click"
+    #    property, so it has to be applied as a Property Setter.
+    make_property_setter(
+        doctype="Print Settings",
+        fieldname="pd_print_document_number",
+        property="show_description_on_click",
+        value="1",
+        property_type="Check",
+        for_doctype=False,
+    )
 
 
 def _apply_pdf_settings_3column_layout():
@@ -562,6 +585,14 @@ def _set_defaults():
             if not ps.get(field):
                 ps.set(field, default_value)
                 updated = True
+
+        # The printed document number is a Check: 0 is a deliberate choice of
+        # the user and must not be reset to the default on every installation.
+        # It is therefore initialised only once, when it was never stored.
+        if ps.get("pd_print_document_number") is None:
+            ps.set("pd_print_document_number", 1)
+            updated = True
+            print("   Initialised pd_print_document_number: 1")
 
         legacy_default_migrations = {
             "page_number_position": ("Bottom Center", "Top Right"),

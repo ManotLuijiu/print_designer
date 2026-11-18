@@ -693,6 +693,11 @@ override_doctype_class = {
 pd_standard_format_folder = "default_templates"
 
 doc_events = {
+    # Applies to every doctype: print the root document number of an amended
+    # document (see print_designer.utils.document_number)
+    "*": {
+        "before_print": "print_designer.utils.document_number.apply_printed_document_number",
+    },
     # Watermark
     "Watermark Settings": {
         "validate": "print_designer.api.watermark.validate_watermark_settings",

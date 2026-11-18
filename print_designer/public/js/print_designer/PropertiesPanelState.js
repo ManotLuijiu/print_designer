@@ -1197,6 +1197,7 @@ export const createPropertiesPanel = () => {
               reactiveObject: () => MainStore.getCurrentElementsValues[0],
               propertyName: "minRows",
               isStyle: false,
+              formatValue: (object) => object?.minRows ?? 0,
               defaultValue: 0,
               onChangeCallback: (value = null) => {
                 // Clamp to non-negative integer; 0 = no padding.
@@ -1283,7 +1284,7 @@ export const createPropertiesPanel = () => {
                   MainStore.globalStyles["table"]
                 );
               },
-              onChangeCallback: (_value) => {
+              onChangeCallback: (value) => {
                 if (
                   MainStore.getCurrentElementsValues[0]?.selectedDynamicText
                 ) {
