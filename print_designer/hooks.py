@@ -539,9 +539,8 @@ after_install = [
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Enable Print Designer UI visibility
     "print_designer.api.install_typography_ui.setup_typography_on_install",  # Install typography fields
     # REMOVED: thailand_wht_fields.py - Now handled by separate quotation module
-    "print_designer.install.ensure_watermark_fields_installed",  # Ensure watermark fields are installed
-    "print_designer.install.emergency_watermark_fix_fallback",  # Emergency fallback for critical watermark fields
-    "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install page number fields
+    # Consolidated installers own watermark fields; the legacy install.py hooks were removed.
+    "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install Print Settings watermark/copy/page-number fields
     "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Install Print Format custom fields (page_orientation)
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
@@ -599,8 +598,6 @@ after_migrate = [
     "print_designer.commands.install_signature_fields.create_signature_fields",  # Install signature fields using clean system
     "print_designer.api.enable_print_designer_ui.ensure_print_designer_ui_setup",  # Ensure Print Designer UI visibility after migration
     # REMOVED DUPLICATE: "print_designer.api.install_typography_ui.setup_typography_on_install" - already in after_install
-    # REMOVED DUPLICATE: "print_designer.install.ensure_watermark_fields_installed" - already in after_install
-    # REMOVED DUPLICATE: "print_designer.install.emergency_watermark_fix_fallback" - already in after_install
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields during migration
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Ensure Customer branch_code field is installed during migration
