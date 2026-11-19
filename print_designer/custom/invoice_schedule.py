@@ -483,6 +483,31 @@ def on_sales_invoice_cancel(doc, method=None):
 	_sync_milestone(doc, STATUS_NOT_INVOICED, clear_invoice=True)
 
 
+def on_sales_invoice_delete(doc, method=None):
+	"""Release the milestone when its draft Sales Invoice is deleted.
+
+	The Sales Order keeps a link to every milestone invoice. Without releasing
+	that link the invoice could not be deleted, and the Sales Order cannot be
+	cancelled first either - its cancellation is blocked while draft milestone
+	invoices exist.
+	"""
+	rows = frappe.get_all(
+		"Invoice Schedule",
+		filters={
+			"parenttype": "Sales Order",
+			"sales_invoice": doc.name,
+		},
+		fields=["name", "parent"],
+	)
+
+	for row in rows:
+		frappe.db.set_value(
+			"Invoice Schedule",
+			row.name,
+			{"sales_invoice": None, "milestone_status": STATUS_NOT_INVOICED},
+		)
+
+
 def _sync_milestone(invoice, status, clear_invoice=False):
 	"""Update the milestone rows that belong to this Sales Invoice."""
 	order_names = {

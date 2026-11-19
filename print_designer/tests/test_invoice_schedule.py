@@ -366,3 +366,37 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		self.assertEqual(added, 1)
 		self.assertEqual(skipped, 1)
+
+
+class TestMilestoneInvoiceDeletion(FrappeTestCase):
+	"""A draft milestone invoice has to be deletable again."""
+
+	def test_a_deleted_invoice_releases_its_milestone(self):
+		doc = frappe.new_doc("Sales Invoice")
+		doc.name = "TEST-MILESTONE-INVOICE"
+
+		with patch.object(frappe.db, "set_value") as set_value, patch.object(
+			frappe,
+			"get_all",
+			return_value=[frappe._dict({"name": "row-1", "parent": "TEST-SALES-ORDER-0001"})],
+		):
+			ms.on_sales_invoice_delete(doc)
+
+		set_value.assert_called_once_with(
+			"Invoice Schedule",
+			"row-1",
+			{"sales_invoice": None, "milestone_status": ms.STATUS_NOT_INVOICED},
+		)
+
+	def test_the_invoice_schedule_link_does_not_block_the_deletion(self):
+		from print_designer import hooks
+
+		self.assertIn("Invoice Schedule", hooks.ignore_links_on_delete)
+
+	def test_the_delete_hook_is_wired_up(self):
+		from print_designer import hooks
+
+		self.assertEqual(
+			hooks.doc_events["Sales Invoice"]["after_delete"],
+			"print_designer.custom.invoice_schedule.on_sales_invoice_delete",
+		)

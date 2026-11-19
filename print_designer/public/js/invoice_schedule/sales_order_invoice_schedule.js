@@ -126,7 +126,7 @@ function sync_milestone_buttons(frm) {
 }
 
 function add_milestone_button($buttons, frm, fieldname, handler) {
-	var df = frm.meta.get_field(fieldname) || {};
+	var df = frappe.meta.get_docfield(frm.doctype, fieldname) || {};
 
 	var $button = $(
 		'<button type="button" class="btn btn-xs btn-secondary milestone-button"></button>'

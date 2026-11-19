@@ -47,6 +47,7 @@
    "label": "Invoice Date",
    "fieldtype": "Date",
    "description": "Date the milestone invoice is created on. This is the billing date and is independent of the Payment Schedule's collection due date.",
+   "allow_on_submit": 1,
    "in_list_view": 1,
    "columns": 2
   },
@@ -80,7 +81,8 @@
   {
    "fieldname": "remarks",
    "label": "Remarks",
-   "fieldtype": "Small Text"
+   "fieldtype": "Small Text",
+   "allow_on_submit": 1
   }
  ],
  "grid_page_length": 50,

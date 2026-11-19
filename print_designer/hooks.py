@@ -693,6 +693,13 @@ override_doctype_class = {
 # Path Relative to the app folder where default templates should be stored
 pd_standard_format_folder = "default_templates"
 
+# The Invoice Schedule of a Sales Order links to its milestone invoices. That
+# link would block the deletion of a draft milestone invoice, while the
+# cancellation of the Sales Order is blocked while draft milestone invoices
+# exist - a deadlock. The link is released in on_sales_invoice_delete, so the
+# link check does not have to stand in the way.
+ignore_links_on_delete = ["Invoice Schedule"]
+
 doc_events = {
     # Applies to every doctype: print the root document number of an amended
     # document (see print_designer.utils.document_number)
@@ -815,6 +822,7 @@ doc_events = {
             "print_designer.custom.invoice_schedule.on_sales_invoice_submit",
         ],
         "on_cancel": "print_designer.custom.invoice_schedule.on_sales_invoice_cancel",
+        "after_delete": "print_designer.custom.invoice_schedule.on_sales_invoice_delete",
     },
     # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {
