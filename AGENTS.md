@@ -117,6 +117,18 @@ Regression tests: `test_desk_preview_dispatch.py`,
 `test_desk_preview_watermark_mode.py`, and `test_desk_preview_request.cjs`.
 Keep preview diagnostic console logs until the user explicitly requests removal.
 
+## Browser printview copy watermark ownership
+
+For `/printview` multi-copy output (`print_designer-awi`, 2026-11-20),
+`www/printview.py:get_context` must not inject a general watermark into the base
+HTML before `inject_multi_copy` duplicates it. Only the copy renderer adds each
+copy's watermark. Otherwise "Original on First Page" produces two originals on
+the first copy and another on the second. Single-copy output retains its general
+watermark. Copy-option checks and watermark-mode fallback resolution are shared
+between the rendering branches. Regression: `test_printview_watermark_copies.py`.
+Verify actual Chrome PDF page text as well as DOM counts; the AWS quotation must
+have Original counts `[1, 0]` across its two pages.
+
 ## Saved WHT words bindings and Thai print labels
 
 Quotation regression investigated on 2026-11-20 (`print_designer-lcy`): saved
@@ -135,6 +147,26 @@ Thai must not be translated a second time for Thai output. Use the shared Jinja
 templates; English source labels still use the selected language's dictionary.
 Regression coverage: `test_legacy_words_and_print_labels.py` plus the existing
 number-to-words and print-layout tests.
+
+## Desk and browser printview table borders and blank padding
+
+User-approved behavior (2026-11-20, `print_designer-e5r`): all Print Designer
+Desk print previews show designer-configured vertical borders and separators
+under actual data rows. Blank padding rows have no interior horizontal lines;
+the outside bottom boundary remains. Do not center-align `td` vertically.
+
+The current and legacy table templates expose intended border CSS in
+`data-pd-preview-borders` and mark data/padding rows. `applyPDPreviewTableBorders`
+in `public/js/print_table_borders.js` is shared by Desk preview and standalone
+browser `/printview` (`print_designer-y4x`). Desk loads it before `print.js` via
+`page_js`; `www/printview.html` loads it and applies it after adding the
+`pd-browser-printview` marker. It changes only border properties inside
+`#__print_designer table.printTable` under those two preview markers, preserving
+saved colors/styles/hidden edges. It processes every copy in screen and print
+media. Standard Frappe tables and unmarked renderers remain unaffected.
+Do not replace it with an unscoped CSS rule or underline every padding row.
+Regression tests: `print_designer/tests/test_desk_preview_table_borders.py`.
+Retain the `[PD Preview Borders]` diagnostic logs until the user requests removal.
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker

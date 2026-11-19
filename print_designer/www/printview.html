@@ -178,6 +178,7 @@
 		<div class="print-format-gutter">
 			<div class="print-format">{{ body }}</div>
 		</div>
+		<script src="/assets/print_designer/js/print_table_borders.js"></script>
 		<script>
 				document.addEventListener('DOMContentLoaded', function() {
 					// Server PDF rendering also loads this template at the site root.
@@ -185,6 +186,7 @@
 					var isBrowserPrintView = /\/(printview|print-designer-print)\/?$/.test(window.location.pathname);
 					if (isBrowserPrintView && document.querySelector('[id="__print_designer"]')) {
 						document.body.classList.add('pd-browser-printview');
+						window.applyPDPreviewTableBorders?.(document);
 						// Append after the format CSS: its generic @page margin otherwise
 						// shrinks the whole design into a smaller printable rectangle.
 						var pageStyle = document.createElement('style');

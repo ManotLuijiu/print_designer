@@ -94,8 +94,12 @@ def get_context(context: Any) -> dict:
     if is_print_designer:
         log_to_print_designer(f"[PRINTVIEW] Processing Print Designer format: {print_format_name}")
 
-        # Inject watermark if configured (using shared logic)
-        body_html = inject_watermark(body_html, settings, print_format_doc)
+        # Multi-copy rendering owns its watermarks. Adding a general watermark
+        # here would duplicate it into every copy, including copies meant to
+        # have no watermark under "Original on First Page".
+        copy_enabled, copy_count = get_copy_options(settings)
+        if not copy_enabled or copy_count <= 1:
+            body_html = inject_watermark(body_html, settings, print_format_doc)
 
         # Inject page numbers if configured (using shared logic)
         body_html = inject_page_numbers(body_html, settings, print_format_doc)
@@ -109,11 +113,8 @@ def get_context(context: Any) -> dict:
     return print_context
 
 
-def inject_watermark(html_content: str, settings: dict, print_format_doc) -> str:
-    """
-    Inject watermark into HTML content using shared resolution logic.
-    FIX: Now uses the same fallback chain as /desk/print/... path.
-    """
+def resolve_printview_watermark(settings: dict, print_format_doc) -> dict:
+    """Resolve the same watermark mode for single- and multi-copy rendering."""
     # Parse settings using shared helper
     parsed_settings = parse_watermark_settings_dict(settings)
 
@@ -153,6 +154,17 @@ def inject_watermark(html_content: str, settings: dict, print_format_doc) -> str
         except Exception:
             pass
 
+    base_context["watermark_settings"] = watermark_mode
+    base_context["watermark_text"] = watermark_text
+    return base_context
+
+
+def inject_watermark(html_content: str, settings: dict, print_format_doc) -> str:
+    """Inject a watermark for a single-copy browser print view."""
+    parsed_settings = parse_watermark_settings_dict(settings)
+    base_context = resolve_printview_watermark(settings, print_format_doc)
+    watermark_mode = base_context["watermark_settings"]
+    watermark_text = base_context["watermark_text"]
     if not watermark_mode or watermark_mode == "None" or not watermark_text:
         return html_content
 
@@ -562,14 +574,8 @@ def inject_page_numbers(html_content: str, settings: dict, print_format_doc) -> 
     return html_content
 
 
-def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> str:
-    """
-    Inject multi-copy support into HTML content.
-
-    When enable_multiple_copies is true and default_copy_count > 1,
-    duplicates the HTML with per-copy watermarks.
-    """
-    # Parse settings using shared helper
+def get_copy_options(settings: dict) -> tuple[bool, int]:
+    """Use identical copy settings when choosing and building the copy renderer."""
     parsed_settings = parse_watermark_settings_dict(settings)
 
     # Try to get print settings for fallback
@@ -590,6 +596,13 @@ def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> st
         parsed_settings.get("default_copy_count"),
         getattr(print_settings, "default_copy_count", 1) if print_settings else 1,
     )
+    return copy_enabled, copy_count
+
+
+def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> str:
+    """Duplicate unwatermarked HTML, adding only each copy's own watermark."""
+    parsed_settings = parse_watermark_settings_dict(settings)
+    copy_enabled, copy_count = get_copy_options(settings)
 
     log_to_print_designer(
         f"[PRINTVIEW] Multi-copy check: enabled={copy_enabled}, count={copy_count}"
@@ -601,7 +614,7 @@ def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> st
     log_to_print_designer(f"[PRINTVIEW] Applying multi-copy: count={copy_count}")
 
     # Get watermark settings for per-copy watermarks
-    watermark_mode = parsed_settings.get("watermark_settings") or "None"
+    watermark_mode = resolve_printview_watermark(settings, print_format_doc)["watermark_settings"]
     watermark_position = parsed_settings.get("watermark_position") or "Top Right"
     font_size = normalize_watermark_font_size(parsed_settings.get("watermark_font_size"), 24)
     font_family = parsed_settings.get("watermark_font_family") or "Kanit"

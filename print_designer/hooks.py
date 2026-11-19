@@ -134,6 +134,7 @@ app_include_css = [
 # include js in page
 page_js = {
     "print": [
+        "public/js/print_table_borders.js",
         "public/js/print.js",
         "print_designer/js/print_designer/client_scripts/safe_pdf_client.js",
         "print_designer/js/print_designer/client_scripts/print.js",

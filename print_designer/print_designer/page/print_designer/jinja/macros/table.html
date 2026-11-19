@@ -14,6 +14,7 @@ actual_row_count] | max -%}
 		<tr>
 			{% for column in element.columns%}
 			<th
+				data-pd-preview-borders="border: 1px solid black;{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 				style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 			>
 				{{ translate_print_label(column.label) }}
@@ -26,9 +27,10 @@ actual_row_count] | max -%}
 		{% if element.columns %} {% for i in range(padded_row_count) %} {%- set is_data_row = i <
 		actual_row_count -%} {%- set row = source_rows[i] if is_data_row else None -%} {%- set
 		is_first_data_row = (i == 0) -%} {%- set is_last_data_row = (i == padded_row_count - 1) -%}
-		<tr>
+		<tr data-pd-row-kind="{{ 'data' if is_data_row else 'padding' }}" data-pd-last-row="{{ '1' if is_last_data_row else '0' }}">
 			{% set isLastRow = loop.last %} {% for column in element.columns%}
 			<td
+				data-pd-preview-borders="border: 1px solid black;{{convert_css(element.style)}}{%if row and row.idx and row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 				style="border: 0 !important;{%if is_first_data_row%}border-top: 1px solid black !important;{%endif%}{%if is_last_data_row%}border-bottom: 1px solid black !important;{%endif%}{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.style)}}{%if row and row.idx and row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 			>
 				{% if column is mapping and is_data_row %} {% for field in column.dynamicContent%}

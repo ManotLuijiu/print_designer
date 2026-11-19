@@ -881,6 +881,8 @@ function patch_setup_print_format_dom() {
     const $el = this.$print_format_body.find(".print-format");
     $el.attr("id", "tbs__print__page__preview");
 
+    applyPDPreviewTableBorders(this.$print_format_body[0]);
+
     // Add position relative (needed for .section-footer absolute positioning)
     // DO NOT unset max-width - it breaks iframe aspect ratio
     // See orientation_table.md: unset=835px, 11.69in=797px (correct for A4 Landscape)
