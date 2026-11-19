@@ -11,6 +11,7 @@ Enhanced with validation, error handling, and status checking based on Quotation
 import frappe
 from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 from frappe.utils import flt, cint
 
 from print_designer.custom.service_item_wht import CLIENT_SERVICE_ITEM_CONDITION
@@ -29,6 +30,25 @@ def migrate_wht_income_type_field(doctype):
             frappe.delete_doc("Custom Field", field_name, force=True)
             frappe.db.commit()
             print(f"  Migrated {doctype}.wht_income_type: Select → Link")
+
+
+def migrate_invoice_schedule_ordering(doctype):
+    """
+    Re-anchor the Deposit section below the milestone buttons.
+
+    `create_custom_fields(update=True)` does not update `insert_after` for
+    existing fields. `pd_custom_deposit_section` is a Section Break, so it
+    carries no data and is safe to delete and recreate with the new anchor.
+    """
+    name = frappe.db.get_value(
+        "Custom Field",
+        {"dt": doctype, "fieldname": "pd_custom_deposit_section"},
+        "name",
+    )
+    if name:
+        frappe.delete_doc("Custom Field", name, force=True)
+        frappe.db.commit()
+        print(f"  Re-anchored {doctype}.pd_custom_deposit_section")
 
 
 def install_sales_order_custom_fields():
@@ -50,8 +70,24 @@ def install_sales_order_custom_fields():
         # Migrate wht_income_type from Select to Link (if exists as Select)
         migrate_wht_income_type_field("Sales Order")
 
+        # Re-anchor the Deposit section below the new Invoice Schedule
+        migrate_invoice_schedule_ordering("Sales Order")
+
         # Install fields using Frappe's standard method
         create_custom_fields(custom_fields, update=True)
+
+        # Show the description of the milestone switch as a "?" next to the
+        # label instead of a help box under the field. The Custom Field
+        # doctype has no "show_description_on_click" property, so it has to be
+        # applied as a Property Setter.
+        make_property_setter(
+            doctype="Sales Order",
+            fieldname="pd_custom_enable_invoice_schedule",
+            property="show_description_on_click",
+            value="1",
+            property_type="Check",
+            for_doctype=False,
+        )
 
         # Validate installation
         validation_result = validate_sales_order_fields_installation()
@@ -361,10 +397,63 @@ def get_sales_order_custom_fields_definition():
                 "bold": 0,
             },
             {
+                "fieldname": "pd_custom_enable_invoice_schedule",
+                "fieldtype": "Check",
+                "label": "Enable Invoice Schedule",
+                "insert_after": "payment_schedule",
+                "description": "Bill this Sales Order in milestones. Each milestone creates its own Sales Invoice. Milestones can be copied from the Payment Schedule, or written by hand.",
+                "read_only": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_invoice_schedule",
+                "fieldtype": "Table",
+                "label": "Invoice Schedule",
+                "options": "Invoice Schedule",
+                "insert_after": "pd_custom_enable_invoice_schedule",
+                "depends_on": "eval:doc.pd_custom_enable_invoice_schedule",
+                "description": "The milestones this Sales Order is billed in. Seed them from the Payment Schedule, add your own rows, or split the plan into as many invoices as you need.",
+                "allow_on_submit": 1,
+                "read_only": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_add_invoice_schedule_row",
+                "fieldtype": "Button",
+                "label": "Add Milestone",
+                "insert_after": "pd_custom_invoice_schedule",
+                "depends_on": "eval:doc.pd_custom_enable_invoice_schedule",
+                "description": "Add a milestone that is not in the Payment Schedule. It starts with whatever part of the contract is still not covered.",
+                "read_only": 0,
+                "hidden": 1,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_copy_payment_schedule",
+                "fieldtype": "Button",
+                "label": "Copy from Payment Schedule",
+                "insert_after": "pd_custom_add_invoice_schedule_row",
+                "depends_on": "eval:doc.pd_custom_enable_invoice_schedule",
+                "description": "Add the milestones of the Payment Schedule that the Invoice Schedule does not have yet. Milestones that are already in the plan are never changed.",
+                "read_only": 0,
+                "hidden": 1,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
                 "fieldname": "pd_custom_deposit_section",
                 "fieldtype": "Section Break",
                 "label": "Deposit",
-                "insert_after": "payment_schedule",
+                "insert_after": "pd_custom_copy_payment_schedule",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,

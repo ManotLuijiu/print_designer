@@ -172,6 +172,7 @@ doctype_js = {
     "Sales Order": [
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
         "public/js/thailand_wht/thailand_wht_sales_order.js",
+        "public/js/invoice_schedule/sales_order_invoice_schedule.js",
     ],
     "Purchase Order": [
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
@@ -794,7 +795,12 @@ doc_events = {
     },
     "Sales Order": {
         "before_print": "print_designer.pdf.before_print",
-        "validate": "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",
+        "validate": [
+            "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",
+            "print_designer.custom.invoice_schedule.sales_order_invoice_schedule",
+        ],
+        "on_submit": "print_designer.custom.invoice_schedule.on_sales_order_submit",
+        "on_cancel": "print_designer.custom.invoice_schedule.on_sales_order_cancel",
     },
     # Sales Invoice - Using consolidated calculation functions
     "Sales Invoice": {
@@ -804,7 +810,11 @@ doc_events = {
             "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
             "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.update_output_vat_on_tax_invoice",
         ],
-        "on_submit": "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.create_output_vat_undue_record",
+        "on_submit": [
+            "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.create_output_vat_undue_record",
+            "print_designer.custom.invoice_schedule.on_sales_invoice_submit",
+        ],
+        "on_cancel": "print_designer.custom.invoice_schedule.on_sales_invoice_cancel",
     },
     # Customer WHT Configuration Changes - Consolidated handlers
     "Customer": {
