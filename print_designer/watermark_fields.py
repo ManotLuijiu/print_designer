@@ -14,7 +14,7 @@ WATERMARK_FIELDS = {
             "insert_after": "is_return",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -28,7 +28,7 @@ WATERMARK_FIELDS = {
             "insert_after": "order_type",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -42,7 +42,7 @@ WATERMARK_FIELDS = {
             "insert_after": "quotation_to",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -56,7 +56,7 @@ WATERMARK_FIELDS = {
             "insert_after": "is_return",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -71,7 +71,7 @@ WATERMARK_FIELDS = {
             "insert_after": "is_return",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -85,7 +85,7 @@ WATERMARK_FIELDS = {
             "insert_after": "pd_custom_apply_thai_wht_compliance",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -99,7 +99,7 @@ WATERMARK_FIELDS = {
             "insert_after": "is_return",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -113,7 +113,7 @@ WATERMARK_FIELDS = {
             "insert_after": "transaction_date",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -128,7 +128,7 @@ WATERMARK_FIELDS = {
             "insert_after": "stock_entry_type",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -157,7 +157,7 @@ WATERMARK_FIELDS = {
             "insert_after": "voucher_type",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -172,7 +172,7 @@ WATERMARK_FIELDS = {
             "insert_after": "employee",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -186,7 +186,7 @@ WATERMARK_FIELDS = {
             "insert_after": "applicant_name",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -200,7 +200,7 @@ WATERMARK_FIELDS = {
             "insert_after": "employee",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -215,7 +215,7 @@ WATERMARK_FIELDS = {
             "insert_after": "status",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -230,7 +230,7 @@ WATERMARK_FIELDS = {
             "insert_after": "quality_inspection_template",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -245,7 +245,7 @@ WATERMARK_FIELDS = {
             "insert_after": "maintenance_schedule_details",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -260,7 +260,7 @@ WATERMARK_FIELDS = {
             "insert_after": "asset_name",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],
@@ -275,7 +275,7 @@ WATERMARK_FIELDS = {
             "insert_after": "contract_terms",
             "print_hide": 1,
             "allow_on_submit": 1,
-            "translatable": 1,
+            "translatable": 0,
             "description": "Watermark text to display on printed document",
         }
     ],

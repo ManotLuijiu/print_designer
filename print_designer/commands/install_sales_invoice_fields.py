@@ -433,7 +433,7 @@ def get_sales_invoice_custom_fields_definition():
                 "default": "None",
                 "allow_on_submit": 1,
                 "print_hide": 1,
-                "translatable": 1,
+                "translatable": 0,
             },
         ]
     }
