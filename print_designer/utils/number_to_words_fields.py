@@ -13,6 +13,21 @@ THAI_LANGUAGES = frozenset({"th", "th-th", "thai", "ไทย"})
 # Print Format does not declare a source field.
 PRIMARY_AMOUNT_FALLBACKS = ("grand_total", "paid_amount", "received_amount", "total_amount")
 
+# Saved designs can outlive the WHT custom-field rename. Resolve only known
+# renames, and only when the old field is absent and the replacement exists.
+LEGACY_AMOUNT_FIELDS = {
+    "net_total_after_wht": "pd_custom_net_total_after_wht",
+    "net_total_after_wht_in_words": "pd_custom_net_total_after_wht_words",
+}
+
+
+def resolve_amount_field(meta, fieldname):
+    if fieldname and not meta.get_field(fieldname):
+        replacement = LEGACY_AMOUNT_FIELDS.get(fieldname)
+        if replacement and meta.get_field(replacement):
+            return replacement
+    return fieldname
+
 
 def validate_number_to_words_pairs(meta, pairs):
     """Return field pairs that can safely convert a numeric source to text."""
@@ -21,8 +36,8 @@ def validate_number_to_words_pairs(meta, pairs):
         if not isinstance(pair, dict):
             continue
 
-        source_field = pair.get("source_field")
-        target_field = pair.get("target_field")
+        source_field = resolve_amount_field(meta, pair.get("source_field"))
+        target_field = resolve_amount_field(meta, pair.get("target_field"))
         source_df = meta.get_field(source_field) if source_field else None
         target_df = meta.get_field(target_field) if target_field else None
 
@@ -37,7 +52,7 @@ def validate_number_to_words_pairs(meta, pairs):
         ):
             continue
 
-        valid_pairs.append(pair)
+        valid_pairs.append({**pair, "source_field": source_field, "target_field": target_field})
 
     return valid_pairs
 
@@ -163,7 +178,11 @@ def convert_amount_to_words(amount, language, currency="THB"):
 def apply_number_to_words_pairs(doc, meta, pairs, language):
     """Populate configured targets on a request-scoped document."""
     values = {}
-    for pair in validate_number_to_words_pairs(meta, pairs):
+    for saved_pair in pairs or []:
+        valid_pairs = validate_number_to_words_pairs(meta, [saved_pair])
+        if not valid_pairs:
+            continue
+        pair = valid_pairs[0]
         source_field = pair["source_field"]
         target_field = pair["target_field"]
         amount = _doc_value(doc, source_field)
@@ -171,5 +190,15 @@ def apply_number_to_words_pairs(doc, meta, pairs, language):
         value = convert_amount_to_words(amount, language, currency)
         setattr(doc, target_field, value)
         values[target_field] = value
+
+        # The layout and design-preview client still reference the saved name.
+        # These aliases exist only on this request's document, never in schema/DB.
+        old_target = saved_pair.get("target_field")
+        if old_target != target_field:
+            setattr(doc, old_target, value)
+            values[old_target] = value
+        old_source = saved_pair.get("source_field")
+        if old_source != source_field:
+            setattr(doc, old_source, amount)
 
     return values

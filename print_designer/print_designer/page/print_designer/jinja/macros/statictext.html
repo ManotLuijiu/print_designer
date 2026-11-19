@@ -7,7 +7,7 @@
         {% if element.parseJinja %}
            {{ render_user_text(element.content, doc, {}, send_to_jinja).get("message", "") }}
         {% else %}
-            {{_(element.content)}}
+            {{translate_print_label(element.content)}}
         {% endif %}
     </p>
 </div>

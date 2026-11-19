@@ -16,7 +16,7 @@ actual_row_count] | max -%}
 			<th
 				style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 			>
-				{{ _(column.label) }}
+				{{ translate_print_label(column.label) }}
 			</th>
 			{% endfor %}
 		</tr>

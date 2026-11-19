@@ -11,7 +11,7 @@
 		{% if element.parseJinja %}
 		<!-- third Arg is row which is not sent outside table -->
 		{{ render_user_text(element.content, doc, {}, send_to_jinja).get("message", "") }} {% else
-		%} {{_(element.content)}} {% endif %}
+		%} {{translate_print_label(element.content)}} {% endif %}
 	</p>
 </div>
 {%- endmacro %} {% macro page_class(field) %} {% if field.fieldname in ['page', 'topage', 'time',
@@ -60,7 +60,7 @@ background-image: url('{{frappe.get_url()}}{{value}}');
 {%- endif -%} {%- endmacro %} {% macro render_barcode(element, send_to_jinja) -%} {%- set field =
 element.dynamicContent[0] -%} {%- if field.is_static -%} {% if field.parseJinja %} {%- set value =
 render_user_text(field.value, doc, {}, send_to_jinja).get("message", "") -%} {% else %} {%- set
-value = _(field.value) -%} {% endif %} {%- elif field.doctype -%} {%- set value =
+value = translate_print_label(field.value) -%} {% endif %} {%- elif field.doctype -%} {%- set value =
 frappe.db.get_value(field.doctype, doc[field.parentField], field.fieldname) -%} {%- else -%} {%-
 set value = doc.get_formatted(field.fieldname) -%} {%- endif -%}
 <div
@@ -99,7 +99,7 @@ actual_row_count] | max -%}
 				<th
 					style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
 				>
-					{{ _(column.label) }}
+					{{ translate_print_label(column.label) }}
 				</th>
 				{% endfor %}
 			</tr>
@@ -133,7 +133,7 @@ actual_row_count] | max -%}
 </div>
 {%- endmacro %} {%- macro render_spanvalue(field, element, row, send_to_jinja) -%} {%- if
 field.is_static -%} {% if field.parseJinja %} {{ render_user_text(field.value, doc, row,
-send_to_jinja).get("message", "") }} {% else %} {{ _(field.value) }} {% endif %} {%- elif
+send_to_jinja).get("message", "") }} {% else %} {{ translate_print_label(field.value) }} {% endif %} {%- elif
 field.doctype -%} {%- set value = _(frappe.db.get_value(field.doctype, doc[field.parentField],
 field.fieldname)) -%} {{ frappe.format(value, {'fieldtype': field.fieldtype, 'options':
 field.options}) }} {%- elif row -%} {{row.get_formatted(field.fieldname)}} {%- else -%}
@@ -148,7 +148,7 @@ render_spanvalue(field, element, row, send_to_jinja) %} {%- if span_value or fie
 		class="{% if row %}printTable{% else %}dynamicText{% endif %} label-text labelSpanTag"
 		style="user-select:auto; {%if element.labelStyle %}{{convert_css(element.labelStyle)}}{%endif%}{%if field.labelStyle %}{{convert_css(field.labelStyle)}}{%endif%} white-space:nowrap; "
 	>
-		{{ _(field.label) }}
+		{{ translate_print_label(field.label) }}
 	</span>
 	{% endif %}
 	<span
@@ -162,7 +162,7 @@ render_spanvalue(field, element, row, send_to_jinja) %} {%- if span_value or fie
 		class="dynamic-span"
 		style="{%- if element.style.get('color') -%}{{ convert_css({'color': element.style.get('color')})}}{%- endif -%} {{convert_css(field.style)}} user-select:auto;"
 	>
-		{{ _(field.suffix) }}
+		{{ translate_print_label(field.suffix) }}
 	</span>
 	{% endif %} {% if field.nextLine %}
 	<br />

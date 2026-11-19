@@ -1366,6 +1366,13 @@ def get_html_and_style_with_watermark(
                 f"Using shared fallback context: font_size={font_size}, font_family={font_family}, position={watermark_position}, margins=T{watermark_top}/R{watermark_right}/B{watermark_bottom}/L{watermark_left}"
             )
 
+        # Basic sidebar modes are explicit choices. Global Watermark Settings
+        # supply styling, but their default "None" must not disable that choice.
+        # An explicitly selected template still owns its mode and custom text.
+        if settings_dict.get("watermark_settings") is not None and not watermark_template:
+            configured_mode = watermark_settings
+            custom_watermark_text = None
+
         pd_custom_watermark_text = ""
         if custom_watermark_text:
             pd_custom_watermark_text = frappe._(custom_watermark_text)

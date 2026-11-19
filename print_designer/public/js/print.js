@@ -73,6 +73,8 @@ function patchPrintViewForDebug() {
   }
   if (PrintViewClass.prototype._debugPatched) return;
 
+  patchDeskPreviewRenderer(PrintViewClass);
+
   // Override setup_print_format_dom to add landscape class
   const original_setup = PrintViewClass.prototype.setup_print_format_dom;
   PrintViewClass.prototype.setup_print_format_dom = function (
@@ -220,6 +222,9 @@ function patchPrintViewForDebug() {
       reorderedSettings.map((s) => s.fieldname),
     );
 
+    // Frappe uses set_input(default), which does not fire change for Selects
+    // and Checks. Send the values already shown in the sidebar on first render.
+    initializeDeskPreviewSettings(this, reorderedSettings);
     const result = original_add.call(this, reorderedSettings);
 
     // WRAP SIDEBAR FIELDS IN 2-COLUMN GRIDS
@@ -712,6 +717,47 @@ function patchPrintViewForDebug() {
   );
 }
 patchPrintViewForDebug();
+
+function patchDeskPreviewRenderer(PrintViewClass) {
+  const original = PrintViewClass.prototype.get_print_html;
+  PrintViewClass.prototype.get_print_html = function (callback) {
+    if (this.get_print_format().raw_printing) {
+      return original.call(this, callback);
+    }
+    if (this._req) this._req.abort();
+    console.log("[PD Preview] Rendering sidebar overlays through Print Designer", {
+      watermark: this.additional_settings?.watermark_settings,
+      page_number: this.additional_settings?.page_number_display,
+    });
+    this._req = frappe.call({
+      method: "print_designer.api.desk_preview.get_html_and_style",
+      args: {
+        doc: this.frm.doc,
+        print_format: this.selected_format(),
+        no_letterhead: this.with_letterhead() ? 0 : 1,
+        letterhead: this.get_letterhead(),
+        settings: this.additional_settings,
+        _lang: this.lang_code,
+      },
+      callback: (r) => {
+        if (!r.exc) callback(r.message);
+      },
+    });
+  };
+}
+
+function initializeDeskPreviewSettings(view, fields) {
+  view.additional_settings ||= {};
+  for (const field of fields) {
+    if (
+      field.fieldname && field.default != null &&
+      !["Section Break", "Column Break", "HTML"].includes(field.fieldtype) &&
+      !Object.prototype.hasOwnProperty.call(view.additional_settings, field.fieldname)
+    ) {
+      view.additional_settings[field.fieldname] = field.default;
+    }
+  }
+}
 
 // Start observing when DOM is ready
 if (document.readyState === "loading") {

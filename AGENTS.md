@@ -98,6 +98,44 @@ Build and clear the target-site cache before running browser verification
 against changed frontend assets. The regression test changes only the browser's
 unsaved design state.
 
+## Desk preview watermark and page number routing
+
+Investigated on 2026-11-20 with `Quotation - AWS Solution` (issue
+`print_designer-5du`). PDF Forms is installed after Print Designer on the AWS
+site and overrides `frappe.www.printview.get_html_and_style`; its fallback calls
+core directly, bypassing Print Designer overlays. Desk previews now use
+`print_designer.api.desk_preview.get_html_and_style`, which preserves PDF Forms
+template previews and otherwise calls Print Designer's permission-checked renderer.
+Keep this explicit routing; changing app order is not a reliable repair.
+
+Frappe's `set_input(default)` does not populate `additional_settings` for unchanged
+Select/Check controls. Initialize missing setting keys from sidebar defaults,
+preserving explicit `None`, `Hide`, zero and unchecked values. An explicit basic
+sidebar watermark mode must also take precedence over global Watermark Settings
+mode `None`; explicitly selected templates retain their own mode/custom text.
+Regression tests: `test_desk_preview_dispatch.py`,
+`test_desk_preview_watermark_mode.py`, and `test_desk_preview_request.cjs`.
+Keep preview diagnostic console logs until the user explicitly requests removal.
+
+## Saved WHT words bindings and Thai print labels
+
+Quotation regression investigated on 2026-11-20 (`print_designer-lcy`): saved
+formats can still bind `net_total_after_wht` / `net_total_after_wht_in_words`
+after those fields were renamed to `pd_custom_net_total_after_wht` /
+`pd_custom_net_total_after_wht_words`. The number-to-words utility resolves these
+known aliases only when the old metadata field is absent and the typed replacement
+exists. It publishes request-only values under both target names so saved layouts
+and design previews work without changing the schema, saved format or transaction.
+Use the configured net-after-WHT source; do not substitute grand total for it.
+
+The AWS site's Thai translation dictionary has reverse entries such as
+`จำนวน → Quantity` and `วันที่ครบกำหนด → Due Date`. Print labels already saved in
+Thai must not be translated a second time for Thai output. Use the shared Jinja
+`translate_print_label` method in current/legacy table, span and static-text
+templates; English source labels still use the selected language's dictionary.
+Regression coverage: `test_legacy_words_and_print_labels.py` plus the existing
+number-to-words and print-layout tests.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 

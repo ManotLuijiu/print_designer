@@ -77,6 +77,7 @@ def test_table_height_mode_with_rows(browser, height_mode, row_count):
         convert_css=lambda _: "padding: 4px;",
         span_tag=lambda *args: "Single item",
         _=lambda value: value,
+        translate_print_label=lambda value: value,
     )
     page = browser.new_page()
     try:

@@ -2,7 +2,7 @@
 page_info_{{ field.fieldname }} {% endif %} {% endmacro %} {%- macro spanvalue(field, element, row,
 send_to_jinja) -%} {%- if field.is_static -%} {% if field.parseJinja %} {{
 render_user_text(field.value, doc, row, send_to_jinja).get("message", "") }} {% else %} {{
-_(field.value) }} {% endif %} {%- elif field.doctype -%} {%- set value =
+translate_print_label(field.value) }} {% endif %} {%- elif field.doctype -%} {%- set value =
 _(frappe.db.get_value(field.doctype, doc[field.parentField], field.fieldname)) -%} {{
 frappe.format(value, {'fieldtype': field.fieldtype, 'options': field.options}) }} {%- elif row -%}
 {%- if field.fieldtype == "Image" and row.get(field['options']) -%}
@@ -42,7 +42,7 @@ spanvalue(field, element, row, send_to_jinja) %} {%- if span_value or field.fiel
 		class="{% if row %}printTable{% else %}dynamicText{% endif %} label-text labelSpanTag"
 		style="user-select:auto; {%if element.labelStyle %}{{convert_css(element.labelStyle)}}{%endif%}{%if field.labelStyle %}{{convert_css(field.labelStyle)}}{%endif%} white-space:nowrap; "
 	>
-		{{ _(field.label) }}
+		{{ translate_print_label(field.label) }}
 	</span>
 	{% endif %}
 	<span
@@ -56,7 +56,7 @@ spanvalue(field, element, row, send_to_jinja) %} {%- if span_value or field.fiel
 		class="dynamic-span"
 		style="{%- if element.style.get('color') -%}{{ convert_css({'color': element.style.get('color')})}}{%- endif -%} {{convert_css(field.style)}} user-select:auto;"
 	>
-		{{ _(field.suffix) }}
+		{{ translate_print_label(field.suffix) }}
 	</span>
 	{% endif %} {% if field.nextLine %}
 	<br />

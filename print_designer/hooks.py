@@ -456,6 +456,7 @@ fixtures = [
 # add methods and filters to jinja environment
 jinja = {
     "methods": [
+        "print_designer.utils.print_labels.translate_print_label",
         "print_designer.print_designer.page.print_designer.print_designer.render_user_text",
         "print_designer.print_designer.page.print_designer.print_designer.convert_css",
         "print_designer.print_designer.page.print_designer.print_designer.convert_uom",
