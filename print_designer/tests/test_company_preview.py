@@ -1,8 +1,18 @@
 # File: print_designer/tests/test_company_preview.py
 
 import unittest
+from typing import Any, cast
 
 import frappe
+
+
+def _summary(result: Any) -> dict[str, Any]:
+    """The summary of a company preview result."""
+    if not isinstance(result, dict):
+        return {}
+
+    summary = cast(dict[str, Any], result).get("summary")
+    return summary if isinstance(summary, dict) else {}
 
 
 class TestCompanyPreview(unittest.TestCase):
@@ -17,9 +27,9 @@ class TestCompanyPreview(unittest.TestCase):
         # Create test company
         if not frappe.db.exists("Company", "Test Company Preview"):
             company = frappe.new_doc("Company")
-            company.company_name = "Test Company Preview" 
-            company.default_currency = "USD"
-            company.country = "United States"
+            company.set("company_name", "Test Company Preview")
+            company.set("default_currency", "USD")
+            company.set("country", "United States")
             company.insert()
 
     def setUp(self):
@@ -45,9 +55,10 @@ class TestCompanyPreview(unittest.TestCase):
         
         self.assertEqual(len(result["stamps"]), 0)
         self.assertEqual(len(result["signatures"]), 0)
-        self.assertEqual(result["summary"]["total_stamps"], 0)
-        self.assertEqual(result["summary"]["total_signatures"], 0)
-        self.assertEqual(result["summary"]["company"], self.test_company)
+        summary = _summary(result)
+        self.assertEqual(summary.get("total_stamps"), 0)
+        self.assertEqual(summary.get("total_signatures"), 0)
+        self.assertEqual(summary.get("company"), self.test_company)
 
     def test_api_get_company_stamps_and_signatures_with_data(self):
         """Test API with sample stamps and signatures"""
@@ -56,33 +67,33 @@ class TestCompanyPreview(unittest.TestCase):
         # The API reads the stamps from "Signature Basic Information" with the
         # category "Company Stamp" (the "Company Stamp" DocType is not used)
         stamp = frappe.new_doc("Signature Basic Information")
-        stamp.signature_name = "Test Official Stamp"
-        stamp.company = self.test_company
-        stamp.signature_category = "Company Stamp"
-        stamp.signature_type = "Uploaded Image"
-        stamp.stamp_type = "Official Seal"
-        stamp.stamp_authority = "Invoice"
-        stamp.is_active = 1
-        stamp.signature_image = "/files/test_stamp.png"  # Mock image path
+        stamp.set("signature_name", "Test Official Stamp")
+        stamp.set("company", self.test_company)
+        stamp.set("signature_category", "Company Stamp")
+        stamp.set("signature_type", "Uploaded Image")
+        stamp.set("stamp_type", "Official Seal")
+        stamp.set("stamp_authority", "Invoice")
+        stamp.set("is_active", 1)
+        stamp.set("signature_image", "/files/test_stamp.png")  # Mock image path
         stamp.insert(ignore_mandatory=True)
         
         # Create test digital signature
         signature = frappe.new_doc("Digital Signature")
-        signature.title = "Test Manager Signature"
-        signature.company = self.test_company
-        signature.is_active = 1
-        signature.description = "Test signature for API"
-        signature.signature_image = "/files/test_signature.png"  # Mock image path
+        signature.set("title", "Test Manager Signature")
+        signature.set("company", self.test_company)
+        signature.set("is_active", 1)
+        signature.set("description", "Test signature for API")
+        signature.set("signature_image", "/files/test_signature.png")  # Mock image path
         signature.insert(ignore_mandatory=True)
         
         # Create test basic signature
         basic_sig = frappe.new_doc("Signature Basic Information")
-        basic_sig.signature_name = "Test Basic Signature"
-        basic_sig.company = self.test_company
-        basic_sig.signature_category = "Signature"
-        basic_sig.signature_title = "Director"
-        basic_sig.is_active = 1
-        basic_sig.signature_image = "/files/test_basic_signature.png"  # Mock image path
+        basic_sig.set("signature_name", "Test Basic Signature")
+        basic_sig.set("company", self.test_company)
+        basic_sig.set("signature_category", "Signature")
+        basic_sig.set("signature_title", "Director")
+        basic_sig.set("is_active", 1)
+        basic_sig.set("signature_image", "/files/test_basic_signature.png")  # Mock image path
         basic_sig.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -99,9 +110,9 @@ class TestCompanyPreview(unittest.TestCase):
         # Verify counts
         self.assertEqual(len(result["stamps"]), 1)
         self.assertEqual(len(result["signatures"]), 2)  # Digital + Basic
-        self.assertEqual(result["summary"]["total_stamps"], 1)
-        self.assertEqual(result["summary"]["total_signatures"], 2)
-        
+        summary = _summary(result)
+        self.assertEqual(summary.get("total_stamps"), 1)
+        self.assertEqual(summary.get("total_signatures"), 2)
         # Verify stamp data
         stamp_data = result["stamps"][0]
         self.assertEqual(stamp_data["title"], "Test Official Stamp")
@@ -124,16 +135,16 @@ class TestCompanyPreview(unittest.TestCase):
         # The stamp preview is rendered from "Signature Basic Information"
         # with the category "Company Stamp"
         stamp = frappe.new_doc("Signature Basic Information")
-        stamp.signature_name = "Test HTML Stamp"
-        stamp.company = self.test_company
-        stamp.signature_category = "Company Stamp"
-        stamp.signature_type = "Uploaded Image"
-        stamp.stamp_type = "Official Seal"
-        stamp.stamp_authority = "General"
-        stamp.stamp_number = "ST-01"
-        stamp.signature_title = "Accountant"
-        stamp.is_active = 1
-        stamp.signature_image = "/files/test_html_stamp.png"  # Mock image path
+        stamp.set("signature_name", "Test HTML Stamp")
+        stamp.set("company", self.test_company)
+        stamp.set("signature_category", "Company Stamp")
+        stamp.set("signature_type", "Uploaded Image")
+        stamp.set("stamp_type", "Official Seal")
+        stamp.set("stamp_authority", "General")
+        stamp.set("stamp_number", "ST-01")
+        stamp.set("signature_title", "Accountant")
+        stamp.set("is_active", 1)
+        stamp.set("signature_image", "/files/test_html_stamp.png")  # Mock image path
         stamp.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -154,11 +165,11 @@ class TestCompanyPreview(unittest.TestCase):
         
         # Create test digital signature
         signature = frappe.new_doc("Digital Signature")
-        signature.title = "Test HTML Digital Signature"
-        signature.company = self.test_company
-        signature.description = "Test digital signature for HTML"
-        signature.is_active = 1
-        signature.signature_image = "/files/test_html_digital.png"  # Mock image path
+        signature.set("title", "Test HTML Digital Signature")
+        signature.set("company", self.test_company)
+        signature.set("description", "Test digital signature for HTML")
+        signature.set("is_active", 1)
+        signature.set("signature_image", "/files/test_html_digital.png")  # Mock image path
         signature.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -177,12 +188,12 @@ class TestCompanyPreview(unittest.TestCase):
         
         # Create test basic signature
         signature = frappe.new_doc("Signature Basic Information")
-        signature.signature_name = "Test HTML Basic Signature"
-        signature.company = self.test_company
-        signature.signature_category = "Company Stamp"
-        signature.signature_title = "Director"
-        signature.is_active = 1
-        signature.signature_image = "/files/test_html_basic.png"  # Mock image path
+        signature.set("signature_name", "Test HTML Basic Signature")
+        signature.set("company", self.test_company)
+        signature.set("signature_category", "Company Stamp")
+        signature.set("signature_title", "Director")
+        signature.set("is_active", 1)
+        signature.set("signature_image", "/files/test_html_basic.png")  # Mock image path
         signature.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -205,8 +216,9 @@ class TestCompanyPreview(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result["stamps"]), 0)
         self.assertEqual(len(result["signatures"]), 0)
-        self.assertEqual(result["summary"]["total_stamps"], 0)
-        self.assertEqual(result["summary"]["total_signatures"], 0)
+        summary = _summary(result)
+        self.assertEqual(summary.get("total_stamps"), 0)
+        self.assertEqual(summary.get("total_signatures"), 0)
 
     def test_api_with_empty_company(self):
         """Test API with empty company parameter"""
@@ -225,38 +237,38 @@ class TestCompanyPreview(unittest.TestCase):
         # Create active stamp (a "Signature Basic Information" of the category
         # "Company Stamp")
         active_stamp = frappe.new_doc("Signature Basic Information")
-        active_stamp.signature_name = "Active Stamp"
-        active_stamp.company = self.test_company
-        active_stamp.signature_category = "Company Stamp"
-        active_stamp.signature_type = "Uploaded Image"
-        active_stamp.is_active = 1
-        active_stamp.signature_image = "/files/active_stamp.png"
+        active_stamp.set("signature_name", "Active Stamp")
+        active_stamp.set("company", self.test_company)
+        active_stamp.set("signature_category", "Company Stamp")
+        active_stamp.set("signature_type", "Uploaded Image")
+        active_stamp.set("is_active", 1)
+        active_stamp.set("signature_image", "/files/active_stamp.png")
         active_stamp.insert(ignore_mandatory=True)
         
         # Create inactive stamp
         inactive_stamp = frappe.new_doc("Signature Basic Information")
-        inactive_stamp.signature_name = "Inactive Stamp"
-        inactive_stamp.company = self.test_company
-        inactive_stamp.signature_category = "Company Stamp"
-        inactive_stamp.signature_type = "Uploaded Image"
-        inactive_stamp.is_active = 0
-        inactive_stamp.signature_image = "/files/inactive_stamp.png"
+        inactive_stamp.set("signature_name", "Inactive Stamp")
+        inactive_stamp.set("company", self.test_company)
+        inactive_stamp.set("signature_category", "Company Stamp")
+        inactive_stamp.set("signature_type", "Uploaded Image")
+        inactive_stamp.set("is_active", 0)
+        inactive_stamp.set("signature_image", "/files/inactive_stamp.png")
         inactive_stamp.insert(ignore_mandatory=True)
         
         # Create active signature
         active_sig = frappe.new_doc("Digital Signature")
-        active_sig.title = "Active Signature"
-        active_sig.company = self.test_company
-        active_sig.is_active = 1
-        active_sig.signature_image = "/files/active_signature.png"
+        active_sig.set("title", "Active Signature")
+        active_sig.set("company", self.test_company)
+        active_sig.set("is_active", 1)
+        active_sig.set("signature_image", "/files/active_signature.png")
         active_sig.insert(ignore_mandatory=True)
         
         # Create inactive signature
         inactive_sig = frappe.new_doc("Digital Signature")
-        inactive_sig.title = "Inactive Signature"
-        inactive_sig.company = self.test_company
-        inactive_sig.is_active = 0
-        inactive_sig.signature_image = "/files/inactive_signature.png"
+        inactive_sig.set("title", "Inactive Signature")
+        inactive_sig.set("company", self.test_company)
+        inactive_sig.set("is_active", 0)
+        inactive_sig.set("signature_image", "/files/inactive_signature.png")
         inactive_sig.insert(ignore_mandatory=True)
         
         frappe.db.commit()
@@ -380,7 +392,10 @@ def validate_company_preview_installation():
                 test_company = companies[0].name
                 result = get_company_stamps_and_signatures(test_company)
                 print(f"\nTest API call successful for company: {test_company}")
-                print(f"Found {result['summary']['total_stamps']} stamps and {result['summary']['total_signatures']} signatures")
+                summary = _summary(result)
+                print(
+                    f"Found {summary.get('total_stamps')} stamps and {summary.get('total_signatures')} signatures"
+                )
         except Exception as e:
             print(f"\nWarning: Could not test API functionality: {e}")
     else:

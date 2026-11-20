@@ -267,7 +267,8 @@ def download_pdf_with_signature_stamp(
         if isinstance(settings, str):
             try:
                 parsed_settings = frappe.parse_json(settings)
-                watermark_settings = parsed_settings.get("watermark_settings")
+                if isinstance(parsed_settings, dict):
+                    watermark_settings = parsed_settings.get("watermark_settings")
             except Exception:
                 pass
         elif isinstance(settings, dict):

@@ -5,10 +5,21 @@ Provides REST API endpoints for external servers to access Account Name (TH) dat
 Supports various formats and filtering options for integration flexibility.
 """
 
+from typing import Any, cast
+
 import frappe
-from frappe import _
-from frappe.utils import flt, cstr
-import json
+import frappe.utils
+from frappe.utils import flt
+
+
+def _as_float(value: Any, precision: int | None = None) -> float:
+    """Convert a DB/API value into a float without raising on unexpected types."""
+    if isinstance(value, bool):
+        value = int(value)
+    try:
+        return flt(value, precision)
+    except (TypeError, ValueError):
+        return 0.0
 
 @frappe.whitelist(allow_guest=True)
 def get_accounts_with_thai_names(company=None, format="json", include_balance=False):
@@ -40,7 +51,6 @@ def get_accounts_with_thai_names(company=None, format="json", include_balance=Fa
             "is_group",
             "parent_account"
         ]
-
         # Add balance fields if requested
         if include_balance:
             fields.extend([
@@ -56,18 +66,14 @@ def get_accounts_with_thai_names(company=None, format="json", include_balance=Fa
         )
 
         # Filter out accounts without Thai translations
-        translated_accounts = [
-            account for account in accounts
-            if account.get('account_name_th')
-        ]
-
+        translated_accounts = [account for account in accounts if account.get("account_name_th")]
         # Add balance information if requested
         if include_balance:
             for account in translated_accounts:
                 try:
                     balance = frappe.db.get_value("Account", account.name, "balance") or 0
-                    account["current_balance"] = flt(balance, 2)
-                except:
+                    account["current_balance"] = _as_float(balance, 2)
+                except Exception:
                     account["current_balance"] = 0.0
 
         # Format response based on requested format
@@ -85,7 +91,6 @@ def get_accounts_with_thai_names(company=None, format="json", include_balance=Fa
                 "timestamp": frappe.utils.now(),
                 "include_balance": include_balance
             }
-
     except Exception as e:
         frappe.log_error(f"Error in get_accounts_with_thai_names: {str(e)}")
         return {
@@ -131,7 +136,6 @@ def get_accounts_enhanced(company=None, include_thai=True, include_balance=False
             "account_currency",
             "disabled"
         ]
-
         # Add Thai name field by default (ERPNext pattern enhancement)
         if include_thai:
             fields.append("account_name_th")
@@ -161,10 +165,9 @@ def get_accounts_enhanced(company=None, include_thai=True, include_balance=False
             if include_balance:
                 try:
                     balance = frappe.db.get_value("Account", account.name, "balance") or 0
-                    account["current_balance"] = flt(balance, 2)
-                except:
+                    account["current_balance"] = _as_float(balance, 2)
+                except Exception:
                     account["current_balance"] = 0.0
-
         return {
             "success": True,
             "data": accounts,
@@ -173,7 +176,6 @@ def get_accounts_enhanced(company=None, include_thai=True, include_balance=False
             "thai_translations_included": include_thai,
             "timestamp": frappe.utils.now()
         }
-
     except Exception as e:
         frappe.log_error(f"Error in get_accounts_enhanced: {str(e)}")
         return {
@@ -199,7 +201,6 @@ def get_account_thai_mapping(simple=True):
             filters={"account_name_th": ["!=", ""]},
             order_by="account_name"
         )
-
         if simple:
             # Simple key-value mapping
             mapping = {
@@ -226,7 +227,6 @@ def get_account_thai_mapping(simple=True):
                 "detailed_mapping": detailed_mapping,
                 "count": len(detailed_mapping)
             }
-
     except Exception as e:
         frappe.log_error(f"Error in get_account_thai_mapping: {str(e)}")
         return {
@@ -248,7 +248,10 @@ def search_accounts_thai(query, limit=20):
     """
     try:
         # Search in both English and Thai names
-        accounts = frappe.db.sql("""
+        accounts = cast(
+            list,
+            frappe.db.sql(
+                """
             SELECT
                 name,
                 account_name,
@@ -270,18 +273,12 @@ def search_accounts_thai(query, limit=20):
                 END,
                 account_name
             LIMIT %(limit)s
-        """, {
-            "query": f"%{query}%",
-            "exact_query": f"{query}%",
-            "limit": limit
-        }, as_dict=True)
-
-        return {
-            "success": True,
-            "results": accounts,
-            "count": len(accounts),
-            "query": query
-        }
+        """,
+                {"query": f"%{query}%", "exact_query": f"{query}%", "limit": limit},
+                as_dict=True,
+            ),
+        )
+        return {"success": True, "results": accounts, "count": len(accounts), "query": query}
 
     except Exception as e:
         frappe.log_error(f"Error in search_accounts_thai: {str(e)}")
@@ -374,7 +371,6 @@ def get_account_list_for_reports(company=None, account_type=None, is_group=None)
             "account_number",
             "account_currency"
         ]
-
         # Get accounts ordered by account name (ERPNext standard)
         accounts = frappe.get_all("Account",
             filters=filters,
@@ -397,7 +393,6 @@ def get_account_list_for_reports(company=None, account_type=None, is_group=None)
                 "account_number": account.account_number,
                 "currency": account.account_currency
             }
-
             # Add enhanced display name for UI consumption
             if account.get("account_name_th"):
                 account_entry["display_name"] = f"{account.account_name} | {account.account_name_th}"
@@ -405,14 +400,12 @@ def get_account_list_for_reports(company=None, account_type=None, is_group=None)
                 account_entry["display_name"] = account.account_name
 
             formatted_accounts.append(account_entry)
-
         return {
             "success": True,
             "accounts": formatted_accounts,
             "count": len(formatted_accounts),
             "filters_applied": filters
         }
-
     except Exception as e:
         frappe.log_error(f"Error in get_account_list_for_reports: {str(e)}")
         return {
@@ -472,7 +465,6 @@ def sync_accounts_to_external_system(external_api_url, api_key=None, company=Non
                 "message": f"External API returned status {response.status_code}",
                 "response_text": response.text
             }
-
     except Exception as e:
         frappe.log_error(f"Error in sync_accounts_to_external_system: {str(e)}")
         return {
@@ -508,7 +500,6 @@ def format_as_dict(accounts):
         if company not in result:
             result[company] = []
         result[company].append(account)
-
     return {
         "success": True,
         "data_by_company": result,
@@ -543,18 +534,22 @@ def get_account_with_thai_for_erpnext(account_name=None, account_id=None):
             filters = {"account_name": account_name}
 
         # Get account with Thai enhancement
-        account = frappe.get_value("Account", filters, [
-            "name",
-            "account_name",
-            "account_name_th",
-            "account_type",
-            "parent_account",
-            "company",
-            "account_number",
-            "is_group",
-            "account_currency"
-        ], as_dict=True)
-
+        account = frappe.get_value(
+            "Account",
+            filters,
+            [
+                "name",
+                "account_name",
+                "account_name_th",
+                "account_type",
+                "parent_account",
+                "company",
+                "account_number",
+                "is_group",
+                "account_currency",
+            ],
+            as_dict=True,
+        )
         if not account:
             return {
                 "success": False,
@@ -574,7 +569,6 @@ def get_account_with_thai_for_erpnext(account_name=None, account_id=None):
             "currency": account.account_currency,
             "has_thai_translation": bool(account.get("account_name_th"))
         }
-
         # Add bilingual display name
         if account.get("account_name_th"):
             result["bilingual_name"] = f"{account.account_name} | {account.account_name_th}"
@@ -631,15 +625,9 @@ def enhance_account_data_with_thai(account_data):
         thai_translations = {}
         for identifier in account_identifiers:
             # Try by name first, then by ID
-            thai_name = frappe.db.get_value("Account",
-                ["name", "account_name"],
-                "account_name_th",
-                filters={"name": identifier}) or \
-                       frappe.db.get_value("Account",
-                ["account_name"],
-                "account_name_th",
-                filters={"account_name": identifier})
-
+            thai_name = frappe.db.get_value(
+                "Account", {"name": identifier}, "account_name_th"
+            ) or frappe.db.get_value("Account", {"account_name": identifier}, "account_name_th")
             if thai_name:
                 thai_translations[identifier] = thai_name
 

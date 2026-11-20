@@ -1,6 +1,6 @@
+import importlib
 import frappe
-from frappe import _
-
+import frappe.utils.data
 # Copyright (c) 2026, AWS Solution Ltd. and contributors
 # For license information, please see license.txt
 
@@ -13,13 +13,12 @@ def diagnose_and_fix_dynamic_images():
     """
     try:
         results = {
-            "timestamp": frappe.utils.now(),
+            "timestamp": frappe.utils.data.now(),
             "diagnosis": {},
             "fixes_applied": [],
             "next_steps": [],
             "success": True
         }
-        
         # Diagnosis Phase
         results["diagnosis"] = run_diagnosis()
         
@@ -34,7 +33,6 @@ def diagnose_and_fix_dynamic_images():
             "Check Print Designer > Dynamic Images again",
             "For Target Signature Field: Go to 'Signature Basic Information' DocType"
         ]
-        
         return results
         
     except Exception as e:
@@ -51,12 +49,10 @@ def run_diagnosis():
         "enhancement_status": False,
         "issues_found": []
     }
-    
     # Check signature field installation
     try:
-        from print_designer.api.signature_field_installer import check_signature_fields_status
-        status = check_signature_fields_status()
-        
+        module = importlib.import_module("print_designer.api.signature_field_installer")
+        status = getattr(module, "check_signature_fields_status")()
         if status.get("success"):
             diagnosis["signature_fields_status"] = status["results"]
             
@@ -79,8 +75,9 @@ def run_diagnosis():
         from print_designer.print_designer.page.print_designer.print_designer import get_image_docfields
         image_fields = get_image_docfields()
         diagnosis["image_fields_count"] = len(image_fields)
-        
-        signature_fields = [f for f in image_fields if 'signature' in f.get('fieldname', '').lower()]
+        signature_fields = [
+            f for f in image_fields if "signature" in f.get("fieldname", "").lower()
+        ]
         diagnosis["signature_fields_count"] = len(signature_fields)
         
         if len(signature_fields) == 0:
@@ -103,11 +100,13 @@ def run_diagnosis():
     
     # Check signature enhancements (Target Signature Field)
     try:
-        enhanced_fields = frappe.db.get_all("Custom Field", {
-            "dt": "Signature Basic Information",
-            "fieldname": ["in", ["target_doctype", "target_signature_field"]]
-        })
-        
+        enhanced_fields = frappe.db.get_all(
+            "Custom Field",
+            {
+                "dt": "Signature Basic Information",
+                "fieldname": ["in", ["target_doctype", "target_signature_field"]],
+            },
+        )
         diagnosis["enhancement_status"] = len(enhanced_fields) >= 2
         if not diagnosis["enhancement_status"]:
             diagnosis["issues_found"].append("Target Signature Field enhancement not installed")
@@ -122,9 +121,8 @@ def apply_fixes():
     
     # Fix 1: Install signature fields
     try:
-        from print_designer.api.signature_field_installer import install_signature_fields
-        result = install_signature_fields()
-        
+        module = importlib.import_module("print_designer.api.signature_field_installer")
+        result = getattr(module, "install_signature_fields")()
         if result.get("success"):
             fixes_applied.append(f"Installed signature fields for {len(result.get('doctypes', []))} DocTypes")
     except Exception as e:
@@ -132,9 +130,8 @@ def apply_fixes():
     
     # Fix 2: Install signature enhancements (optional module)
     try:
-        from print_designer.api.safe_install import safe_install_signature_enhancements
-        result = safe_install_signature_enhancements()
-
+        module = importlib.import_module("print_designer.api.safe_install")
+        result = getattr(module, "safe_install_signature_enhancements")()
         if result.get("success"):
             fixes_applied.append("Signature enhancements (Target Signature Field) installed")
     except ImportError:
@@ -212,7 +209,6 @@ def create_sample_company_signatures():
         for field in signature_fields:
             if hasattr(company_doc, field):
                 existing_signatures[field] = getattr(company_doc, field)
-        
         return {
             "success": True,
             "company": company_doc.name,
@@ -220,6 +216,5 @@ def create_sample_company_signatures():
             "current_values": existing_signatures,
             "instructions": "Upload actual signature images to these fields to see them in Dynamic Images"
         }
-        
     except Exception as e:
         return {"error": str(e)}

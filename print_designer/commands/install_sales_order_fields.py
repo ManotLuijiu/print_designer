@@ -9,11 +9,8 @@ Enhanced with validation, error handling, and status checking based on Quotation
 """
 
 import frappe
-from frappe import _
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 from frappe.custom.doctype.property_setter.property_setter import make_property_setter
-from frappe.utils import flt, cint
-
 from print_designer.custom.service_item_wht import CLIENT_SERVICE_ITEM_CONDITION
 
 
@@ -45,7 +42,7 @@ def migrate_invoice_schedule_ordering(doctype):
         {"dt": doctype, "fieldname": "pd_custom_deposit_section"},
         "name",
     )
-    if name:
+    if isinstance(name, str) and name:
         frappe.delete_doc("Custom Field", name, force=True)
         frappe.db.commit()
         print(f"  Re-anchored {doctype}.pd_custom_deposit_section")
@@ -401,7 +398,7 @@ def get_sales_order_custom_fields_definition():
                 "fieldtype": "Check",
                 "label": "Enable Invoice Schedule",
                 "insert_after": "payment_schedule",
-                "description": "Bill this Sales Order in milestones. Each milestone creates its own Sales Invoice. Milestones can be copied from the Payment Schedule, or written by hand.",
+                "description": "Bill this Sales Order in milestones. Each milestone creates its own draft Sales Invoice. Seed the Invoice Schedule from the Payment Schedule, add your own rows, or split the plan into as many invoices as you need. Generate the draft invoices before submitting the Sales Order, then review and submit the invoices afterward.",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -415,7 +412,7 @@ def get_sales_order_custom_fields_definition():
                 "options": "Invoice Schedule",
                 "insert_after": "pd_custom_enable_invoice_schedule",
                 "depends_on": "eval:doc.pd_custom_enable_invoice_schedule",
-                "description": "The milestones this Sales Order is billed in. Seed them from the Payment Schedule, add your own rows, or split the plan into as many invoices as you need.",
+                "description": "",
                 "allow_on_submit": 1,
                 "read_only": 0,
                 "hidden": 0,
@@ -426,10 +423,10 @@ def get_sales_order_custom_fields_definition():
             {
                 "fieldname": "pd_custom_add_invoice_schedule_row",
                 "fieldtype": "Button",
-                "label": "Add Milestone",
+                "label": "Generate Invoice",
                 "insert_after": "pd_custom_invoice_schedule",
                 "depends_on": "eval:doc.pd_custom_enable_invoice_schedule",
-                "description": "Add a milestone that is not in the Payment Schedule. It starts with whatever part of the contract is still not covered.",
+                "description": "Create one draft Sales Invoice for every milestone that does not have one yet. The invoices are drafts - review them, submit the Sales Order and submit the invoices afterwards.",
                 "read_only": 0,
                 "hidden": 1,
                 "collapsible": 0,
@@ -572,8 +569,6 @@ def validate_sales_order_fields_installation():
 
         # Create lookup for validation
         installed_lookup = {field["fieldname"]: field for field in installed_fields}
-        expected_lookup = {field["fieldname"]: field for field in expected_fields}
-
         # Validation checks
         missing_fields = []
         field_mismatches = []
@@ -613,7 +608,7 @@ def validate_sales_order_fields_installation():
             print(f"❌ Missing fields: {missing_fields}")
 
         if field_mismatches:
-            print(f"⚠️  Field mismatches found:")
+            print("⚠️  Field mismatches found:")
             for mismatch in field_mismatches:
                 print(
                     f"   {mismatch['fieldname']}.{mismatch['property']}: expected='{mismatch['expected']}', installed='{mismatch['installed']}'"

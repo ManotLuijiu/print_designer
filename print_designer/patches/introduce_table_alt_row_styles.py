@@ -12,8 +12,8 @@ def execute():
 		as_list=1,
 	)
 	for pf in print_formats:
-		settings = frappe.parse_json(pf[1])
-		if settings:
+		settings = frappe.parse_json(pf[1] or "{}")
+		if isinstance(settings, dict):
 			# If globalStyles is not present, skip
 			if not (gs := settings.get("globalStyles")):
 				continue

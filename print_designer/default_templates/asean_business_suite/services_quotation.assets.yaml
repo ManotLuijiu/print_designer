@@ -1,0 +1,28 @@
+kind: print_designer_template_assets
+version: 1
+template_file: services_quotation.json
+template_name: services_quotation
+source_site: aws-solution.bunchee.online
+source_format: Quotation - AWS Solution
+source_modified: '2026-11-20 03:19:36.417706'
+assets: []
+missing_assets: []
+dynamic_images:
+  - doctype: Company
+    fieldname: company_logo
+    parent_field: company
+    behavior_when_empty: >-
+      Print no image; the editor uses its existing image placeholder.
+portability_changes:
+  - Print Format renamed to services_quotation in exported copy only.
+  - >-
+    Static header/footer logos changed to the existing Company.company_logo
+    dynamic image binding.
+  - Branded thumbnail omitted; no source-site files are distributed.
+  - >-
+    The static header and footer text of the source company (name, tax id,
+    contact person, bank details) is kept as it is. The template is therefore
+    not site neutral, a site that installs it has to replace that text before
+    it prints. Only the logos are dynamic.
+  - Saved currentDoc reset to null; each site chooses a local Quotation.
+  - Source owner/modified_by and transient export keys omitted.

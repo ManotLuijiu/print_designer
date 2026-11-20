@@ -18,6 +18,7 @@ page numbers.
 """
 
 import unittest
+from typing import TYPE_CHECKING, Any, Callable
 from unittest.mock import patch
 
 import frappe
@@ -28,6 +29,11 @@ DOWNLOAD_PDF_PATH = "/api/method/frappe.utils.print_format.download_pdf"
 
 
 class RequestContextMixin:
+    if TYPE_CHECKING:
+        # The mixin is used together with `unittest.TestCase`, which provides
+        # the cleanup registry.
+        def addCleanup(self, function: Callable[..., Any], *args: Any, **kwargs: Any) -> None: ...
+
     def set_request(self, path, args=None):
         """Install a fake request for the duration of the test."""
         request = frappe._dict(path=path, args=frappe._dict(args or {}))
@@ -168,6 +174,10 @@ class TestWatermarkBranchUsesChrome(RequestContextMixin, unittest.TestCase):
                 doctype="Payment Entry",
                 name="ACC-PAY-2606-00001",
                 format="Receipt",
+                # The document is only the subject of the print, the branch
+                # under test is the generator.  A stand-in keeps the test
+                # independent of the documents that happen to be on the site.
+                doc=frappe._dict(doctype="Payment Entry", name="ACC-PAY-2606-00001"),
             )
 
         self.assertEqual(pdf_file, b"%PDF-1.4 chrome")

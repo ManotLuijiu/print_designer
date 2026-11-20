@@ -175,7 +175,7 @@ def patch_elements(
 				childrens = (
 					frappe.json.loads(element.get("childrens", "[]"))
 					if isinstance(element.get("childrens"), str)
-					else element.get("childrens")
+					else (element.get("childrens") or [])
 				)
 				if len(childrens) > 0:
 					element["childrens"] = patch_elements(data=childrens, callbacks=callbacks, types=types)
@@ -184,25 +184,26 @@ def patch_elements(
 			callback(element)
 		if dynamic_content_callback:
 			if "dynamicContent" in element:
-				for dy in element.get("dynamicContent"):
+				for dy in element.get("dynamicContent") or []:
 					dynamic_content_callback(dy)
 					if dynamic_content_style_callback:
 						dynamic_content_style_callback(dy.get("style"))
 			elif "columns" in element:
-				for col in element.get("columns"):
+				for col in element.get("columns") or []:
 					if "dynamicContent" in col:
-						for dy in col.get("dynamicContent"):
+						for dy in col.get("dynamicContent") or []:
 							dynamic_content_callback(dy)
 							if dynamic_content_style_callback:
 								dynamic_content_style_callback(dy.get("style"))
-		if style_callback and "style" in element:
-			style_callback(element.get("style"))
+		element_style = element.get("style")
+		if style_callback and element_style is not None:
+			style_callback(element_style)
 
 		if element.get("type") == "rectangle":
 			childrens = (
 				frappe.json.loads(element.get("childrens", "[]"))
 				if isinstance(element.get("childrens"), str)
-				else element.get("childrens")
+				else (element.get("childrens") or [])
 			)
 			if len(childrens) > 0:
 				element["childrens"] = patch_elements(data=childrens, callbacks=callbacks, types=types)

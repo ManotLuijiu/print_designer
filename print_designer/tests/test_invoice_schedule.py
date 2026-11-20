@@ -6,12 +6,19 @@ migrated in. The document level tests are skipped until then.
 """
 
 import unittest
+from typing import Any
 from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from print_designer.custom import invoice_schedule as ms
+
+
+def _milestones(doc: Any) -> list[Any]:
+	"""The milestone rows of a Sales Order."""
+	rows = doc.get("pd_custom_invoice_schedule")
+	return list(rows) if isinstance(rows, list) else []
 
 
 def _invoice_schedule_installed():
@@ -23,34 +30,43 @@ def _invoice_schedule_installed():
 class TestMilestoneArithmetic(unittest.TestCase):
 	"""The pure calculation helpers."""
 
-	def test_milestone_qty_is_a_clean_fraction_of_the_contract(self):
+	def test_the_milestone_rate_is_the_part_of_the_contract_rate(self):
 		so_item = frappe._dict(qty=40, rate=7500, amount=300000)
 
-		self.assertEqual(ms._milestone_qty(so_item, 20), 8.0)
-		self.assertEqual(ms._milestone_qty(so_item, 60), 24.0)
-		self.assertEqual(ms._milestone_qty(so_item, 20), 8.0)
+		self.assertEqual(ms._milestone_rate(so_item, 20), 1500.0)
+		self.assertEqual(ms._milestone_rate(so_item, 60), 4500.0)
+		self.assertEqual(ms._milestone_rate(so_item, 20), 1500.0)
 
-	def test_milestone_qty_totals_back_to_the_contract_quantity(self):
+	def test_the_milestone_amount_is_the_part_of_the_contract_amount(self):
 		so_item = frappe._dict(qty=40, rate=7500, amount=300000)
 
-		total = sum(ms._milestone_qty(so_item, p) for p in (20, 60, 20))
+		self.assertEqual(ms._milestone_amount(so_item, 20), 60000.0)
+		self.assertEqual(ms._milestone_amount(so_item, 60), 180000.0)
 
-		self.assertEqual(total, so_item.qty)
+	def test_the_milestone_amounts_add_up_to_the_contract_amount(self):
+		so_item = frappe._dict(qty=40, rate=7500, amount=300000)
 
-	def test_milestone_qty_keeps_fractional_portions_usable(self):
-		so_item = frappe._dict(qty=3, rate=10000, amount=30000)
+		total = sum(ms._milestone_amount(so_item, p) for p in (20, 60, 20))
 
-		self.assertAlmostEqual(ms._milestone_qty(so_item, 33.33), 0.9999, places=4)
-		self.assertAlmostEqual(ms._milestone_qty(so_item, 33.33) * 3, 2.9997, places=4)
+		self.assertEqual(total, so_item.amount)
+
+	def test_the_contract_quantity_stays_whole(self):
+		"""A milestone bills a part of the contract, it does not deliver a part
+		of the service, so the quantity of the invoice line is unchanged."""
+		so_item = frappe._dict(qty=40, rate=7500, amount=300000)
+
+		for portion in (20, 60, 20):
+			self.assertEqual(ms._milestone_line(so_item, portion)["qty"], 40)
 
 	def test_milestone_line_multiplies_out(self):
 		"""The whole point - the invoice line adds up without any override."""
 		so_item = frappe._dict(qty=40, rate=7500, amount=300000)
 
-		qty = ms._milestone_qty(so_item, 20)
-		amount = qty * so_item.rate
+		line = ms._milestone_line(so_item, 20)
 
-		self.assertEqual(amount, 60000.0)
+		self.assertEqual(line["qty"] * line["rate"], 60000.0)
+		self.assertEqual(line["amount"], 60000.0)
+		self.assertEqual(line["portion"], 20.0)
 
 	def test_item_description_states_the_derivation(self):
 		so_item = frappe._dict(qty=40, rate=7500, amount=300000, description="Software build")
@@ -61,6 +77,7 @@ class TestMilestoneArithmetic(unittest.TestCase):
 		self.assertIn("Upfront", description)
 		self.assertIn("40", description)
 		self.assertIn("7,500.00", description)
+		self.assertIn("1,500.00", description)
 		self.assertIn("300,000.00", description)
 		self.assertIn("60,000.00", description)
 		self.assertIn("Software build", description)
@@ -70,7 +87,7 @@ class TestMilestoneArithmetic(unittest.TestCase):
 		self.assertEqual(ms._flt(60), "60.00")
 
 	def test_remaining_portion_is_what_is_still_not_covered(self):
-		doc = frappe._doc = frappe._dict(
+		doc = frappe._dict(
 			pd_custom_invoice_schedule=[
 				frappe._dict(invoice_portion=20),
 				frappe._dict(invoice_portion=60),
@@ -106,8 +123,8 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 	def test_refresh_invoice_amounts_uses_the_contract_base(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append(
 			"pd_custom_invoice_schedule",
 			{"payment_term": "Upfront", "invoice_portion": 20},
@@ -119,16 +136,14 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 		ms.refresh_invoice_amounts(doc)
 
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].invoice_amount, 60000.0)
-		self.assertEqual(doc.pd_custom_invoice_schedule[1].invoice_amount, 180000.0)
-		self.assertEqual(
-			doc.pd_custom_invoice_schedule[0].milestone_status, ms.STATUS_NOT_INVOICED
-		)
+		self.assertEqual(_milestones(doc)[0].invoice_amount, 60000.0)
+		self.assertEqual(_milestones(doc)[1].invoice_amount, 180000.0)
+		self.assertEqual(_milestones(doc)[0].milestone_status, ms.STATUS_NOT_INVOICED)
 
 	def test_refresh_invoice_amounts_freezes_an_invoiced_milestone(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append(
 			"pd_custom_invoice_schedule",
 			{
@@ -141,12 +156,12 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 		ms.refresh_invoice_amounts(doc)
 
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].invoice_amount, 60000.0)
+		self.assertEqual(_milestones(doc)[0].invoice_amount, 60000.0)
 
 	def test_refresh_invoice_amounts_marks_a_row_without_a_source_as_manual(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append(
 			"pd_custom_invoice_schedule",
 			{"payment_term": "Hand written", "invoice_portion": 10},
@@ -154,14 +169,14 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 		ms.refresh_invoice_amounts(doc)
 
-		row = doc.pd_custom_invoice_schedule[0]
+		row = _milestones(doc)[0]
 		self.assertEqual(row.milestone_source, ms.SOURCE_MANUAL)
 		self.assertEqual(row.invoice_amount, 30000.0)
 
 	def test_refresh_invoice_amounts_keeps_the_seed_source(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append(
 			"pd_custom_invoice_schedule",
 			{
@@ -173,24 +188,22 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 		ms.refresh_invoice_amounts(doc)
 
-		self.assertEqual(
-			doc.pd_custom_invoice_schedule[0].milestone_source, ms.SOURCE_PAYMENT_SCHEDULE
-		)
+		self.assertEqual(_milestones(doc)[0].milestone_source, ms.SOURCE_PAYMENT_SCHEDULE)
 
 	def test_refresh_invoice_amounts_is_a_no_op_when_disabled(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
+		doc.set("net_total", 300000)
 		doc.append("pd_custom_invoice_schedule", {"payment_term": "Upfront", "invoice_portion": 20})
 
 		ms.refresh_invoice_amounts(doc)
 
-		self.assertFalse(doc.pd_custom_invoice_schedule[0].invoice_amount)
+		self.assertFalse(_milestones(doc)[0].invoice_amount)
 
 	def test_an_amended_order_starts_with_a_clean_plan(self):
 		"""An amendment is a new contract, so its milestones start over."""
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		row = doc.append(
 			"pd_custom_invoice_schedule",
 			{
@@ -219,8 +232,8 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 	def test_a_milestone_without_an_invoice_is_left_alone_on_submit(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.net_total = 300000
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("net_total", 300000)
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		row = doc.append(
 			"pd_custom_invoice_schedule",
 			{
@@ -240,12 +253,12 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 
 	def test_service_order_skips_the_delivery_note(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append("items", {"item_code": "NON-EXISTENT-SERVICE-ITEM", "qty": 1, "rate": 100})
 
 		ms.set_skip_delivery_note(doc)
 
-		self.assertEqual(doc.skip_delivery_note, 1)
+		self.assertEqual(doc.get("skip_delivery_note"), 1)
 
 	def test_stock_order_keeps_the_delivery_note(self):
 		stock_item = frappe.db.get_value("Item", {"is_stock_item": 1}, "name")
@@ -253,21 +266,21 @@ class TestInvoiceScheduleDocument(FrappeTestCase):
 			self.skipTest("This site has no stock item to test with")
 
 		doc = frappe.new_doc("Sales Order")
-		doc.pd_custom_enable_invoice_schedule = 1
+		doc.set("pd_custom_enable_invoice_schedule", 1)
 		doc.append("items", {"item_code": stock_item, "qty": 1, "rate": 100})
 
 		ms.set_skip_delivery_note(doc)
 
-		self.assertEqual(doc.skip_delivery_note, 0)
+		self.assertEqual(doc.get("skip_delivery_note"), 0)
 
 	def test_disabled_order_keeps_the_delivery_note(self):
 		doc = frappe.new_doc("Sales Order")
-		doc.pd_custom_enable_invoice_schedule = 0
+		doc.set("pd_custom_enable_invoice_schedule", 0)
 		doc.append("items", {"item_code": "NON-EXISTENT-SERVICE-ITEM", "qty": 1, "rate": 100})
 
 		ms.set_skip_delivery_note(doc)
 
-		self.assertEqual(doc.skip_delivery_note, 0)
+		self.assertEqual(doc.get("skip_delivery_note"), 0)
 
 
 class TestInvoiceScheduleAutoCopy(FrappeTestCase):
@@ -279,11 +292,11 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 	def _order(self, enabled=1, previous_enabled=None):
 		doc = frappe.new_doc("Sales Order")
-		doc.pd_custom_enable_invoice_schedule = enabled
+		doc.set("pd_custom_enable_invoice_schedule", enabled)
 
 		if previous_enabled is not None:
 			previous = frappe.new_doc("Sales Order")
-			previous.pd_custom_enable_invoice_schedule = previous_enabled
+			previous.set("pd_custom_enable_invoice_schedule", previous_enabled)
 			doc._doc_before_save = previous
 
 		return doc
@@ -295,13 +308,11 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		ms.sync_invoice_schedule_from_payment_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 2)
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].payment_term, "Upfront")
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].invoice_portion, 20.0)
-		self.assertEqual(doc.pd_custom_invoice_schedule[1].invoice_portion, 80.0)
-		self.assertEqual(
-			doc.pd_custom_invoice_schedule[0].milestone_source, ms.SOURCE_PAYMENT_SCHEDULE
-		)
+		self.assertEqual(len(_milestones(doc)), 2)
+		self.assertEqual(_milestones(doc)[0].payment_term, "Upfront")
+		self.assertEqual(_milestones(doc)[0].invoice_portion, 20.0)
+		self.assertEqual(_milestones(doc)[1].invoice_portion, 80.0)
+		self.assertEqual(_milestones(doc)[0].milestone_source, ms.SOURCE_PAYMENT_SCHEDULE)
 
 	def test_nothing_is_copied_while_billing_is_off(self):
 		doc = self._order(enabled=0)
@@ -309,7 +320,7 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		ms.sync_invoice_schedule_from_payment_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 0)
+		self.assertEqual(len(_milestones(doc)), 0)
 
 	def test_nothing_is_copied_when_billing_was_already_on(self):
 		doc = self._order(previous_enabled=1)
@@ -317,7 +328,7 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		ms.sync_invoice_schedule_from_payment_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 0)
+		self.assertEqual(len(_milestones(doc)), 0)
 
 	def test_a_milestone_that_is_already_there_is_never_overwritten(self):
 		doc = self._order()
@@ -329,12 +340,12 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		ms.sync_invoice_schedule_from_payment_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 2)
+		self.assertEqual(len(_milestones(doc)), 2)
 		# the edited portion survives
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].invoice_portion, 10.0)
+		self.assertEqual(_milestones(doc)[0].invoice_portion, 10.0)
 		# the missing one is added
-		self.assertEqual(doc.pd_custom_invoice_schedule[1].payment_term, "Delivery")
-		self.assertEqual(doc.pd_custom_invoice_schedule[1].invoice_portion, 80.0)
+		self.assertEqual(_milestones(doc)[1].payment_term, "Delivery")
+		self.assertEqual(_milestones(doc)[1].invoice_portion, 80.0)
 
 	def test_a_payment_schedule_row_without_a_portion_is_ignored(self):
 		doc = self._order()
@@ -342,17 +353,17 @@ class TestInvoiceScheduleAutoCopy(FrappeTestCase):
 
 		ms.sync_invoice_schedule_from_payment_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 0)
+		self.assertEqual(len(_milestones(doc)), 0)
 
 	def test_the_validate_hook_copies_the_plan_and_computes_the_amounts(self):
 		doc = self._order()
-		doc.net_total = 300000
+		doc.set("net_total", 300000)
 		doc.append("payment_schedule", {"payment_term": "Upfront", "invoice_portion": 20})
 
 		ms.sales_order_invoice_schedule(doc)
 
-		self.assertEqual(len(doc.pd_custom_invoice_schedule), 1)
-		self.assertEqual(doc.pd_custom_invoice_schedule[0].invoice_amount, 60000.0)
+		self.assertEqual(len(_milestones(doc)), 1)
+		self.assertEqual(_milestones(doc)[0].invoice_amount, 60000.0)
 
 	def test_seeding_reports_what_it_added_and_what_it_left_alone(self):
 		doc = self._order()
@@ -382,11 +393,18 @@ class TestMilestoneInvoiceDeletion(FrappeTestCase):
 		):
 			ms.on_sales_invoice_delete(doc)
 
-		set_value.assert_called_once_with(
+		set_value.assert_any_call(
 			"Invoice Schedule",
 			"row-1",
 			{"sales_invoice": None, "milestone_status": ms.STATUS_NOT_INVOICED},
 		)
+
+		# the timestamp of the order moves, so a form that was opened before
+		# the deletion cannot write the link back
+		touches = [call for call in set_value.call_args_list if call.args[0] == "Sales Order"]
+
+		self.assertEqual(len(touches), 1)
+		self.assertEqual(touches[0].args[1], "TEST-SALES-ORDER-0001")
 
 	def test_the_invoice_schedule_link_does_not_block_the_deletion(self):
 		from print_designer import hooks
@@ -400,3 +418,25 @@ class TestMilestoneInvoiceDeletion(FrappeTestCase):
 			hooks.doc_events["Sales Invoice"]["after_delete"],
 			"print_designer.custom.invoice_schedule.on_sales_invoice_delete",
 		)
+
+
+class TestMilestoneEndpoints(unittest.TestCase):
+	"""The endpoints that change a Sales Order are POST only.
+
+	Every one of them writes - a milestone row is added or an invoice is
+	created - so they may not be reachable with a GET, which a link or a
+	prefetch could trigger by accident.
+	"""
+
+	def test_the_endpoints_that_change_the_order_are_post_only(self):
+		endpoints = (
+			ms.seed_invoice_schedule,
+			ms.add_invoice_schedule_row,
+			ms.generate_milestone_invoices,
+			ms.create_milestone_invoices,
+		)
+
+		for endpoint in endpoints:
+			with self.subTest(endpoint=endpoint.__name__):
+				methods = frappe.allowed_http_methods_for_whitelisted_func.get(endpoint)
+				self.assertEqual(methods, ["POST"])

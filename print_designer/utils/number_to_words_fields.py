@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 
 import frappe
+from frappe.defaults import get_global_default
 from frappe.utils import flt, money_in_words
 
 from print_designer.utils.thai_amount_to_word import thai_money_in_words
@@ -64,7 +65,9 @@ def normalize_language(language):
 
 def get_number_to_words_pairs(print_format):
     settings_value = _doc_value(print_format, "print_designer_settings") or "{}"
-    settings = frappe.parse_json(settings_value) or {}
+    settings = frappe.parse_json(settings_value)
+    if not isinstance(settings, dict):
+        return []
     pairs = settings.get("numberToWordsFieldPairs")
     return pairs if isinstance(pairs, list) else []
 
@@ -132,9 +135,9 @@ def _resolve_currency(doc, currency_field=None):
     ):
         value = _doc_value(doc, fieldname)
         if value:
-            return value
+            return str(value)
 
-    return frappe.defaults.get_global_default("currency") or "THB"
+    return str(get_global_default("currency") or "THB")
 
 
 def get_primary_amount(doc, meta, pairs):

@@ -578,8 +578,16 @@ after_install = [
     # Address field label overrides for Thai localization
     # (city → Sub-district, county → District, state → Province)
     "print_designer.commands.install_address_fields.install_address_fields",
+    # Missing-only installer for the default templates. Runs LAST so that the
+    # custom fields and DocTypes a template design refers to already exist
+    # when the dependency check runs. Never overwrites an existing format.
+    "print_designer.default_templates_installer.install_missing_default_formats",
 ]
 
+# Retry the templates that were deferred by a missing dependency after
+# another app was installed. Only the templates whose target DocType belongs
+# to the newly installed app are retried.
+after_app_install = "print_designer.default_templates_installer.after_app_install"
 # Boot session enhancements (Frappe v15+ uses extend_bootinfo, older versions use boot_session)
 # OLD: boot_session = "print_designer.utils.signature_stamp.boot_session"
 # OLD: extend_bootinfo = "print_designer.utils.signature_stamp.boot_session"
@@ -610,6 +618,7 @@ after_migrate = [
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_sales_order_fields.reinstall_sales_order_custom_fields",  # Ensure Sales Order WHT fields have correct depends_on conditions
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
+    "print_designer.commands.install_milestone_invoice_item_fields.install_milestone_invoice_item_fields",  # Percent column of the milestone Sales Invoice Item
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Ensure Payment Entry Thai tax preview fields are installed during migration
     "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
@@ -808,12 +817,14 @@ doc_events = {
             "print_designer.custom.sales_order_calculations.sales_order_calculate_thailand_amounts",
             "print_designer.custom.invoice_schedule.sales_order_invoice_schedule",
         ],
+        "before_submit": "print_designer.custom.invoice_schedule.on_sales_order_before_submit",
         "on_submit": "print_designer.custom.invoice_schedule.on_sales_order_submit",
         "on_cancel": "print_designer.custom.invoice_schedule.on_sales_order_cancel",
     },
     # Sales Invoice - Using consolidated calculation functions
     "Sales Invoice": {
         "before_print": "print_designer.pdf.before_print",
+        "before_mapping": "print_designer.custom.invoice_schedule.on_sales_invoice_before_mapping",
         "before_validate": "print_designer.custom.sales_invoice_calculations.before_validate_sales_invoice",
         "validate": [
             "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",

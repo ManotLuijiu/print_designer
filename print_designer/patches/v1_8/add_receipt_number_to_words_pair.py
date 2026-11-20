@@ -28,7 +28,7 @@ def execute():
         "Receipt",
         "print_designer_settings",
     )
-    settings = frappe.parse_json(settings_json or "{}") or {}
+    settings = frappe.parse_json(settings_json if isinstance(settings_json, str) else "{}") or {}
     if not merge_number_to_words_pair(settings, PAIR):
         return
 

@@ -1,10 +1,10 @@
-import asyncio
 import base64
 import time
-import urllib
+import urllib.parse
 from io import BytesIO
 
 import frappe
+import frappe.utils
 from pypdf import PdfReader
 
 """
@@ -14,8 +14,14 @@ https://chromedevtools.github.io/devtools-protocol/
 
 
 class Page:
+	# Set externally by the generator once the Print Format is known.
+	is_print_designer: bool
+	options: dict
+
 	def __init__(self, session, browser_context_id, page_type):
 		self.session = session
+		self.is_print_designer = False
+		self.options = {}
 		result, error = self.session.send(
 			"Target.createTarget", {"url": "", "browserContextId": browser_context_id}
 		)
@@ -53,7 +59,7 @@ class Page:
 			frame = frame_tree["frame"]
 			self.frame_id = frame["id"]
 			return self.frame_id
-		except Exception as e:
+		except Exception:
 			frappe.log_error(title="Error fetching frameId:", message=f"{frappe.get_traceback()}")
 			raise
 
@@ -101,7 +107,6 @@ class Page:
 		event = self.session.start_listener(
 			"Fetch.requestPaused", on_request_paused_event, self.session_id, self.target_id, self.frame_id
 		)
-
 		# Enable request interception for the specified URL pattern
 		self.session.send("Fetch.enable", {"patterns": [{"urlPattern": url_pattern}]})
 
@@ -160,7 +165,6 @@ class Page:
 		self.session.start_listener(
 			"Fetch.requestPaused", on_request_paused_event, self.session_id, self.target_id, self.frame_id
 		)
-
 		# Enable request interception for the specified URL pattern
 		self.session.send("Fetch.enable", {"patterns": [{"urlPattern": url_pattern}]})
 
@@ -215,9 +219,9 @@ class Page:
 	def wait_for_load(self, wait_for, timeout=60):
 		self.send("Page.setLifecycleEventsEnabled", {"enabled": True})
 		status = {}
-		if type(wait_for) == str:
+		if isinstance(wait_for, str):
 			status[wait_for] = False
-		if type(wait_for) == list:
+		if isinstance(wait_for, list):
 			for event in wait_for:
 				status[event] = False
 
@@ -295,14 +299,17 @@ class Page:
 		# Only include margin in @page if at least one margin is non-zero.
 		# When all margins are 0 (no .print-format margins), omit the margin property
 		# so that template CSS @page margins (e.g. margin: 5mm 0 70mm 0) are not overridden.
-		has_margins = any([
-			self.options.get("marginTop", 0),
-			self.options.get("marginBottom", 0),
-			self.options.get("marginLeft", 0),
-			self.options.get("marginRight", 0),
-		])
-		margin_rule = f"margin: {marginTop} {marginRight} {marginBottom} {marginLeft};" if has_margins else ""
-
+		has_margins = any(
+			[
+				self.options.get("marginTop", 0),
+				self.options.get("marginBottom", 0),
+				self.options.get("marginLeft", 0),
+				self.options.get("marginRight", 0),
+			]
+		)
+		margin_rule = (
+			f"margin: {marginTop} {marginRight} {marginBottom} {marginLeft};" if has_margins else ""
+		)
 		# Enhanced CSS rule with improved page break controls
 		css_rule = f"""
 			@page {{

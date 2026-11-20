@@ -168,6 +168,127 @@ Do not replace it with an unscoped CSS rule or underline every padding row.
 Regression tests: `print_designer/tests/test_desk_preview_table_borders.py`.
 Retain the `[PD Preview Borders]` diagnostic logs until the user requests removal.
 
+## Custom default template installer
+
+See [Minimax handoff](wiki/custom-default-templates-installer-minimax.md) and
+[implementation notes](wiki/default-templates-installer-implementation.md) for
+recursive missing-only installation. The exported
+`default_templates/asean_business_suite/services_quotation.json` is a copy of
+the approved quotation with dynamic `Company.company_logo` images and no
+source-site logo assets or sample document selection. It is not site neutral:
+the header and the footer still carry the source company's static text (name,
+tax id, contact, bank details), so a site that installs it has to replace that
+text before it prints. The category name is not an installed-app dependency.
+The importer is implemented
+(`print_designer/default_templates_installer.py`) and runs from `after_install`;
+it only fills in formats that are missing and never overwrites an existing
+one. The dry run and the backfill of the sites that already run the app go
+through the admin API
+(`print_designer/api/default_templates_api.py::run_default_template_installation`),
+which is a separate step that needs its own authorization - see the tracked
+issue. Regression tests:
+`print_designer/tests/test_default_templates_installer.py`.
+
+## Sales Order milestone actions
+
+See [Generate Invoice / copy feedback handoff](wiki/sales-order-generate-invoice-button-minimax.md)
+and [implementation notes](wiki/sales-order-generate-invoice-button-implementation.md).
+The workflow is implemented: a saved draft SO → Generate Invoice creates one
+draft Sales Invoice per milestone → the SO can be submitted while the links
+survive → the invoices are submitted afterwards. The draft mapping uses a
+request scoped, internal only exception; the normal ERPNext checks stay in
+place. Add row and the copy feedback stay available, the legacy
+`pd_custom_add_invoice_schedule_row` field is now the Generate Invoice button
+and the separate Add Milestone toolbar button is gone. Keep this feature in
+Print Designer.
+
+A milestone bills a part of the contract, it does not deliver a part of the
+service. The invoice line therefore keeps the contract quantity and scales the
+rate by the portion (`rate = so_item.rate * invoice_portion / 100`), because
+ERPNext works the line amount out as `qty * rate` and the status updater bills
+the line amount against the order. The portion is stored in
+`pd_custom_invoice_portion`, the `%` column of the Sales Invoice Item right
+after the Amount column, installed by
+`print_designer/commands/install_milestone_invoice_item_fields.py`. The
+submission guard compares quantity, portion and amount, never the rate.
+
+The generated milestone line clears `margin_type`, `margin_rate_or_amount` and
+`pricing_rules`: the milestone rate is derived from the contract, so ERPNext
+must not price it a second time (`Sales Invoice` has no `ignore_pricing_rule`
+field). The generation takes a row lock on the Sales Order and re-reads the
+milestone rows under that lock, so two requests at the same time cannot both
+invoice the same milestone. A Sales Order line without a quantity is left out
+of the invoice. The three endpoints that change a Sales Order
+(`seed_invoice_schedule`, `add_invoice_schedule_row`,
+`generate_milestone_invoices`) are POST only.
+
+A milestone invoice carries only its part of the contract: the fixed
+`discount_amount` of the header and the tax rows with the amount `Actual` are
+split over the milestone portions (`_allocate_fixed_amounts`), the last
+milestone gets the rounding remainder so the parts add up to the amount of the
+order, and a discount or a charge in percent is left to ERPNext. The invoice
+is dated at the date of the milestone: ERPNext v16 works the posting date out
+again on every save, so the generated invoice sets `set_posting_time` and the
+dates of the payment schedule move with it. After the Sales Order is
+submitted its milestones are frozen and the billing date of the draft invoice
+is the user's own business: the posting date can still be changed in the
+form and the change survives the submit of the invoice. The submission guard compares the
+item, the unit of measure, the conversion factor, the project and the date
+beside the quantity, the portion and the amount, and a draft that no longer
+matches is refused with a message that says what has changed. The link
+between a milestone and its invoice belongs to the server: every save of the
+Sales Order reconciles the stored links (`reconcile_milestone_links`) and the
+timestamp of the order moves with every change of a milestone, so a form that
+was opened before the generation cannot erase the links.
+
+Regression tests: `print_designer/tests/test_invoice_schedule.py`,
+`print_designer/tests/test_invoice_schedule_flow.py`,
+`print_designer/tests/test_invoice_schedule_generation.py`,
+`print_designer/tests/test_invoice_schedule_buttons.py` and
+`print_designer/tests/test_milestone_invoice_item_field.py`. The browser
+verification of the buttons is in the
+[milestone UI notes](wiki/sales-order-milestone-ui-e2e-minimax.md).
+
+## Milestone invoice payment schedule date types
+
+Investigated on 2026-11-21 with `SO-69-08-00001` (issue `print_designer-01f`).
+Generating the milestone invoices failed inside ERPNext:
+
+```text
+File ".../erpnext/controllers/accounts_controller.py", line 2715, in set_due_date
+    self.due_date = max(due_dates)
+TypeError: '>' not supported between instances of 'datetime.date' and 'str'
+```
+
+The payment schedule of a milestone invoice mixes date types. The child table
+of the order and of the invoice is the same `Payment Schedule`, but the field
+of the order carries `no_copy = 1`, so the mapper leaves the invoice without a
+schedule and ERPNext builds it in `make_sales_invoice` with
+`doclist.set_payment_schedule()`. That function takes the posting date of the
+new invoice, which is the default `Today` and therefore a **string**
+(`frappe.utils.nowdate()` returns a string). A date that ERPNext works out
+from that posting date stays a string, while a date that is taken over from
+the order is a `datetime.date`.
+
+`frappe.utils.add_to_date` keeps the type of its input: it sets
+`as_string = True` for a string and returns `date.strftime(DATE_FORMAT)`.
+`add_days` delegates to it, so `_shift_payment_schedule` used to keep the
+mixed types - and it skipped the whole schedule when the offset was zero.
+
+`_shift_payment_schedule` now normalizes every populated due date and discount
+date with `getdate` before it moves them, and the early return for a zero
+offset is gone. The calendar days do not change, only the type. Do not catch
+and ignore the TypeError, replace the core `set_due_date`, remove the invoice
+Payment Schedule or turn every date into text to make the comparison work.
+
+The collection-date policy of the schedule is a separate question and is not
+part of this repair: the first row of the schedule is anchored to the day the
+invoice is generated, not to the date of the order.
+
+Regression tests: `print_designer/tests/test_invoice_schedule_mixed_dates.py`.
+The detail is in the
+[mixed-date notes](wiki/milestone-invoice-mixed-dates-minimax.md).
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
@@ -308,6 +429,31 @@ python -m pytest print_designer/tests/test_page_orientation.py -v
 bench run-tests --app print_designer
 ```
 
+### The app's own test runner
+
+`bench run-tests` preloads the test records of **every installed app** before
+it runs the first test (`frappe/testing/environment.py` ->
+`_create_global_test_record_dependencies`). On a site whose other apps carry
+incomplete fixture data that preload dies before any Print Designer test
+runs. On `demo.bunchee.online` HRMS is installed without its payroll module,
+so the Leave Type records that HRMS generates link to the Earning Component,
+a DocType that is not installed there, and the preload fails with
+`LinkValidationError`.
+
+The app therefore has its own runner, which runs the same test modules with
+the same environment setup and without the global preload:
+
+```bash
+bench --site <site> execute print_designer.commands.run_tests.main
+
+# A single module
+bench --site <site> execute print_designer.commands.run_tests.main \
+  --kwargs '{"modules": ["print_designer.tests.test_invoice_schedule_flow"]}'
+```
+
+It prints a summary (`tests`, `failures`, `errors`, `skipped`) and raises
+when a test fails, so the exit code stays meaningful.
+
 ### Test Pattern (Python Playwright)
 
 ```python
@@ -392,3 +538,56 @@ INNER JOIN `tabPurchase Invoice` pi ON pi.name = ici.parent
 LEFT JOIN `tabSupplier` s ON s.name = ici.vendor_name
 WHERE ici.parenttype = 'Purchase Invoice' AND ici.vat_amount > 0
 ```
+
+## Invoice Schedule milestone dropdown and legacy handler collision
+
+See [Minimax handoff](wiki/invoice-schedule-payment-term-dropdown-minimax.md).
+The free-text Invoice Schedule `payment_term` field collides with the legacy
+ERPNext `frm.cscript.payment_term` handler, which assumes a Payment Schedule
+row and loads a Payment Term master. Skip that legacy handler only for Invoice
+Schedule; preserve its behavior elsewhere. Use native Autocomplete with
+`ignore_validation: 1` to suggest existing terms while retaining manual names.
+Use the Print Designer permission-checked lookup; this site's TBS override of
+Desk search has an incompatible signature. Do not edit core or TBS for this fix.
+
+Verified in a real browser on `aws-solution.bunchee.online`
+(Sales Order `SO-69-08-00001`, never saved): the milestone cell lists
+`ส่งงานช่วง UAT (60%)` for the text `ส่งงาน`, a mouse click puts the exact name
+in the row, a manual name survives the blur without the "Payment Term not
+found" dialog, and the expanded row editor behaves the same. The scoped
+wrapper is installed once per form and the original ERPNext handler still
+runs for the real Payment Schedule rows. A user without Payment Term read
+gets a permission error and no suggestions.
+
+Two traps when repeating the check: the Payment Schedule grid also has a
+`payment_term` column, so a page-level selector can hit the wrong grid - scope
+it to `frm.fields_dict.pd_custom_invoice_schedule.grid.wrapper`. And clear the
+input before typing, otherwise the search runs on the old value plus the new
+text and finds nothing. The Payment Schedule dropdown itself stays broken by
+the TBS search override; that is pre-existing and out of scope.
+
+## Python indentation convention is per file
+
+Every changed Python file keeps the indentation style it already had. The
+repository mixes tabs and spaces, and the style is a property of the file, not
+of the project: `print_designer/custom/invoice_schedule.py`,
+`print_designer/tests/test_invoice_schedule.py` and `print_designer/uninstall.py`
+use tabs, most of `print_designer/tests/` uses spaces, and the isort settings
+in `pyproject.toml` ask for `indent = "\t"`.
+
+A new file follows the convention of the files next to it, not the isort
+setting and not the Ruff default.
+
+**Do not use a Ruff-formatted diff as the churn measure.** Comparing HEAD
+against the Ruff-formatted current file hides an indentation change: Ruff
+normalises to spaces, so a tab file that was converted to spaces still matches
+its own formatted output and the measured churn is 0. Measure the indentation
+style of the current file against the indentation style of HEAD instead, and
+use `git diff --cached -w` to see how much of the diff is whitespace only.
+
+**Restoring the layout is a three way merge, not a formatter run.** Normalise
+both sides with Ruff using the indentation style of the file, merge the
+semantic change onto the HEAD layout, and verify the result compiles and has
+the same syntax tree as the current version. Do not run `ruff format` across
+the repository to tidy the diff: it rewrites the untouched code of every file
+it touches.

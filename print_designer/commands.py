@@ -17,16 +17,14 @@ def install_watermark_fields(context):
             
             # Import and run the installation
             from print_designer.install import (
-                override_erpnext_install,
-                force_recreate_print_settings_fields
+                install_all_custom_fields,
+                setup_enhanced_print_settings,
             )
-            
-            # Apply the override
-            override_erpnext_install()
-            
-            # Force recreate fields
-            force_recreate_print_settings_fields()
-            
+
+            # Install the base custom fields and the Print Settings
+            # (watermark / copy / page number) fields.
+            install_all_custom_fields()
+            setup_enhanced_print_settings()
             # Commit changes
             frappe.db.commit()
             
@@ -60,7 +58,6 @@ def check_print_settings_fields(context):
                 "watermark_position",
                 "watermark_font_family"
             ]
-            
             # Check for copy fields
             copy_fields = [
                 "copy_settings_section",
@@ -69,14 +66,12 @@ def check_print_settings_fields(context):
                 "default_original_label",
                 "default_copy_label"
             ]
-            
             # Check for original ERPNext fields
             original_fields = [
                 "compact_item_print",
                 "print_uom_after_quantity",
                 "print_taxes_with_zero_amount"
             ]
-            
             all_fields = watermark_fields + copy_fields + original_fields
             
             click.echo("Field Status:")
@@ -95,7 +90,7 @@ def check_print_settings_fields(context):
                 print_settings = frappe.get_single("Print Settings")
                 watermark_setting = print_settings.get("watermark_settings", "Not Set")
                 click.echo(f"\nCurrent watermark setting: {watermark_setting}")
-            except:
+            except Exception:
                 click.echo("\n❌ Could not read Print Settings")
                 
         except Exception as e:

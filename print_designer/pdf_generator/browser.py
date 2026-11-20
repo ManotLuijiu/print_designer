@@ -1,4 +1,7 @@
+from typing import Literal
+
 import frappe
+import frappe.utils
 from bs4 import BeautifulSoup
 from frappe.utils.pdf import get_print_format_styles as get_styles_print_format_class
 from frappe.utils.pdf import toggle_visible_pdf
@@ -9,6 +12,18 @@ from print_designer.print_designer.page.print_designer.print_designer import (
     convert_uom,
     parse_float_and_unit,
 )
+
+Uom = Literal["px", "mm", "cm", "in"]
+
+UOM_UNITS: tuple[Uom, ...] = ("px", "mm", "cm", "in")
+
+
+def _as_uom(value) -> Uom:
+    """Narrow a unit that came from the HTML/CSS to a known one."""
+    if value in UOM_UNITS:
+        return value
+
+    return "px"
 
 
 class Browser:
@@ -151,7 +166,6 @@ class Browser:
     def prepare_header_footer(self):
         # code is structured like this to improve performance by running commands in chrome as soon as possible.
         soup = self.soup
-        options = self.options
         # open header and footer pages
         self._open_header_footer_pages()
         # load update_page_no.js in the html
@@ -164,13 +178,15 @@ class Browser:
         )
         # Create script tag
         script_tag = soup.new_tag("script")
-        script_html = frappe.read_file(script_path)
+        script_html = frappe.read_file(script_path) or ""
         script_tag.append(soup.new_string(script_html))
         # Append script to <head>
-        soup.head.append(script_tag)
+        if soup.head:
+            soup.head.append(script_tag)
 
         # get tags to pass to header template.
-        head = soup.find("head").contents
+        head_tag = soup.find("head")
+        head = head_tag.contents if head_tag else []
         styles = soup.find_all("style")
 
         # set header and footer content ( not waiting for it to load yet).
@@ -206,10 +222,23 @@ class Browser:
         if self.footer_page and not self.is_footer_dynamic:
             self.footer_page.generate_pdf(wait_for_pdf=False)
 
-    def _get_converted_num(self, num_str, unit="px"):
-        parsed = parse_float_and_unit(num_str)
-        if parsed:
-            return convert_uom(parsed["value"], parsed["unit"], unit, only_number=True)
+    def _get_converted_num(self, num_str, unit: Uom = "px") -> float:
+        """Read a CSS length and return it as a plain number in ``unit``.
+
+        A value that cannot be read is treated as ``0`` - the PDF options
+        expect a number in every case.
+        """
+        try:
+            parsed = parse_float_and_unit(num_str)
+        except (AttributeError, TypeError, ValueError):
+            return 0.0
+
+        if not parsed:
+            return 0.0
+
+        return float(
+            convert_uom(float(parsed["value"]), _as_uom(parsed["unit"]), unit, only_number=True)
+        )
 
     def _parse_pdf_options_from_html(self):
         soup: BeautifulSoup = self.soup
@@ -294,11 +323,9 @@ class Browser:
 
             options["page-height"] = convert_uom(size["height"], "mm", "px", only_number=True)
             options["page-width"] = convert_uom(size["width"], "mm", "px", only_number=True)
-
-        if type(options["page-height"]) == str:
+        if isinstance(options["page-height"], str):
             options["page-height"] = self._get_converted_num(options["page-height"])
-
-        if type(options["page-width"]) == str:
+        if isinstance(options["page-width"], str):
             options["page-width"] = self._get_converted_num(options["page-width"])
 
         updated_options["paperWidth"] = convert_uom(
@@ -398,10 +425,20 @@ class Browser:
             css=css,
         )
 
+    def _get_body_page_count(self):
+        """Number of pages of the body PDF.
+
+        The body PDF is only a reader when a header or a footer page exists -
+        that is exactly when this is called.
+        """
+        body_pdf = self.body_pdf
+        pages = getattr(body_pdf, "pages", None)
+        return len(pages) if pages is not None else 0
+
     def update_header_footer_page(self):
         if not self.header_page and not self.footer_page:
             return
-        total_pages = len(self.body_pdf.pages)
+        total_pages = self._get_body_page_count()
         # function is added to html from update_page_no.js
         if self.header_page:
             if self.is_header_dynamic:

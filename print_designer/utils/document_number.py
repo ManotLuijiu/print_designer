@@ -70,8 +70,7 @@ def is_root_document_number_enabled(doc, print_settings=None):
 		# Never stored: fall back to the field default
 		df = frappe.get_meta("Print Settings").get_field(PRINT_ROOT_DOCUMENT_NUMBER_FIELDNAME)
 		value = df.default if df else 0
-
-	return cint(value) == 1
+	return cint(value if isinstance(value, (int, float, str)) else 0) == 1
 
 
 def resolve_printed_document_number(doc):

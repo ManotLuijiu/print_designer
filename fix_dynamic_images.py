@@ -4,15 +4,13 @@ Fix Dynamic Images "Image not Linked" issues and install signature fields
 Run this script to diagnose and fix Dynamic Images problems
 """
 
+import importlib
 import frappe
-from frappe import _
-import sys
 
 def diagnose_dynamic_images():
     """Comprehensive diagnosis of Dynamic Images issues"""
     print("🔍 DIAGNOSING DYNAMIC IMAGES ISSUES")
     print("=" * 50)
-    
     results = {
         "signature_fields_installed": 0,
         "signature_fields_missing": 0,
@@ -20,13 +18,11 @@ def diagnose_dynamic_images():
         "total_image_fields": 0,
         "issues_found": []
     }
-    
     # Check 1: Signature field installation
     print("\n1. CHECKING SIGNATURE FIELD INSTALLATION")
     try:
-        from print_designer.api.signature_field_installer import check_signature_fields_status
-        status = check_signature_fields_status()
-        
+        module = importlib.import_module("print_designer.api.signature_field_installer")
+        status = getattr(module, "check_signature_fields_status")()
         if status.get("success"):
             summary = status["results"]
             for doctype, info in summary.items():
@@ -57,8 +53,9 @@ def diagnose_dynamic_images():
         image_fields = get_image_docfields()
         results["total_image_fields"] = len(image_fields)
         print(f"   ✅ Found {len(image_fields)} total image fields")
-        
-        signature_fields = [f for f in image_fields if 'signature' in f.get('fieldname', '').lower()]
+        signature_fields = [
+            f for f in image_fields if "signature" in f.get("fieldname", "").lower()
+        ]
         print(f"   ✅ Found {len(signature_fields)} signature-related fields")
         
         if len(signature_fields) == 0:
@@ -92,11 +89,17 @@ def diagnose_dynamic_images():
     print("\n4. CHECKING SIGNATURE ENHANCEMENTS")
     try:
         # Check if Signature Basic Information has enhanced fields
-        enhanced_fields = frappe.db.get_all("Custom Field", {
-            "dt": "Signature Basic Information",
-            "fieldname": ["in", ["target_doctype", "target_signature_field", "auto_populate_target_field"]]
-        }, ["fieldname"])
-        
+        enhanced_fields = frappe.db.get_all(
+            "Custom Field",
+            {
+                "dt": "Signature Basic Information",
+                "fieldname": [
+                    "in",
+                    ["target_doctype", "target_signature_field", "auto_populate_target_field"],
+                ],
+            },
+            ["fieldname"],
+        )
         if len(enhanced_fields) >= 3:
             print("   ✅ Signature Basic Information enhanced fields installed")
         else:
@@ -117,9 +120,8 @@ def fix_dynamic_images():
     # Fix 1: Install signature fields
     print("\n1. INSTALLING SIGNATURE FIELDS")
     try:
-        from print_designer.api.signature_field_installer import install_signature_fields
-        result = install_signature_fields()
-        
+        module = importlib.import_module("print_designer.api.signature_field_installer")
+        result = getattr(module, "install_signature_fields")()
         if result.get("success"):
             print(f"   ✅ Installed signature fields for {len(result['doctypes'])} DocTypes")
             fixes_applied.append("Signature fields installed")
@@ -131,9 +133,8 @@ def fix_dynamic_images():
     # Fix 2: Install signature enhancements
     print("\n2. INSTALLING SIGNATURE ENHANCEMENTS")
     try:
-        from print_designer.api.safe_install import safe_install_signature_enhancements
-        result = safe_install_signature_enhancements()
-        
+        module = importlib.import_module("print_designer.api.safe_install")
+        result = getattr(module, "safe_install_signature_enhancements")()
         if result.get("success"):
             print("   ✅ Signature enhancements installed successfully")
             fixes_applied.append("Signature enhancements installed")
@@ -185,8 +186,7 @@ def main():
     print(f"❌ Signature fields missing: {results['signature_fields_missing']}")
     print(f"🏢 Companies with signatures: {results['companies_with_signatures']}")
     print(f"🖼️  Total image fields: {results['total_image_fields']}")
-    
-    if results['issues_found']:
+    if results["issues_found"]:
         print(f"\n⚠️  ISSUES FOUND ({len(results['issues_found'])}):")
         for issue in results['issues_found']:
             print(f"   • {issue}")

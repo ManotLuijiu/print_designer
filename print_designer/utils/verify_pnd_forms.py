@@ -2,13 +2,16 @@ import frappe
 
 def verify_pnd_form_updates():
 	"""Verify all PND forms have been updated with Int field types"""
-	pnd_forms = ['PND1 Form', 'PND3 Form', 'PND53 Form', 'PND54 Form']
-
+	pnd_forms = ["PND1 Form", "PND3 Form", "PND53 Form", "PND54 Form"]
 	results = {}
 	for doctype in pnd_forms:
 		try:
 			doc_meta = frappe.get_meta(doctype)
-			month_field = doc_meta.get_field('tax_period_month')
+			month_field = doc_meta.get_field("tax_period_month")
+			if not month_field:
+				results[doctype] = {"error": "tax_period_month field not found", "success": False}
+				print(f"❌ {doctype}: tax_period_month field not found")
+				continue
 			results[doctype] = {
 				'fieldtype': month_field.fieldtype,
 				'default': month_field.default,
@@ -29,11 +32,10 @@ def test_pnd_form_creation():
 	"""Test creating a new PND form with the new naming system"""
 	try:
 		# Test PND3 Form creation (already updated in previous session)
-		test_doc = frappe.new_doc('PND3 Form')
-		test_doc.tax_period_month = 9  # Integer value
-		test_doc.tax_period_year = 2568
-		test_doc.company = frappe.db.get_single_value('Global Defaults', 'default_company')
-
+		test_doc = frappe.new_doc("PND3 Form")
+		test_doc.set("tax_period_month", 9)  # Integer value
+		test_doc.set("tax_period_year", 2568)
+		test_doc.set("company", frappe.db.get_single_value("Global Defaults", "default_company"))
 		# Test autoname function (should generate PND3-2568-09-XXX)
 		test_doc.save()
 
@@ -41,9 +43,8 @@ def test_pnd_form_creation():
 		print(f"📋 Name format verified: {test_doc.name}")
 
 		# Clean up test document
-		frappe.delete_doc('PND3 Form', test_doc.name, force=True)
-		print(f"🧹 Cleaned up test document")
-
+		frappe.delete_doc("PND3 Form", test_doc.name, force=True)
+		print("🧹 Cleaned up test document")
 		return True
 
 	except Exception as e:
@@ -66,8 +67,7 @@ def run_complete_verification():
 
 	print("\n📋 Final Status:")
 	print("=" * 50)
-	all_success = all(r.get('success', False) for r in field_results.values()) and creation_test
-
+	all_success = all(r.get("success", False) for r in field_results.values()) and creation_test
 	if all_success:
 		print("🎉 All PND forms successfully updated and tested!")
 		print("✅ Ready for production use with new naming system")

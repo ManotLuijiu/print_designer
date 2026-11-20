@@ -3,11 +3,22 @@ import platform
 import subprocess
 import time
 from pathlib import Path
+from typing import NoReturn
 
 import frappe
+import frappe.utils
 import requests
 
+
 # TODO: close browser when worker is killed.
+def _throw(message: str) -> NoReturn:
+    """Raise a Frappe validation error and tell type checkers it never returns.
+
+    ``frappe.throw`` is annotated as returning ``None``, so it does not narrow
+    types for static analysis.
+    """
+    frappe.throw(message)
+    raise RuntimeError(message)  # pragma: no cover - frappe.throw always raises
 
 
 class FrappePDFGenerator:
@@ -38,10 +49,9 @@ class FrappePDFGenerator:
         if hasattr(self, "_initialized"):  # Prevent multiple initializations
             return
         self._initialized = True  # Mark as initialized
-
-        self._chromium_process = None
-        self._chromium_path = None
-        self._devtools_url = None
+        self._chromium_process: subprocess.Popen | None = None
+        self._chromium_path: str | None = None
+        self._devtools_url: str | None = None
         self._initialize_chromium()
 
     def _initialize_chromium(self):
@@ -55,8 +65,9 @@ class FrappePDFGenerator:
         # only when we want to chromium on separate docker / server ( not implemented/tested yet )
         self.CHROMIUM_WEBSOCKET_URL = site_config.get("chromium_websocket_url", "")
         if self.CHROMIUM_WEBSOCKET_URL:
-            frappe.warn(
-                "Using external chromium websocket url. Make sure it is accessible."
+            frappe.msgprint(
+                "Using external chromium websocket url. Make sure it is accessible.",
+                indicator="orange",
             )
             self._devtools_url = self.CHROMIUM_WEBSOCKET_URL
             return
@@ -92,32 +103,39 @@ class FrappePDFGenerator:
         chromium_dir = os.path.join(bench_path, "chromium")
 
         if not os.path.exists(chromium_dir):
-            frappe.throw("Chromium is not downloaded. Please run the setup first.")
-
+            _throw("Chromium is not downloaded. Please run the setup first.")
         platform_name = platform.system().lower()
 
         if platform_name not in ["linux", "darwin", "windows"]:
-            frappe.throw(f"Unsupported platform: {platform_name}")
+            _throw(f"Unsupported platform: {platform_name}")
 
-        executable_name = self.EXECUTABLE_PATHS.get(platform_name)
+        executable_name = self.EXECUTABLE_PATHS.get(platform_name, [])
+        if not executable_name:
+            _throw(f"Unsupported platform: {platform_name}")
 
         # Construct the full path to the executable
         exec_path = Path(chromium_dir).joinpath(*executable_name)
         if not exec_path.exists():
-            frappe.throw(
+            _throw(
                 f"Chromium executable not found: {exec_path}. please run bench setup-new-pdf-backend"
             )
-
         return str(exec_path)
 
     def _verify_chromium_installation(self):
         """Ensures Chromium is available and executable, raising clearer errors if not."""
-        if not os.path.exists(self._chromium_path):
-            frappe.throw(
-                f"Chromium not available at the specified path. Please check the path: {self._chromium_path}"
+        chromium_path = self._chromium_path
+        if not chromium_path:
+            _throw("Chromium path is not configured. Please check the site config.")
+        if not os.path.exists(chromium_path):
+            _throw(
+                f"Chromium not available at the specified path. Please check the path: {chromium_path}"
             )
-        if not os.access(self._chromium_path, os.X_OK):
-            frappe.throw(f"Chromium not executable at {self._chromium_path}")
+        try:
+            is_executable = os.access(chromium_path, os.X_OK)
+        except OSError:
+            is_executable = False
+        if not is_executable:
+            _throw(f"Chromium not executable at {chromium_path}")
         return True
 
     def start_chromium_process(self, debug=False):
@@ -209,9 +227,10 @@ class FrappePDFGenerator:
     def _start_chromium_process(self, command_args):
         if platform.system().lower() == "windows":
             # hide cmd window
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
+            # These attributes only exist on Windows, hence the dynamic lookup.
+            startupinfo = getattr(subprocess, "STARTUPINFO")()
+            startupinfo.dwFlags |= getattr(subprocess, "STARTF_USESHOWWINDOW")
+            startupinfo.wShowWindow = getattr(subprocess, "SW_HIDE")
             self._chromium_process = subprocess.Popen(
                 command_args,
                 stdout=subprocess.PIPE,
@@ -237,7 +256,13 @@ class FrappePDFGenerator:
         TODO:
         final approch can be decided later after testing in production.
         """
-        stderr = self._chromium_process.stderr
+        chromium_process = self._chromium_process
+        if chromium_process is None:
+            raise RuntimeError("Chromium process is not running.")
+
+        stderr = chromium_process.stderr
+        if stderr is None:
+            raise RuntimeError("Chromium stderr is not available.")
         start_time = time.time()
 
         while time.time() - start_time < self.START_TIMEOUT:
@@ -252,7 +277,7 @@ class FrappePDFGenerator:
                     break
 
         if not self._devtools_url:
-            self._chromium_process.terminate()
+            chromium_process.terminate()
             raise TimeoutError("Chromium took too long to start.")
 
     def _close_browser(self):
@@ -275,7 +300,7 @@ class FrappePDFGenerator:
             return None
         url = f"http://127.0.0.1:{port}/json/version"
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=30)
             response.raise_for_status()  # Raise an exception for HTTP errors
             response_data = response.json()
             return response_data["webSocketDebuggerUrl"].strip()

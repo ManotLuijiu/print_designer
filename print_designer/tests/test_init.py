@@ -3,6 +3,7 @@ Main Print Designer tests following ERPNext pattern
 Based on apps/erpnext/erpnext/tests/test_init.py
 """
 
+import importlib
 import unittest
 
 import frappe
@@ -38,7 +39,6 @@ class TestPrintDesignerInit(FrappeTestCase):
             "Thai WHT Settings",
             "Watermark Settings"
         ]
-        
         for doctype in essential_doctypes:
             with self.subTest(doctype=doctype):
                 self.assertTrue(
@@ -55,7 +55,6 @@ class TestPrintDesignerInit(FrappeTestCase):
             ("Print Format", "print_designer"),
             ("Print Format", "print_designer_body")
         ]
-        
         for doctype, fieldname in key_custom_fields:
             with self.subTest(doctype=doctype, fieldname=fieldname):
                 custom_field_exists = frappe.db.exists("Custom Field", {
@@ -74,21 +73,27 @@ class TestPrintDesignerInit(FrappeTestCase):
     def test_print_designer_pdf_generators(self):
         """Test that PDF generators are available"""
         try:
-            from print_designer.pdf_generator.chrome_cdp_generator import ChromeCDPGenerator
-            from print_designer.pdf_generator.weasyprint_generator import WeasyprintGenerator
-            from print_designer.pdf_generator.wkhtmltopdf_generator import WkhtmltopdfGenerator
-            
+            # The generators are optional, they are imported dynamically so
+            # that a missing generator skips the test instead of breaking the
+            # collection of the whole module.
+            chrome_cdp = importlib.import_module(
+                "print_designer.pdf_generator.chrome_cdp_generator"
+            )
+            weasyprint = importlib.import_module(
+                "print_designer.pdf_generator.weasyprint_generator"
+            )
+            wkhtmltopdf = importlib.import_module(
+                "print_designer.pdf_generator.wkhtmltopdf_generator"
+            )
             # Basic instantiation test
             generators = [
-                WkhtmltopdfGenerator(),
-                WeasyprintGenerator(),
-                ChromeCDPGenerator()
+                wkhtmltopdf.WkhtmltopdfGenerator(),
+                weasyprint.WeasyprintGenerator(),
+                chrome_cdp.ChromeCDPGenerator(),
             ]
-            
             for generator in generators:
                 with self.subTest(generator=generator.__class__.__name__):
-                    self.assertTrue(hasattr(generator, 'generate_pdf'))
-                    
+                    self.assertTrue(hasattr(generator, "generate_pdf"))
         except ImportError as e:
             self.skipTest(f"PDF generator import failed: {e}")
     
@@ -109,7 +114,6 @@ class TestPrintDesignerInit(FrappeTestCase):
             "print_designer.api.print_format_export_import.import_print_format",
             "print_designer.api.print_format_export_import.duplicate_print_format"
         ]
-        
         for method in api_methods:
             with self.subTest(method=method):
                 # Check if method can be imported
@@ -130,8 +134,8 @@ class TestPrintDesignerUtilities(unittest.TestCase):
     def test_thai_language_utilities(self):
         """Test Thai language utility functions"""
         try:
-            from print_designer.utils.thai_language import detect_thai_content
-            
+            thai_language = importlib.import_module("print_designer.utils.thai_language")
+            detect_thai_content = thai_language.detect_thai_content
             # Test Thai content detection
             thai_text = "สวัสดีครับ"
             english_text = "Hello World"
@@ -149,9 +153,8 @@ class TestPrintDesignerUtilities(unittest.TestCase):
             from print_designer.utils import signature_stamp
             
             # Test that signature utilities are importable
-            self.assertTrue(hasattr(signature_stamp, 'get_signature_image'))
-            self.assertTrue(hasattr(signature_stamp, 'get_company_stamp_image'))
-            
+            self.assertTrue(hasattr(signature_stamp, "get_signature_image"))
+            self.assertTrue(hasattr(signature_stamp, "get_company_stamp_image"))
         except ImportError:
             self.skipTest("Signature utilities not available")
 

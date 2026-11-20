@@ -8,9 +8,8 @@ Complete Print Designer Installation Test
 Comprehensive test to verify all print_designer components are properly installed
 """
 
-import frappe
 import click
-from frappe import _
+import frappe
 
 @click.command()
 def test_complete_print_designer_installation():
@@ -31,16 +30,16 @@ def test_complete_print_designer_installation():
     # Test 1: Construction Service Field
     click.echo("\n1️⃣ Testing Construction Service Field...")
     try:
-        field_exists = frappe.db.exists("Custom Field", {
-            "dt": "Company", 
-            "fieldname": "construction_service"
-        })
-        
-        if field_exists:
+        field_exists = frappe.db.exists(
+            "Custom Field", {"dt": "Company", "fieldname": "construction_service"}
+        )
+        if isinstance(field_exists, str) and field_exists:
             field_doc = frappe.get_doc("Custom Field", field_exists)
-            if (field_doc.label == "Enable Construction Service" and 
-                field_doc.fieldtype == "Check" and
-                field_doc.insert_after == "country"):
+            if (
+                field_doc.get("label") == "Enable Construction Service"
+                and field_doc.get("fieldtype") == "Check"
+                and field_doc.get("insert_after") == "country"
+            ):
                 click.echo("   ✅ Construction Service field properly installed")
                 test_results["construction_service_field"] = True
             else:
@@ -184,8 +183,8 @@ def test_complete_print_designer_installation():
     # Test 8: Hooks Configuration
     click.echo("\n8️⃣ Testing Hooks Configuration...")
     try:
-        from print_designer.hooks import fixtures, commands, doc_events
-        
+        from print_designer.hooks import commands, doc_events, fixtures
+
         hooks_ok = True
         
         # Check fixtures

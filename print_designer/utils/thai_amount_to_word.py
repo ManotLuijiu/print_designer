@@ -7,8 +7,6 @@ Thai language support when the print format uses Thai as the default language.
 """
 
 import frappe
-from frappe import _
-from frappe.utils import flt
 from num2words import num2words
 
 
@@ -150,11 +148,8 @@ def is_thai_format(print_format_name=None, doc=None):
             print(f"print_format {print_format}")
 
             # Check if print format has Thai language setting
-            if (
-                hasattr(print_format, "default_language")
-                and print_format.default_language == "th"
-            ):
-                print(f"Using Thai formatting based on print format language")
+            if getattr(print_format, "default_language", None) == "th":
+                print("Using Thai formatting based on print format language")
                 return True
 
             # Check if print format name contains Thai indicators
@@ -172,25 +167,21 @@ def is_thai_format(print_format_name=None, doc=None):
     if doc:
         try:
             # Check if document has Thai language field
-            if hasattr(doc, "language") and doc.language == "th":
-                print(
-                    f"Using Thai formatting based on document language {doc.language}"
-                )
+            if getattr(doc, "language", None) == "th":
+                print(f"Using Thai formatting based on document language {doc.language}")
                 return True
 
             # Check if company has Thai settings
-            if hasattr(doc, "company"):
+            if getattr(doc, "company", None):
                 company = frappe.get_doc("Company", doc.company)
                 print(f"company {company}")
-                if hasattr(company, "country") and company.country == "Thailand":
-                    print(
-                        f"Using Thai formatting based on company country: Thailand {company.country}"
-                    )
+                country = getattr(company, "country", None)
+                if country == "Thailand":
+                    print(f"Using Thai formatting based on company country: Thailand {country}")
                     return True
         except Exception:
             pass
-
-    print(f"NOT using Thai formatting - no Thai indicators found {company.country}")
+    print("NOT using Thai formatting - no Thai indicators found")
     return False
 
 
@@ -336,7 +327,7 @@ def get_thai_in_words_for_print(doc, print_format_name=None):
     if is_thai_format(print_format_name, doc):
         try:
             return thai_money_in_words(getattr(doc, "grand_total", 0) or 0)
-        except:
+        except Exception:
             pass
 
     # Return original in_words field as fallback

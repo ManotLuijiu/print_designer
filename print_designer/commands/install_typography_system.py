@@ -11,7 +11,7 @@ configured and all necessary fields and functionality are available.
 """
 
 import frappe
-from frappe.commands import pass_context, click
+from frappe.commands import click, pass_context
 
 
 @click.command('install-typography-system')
@@ -66,11 +66,10 @@ def install_typography_system(context):
 
 def _install_typography_fields():
 	"""Install typography custom fields to Global Defaults."""
-	from print_designer.install import ensure_custom_fields
-	
+	from print_designer.install import install_all_custom_fields
+
 	# Ensure custom fields are installed (includes Global Defaults fields)
-	ensure_custom_fields()
-	
+	install_all_custom_fields()
 	print("   ✓ Typography fields added to Global Defaults")
 
 
@@ -128,7 +127,8 @@ def _verify_installation():
 		checks.append(f"❌ Global Defaults access error: {str(e)}")
 	
 	# Check if client script is linked
-	from print_designer.print_designer.hooks import doctype_js
+	from print_designer.hooks import doctype_js
+
 	if "Global Defaults" in doctype_js:
 		checks.append("✓ Client script integration configured")
 	else:
@@ -136,7 +136,8 @@ def _verify_installation():
 	
 	# Check if API endpoints are available
 	try:
-		from print_designer.api import global_typography
+		from print_designer.api import global_typography  # noqa: F401
+
 		checks.append("✓ Typography API endpoints available")
 	except ImportError:
 		checks.append("❌ Typography API endpoints missing")

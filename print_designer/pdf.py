@@ -99,7 +99,7 @@ def get_update_page_no_script() -> str:
         "print_designer",
         "update_page_no.js",
     )
-    return frappe.read_file(script_path)
+    return frappe.read_file(script_path) or ""
 
 
 def add_update_page_no_script(soup, head):

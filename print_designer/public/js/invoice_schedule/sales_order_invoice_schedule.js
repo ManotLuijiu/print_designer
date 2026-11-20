@@ -5,13 +5,18 @@
 // also be added by hand so the order can be split into more invoices than the
 // Payment Schedule has rows.
 //
-// The two milestone buttons live in the toolbar of the child table, next to
-// the grid's own "Add row" button, so the milestones and the actions that
+// The milestone buttons live in the toolbar of the child table, next to the
+// grid's own "Add row" button, so the milestones and the actions that
 // change them stay in one row.
+//
+// "Generate Invoice" creates one draft Sales Invoice per milestone that does
+// not have one yet. The workflow is: save the Sales Order, generate the
+// invoices, submit the Sales Order, and submit the invoices afterwards.
 
 const CHILD_DOCTYPE = "Invoice Schedule";
 const CHILD_FIELD = "pd_custom_invoice_schedule";
-const ADD_MILESTONE_FIELD = "pd_custom_add_invoice_schedule_row";
+const ENABLE_FIELD = "pd_custom_enable_invoice_schedule";
+const GENERATE_INVOICE_FIELD = "pd_custom_add_invoice_schedule_row";
 const COPY_PAYMENT_SCHEDULE_FIELD = "pd_custom_copy_payment_schedule";
 
 // the open help cards of the milestone buttons, so they can be closed and
@@ -33,25 +38,16 @@ $(document).on("click", function (e) {
 
 frappe.ui.form.on("Sales Order", {
 	refresh: function (frm) {
+		setup_milestone_payment_terms(frm);
+		setup_invoice_schedule_help(frm);
 		sync_milestone_buttons(frm);
-
-		if (!frm.doc.pd_custom_enable_invoice_schedule) {
-			return;
-		}
-
-		frm.add_custom_button(
-			__("Create Milestone Invoices"),
-			function () {
-				create_milestone_invoices(frm);
-			},
-			__("Milestones")
-		);
+		sync_milestone_navbar_button(frm);
 	},
 
 	// the buttons are rendered in the toolbar of the child table, these
 	// handlers keep them working when they are shown as form fields
 	pd_custom_add_invoice_schedule_row: function (frm) {
-		on_add_milestone(frm);
+		on_generate_invoices(frm);
 	},
 
 	pd_custom_copy_payment_schedule: function (frm) {
@@ -99,6 +95,89 @@ frappe.ui.form.on(CHILD_DOCTYPE, {
 	},
 });
 
+// Legacy controller handlers run for child fields with the same name, even
+// when their child DocType is different. Milestone names are free text and
+// must never enter ERPNext's Payment Schedule payment-term lookup.
+function setup_milestone_payment_terms(frm) {
+	const original = frm.cscript?.payment_term;
+	if (original && !original.pd_milestone_scoped) {
+		const scoped = function (doc, cdt, cdn) {
+			if (cdt === CHILD_DOCTYPE) {
+				return;
+			}
+			return original.call(this, doc, cdt, cdn);
+		};
+		scoped.pd_milestone_scoped = true;
+		frm.cscript.payment_term = scoped;
+	}
+
+	const grid = frm.fields_dict[CHILD_FIELD]?.grid;
+	if (!grid?.get_field || !grid.update_docfield_property) {
+		return;
+	}
+	const field = grid.docfields?.find((df) => df.fieldname === "payment_term");
+	if (!field) {
+		return;
+	}
+	// Use a permission-checked app lookup as suggestions. Unlike a
+	// Link, Autocomplete can keep existing/custom milestone names as text.
+	grid.get_field("payment_term").get_query = {
+		query: "print_designer.custom.invoice_schedule.search_milestone_payment_terms",
+	};
+	if (field.fieldtype !== "Autocomplete") {
+		grid.update_docfield_property("payment_term", "fieldtype", "Autocomplete");
+	}
+	if (!field.ignore_validation) {
+		grid.update_docfield_property("payment_term", "ignore_validation", 1);
+	}
+}
+
+function setup_invoice_schedule_help(frm) {
+	const help = __(
+		"Bill this Sales Order in milestones. Each milestone creates its own draft Sales Invoice. Seed the Invoice Schedule from the Payment Schedule, add your own rows, or split the plan into as many invoices as you need. Generate the draft invoices before submitting the Sales Order, then review and submit the invoices afterward.",
+	);
+	const enable = frm.fields_dict[ENABLE_FIELD];
+	if (enable) {
+		enable.df.description = help;
+		enable.df.show_description_on_click = 1;
+		if (!enable.$wrapper.find(".info-trigger").length) {
+			enable.show_description_on_click();
+		}
+		// Native InfoCard keeps its initial text when the field label is unchanged.
+		enable.$wrapper.find(".sidebar-card-description").text(help);
+		enable.$wrapper.find(".help-box").empty().hide();
+	}
+	const schedule = frm.fields_dict[CHILD_FIELD];
+	if (schedule?.grid) {
+		schedule.df.description = "";
+		schedule.grid.df.description = "";
+		schedule.grid.set_grid_description();
+	}
+}
+
+// The navbar action only makes sense while the order can still be worked on.
+// A submitted or cancelled order has frozen milestones, so the action is not
+// offered there - the grid buttons follow the same rule.
+function sync_milestone_navbar_button(frm) {
+	var label = __("Generate Invoice");
+	var group = __("Milestones");
+
+	if (frm.doc.docstatus !== 0 || !frm.doc.pd_custom_enable_invoice_schedule) {
+		if (frm.custom_buttons && frm.custom_buttons[label]) {
+			frm.remove_custom_button(label, group);
+		}
+		return;
+	}
+
+	frm.add_custom_button(
+		label,
+		function () {
+			on_generate_invoices(frm);
+		},
+		group,
+	);
+}
+
 // Put the two milestone buttons in the toolbar of the child table, right
 // next to the grid's own "Add row" button.
 function sync_milestone_buttons(frm) {
@@ -121,23 +200,48 @@ function sync_milestone_buttons(frm) {
 		return;
 	}
 
-	add_milestone_button($buttons, frm, ADD_MILESTONE_FIELD, on_add_milestone);
-	add_milestone_button($buttons, frm, COPY_PAYMENT_SCHEDULE_FIELD, on_copy_payment_schedule);
+	add_milestone_button(
+		$buttons,
+		frm,
+		GENERATE_INVOICE_FIELD,
+		on_generate_invoices,
+		__("Generate Invoice"),
+		__(
+			"Create draft Sales Invoices for the milestones, then submit the Sales Order before submitting the invoices.",
+		),
+	);
+	add_milestone_button(
+		$buttons,
+		frm,
+		COPY_PAYMENT_SCHEDULE_FIELD,
+		on_copy_payment_schedule,
+	);
 }
 
-function add_milestone_button($buttons, frm, fieldname, handler) {
-	var df = frappe.meta.get_docfield(frm.doctype, fieldname) || {};
+function add_milestone_button(
+	$buttons,
+	frm,
+	fieldname,
+	handler,
+	fallback_label,
+	fallback_description,
+) {
+	var df = fieldname
+		? frappe.meta.get_docfield(frm.doctype, fieldname) || {}
+		: {};
 
 	var $button = $(
-		'<button type="button" class="btn btn-xs btn-secondary milestone-button"></button>'
+		'<button type="button" class="btn btn-xs btn-secondary milestone-button"></button>',
 	)
-		.text(df.label || fieldname)
+		// Explicit action text wins over metadata left over from older installs.
+		.text(fallback_label || df.label || fieldname)
+		.attr("data-milestone-action", fieldname)
 		.on("click", function () {
 			handler(frm);
 		});
 
 	$buttons.append($button);
-	attach_help_to_button($button, df.description);
+	attach_help_to_button($button, fallback_description || df.description);
 }
 
 // Frappe empties the help box of a Button field and hides its label, so the
@@ -154,8 +258,8 @@ function attach_help_to_button($button, description) {
 			"sm",
 			"",
 			"margin-left: 4px; align-self: center;",
-			"cursor-pointer milestone-help-trigger"
-		)
+			"cursor-pointer milestone-help-trigger",
+		),
 	);
 	$icon.attr("role", "button");
 	$icon.insertAfter($button);
@@ -181,7 +285,11 @@ function attach_help_to_button($button, description) {
 		event.stopPropagation();
 	});
 
-	milestone_help.push({ card: card, container: $button.parent(), $card: $card });
+	milestone_help.push({
+		card: card,
+		container: $button.parent(),
+		$card: $card,
+	});
 }
 
 function reset_milestone_help() {
@@ -215,60 +323,22 @@ function save_then_run(frm, run) {
 		function () {
 			frappe.msgprint({
 				title: __("Could not save"),
-				message: __("Save the Sales Order before the milestones can be changed."),
+				message: __(
+					"Save the Sales Order before the milestones can be changed.",
+				),
 				indicator: "orange",
 			});
-		}
+		},
 	);
-}
-
-function on_add_milestone(frm) {
-	if (frm.is_new()) {
-		frappe.msgprint({
-			title: __("Save first"),
-			message: __("Save the Sales Order before adding a milestone."),
-			indicator: "orange",
-		});
-		return;
-	}
-
-	if (frm.doc.docstatus !== 0) {
-		frappe.msgprint({
-			title: __("Not a draft"),
-			message: __("Amend the Sales Order to change the milestones of a submitted order."),
-			indicator: "orange",
-		});
-		return;
-	}
-
-	save_then_run(frm, function () {
-		frappe.call({
-			method: "print_designer.custom.invoice_schedule.add_invoice_schedule_row",
-			args: { sales_order: frm.doc.name },
-			freeze: true,
-			freeze_message: __("Adding milestone..."),
-			callback: function (r) {
-				var result = r.message || {};
-				if (result.payment_term) {
-					frappe.msgprint({
-						title: __("Milestone added"),
-						message: __("{0} added. Set its portion and invoice date.", [
-							result.payment_term,
-						]),
-						indicator: "green",
-					});
-				}
-				frm.reload_doc();
-			},
-		});
-	});
 }
 
 function on_copy_payment_schedule(frm) {
 	if (frm.is_new()) {
 		frappe.msgprint({
 			title: __("Save first"),
-			message: __("Save the Sales Order before copying the Payment Schedule."),
+			message: __(
+				"Save the Sales Order before copying the Payment Schedule.",
+			),
 			indicator: "orange",
 		});
 		return;
@@ -277,14 +347,20 @@ function on_copy_payment_schedule(frm) {
 	if (frm.doc.docstatus !== 0) {
 		frappe.msgprint({
 			title: __("Not a draft"),
-			message: __("Amend the Sales Order to change the milestones of a submitted order."),
+			message: __(
+				"Amend the Sales Order to change the milestones of a submitted order.",
+			),
 			indicator: "orange",
 		});
 		return;
 	}
 
+	// saving the order can already copy the plan, so the number of rows is
+	// remembered to tell a real import from a no-op
+	var rows_before = (frm.doc[CHILD_FIELD] || []).length;
+
 	save_then_run(frm, function () {
-		copy_payment_schedule(frm);
+		copy_payment_schedule(frm, rows_before);
 	});
 }
 
@@ -295,13 +371,12 @@ function get_row(frm, cdn) {
 	});
 }
 
-function copy_payment_schedule(frm) {
+function copy_payment_schedule(frm, rows_before) {
 	if (!frm.doc.payment_schedule || !frm.doc.payment_schedule.length) {
-		frappe.msgprint({
-			title: __("Nothing to copy"),
-			message: __("This Sales Order has no Payment Schedule rows."),
-			indicator: "orange",
-		});
+		frappe.show_alert(
+			{ message: __("Nothing to import"), indicator: "orange" },
+			5,
+		);
 		return;
 	}
 
@@ -313,88 +388,186 @@ function copy_payment_schedule(frm) {
 		callback: function (r) {
 			var result = r.message || {};
 			var added = result.added || 0;
+			var rows_after = (frm.doc[CHILD_FIELD] || []).length;
 
-			if (added) {
-				frappe.msgprint({
-					title: __("Payment Schedule copied"),
-					message: __("{0} milestones added, {1} already in the plan.", [
-						added,
-						result.skipped || 0,
-					]),
-					indicator: "green",
-				});
+			if (added || rows_after > rows_before) {
+				frappe.show_alert(
+					{ message: __("Success Imported"), indicator: "green" },
+					5,
+				);
+			} else if (result.skipped) {
+				frappe.show_alert(
+					{ message: __("Already imported"), indicator: "orange" },
+					5,
+				);
 			} else {
-				frappe.msgprint({
-					title: __("Nothing to copy"),
-					message: __("The Payment Schedule is already in the plan."),
-					indicator: "orange",
-				});
+				frappe.show_alert(
+					{ message: __("Nothing to import"), indicator: "orange" },
+					5,
+				);
 			}
+
 			frm.reload_doc();
 		},
 	});
 }
 
-function create_milestone_invoices(frm) {
-	var pending = (frm.doc[CHILD_FIELD] || []).filter(function (row) {
-		return row.milestone_status === "Not Invoiced";
-	});
-
-	if (!pending.length) {
+// "Generate Invoice" - the one handler behind the grid button, the form
+// field and the navbar action.
+function on_generate_invoices(frm) {
+	if (frm.is_new()) {
 		frappe.msgprint({
-			title: __("Nothing to create"),
-			message: __("Every milestone of this Sales Order has already been invoiced."),
+			title: __("Save first"),
+			message: __("Save the Sales Order before generating invoices."),
 			indicator: "orange",
 		});
 		return;
 	}
 
-	var without_date = pending.filter(function (row) {
-		return !row.invoice_date;
-	});
-
-	if (without_date.length) {
+	if (frm.doc.docstatus === 2) {
 		frappe.msgprint({
-			title: __("Invoice date missing"),
-			message: __("Set an Invoice Date on every milestone that should be invoiced."),
+			title: __("Not a draft"),
+			message: __(
+				"A cancelled Sales Order cannot have milestone invoices.",
+			),
 			indicator: "orange",
 		});
 		return;
 	}
 
-	var summary = pending
+	save_then_run(frm, function () {
+		generate_invoices(frm);
+	});
+}
+
+// The plan comes from the server, so what is confirmed is what is created.
+function generate_invoices(frm) {
+	frappe.call({
+		method: "print_designer.custom.invoice_schedule.generate_milestone_invoices",
+		args: { sales_order: frm.doc.name, preview: 1 },
+		freeze: true,
+		freeze_message: __("Checking the milestones..."),
+		callback: function (r) {
+			var result = r.message || {};
+			var plan = result.plan || [];
+
+			if (!plan.length) {
+				show_nothing_generated(result);
+				return;
+			}
+
+			confirm_generation(frm, plan);
+		},
+	});
+}
+
+function confirm_generation(frm, plan) {
+	var summary = plan
 		.map(function (row) {
-			return row.payment_term + " (" + row.invoice_portion + "%)";
+			return (
+				frappe.utils.escape_html(row.milestone) +
+				" (" +
+				flt(row.invoice_portion) +
+				"%, " +
+				flt(row.invoice_amount) +
+				", " +
+				(row.invoice_date || __("no date")) +
+				")"
+			);
 		})
-		.join(", ");
+		.join("<br>");
 
 	frappe.confirm(
-		__("Create draft Sales Invoices for these milestones: {0}?", [summary]),
+		__(
+			"Create one draft Sales Invoice for each of these milestones?<br>{0}",
+			[summary],
+		),
 		function () {
-			frappe.call({
-				method: "print_designer.custom.invoice_schedule.create_milestone_invoices",
-				args: { sales_order: frm.doc.name },
-				freeze: true,
-				freeze_message: __("Creating milestone Sales Invoices..."),
-				callback: function (r) {
-					var result = r.message || {};
-					var created = result.created || [];
-
-					if (created.length) {
-						frappe.msgprint({
-							title: __("Milestone Sales Invoices created"),
-							message: created
-								.map(function (c) {
-									return c.sales_invoice + " - " + c.milestone;
-								})
-								.join("<br>"),
-							indicator: "green",
-						});
-					}
-
-					frm.reload_doc();
-				},
-			});
-		}
+			create_generated_invoices(frm);
+		},
 	);
+}
+
+function create_generated_invoices(frm) {
+	frappe.call({
+		method: "print_designer.custom.invoice_schedule.generate_milestone_invoices",
+		args: { sales_order: frm.doc.name },
+		freeze: true,
+		freeze_message: __("Generating the milestone invoices..."),
+		callback: function (r) {
+			var result = r.message || {};
+			var created = result.created || [];
+
+			if (created.length) {
+				show_generated_invoices(created, result.skipped || []);
+			} else {
+				show_nothing_generated(result);
+			}
+
+			frm.reload_doc();
+		},
+	});
+}
+
+function show_generated_invoices(created, skipped) {
+	var parts = created.map(function (c) {
+		return (
+			frappe.utils.get_form_link(
+				"Sales Invoice",
+				c.sales_invoice,
+				true,
+				frappe.utils.escape_html(c.sales_invoice),
+			) +
+			" - " +
+			frappe.utils.escape_html(c.milestone)
+		);
+	});
+
+	if (skipped.length) {
+		parts.push("<b>" + __("Skipped") + "</b>");
+		parts.push(
+			skipped
+				.map(function (s) {
+					return (
+						frappe.utils.escape_html(s.milestone) +
+						" - " +
+						frappe.utils.escape_html(s.reason)
+					);
+				})
+				.join("<br>"),
+		);
+	}
+
+	frappe.msgprint({
+		title: __("Draft Sales Invoices created"),
+		message: parts.join("<br>"),
+		indicator: "green",
+	});
+}
+
+function show_nothing_generated(result) {
+	var skipped = result.skipped || [];
+	var message;
+
+	if (skipped.length) {
+		message = skipped
+			.map(function (s) {
+				return (
+					frappe.utils.escape_html(s.milestone) +
+					" - " +
+					frappe.utils.escape_html(s.reason)
+				);
+			})
+			.join("<br>");
+	} else {
+		message = __(
+			"Every milestone of this Sales Order already has an invoice.",
+		);
+	}
+
+	frappe.msgprint({
+		title: __("Nothing to generate"),
+		message: message,
+		indicator: "orange",
+	});
 }

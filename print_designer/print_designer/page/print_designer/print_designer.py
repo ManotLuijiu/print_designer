@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Any, Literal, cast
 
 import frappe
 import frappe.utils.print_format
@@ -18,110 +18,47 @@ from print_designer.utils.number_to_words_fields import (
     resolve_print_language,
 )
 
+# The signature and the stamp helpers live in `print_designer.utils.signature_stamp`
+# and are registered as Jinja methods in `hooks.py`. They are re-exported here
+# so that the old paths of this module keep working.
+from print_designer.utils.signature_stamp import (
+    get_company_stamp_image,
+    get_signature_and_stamp_context,
+    get_signature_image,
+)
 
-@frappe.whitelist()
-def get_signature_image(signature_name):
-    """Get signature image URL from Digital Signature doctype"""
-    if not signature_name:
-        return None
-
-    try:
-        signature_doc = frappe.get_doc("Digital Signature", signature_name)
-        if signature_doc.is_active and signature_doc.signature_image:
-            return {
-                "image_url": signature_doc.signature_image,
-                "title": signature_doc.title,
-                "description": signature_doc.description,
-            }
-    except frappe.DoesNotExistError:
-        frappe.log_error(f"Digital Signature {signature_name} not found")
-
-    return None
+__all__ = [
+    "get_company_stamp_image",
+    "get_signature_and_stamp_context",
+    "get_signature_image",
+]
 
 
-@frappe.whitelist()
-def get_company_stamp_image(stamp_name):
-    """Get company stamp image URL from Company Stamp doctype"""
-    if not stamp_name:
-        return None
+def _query_rows(query: Any) -> list[dict[str, Any]]:
+    """The rows of a query builder query.
 
-    try:
-        stamp_doc = frappe.get_doc("Company Stamp", stamp_name)
-        if stamp_doc.is_active and stamp_doc.stamp_image:
-            return {
-                "image_url": stamp_doc.stamp_image,
-                "title": stamp_doc.title,
-                "description": stamp_doc.description,
-                "stamp_type": stamp_doc.stamp_type,
-                "company": stamp_doc.company,
-            }
-    except frappe.DoesNotExistError:
-        frappe.log_error(f"Company Stamp {stamp_name} not found")
-
-    return None
+    Frappe replaces the `run` method of the query builder with its own
+    implementation when the framework starts (see
+    `frappe.query_builder.utils`), so the type information of the stock
+    package does not know the method.
+    """
+    return cast(Any, query).run(as_dict=True)
 
 
-@frappe.whitelist()
-def get_signature_and_stamp_context(digital_signature=None, company_stamp=None):
-    """Get both signature and stamp context for print templates"""
-    context = {}
+def _parse_barcode_options(options: Any) -> dict[str, Any]:
+    """The options of a barcode or a qrcode as a dictionary.
 
-    # Add signature context
-    if digital_signature:
-        signature_data = get_signature_image(digital_signature)
-        if signature_data:
-            context.update(
-                {
-                    "signature_image": signature_data["image_url"],
-                    "signature_title": signature_data["title"],
-                    "signature_description": signature_data.get("description", ""),
-                }
-            )
+    The options reach the server as a json string or as a dictionary,
+    depending on the caller.
+    """
+    if not options:
+        return {}
 
-    # Add stamp context
-    if company_stamp:
-        stamp_data = get_company_stamp_image(company_stamp)
-        if stamp_data:
-            context.update(
-                {
-                    "company_stamp_image": stamp_data["image_url"],
-                    "company_stamp_title": stamp_data["title"],
-                    "company_stamp_description": stamp_data.get("description", ""),
-                    "company_stamp_type": stamp_data.get("stamp_type", ""),
-                    "stamp_company": stamp_data.get("company", ""),
-                }
-            )
+    if isinstance(options, str):
+        parsed = frappe.parse_json(options)
+        return parsed if isinstance(parsed, dict) else {}
 
-    return context
-
-
-# Hook into the print context to inject signature and stamp data
-def get_print_context(
-    doctype,
-    name,
-    print_format=None,
-    letterhead=None,
-    digital_signature=None,
-    company_stamp=None,
-):
-    """Enhanced print context with signature and stamp support"""
-
-    # Get the standard print context
-    from frappe.utils.print_format import (
-        get_print_context as original_get_print_context,
-    )
-
-    context = original_get_print_context(doctype, name, print_format, letterhead)
-
-    # Add signature and stamp context
-    signature_stamp_context = get_signature_and_stamp_context(digital_signature, company_stamp)
-    context.update(signature_stamp_context)
-
-    return context
-
-
-# Patch the original get_print_context function
-frappe.utils.print_format.get_print_context = get_print_context
+    return options
 
 
 @frappe.whitelist(allow_guest=False)
@@ -143,7 +80,9 @@ def get_number_to_words_preview(doctype, docname, print_format, language=None):
     doc = frappe.get_doc(doctype, docname)
     doc.check_permission("read")
     print_format_doc = frappe.get_doc("Print Format", print_format)
-    if print_format_doc.doc_type != doctype:
+    # `getattr` and not `doc.doc_type`: the attribute of a real Document, but
+    # the doubles that the tests use carry the value in the namespace only.
+    if getattr(print_format_doc, "doc_type", None) != doctype:
         frappe.throw(_("Print Format does not belong to this document type"))
 
     effective_language = resolve_print_language(
@@ -330,7 +269,9 @@ def render_user_text(string, doc, row=None, send_to_jinja=None):
     result = {}
     try:
         result["success"] = 1
-        result["message"] = jenv.from_string(string).render({"doc": doc, "row": row, **jinja_vars})
+        result["message"] = jenv.from_string(string).render(
+            {"doc": doc, "row": row, **(jinja_vars if isinstance(jinja_vars, dict) else {})}
+        )
     except Exception as e:
         """
 		string is provided by user and there is no way to know if it is correct or not so log the error from client side
@@ -388,7 +329,7 @@ def get_image_docfields():
     customfield = frappe.qb.DocType("Custom Field")
 
     # Get standard image fields from DocField table
-    image_docfields = (
+    image_docfields = _query_rows(
         frappe.qb.from_(docfield)
         .select(
             docfield.name,
@@ -400,10 +341,9 @@ def get_image_docfields():
         )
         .where((docfield.fieldtype == "Image") | (docfield.fieldtype == "Attach Image"))
         .orderby(docfield.parent)
-    ).run(as_dict=True)
-
+    )
     # Get custom image fields from Custom Field table (including signature fields)
-    custom_image_fields = (
+    custom_image_fields = _query_rows(
         frappe.qb.from_(customfield)
         .select(
             customfield.name,
@@ -415,8 +355,7 @@ def get_image_docfields():
         )
         .where((customfield.fieldtype == "Image") | (customfield.fieldtype == "Attach Image"))
         .orderby(customfield.dt)
-    ).run(as_dict=True)
-
+    )
     # Combine both lists
     all_image_fields = image_docfields + custom_image_fields
 
@@ -433,7 +372,7 @@ def get_watermark_docfields():
     customfield = frappe.qb.DocType("Custom Field")
 
     # Get standard watermark fields from DocField table
-    watermark_docfields = (
+    watermark_docfields = _query_rows(
         frappe.qb.from_(docfield)
         .select(
             docfield.name,
@@ -445,10 +384,9 @@ def get_watermark_docfields():
         )
         .where((docfield.fieldtype == "Select") & (docfield.fieldname.like("%watermark%")))
         .orderby(docfield.parent)
-    ).run(as_dict=True)
-
+    )
     # Get custom watermark fields from Custom Field table
-    custom_watermark_fields = (
+    custom_watermark_fields = _query_rows(
         frappe.qb.from_(customfield)
         .select(
             customfield.name,
@@ -460,8 +398,7 @@ def get_watermark_docfields():
         )
         .where((customfield.fieldtype == "Select") & (customfield.fieldname.like("%watermark%")))
         .orderby(customfield.dt)
-    ).run(as_dict=True)
-
+    )
     # Combine both lists
     all_watermark_fields = watermark_docfields + custom_watermark_fields
 
@@ -500,8 +437,11 @@ def parse_float_and_unit(input_text, default_unit="px"):
         return {"value": input_text, "unit": default_unit}
     if not isinstance(input_text, str):
         return
+    number_match = re.search(r"[+-]?([0-9]*[.])?[0-9]+", input_text)
+    if not number_match:
+        return
 
-    number = float(re.search(r"[+-]?([0-9]*[.])?[0-9]+", input_text).group())
+    number = float(number_match.group())
     valid_units = [r"px", r"mm", r"cm", r"in"]
     unit = [match.group() for rx in valid_units if (match := re.search(rx, input_text))]
 
@@ -514,7 +454,7 @@ def convert_uom(
     from_uom: Literal["px", "mm", "cm", "in"] = "px",
     to_uom: Literal["px", "mm", "cm", "in"] = "px",
     only_number: bool = False,
-) -> float:
+) -> float | str:
     unit_values = {
         "px": 1,
         "mm": 3.7795275591,
@@ -577,14 +517,13 @@ def get_barcode(
 ):
     if not options:
         options = {}
-
-    options = frappe.parse_json(options)
-
+    options = _parse_barcode_options(options)
     if isinstance(barcode_value, str) and barcode_value.startswith("<svg"):
         import re
 
-        barcode_value = re.search(r'data-barcode-value="(.*?)">', barcode_value).group(1)
-
+        value_match = re.search(r'data-barcode-value="(.*?)">', barcode_value)
+        if value_match:
+            barcode_value = value_match.group(1)
     if barcode_value == "":
         fallback_html_string = """
 			<div class="fallback-barcode">
@@ -614,16 +553,19 @@ def get_barcode(
         def _init(self, code):
             SVGWriter._init(self, code)
             vw, vh = self.calculate_viewbox(code)
+            root = self._root
+            if root is None:
+                return
             if not width:
-                self._root.removeAttribute("width")
+                root.removeAttribute("width")
             else:
-                self._root.setAttribute("width", f"{width * 3.7795275591}")
+                root.setAttribute("width", f"{width * 3.7795275591}")
             if not height:
-                self._root.removeAttribute("height")
+                root.removeAttribute("height")
             else:
-                self._root.setAttribute("height", height)
+                root.setAttribute("height", height)
 
-            self._root.setAttribute("viewBox", f"0 0 {vw * 3.7795275591} {vh * 3.7795275591}")
+            root.setAttribute("viewBox", f"0 0 {vw * 3.7795275591} {vh * 3.7795275591}")
 
     if barcode_format not in barcode.PROVIDED_BARCODES:
         return f"Barcode format {barcode_format} not supported. Valid formats are: {barcode.PROVIDED_BARCODES}"
@@ -631,7 +573,7 @@ def get_barcode(
     barcode_class = barcode.get_barcode_class(barcode_format)
 
     try:
-        barcode = barcode_class(barcode_value, writer)
+        barcode_instance = barcode_class(barcode_value, writer)
     except Exception:
         frappe.msgprint(
             f"Invalid barcode value <b>{barcode_value}</b> for format <b>{barcode_format}</b>",
@@ -639,17 +581,18 @@ def get_barcode(
             alert=True,
             indicator="red",
         )
-
+        raise
     stream = BytesIO()
-    barcode.write(stream, options)
-    barcode_value = stream.getvalue().decode("utf-8")
+    barcode_instance.write(stream, options)
+    barcode_bytes = stream.getvalue()
     stream.close()
 
     if png_base64:
         import base64
 
-        barcode_value = base64.b64encode(barcode_value)
-
+        barcode_value = base64.b64encode(barcode_bytes).decode("ascii")
+    else:
+        barcode_value = barcode_bytes.decode("utf-8")
     return {"type": "png_base64" if png_base64 else "svg", "value": barcode_value}
 
 
@@ -660,8 +603,7 @@ def get_qrcode(barcode_value, options=None, png_base64=False):
 
     if not options:
         options = {}
-
-    options = frappe.parse_json(options)
+    options = _parse_barcode_options(options)
     options = {
         "scale": options.get("scale", 5),
         "module_color": options.get("module_color", "#000000"),

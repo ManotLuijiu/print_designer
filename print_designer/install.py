@@ -14,6 +14,9 @@ from frappe.custom.doctype.property_setter.property_setter import make_property_
 from frappe.utils import get_bench_path
 from frappe.utils.synchronization import filelock
 
+from print_designer.commands.install_milestone_invoice_item_fields import (
+    install_milestone_invoice_item_fields,
+)
 from print_designer.custom_fields import CUSTOM_FIELDS
 from print_designer.default_formats import (
     install_default_formats,
@@ -45,7 +48,9 @@ def before_install():
 def after_install():
     # Install all custom fields in unified way
     install_all_custom_fields()
-
+    # The percent column of the milestone Sales Invoice Item, so a fresh
+    # site shows the milestone share on the invoice line right away
+    install_milestone_invoice_item_fields()
     # Print designer specific setup
     on_print_designer_install()
     add_chrome_pdf_generator_option()
@@ -221,7 +226,11 @@ def make_chromium_executable(executable):
     """Make the Chromium executable."""
     if os.path.exists(executable):
         # check if the file is executable
-        if os.access(executable, os.X_OK):
+        try:
+            already_executable = os.access(executable, os.X_OK)
+        except OSError:
+            already_executable = False
+        if already_executable:
             click.echo(f"Chromium executable is already executable: {executable}")
             return
         click.echo(f"Making Chromium executable: {executable}")
@@ -269,9 +278,20 @@ def download_chromium():
     # Remove old Chromium directory if it exists
     if os.path.exists(chromium_dir):
         click.echo("Removing old Chromium directory...")
-        shutil.rmtree(chromium_dir, ignore_errors=True)
+        try:
+            shutil.rmtree(chromium_dir, ignore_errors=True)
+        except OSError as error:
+            click.secho(
+                f"Could not remove the old Chromium directory {chromium_dir}: {error}",
+                fg="red",
+            )
 
-    os.makedirs(chromium_dir, exist_ok=True)
+    try:
+        os.makedirs(chromium_dir, exist_ok=True)
+    except OSError as error:
+        raise RuntimeError(
+            f"Could not create the Chromium directory {chromium_dir}: {error}"
+        ) from error
 
     download_url = get_chromium_download_url()
     file_name = os.path.basename(download_url)

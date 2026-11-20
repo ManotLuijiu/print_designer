@@ -1,6 +1,8 @@
 import frappe
-from frappe import _
 
+from print_designer.commands.install_milestone_invoice_item_fields import (
+	uninstall_milestone_invoice_item_fields,
+)
 from print_designer.custom_fields import CUSTOM_FIELDS
 from print_designer.install import set_pdf_generator_option
 
@@ -137,7 +139,12 @@ def delete_all_print_designer_custom_fields():
 			# Signature fields
 			"pd_custom_prepared_by_signature", "pd_custom_approved_by_signature",
 		]
-
+		# Sales Invoice Item fields SPECIFICALLY created by print_designer
+		# install_milestone_invoice_item_fields.py
+		print_designer_sales_invoice_item_fields = [
+			# Percent column of the milestone Sales Invoice Item
+			"pd_custom_invoice_portion",
+		]
 		# Purchase Order fields SPECIFICALLY created by print_designer install_purchase_order_fields.py
 		print_designer_purchase_order_fields = [
 			# Thai WHT Preview Section (print_designer specific)
@@ -213,15 +220,15 @@ def delete_all_print_designer_custom_fields():
 		
 		# Combine all print_designer specific field lists
 		all_print_designer_fields = (
-			print_designer_specific_patterns +
-			print_designer_payment_entry_fields +
-			print_designer_sales_invoice_fields +
-			print_designer_purchase_order_fields +
-			print_designer_purchase_invoice_fields +
-			print_designer_company_tax_fields +
-			print_designer_item_fields
+			print_designer_specific_patterns
+			+ print_designer_payment_entry_fields
+			+ print_designer_sales_invoice_fields
+			+ print_designer_sales_invoice_item_fields
+			+ print_designer_purchase_order_fields
+			+ print_designer_purchase_invoice_fields
+			+ print_designer_company_tax_fields
+			+ print_designer_item_fields
 		)
-		
 		for field in all_custom_fields:
 			should_remove = False
 			
@@ -244,8 +251,7 @@ def delete_all_print_designer_custom_fields():
 			if should_remove:
 				fields_to_remove.append(field)
 				doctypes_affected.add(field.dt)
-		
-		print(f"\n📊 Summary:")
+		print("\n📊 Summary:")
 		print(f"   Total custom fields found: {len(all_custom_fields)}")
 		print(f"   Print Designer fields to remove: {len(fields_to_remove)}")
 		print(f"   DocTypes affected: {len(doctypes_affected)}")
@@ -295,33 +301,33 @@ def get_fixtures_field_names():
 	"""Get all field names from hooks.py fixtures configuration"""
 	try:
 		from print_designer.hooks import fixtures
-		
-		if not fixtures or "Custom Field" not in fixtures:
+
+		if not fixtures:
 			return set()
-		
-		# Get the filter for Custom Field fixtures
-		custom_field_filter = fixtures["Custom Field"]
-		
+		# The fixtures list holds one entry per doctype.
+		custom_field_filter = None
+		for fixture in fixtures:
+			if isinstance(fixture, dict) and fixture.get("doctype") == "Custom Field":
+				custom_field_filter = fixture
+				break
+
+		if not custom_field_filter:
+			return set()
+
 		# Extract field names from the filter
 		field_names = set()
-		
-		if isinstance(custom_field_filter, dict) and "filters" in custom_field_filter:
-			# If it's a more complex filter structure, parse it
-			filters = custom_field_filter["filters"]
-			if isinstance(filters, list):
-				for filter_item in filters:
-					if isinstance(filter_item, str) and "-" in filter_item:
-						# Format: "DocType-fieldname"
-						field_names.add(filter_item)
-		elif isinstance(custom_field_filter, list):
-			# Simple list of "DocType-fieldname" strings
-			field_names.update(custom_field_filter)
-		
-		print(f"📋 Found {len(field_names)} fields in fixtures configuration")
+		filters = custom_field_filter.get("filters")
+		if isinstance(filters, list):
+			for filter_item in filters:
+				if isinstance(filter_item, str) and "-" in filter_item:
+					# Format: "DocType-fieldname"
+					field_names.add(filter_item)
+
+		print(f"Found {len(field_names)} fields in fixtures configuration")
 		return field_names
 		
 	except Exception as e:
-		print(f"⚠️ Could not load fixtures: {str(e)}")
+		print(f"Could not load fixtures: {str(e)}")
 		return set()
 
 
@@ -339,7 +345,6 @@ def remove_print_designer_doctypes():
 			"Print Designer Signature", "Print Designer Company Stamp", 
 			"Print Designer User Signature", "Company Retention Settings"
 		]
-		
 		removed_count = 0
 		for doctype_name in print_designer_doctypes:
 			if frappe.db.exists("DocType", doctype_name):
@@ -348,7 +353,7 @@ def remove_print_designer_doctypes():
 					frappe.db.delete(doctype_name)
 					
 					# Then delete the DocType itself
-					frappe.delete_doc("DocType", doctype_name, force=1)
+					frappe.delete_doc("DocType", doctype_name, force=True)
 					print(f"✅ Removed DocType: {doctype_name}")
 					removed_count += 1
 				except Exception as e:
@@ -383,7 +388,7 @@ def remove_print_designer_print_formats():
 		removed_count = 0
 		for pf in print_formats:
 			try:
-				frappe.delete_doc("Print Format", pf.name, force=1)
+				frappe.delete_doc("Print Format", pf.name, force=True)
 				print(f"✅ Removed Print Format: {pf.name} ({pf.doc_type})")
 				removed_count += 1
 			except Exception as e:
@@ -402,6 +407,13 @@ def before_uninstall():
 	print("🚀 Starting print_designer app uninstallation...")
 
 	try:
+		# 0. Remove the percent column of the milestone Sales Invoice Item.
+		# It goes first so the bulk cleanup below cannot pick it up again.
+		# Frappe removes the Custom Field metadata, the property setters and
+		# the layout entries, the physical column stays like every other
+		# custom field column of the app.
+		uninstall_milestone_invoice_item_fields()
+
 		# 1. Remove print formats FIRST (before custom fields are deleted)
 		# This must happen first because it queries the print_designer field
 		print("\n🖨️ Removing Print Formats...")
