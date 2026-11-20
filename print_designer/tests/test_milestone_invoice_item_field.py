@@ -21,14 +21,15 @@ DOCTYPE = "Sales Invoice Item"
 class TestTheColumnDefinition(unittest.TestCase):
     """The shape of the column."""
 
-    def test_the_column_is_a_read_only_percent_after_the_amount(self):
+    def test_the_column_is_a_read_only_percent_after_the_rate(self):
         field = milestone.get_milestone_invoice_item_fields()[DOCTYPE][0]
 
         self.assertEqual(field["fieldname"], FIELD)
         self.assertEqual(field["fieldtype"], "Percent")
         self.assertEqual(field["label"], "%")
-        self.assertEqual(field["insert_after"], "amount")
+        self.assertEqual(field["insert_after"], "rate")
         self.assertEqual(field["in_list_view"], 1)
+        self.assertEqual(field["columns"], 1)
         self.assertEqual(field["read_only"], 1)
 
     def test_the_column_is_not_the_discount_of_the_line(self):
@@ -73,7 +74,7 @@ class TestTheColumnOnTheSite(FrappeTestCase):
         if not frappe.db.exists("Custom Field", {"dt": DOCTYPE, "fieldname": FIELD}):
             self.skipTest("the percent column is not installed on this site")
 
-    def test_the_column_sits_right_after_the_amount(self):
+    def test_the_column_sits_right_after_the_rate(self):
         result = milestone.install_milestone_invoice_item_fields()
 
         self.assertTrue(result["success"], result)
@@ -87,7 +88,7 @@ class TestTheColumnOnTheSite(FrappeTestCase):
 
         self.assertEqual(frappe.db.get_value("Custom Field", name, "creation"), created)
 
-    def test_the_installer_puts_the_column_back_after_the_amount(self):
+    def test_the_installer_puts_the_column_back_after_the_rate(self):
         name = str(frappe.db.get_value("Custom Field", {"dt": DOCTYPE, "fieldname": FIELD}, "name"))
         frappe.db.set_value("Custom Field", name, "insert_after", "batch_no")
 
@@ -95,6 +96,6 @@ class TestTheColumnOnTheSite(FrappeTestCase):
 
         self.assertEqual(
             frappe.db.get_value("Custom Field", name, "insert_after"),
-            "amount",
+            "rate",
         )
         self.assertEqual(milestone.get_position(), 1)

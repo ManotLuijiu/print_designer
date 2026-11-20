@@ -532,9 +532,7 @@ def set_wkhtmltopdf_as_default_for_print_designer():
         for format_doc in print_designer_formats:
             try:
                 frappe.db.set_value("Print Format", format_doc.name, "pdf_generator", "chrome")
-                click.echo(
-                    f"Set chrome PDF generator for Print Designer format: {format_doc.name}"
-                )
+                click.echo(f"Set chrome PDF generator for Print Designer format: {format_doc.name}")
             except Exception as e:
                 click.echo(f"Failed to update format '{format_doc.name}': {str(e)}")
 

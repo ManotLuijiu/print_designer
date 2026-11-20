@@ -591,3 +591,148 @@ semantic change onto the HEAD layout, and verify the result compiles and has
 the same syntax tree as the current version. Do not run `ruff format` across
 the repository to tidy the diff: it rewrites the untouched code of every file
 it touches.
+
+## Sales Invoice milestone percentage grid order
+
+User requirement (2026-11-21): Items grid must show `Item, Quantity, Rate, %, Amount`
+with the existing row number first. `pd_custom_invoice_portion` is a read-only
+Percent field anchored after `rate`, width `columns: 1`; it is not a discount.
+The app's field installer owns this metadata for install/migrate. Existing
+saved GridView layouts can omit the field regardless of `in_list_view: 1`.
+`public/js/invoice_schedule/sales_invoice_milestone_grid.js` wraps only the
+current Sales Invoice Items grid's column setup to insert it after Rate while
+retaining other saved columns. It does not clear or persist over user settings,
+change core prototypes, or save invoices. Adjust widths only as needed to fit.
+Regression: `node print_designer/tests/test_sales_invoice_milestone_grid.cjs`.
+
+The Sales Invoice WHT script must load only through `doctype_js`, alongside
+`thailand_wht_vat_helper.js`. Do not also import it from `public/js/app.js`:
+that duplicate global copy cannot access `pd_apply_item_wht_config`, throws
+on refresh and prevents later form handlers (including the grid) from running.
+
+## VAT DocType ownership relocation and Sales VAT lifecycle
+
+User-approved relocation verified on AWS on 2026-11-21: **VAT Offset Entry,
+Thai Sales VAT, VAT Type, Thai VAT Recognition and Thai VAT Recognition Item**
+now belong to module `Print Designer`, app `print_designer`. Print Designer is
+independent of TBS; essential VAT behavior must work without TBS installed.
+New controllers belong under `print_designer.print_designer.doctype.<slug>`.
+Keep DocType names, database tables, IDs, links and historical data unchanged.
+
+See [VAT relocation and Sales VAT action plan for Minimax](wiki/vat-relocation-and-sales-vat-plan-minimax.md).
+The user split this work into two jobs: finish controller/import/RPC/hook/test
+migration after the completed module relocation, then repair VAT recognition
+and reporting. **The new controllers were generated `pass` stubs at inspection;
+substantial VAT Offset Entry and Thai VAT Recognition logic remains in old TBS
+files. Do not treat relocated metadata as proof that behavior was migrated.**
+User requirement: once the Print Designer implementations are stable and pass
+migration/authorization/accounting/UI E2E tests, **delete the old TBS source
+folders for these same five DocTypes**, plus obsolete hooks/imports/RPC references
+and duplicated tests/assets. Do not delete the old behavior before it is ported.
+This is source/package cleanup only: never delete the live DocTypes, tables,
+records or links now owned by Print Designer. Port meaningful tests before
+retiring copies, and verify TBS migrate/uninstall cannot remove the new owner's
+data. Any temporary old-path RPC shim needs a documented retirement condition.
+
+Port authorization checks too, replacing mandatory TBS helper dependencies with
+independent Print Designer/Frappe equivalents. Update old dotted paths in callers;
+optional TBS compatibility shims may delegate to PD, never the reverse. Prevent
+old TBS JSON/uninstall routines from reclaiming/removing the new ownership.
+
+The intended ordinary flow is deferred services SI → Output VAT Undue → receipt
+allocation/qualifying tax event → recognition → Thai Sales VAT; already-due VAT
+routes directly into reportable records. Use VAT treatment/tax-point events,
+not stock flags alone. Support partial receipts, mixed items, reversals and
+report periods. Ensure exactly one GL reclassification per event; existing PE
+regional GL and old recognition JE paths must not both post it. Avoid commits
+inside hooks, duplicate whole-invoice reporting and unreviewed live backfills.
+Thai VAT Recognition currently has `is_submittable=0` despite old submit/cancel
+logic; resolve that mismatch explicitly in the migration tests. No VAT workflow
+implementation or live tax-data changes were made by this documentation task.
+
+## WHT and PND ownership in independent Print Designer
+
+User decision and AWS ownership verification (2026-11-21): **Thai WHT Rate
+Setting** now belongs to module/app Print Designer. Its controller is
+`print_designer.print_designer.doctype.thai_wht_rate_setting.thai_wht_rate_setting`.
+It remains a child table. PND1/PND3/PND53/PND54 Form and their corresponding Items
+DocTypes already belong to PD; do not recreate them or move them back to TBS.
+Essential VAT/WHT/PND behavior must work without TBS installed.
+
+See [WHT/PND relocation supplement for Minimax](wiki/wht-pnd-ownership-relocation-minimax.md)
+and the [VAT migration plan](wiki/vat-relocation-and-sales-vat-plan-minimax.md).
+Both old/new WHT rate child controllers are `pass`; existing lookup/calculation
+logic lives in TBS `thai_tax/utils/tax_calculator.py`, requirement checks in
+`validators.py`, and child validation in Thai Tax Settings JS. Port/reconcile
+that behavior and its tests; do not assume module relocation moved it.
+
+**Parent relocation now explicitly approved and verified:** Thai Tax Settings
+also belongs to PD at `print_designer.print_designer.doctype.thai_tax_settings.thai_tax_settings`.
+It remains a Single DocType whose `default_wht_rates` hosts Thai WHT Rate Setting.
+Preserve settings values in `tabSingles` and child links/IDs/rates; do not create
+a different parent or reset existing configuration. The new parent controller is
+a `pass` stub, while the old TBS controller contains validation, account creation,
+cache handling and RPCs. Port/review that logic, permissions and settings JS,
+replace required TBS helper/installer imports with PD-owned equivalents, and
+resolve old child `.rate` references against the actual rate-field schema.
+Review existing PD WHT categories/income types/certificates for one authoritative
+rate-selection policy, preserving zero rates, effective dates and company scope.
+
+After PD functionality is stable and its migration/permission/calculation/UI/PND
+tests pass, delete the old TBS `thai_tax/doctype/thai_wht_rate_setting/` and
+`thai_tax/doctype/thai_tax_settings/` source folders and obsolete duplicate
+references/handlers, as with the five VAT relocations. This extends the named
+VAT/WHT/settings portion of the retirement scope to seven DocTypes; the
+Intake relocation below brings the overall scope to **eight DocTypes**. Preserve
+live DocTypes/tables/rows/rates, parent links and PND filings; protect ownership
+against old TBS migrate/uninstall. No rate changes or filing actions are part
+of this documentation task.
+
+## Thai Tax Invoice Intake relocation to Print Designer
+
+User-confirmed and AWS-verified on 2026-11-21: **Thai Tax Invoice Intake** now
+belongs to Print Designer at
+`print_designer.print_designer.doctype.thai_tax_invoice_intake.thai_tax_invoice_intake`.
+It is the eighth named tax relocation (five VAT DocTypes, WHT rate child,
+Thai Tax Settings, then Intake). See [Minimax Intake handoff](wiki/tax-invoice-intake-relocation-minimax.md).
+
+The new controller/JS were generated stubs at inspection; old TBS source still
+contains verification/rejection, attachment access, draft PI synchronization,
+status/failure handling, privileged sweep RPC and extensive authorization tests.
+Port behavior, UI, permissions, callers and tests before declaring migration
+stable. Replace mandatory TBS helper imports with PD-owned/Frappe equivalents.
+Preserve POST-only mutations and caller-authorized Intake/File/PI access.
+
+Intake is an optional supplier-document capture/verification workflow that
+creates a draft Purchase Invoice; it must not submit it or independently post
+VAT. The Sales Tax Invoice option is not supported by existing synchronization.
+After PD-only/both-app migration, permissions, rollback/concurrency and real UI
+tests pass, delete the old TBS Intake source and obsolete references/tests.
+Keep live DocType/table/records, attachment File links and Purchase Invoices.
+Prevent old TBS migrate/uninstall from reclaiming/removing PD-owned data. No
+Intake workflow changes or financial/document writes were made by this handoff.
+
+## Thailand Tax master plan and SI Services first chunks
+
+See [master plan](wiki/thailand-tax-master-plan.md),
+[SI-01 data contract](wiki/si-services-tax-data-contract-minimax.md),
+[SI-02 service tracking](wiki/si-services-output-vat-undue-minimax.md), and
+[SI-03 Preview reports](wiki/si-vat-preview-reports-minimax.md).
+
+**User instruction: keep SI fields/layout as-is**, including values shown in
+Details and Thai Tax Compliance. Reuse stored fields in background; do not move
+or duplicate WHT/VAT/retention controls. The requested SI UI additions are only
+Preview → VAT Due Report and VAT Undue Report below Accounting Ledger.
+
+All scoped submitted service SIs should have Output VAT Undue tracking, including
+exempt/non-registered sales, but zero-tax tracking must have explicit reason and
+no undue balance. Record presence is not VAT liability. Genuine deferred VAT,
+already-due VAT, exempt supply, non-registration and zero-rated treatment remain
+distinct. Do not manufacture VAT from a default rate or all taxes/charges.
+Draft SIs do not post tracking; reports are read-only and do not backfill.
+
+Implement/document each small chunk separately after its prerequisites. Current
+company registration is read from TBS-owned Thai Company Settings: resolve an
+independent per-company source; the relocated Single Thai Tax Settings is not
+that DocType. No additional relocation or new visible SI fields are implicitly
+authorized by this plan. Preserve eight-relocation ownership/data protections.

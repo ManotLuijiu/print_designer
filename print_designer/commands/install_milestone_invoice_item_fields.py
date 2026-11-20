@@ -5,7 +5,7 @@
 
 A milestone invoice bills a part of the contract, not the whole contract.
 The part it bills is written into a column of its own, right after the
-amount, so the customer sees it on the invoice and not only in the
+rate, so the customer sees it on the invoice and not only in the
 description of the line.
 
 The column is part of the lifecycle of the app:
@@ -25,7 +25,7 @@ from frappe.utils import cint
 
 FIELDNAME = "pd_custom_invoice_portion"
 DOCTYPE = "Sales Invoice Item"
-ANCHOR = "amount"
+ANCHOR = "rate"
 
 
 def get_milestone_invoice_item_fields():
@@ -38,6 +38,7 @@ def get_milestone_invoice_item_fields():
                 "label": "%",
                 "insert_after": ANCHOR,
                 "in_list_view": 1,
+                "columns": 1,
                 "read_only": 1,
                 "hidden": 0,
                 "default": None,
@@ -48,9 +49,9 @@ def get_milestone_invoice_item_fields():
 
 
 def get_position():
-    """The distance of the column to the Amount column.
+    """The distance of the column to the Rate column.
 
-    1 means the column sits directly after the Amount column.
+    1 means the column sits directly after the Rate column.
     """
     meta = frappe.get_meta(DOCTYPE)
     fieldnames = [df.fieldname for df in meta.fields]
@@ -62,7 +63,7 @@ def get_position():
 
 
 def _ensure_position():
-    """Keep the column right after the Amount column.
+    """Keep the column right after the Rate column.
 
     Frappe does not move an existing custom field when its `insert_after`
     changes, so the anchor is written again and the index of the field is

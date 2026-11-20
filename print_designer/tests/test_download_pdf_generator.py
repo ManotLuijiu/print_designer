@@ -115,9 +115,7 @@ class TestPrintFormatNameResolution(unittest.TestCase):
     def test_default_print_format_is_used(self):
         expected = frappe.get_meta("Payment Entry").default_print_format or "Standard"
 
-        self.assertEqual(
-            signature_stamp.resolve_print_format_name("Payment Entry", None), expected
-        )
+        self.assertEqual(signature_stamp.resolve_print_format_name("Payment Entry", None), expected)
 
 
 class TestWatermarkBranchUsesChrome(RequestContextMixin, unittest.TestCase):

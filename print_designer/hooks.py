@@ -167,6 +167,7 @@ doctype_js = {
         "public/js/payment_entry_receive_wht_register.js",
     ],
     "Sales Invoice": [
+        "public/js/invoice_schedule/sales_invoice_milestone_grid.js",
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
     ],

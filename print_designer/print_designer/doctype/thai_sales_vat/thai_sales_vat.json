@@ -1,0 +1,308 @@
+{
+ "actions": [],
+ "autoname": "format:THVAT-SI-{sales_invoice}",
+ "creation": "2026-03-16 20:54:35.434883",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sales_invoice_section",
+  "sales_invoice",
+  "customer",
+  "customer_name",
+  "column_break_4",
+  "posting_date",
+  "due_date",
+  "tax_invoice_details_section",
+  "invoice_no",
+  "invoice_series",
+  "column_break_9",
+  "tax_invoice_number",
+  "tax_invoice_date",
+  "customer_tax_id",
+  "customer_branch",
+  "vat_type_section",
+  "vat_type",
+  "payment_entry_reference",
+  "column_break_vat_type",
+  "vat_conversion_date",
+  "vat_details_section",
+  "base_amount",
+  "vat_amount",
+  "column_break_14",
+  "total_amount",
+  "is_vat_exempt",
+  "vat_period_section",
+  "vat_month",
+  "column_break_vat_period",
+  "vat_year",
+  "output_vat_usage_section",
+  "is_output_vat_reported",
+  "column_break_output_vat",
+  "output_vat_reported_month",
+  "output_vat_reported_year"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_invoice_section",
+   "fieldtype": "Section Break",
+   "label": "Sales Invoice"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "sales_invoice.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "sales_invoice.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "sales_invoice.posting_date",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "sales_invoice.due_date",
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_invoice_details_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Invoice Details"
+  },
+  {
+   "fetch_from": "sales_invoice.name",
+   "fieldname": "invoice_no",
+   "fieldtype": "Data",
+   "label": "Invoice No.",
+   "read_only": 1
+  },
+  {
+   "description": "Book number of the tax invoice",
+   "fieldname": "invoice_series",
+   "fieldtype": "Data",
+   "label": "Invoice Series"
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_invoice_number",
+   "fieldtype": "Data",
+   "label": "Tax Invoice Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tax_invoice_date",
+   "fieldtype": "Date",
+   "label": "Tax Invoice Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.tax_id",
+   "fieldname": "customer_tax_id",
+   "fieldtype": "Data",
+   "label": "Customer Tax ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_branch",
+   "fieldtype": "Data",
+   "label": "Customer Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_type_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Type & Conversion"
+  },
+  {
+   "fieldname": "vat_type",
+   "fieldtype": "Select",
+   "label": "VAT Type",
+   "options": "VAT Due\nVAT Undue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payment_entry_reference",
+   "fieldtype": "Link",
+   "label": "Payment Entry Reference",
+   "options": "Payment Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vat_type",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vat_conversion_date",
+   "fieldtype": "Date",
+   "label": "VAT Conversion Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_details_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Details"
+  },
+  {
+   "fetch_from": "sales_invoice.base_net_total",
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "label": "Base Amount",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "sales_invoice.base_total_taxes_and_charges",
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_14",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "sales_invoice.base_grand_total",
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_vat_exempt",
+   "fieldtype": "Check",
+   "label": "Is VAT Exempt"
+  },
+  {
+   "fieldname": "vat_period_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Period"
+  },
+  {
+   "fieldname": "vat_month",
+   "fieldtype": "Select",
+   "label": "VAT Month",
+   "options": "\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vat_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vat_year",
+   "fieldtype": "Data",
+   "label": "VAT Year",
+   "length": 4,
+   "reqd": 1
+  },
+  {
+   "fieldname": "output_vat_usage_section",
+   "fieldtype": "Section Break",
+   "label": "Output VAT Reporting"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_output_vat_reported",
+   "fieldtype": "Check",
+   "label": "Is Output VAT Reported"
+  },
+  {
+   "fieldname": "column_break_output_vat",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "is_output_vat_reported",
+   "fieldname": "output_vat_reported_month",
+   "fieldtype": "Select",
+   "label": "Output VAT Reported Month",
+   "options": "\n01\n02\n03\n04\n05\n06\n07\n08\n09\n10\n11\n12"
+  },
+  {
+   "depends_on": "is_output_vat_reported",
+   "fieldname": "output_vat_reported_year",
+   "fieldtype": "Data",
+   "label": "Output VAT Reported Year",
+   "length": 4
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-21 01:36:04.230878",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai Sales VAT",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

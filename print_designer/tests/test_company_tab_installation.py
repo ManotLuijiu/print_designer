@@ -203,9 +203,7 @@ def validate_company_tab_installation():
     checks.append(("Company client script registered", client_script_registered))
 
     # Check if the stylesheet source exists
-    css_path = frappe.get_app_path(
-        "print_designer", "public", "css", "company_preview.bundle.scss"
-    )
+    css_path = frappe.get_app_path("print_designer", "public", "css", "company_preview.bundle.scss")
     checks.append(("Company preview stylesheet exists", os.path.exists(css_path)))
 
     # Print results

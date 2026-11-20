@@ -1,0 +1,278 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-05 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_info_section",
+  "naming_series",
+  "posting_date",
+  "company",
+  "column_break_basic",
+  "party",
+  "offset_mode",
+  "column_break_invoices",
+  "sales_invoice",
+  "purchase_invoice",
+  "invoice_details_section",
+  "ar_account",
+  "ap_account",
+  "column_break_accounts",
+  "ar_outstanding",
+  "ap_outstanding",
+  "offset_details_section",
+  "offset_amount",
+  "difference_amount",
+  "column_break_offset",
+  "difference_account",
+  "difference_label",
+  "cash_bank_section",
+  "cash_bank_account",
+  "column_break_cash",
+  "cash_amount",
+  "accounting_section",
+  "journal_entry",
+  "column_break_je",
+  "remark",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_info_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "default": "VOE-.YYYY.-",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "VOE-.YYYY.-",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The same party must appear as Customer on Sales Invoice and as Supplier on Purchase Invoice",
+   "fieldname": "party",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Party (Customer = Supplier)",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Partial Offset",
+   "fieldname": "offset_mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Off-set Mode",
+   "options": "Full Offset\nPartial Offset",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_invoices",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Select the Sales Invoice to off-set (AR side)",
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice (AR)",
+   "options": "Sales Invoice",
+   "reqd": 1
+  },
+  {
+   "description": "Select the Purchase Invoice to off-set (AP side)",
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Purchase Invoice (AP)",
+   "options": "Purchase Invoice",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_details_section",
+   "fieldtype": "Section Break",
+   "label": "Invoice Details"
+  },
+  {
+   "description": "Receivable account from Sales Invoice",
+   "fieldname": "ar_account",
+   "fieldtype": "Link",
+   "label": "AR Account",
+   "no_copy": 1,
+   "options": "Account",
+   "read_only": 1
+  },
+  {
+   "description": "Payable account from Purchase Invoice",
+   "fieldname": "ap_account",
+   "fieldtype": "Link",
+   "label": "AP Account",
+   "no_copy": 1,
+   "options": "Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_accounts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ar_outstanding",
+   "fieldtype": "Currency",
+   "label": "AR Outstanding",
+   "no_copy": 1,
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ap_outstanding",
+   "fieldtype": "Currency",
+   "label": "AP Outstanding",
+   "no_copy": 1,
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "offset_details_section",
+   "fieldtype": "Section Break",
+   "label": "Off-set Details"
+  },
+  {
+   "description": "min(AR Outstanding, AP Outstanding) \u2014 auto-calculated",
+   "fieldname": "offset_amount",
+   "fieldtype": "Currency",
+   "label": "Off-set Amount",
+   "no_copy": 1,
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "description": "|AR Outstanding - AP Outstanding|",
+   "fieldname": "difference_amount",
+   "fieldtype": "Currency",
+   "label": "Difference Amount",
+   "no_copy": 1,
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_offset",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Account to post the difference amount to. Required for Partial Offset. E.g., Discount Received, AR Write-off, Customer Credit.",
+   "fieldname": "difference_account",
+   "fieldtype": "Link",
+   "label": "Difference Account",
+   "options": "Account"
+  },
+  {
+   "description": "Short description for the off-set (e.g., 'Material supply discount', 'AR partial write-off')",
+   "fieldname": "difference_label",
+   "fieldtype": "Data",
+   "label": "Difference Label"
+  },
+  {
+   "fieldname": "cash_bank_section",
+   "fieldtype": "Section Break",
+   "label": "Cash / Bank Movement"
+  },
+  {
+   "description": "Bank or Cash account used for the actual payment (dr side)",
+   "fieldname": "cash_bank_account",
+   "fieldtype": "Link",
+   "label": "Cash / Bank Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_cash",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Actual cash received (= min(AR, AP)). Auto-calculated if left blank.",
+   "fieldname": "cash_amount",
+   "fieldtype": "Currency",
+   "label": "Cash Amount",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting"
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "label": "Journal Entry",
+   "no_copy": 1,
+   "options": "Journal Entry",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_je",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional note for the Journal Entry",
+   "fieldname": "remark",
+   "fieldtype": "Small Text",
+   "label": "Remark"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "VAT Offset Entry",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-21 01:35:21.741749",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "VAT Offset Entry",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "search_fields": "company,party,sales_invoice,purchase_invoice,offset_mode",
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "naming_series",
+ "track_changes": 1,
+ "track_seen": 1
+}

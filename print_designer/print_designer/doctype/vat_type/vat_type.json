@@ -1,0 +1,147 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:vat_type_code",
+ "creation": "2025-11-04 17:41:50.119046",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "vat_type_name",
+  "vat_type_code",
+  "column_break_1",
+  "is_default",
+  "is_active",
+  "display_order",
+  "section_break_templates",
+  "sales_tax_template",
+  "purchase_tax_template",
+  "section_break_description",
+  "description"
+ ],
+ "fields": [
+  {
+   "description": "Display name (e.g., 'Inclusive', 'Exclusive', '0%')",
+   "fieldname": "vat_type_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "VAT Type Name",
+   "reqd": 1
+  },
+  {
+   "description": "Unique code (e.g., 'INCLUSIVE', 'EXCLUSIVE', '0%')",
+   "fieldname": "vat_type_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "VAT Type Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Set as default VAT type for new customers/suppliers",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Default"
+  },
+  {
+   "default": "1",
+   "description": "Only active VAT types appear in selection lists",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "default": "0",
+   "description": "Order in dropdown lists (lower numbers appear first)",
+   "fieldname": "display_order",
+   "fieldtype": "Int",
+   "label": "Display Order"
+  },
+  {
+   "fieldname": "section_break_templates",
+   "fieldtype": "Section Break",
+   "label": "Tax Templates"
+  },
+  {
+   "description": "Link to Sales Taxes and Charges Template",
+   "fieldname": "sales_tax_template",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Tax Template",
+   "options": "Sales Taxes and Charges Template"
+  },
+  {
+   "description": "Link to Purchase Taxes and Charges Template (optional)",
+   "fieldname": "purchase_tax_template",
+   "fieldtype": "Link",
+   "label": "Purchase Tax Template",
+   "options": "Purchase Taxes and Charges Template"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "description": "Usage notes and tax calculation details",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-21 01:36:38.987871",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "VAT Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

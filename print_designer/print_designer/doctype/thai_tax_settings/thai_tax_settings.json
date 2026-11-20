@@ -1,0 +1,340 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "general_settings_section",
+  "auto_apply_thai_format",
+  "enable_withholding_tax",
+  "auto_generate_tax_invoice_number",
+  "column_break_1",
+  "default_tax_branch_code",
+  "fiscal_year_start_month",
+  "calendar_settings_section",
+  "enable_buddhist_calendar",
+  "thai_language_default",
+  "column_break_calendar",
+  "date_format_preference",
+  "revenue_office_section",
+  "revenue_department_office",
+  "revenue_department_district",
+  "column_break_revenue",
+  "tax_registration_office",
+  "account_settings_section",
+  "account_settings_column",
+  "auto_create_accounts",
+  "withholding_tax_settings_section",
+  "default_wht_rates",
+  "column_break_2",
+  "auto_create_wht_certificate",
+  "wht_certificate_numbering_series",
+  "pnd_report_settings_section",
+  "enable_pnd1",
+  "enable_pnd3",
+  "enable_pnd53",
+  "column_break_3",
+  "pnd_submission_deadline_days",
+  "auto_generate_pnd_reports",
+  "vat_settings_section",
+  "vat_rate",
+  "enable_reverse_charge_vat",
+  "column_break_4",
+  "pp30_submission_deadline",
+  "auto_calculate_vat",
+  "digital_settings_section",
+  "digital_signature_enabled",
+  "auto_backup_submissions",
+  "column_break_digital",
+  "submission_email_notifications",
+  "enable_qr_codes"
+ ],
+ "fields": [
+  {
+   "fieldname": "general_settings_section",
+   "fieldtype": "Section Break",
+   "label": "General Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_apply_thai_format",
+   "fieldtype": "Check",
+   "label": "Auto Apply Thai Format to Documents"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_withholding_tax",
+   "fieldtype": "Check",
+   "label": "Enable Withholding Tax"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_generate_tax_invoice_number",
+   "fieldtype": "Check",
+   "label": "Auto Generate Tax Invoice Number"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "00000",
+   "fieldname": "default_tax_branch_code",
+   "fieldtype": "Data",
+   "label": "Default Tax Branch Code",
+   "length": 5
+  },
+  {
+   "default": "1",
+   "fieldname": "fiscal_year_start_month",
+   "fieldtype": "Select",
+   "label": "Fiscal Year Start Month",
+   "options": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"
+  },
+  {
+   "fieldname": "calendar_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Calendar & Language Settings"
+  },
+  {
+   "default": "1",
+   "description": "Use Buddhist Era (BE) in dates and reports",
+   "fieldname": "enable_buddhist_calendar",
+   "fieldtype": "Check",
+   "label": "Enable Buddhist Calendar"
+  },
+  {
+   "default": "1",
+   "description": "Use Thai language as default for documents",
+   "fieldname": "thai_language_default",
+   "fieldtype": "Check",
+   "label": "Thai Language Default"
+  },
+  {
+   "fieldname": "column_break_calendar",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Buddhist Era (BE)",
+   "fieldname": "date_format_preference",
+   "fieldtype": "Select",
+   "label": "Date Format Preference",
+   "options": "Buddhist Era (BE)\nGregorian Calendar\nBoth"
+  },
+  {
+   "fieldname": "revenue_office_section",
+   "fieldtype": "Section Break",
+   "label": "Revenue Department Information"
+  },
+  {
+   "description": "Main revenue office (e.g., \u0e1e\u0e0d\u0e32\u0e44\u0e17, \u0e2a\u0e32\u0e17\u0e23)",
+   "fieldname": "revenue_department_office",
+   "fieldtype": "Data",
+   "label": "Revenue Department Office"
+  },
+  {
+   "description": "District where company is registered",
+   "fieldname": "revenue_department_district",
+   "fieldtype": "Data",
+   "label": "Revenue Department District"
+  },
+  {
+   "fieldname": "column_break_revenue",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Office where tax registration was completed",
+   "fieldname": "tax_registration_office",
+   "fieldtype": "Data",
+   "label": "Tax Registration Office"
+  },
+  {
+   "fieldname": "account_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Thai Tax Account Settings"
+  },
+  {
+   "fieldname": "account_settings_column",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "When checked, the system will automatically create required tax accounts during installation",
+   "fieldname": "auto_create_accounts",
+   "fieldtype": "Check",
+   "label": "Automatically create Thai tax accounts if they don't exist"
+  },
+  {
+   "fieldname": "withholding_tax_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Withholding Tax Settings"
+  },
+  {
+   "fieldname": "default_wht_rates",
+   "fieldtype": "Table",
+   "label": "Default WHT Rates",
+   "options": "Thai WHT Rate Setting"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_create_wht_certificate",
+   "fieldtype": "Check",
+   "label": "Auto Create WHT Certificate on Payment"
+  },
+  {
+   "default": "WHT-.YYYY.-.#####",
+   "fieldname": "wht_certificate_numbering_series",
+   "fieldtype": "Data",
+   "label": "WHT Certificate Numbering Series"
+  },
+  {
+   "fieldname": "pnd_report_settings_section",
+   "fieldtype": "Section Break",
+   "label": "PND Report Settings"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_pnd1",
+   "fieldtype": "Check",
+   "label": "Enable PND1 (Salary/Wages)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_pnd3",
+   "fieldtype": "Check",
+   "label": "Enable PND3 (Individual Services)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_pnd53",
+   "fieldtype": "Check",
+   "label": "Enable PND53 (Company Services)"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "7",
+   "fieldname": "pnd_submission_deadline_days",
+   "fieldtype": "Int",
+   "label": "PND Submission Deadline (Days after month end)"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_generate_pnd_reports",
+   "fieldtype": "Check",
+   "label": "Auto Generate Monthly PND Reports"
+  },
+  {
+   "fieldname": "vat_settings_section",
+   "fieldtype": "Section Break",
+   "label": "VAT Settings"
+  },
+  {
+   "default": "7",
+   "fieldname": "vat_rate",
+   "fieldtype": "Float",
+   "label": "Standard VAT Rate (%)",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_reverse_charge_vat",
+   "fieldtype": "Check",
+   "label": "Enable Reverse Charge VAT"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "15",
+   "fieldname": "pp30_submission_deadline",
+   "fieldtype": "Int",
+   "label": "PP-30 Submission Deadline (Days after month end)"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_calculate_vat",
+   "fieldtype": "Check",
+   "label": "Auto Calculate VAT on Transactions"
+  },
+  {
+   "fieldname": "digital_settings_section",
+   "fieldtype": "Section Break",
+   "label": "Digital & Automation Settings"
+  },
+  {
+   "default": "0",
+   "description": "Use digital signatures for tax documents",
+   "fieldname": "digital_signature_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Digital Signatures"
+  },
+  {
+   "default": "1",
+   "description": "Automatically backup tax submissions to file system",
+   "fieldname": "auto_backup_submissions",
+   "fieldtype": "Check",
+   "label": "Auto Backup Tax Submissions"
+  },
+  {
+   "fieldname": "column_break_digital",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Send email notifications when tax reports are generated",
+   "fieldname": "submission_email_notifications",
+   "fieldtype": "Check",
+   "label": "Email Notifications for Submissions"
+  },
+  {
+   "default": "1",
+   "description": "Generate QR codes for tax documents and verification",
+   "fieldname": "enable_qr_codes",
+   "fieldtype": "Check",
+   "label": "Enable QR Codes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-21 01:52:35.569096",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai Tax Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Accounts Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Accounts User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

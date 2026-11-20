@@ -1,0 +1,185 @@
+{
+ "actions": [],
+ "creation": "2024-01-01 10:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_info_section",
+  "income_type",
+  "income_code",
+  "income_description",
+  "column_break_basic",
+  "entity_type",
+  "pnd_type",
+  "rates_section",
+  "individual_rate",
+  "company_rate",
+  "column_break_rates",
+  "government_rate",
+  "minimum_threshold",
+  "validity_section",
+  "effective_from",
+  "effective_to",
+  "column_break_validity",
+  "is_active",
+  "remarks_section",
+  "remarks",
+  "tax_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "basic_info_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "income_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Income Type",
+   "options": "40(1) \u0e40\u0e07\u0e34\u0e19\u0e40\u0e14\u0e37\u0e2d\u0e19 \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\n40(2) \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 \u0e04\u0e48\u0e32\u0e04\u0e2d\u0e21\u0e21\u0e34\u0e0a\u0e0a\u0e31\u0e48\u0e19\n40(3) \u0e04\u0e48\u0e32\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\n40(4)\u0e01 \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22\n40(4)\u0e02 \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25\n40(5) \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\n40(6) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25 \u0e2a\u0e48\u0e27\u0e19\u0e25\u0e14\n40(7) \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23/\u0e04\u0e48\u0e32\u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e2d\u0e34\u0e2a\u0e23\u0e30\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23\u0e19\u0e34\u0e15\u0e34\u0e1a\u0e38\u0e04\u0e04\u0e25 3%\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23\u0e19\u0e34\u0e15\u0e34\u0e1a\u0e38\u0e04\u0e04\u0e25 5%\n40(8) \u0e04\u0e48\u0e32\u0e02\u0e19\u0e2a\u0e48\u0e07 1%\n40(8) \u0e04\u0e48\u0e32\u0e40\u0e1a\u0e35\u0e49\u0e22\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19 1%\n40(8) \u0e04\u0e48\u0e32\u0e42\u0e06\u0e29\u0e13\u0e32 2%",
+   "reqd": 1
+  },
+  {
+   "description": "Official government code (e.g., 40(1), 40(8))",
+   "fieldname": "income_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Income Code",
+   "reqd": 1
+  },
+  {
+   "description": "English description of income type",
+   "fieldname": "income_description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "All",
+   "fieldname": "entity_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Entity Type",
+   "options": "Individual\nCompany\nGovernment\nAll",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pnd_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "PND Type",
+   "options": "PND1\nPND3\nPND53",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Rates"
+  },
+  {
+   "description": "WHT rate for individual taxpayers",
+   "fieldname": "individual_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Individual Rate (%)",
+   "precision": "2"
+  },
+  {
+   "description": "WHT rate for corporate taxpayers",
+   "fieldname": "company_rate",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Company Rate (%)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_rates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "WHT rate for government entities",
+   "fieldname": "government_rate",
+   "fieldtype": "Float",
+   "label": "Government Rate (%)",
+   "precision": "2"
+  },
+  {
+   "description": "Minimum amount before WHT applies",
+   "fieldname": "minimum_threshold",
+   "fieldtype": "Currency",
+   "label": "Minimum Threshold",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "validity_section",
+   "fieldtype": "Section Break",
+   "label": "Validity Period"
+  },
+  {
+   "description": "Date when this rate becomes effective",
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Effective From",
+   "reqd": 1
+  },
+  {
+   "description": "Date when this rate expires (leave blank for indefinite)",
+   "fieldname": "effective_to",
+   "fieldtype": "Date",
+   "label": "Effective To"
+  },
+  {
+   "fieldname": "column_break_validity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "Whether this rate is currently active",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "description": "Additional notes about this WHT rate",
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "label": "Remarks"
+  },
+  {
+   "description": "Legacy field - use individual_rate or company_rate instead",
+   "fieldname": "tax_rate",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Tax Rate (%)",
+   "precision": "2"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-21 01:48:46.250775",
+ "modified_by": "Administrator",
+ "module": "Print Designer",
+ "name": "Thai WHT Rate Setting",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "effective_from",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "income_code",
+ "track_changes": 1
+}
