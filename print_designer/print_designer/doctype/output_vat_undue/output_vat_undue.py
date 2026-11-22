@@ -2,130 +2,121 @@
 # For license information, please see license.txt
 
 """
-Output VAT Undue - tracks sales where tax invoice hasn't been issued yet.
-When tax invoice is issued (from SI), status changes to "Converted to Output VAT".
+Output VAT Undue - tracks the sales whose VAT is not due yet.
+
+The ledger itself is written by
+:mod:`print_designer.custom.output_vat_undue_tracking` - that module is the
+one orchestration path of the tracking.  This controller keeps the document
+consistent: it derives the balance of a row and it protects the snapshot of
+the source invoice.
+
+The old helpers (``create_output_vat_undue_record`` and
+``update_output_vat_on_tax_invoice``) stay available as thin wrappers, so a
+caller of the old names does not break.  The conversion of a row is not a
+side effect of the save of an invoice any more: it is an explicit event
+(:func:`print_designer.custom.output_vat_undue_tracking.convert_to_output_vat`).
 """
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
+
+from print_designer.custom import output_vat_undue_tracking as pd_ovu_tracking
+from print_designer.custom.output_vat_undue_tracking import (
+    STATUS_CANCELLED,
+    STATUS_CONVERTED,
+    STATUS_NOT_APPLICABLE,
+    STATUS_PARTIALLY_CONVERTED,
+    STATUS_PENDING,
+)
+
+#: The statuses that carry an active undue balance.
+ACTIVE_STATUSES = (STATUS_PENDING, STATUS_PARTIALLY_CONVERTED)
 
 
 class OutputVATUndue(Document):
-    pass
+    """One tracked sale."""
+
+    def validate(self):
+        """Keep the balance of the row consistent.
+
+        The snapshot of the source invoice (the treatment, the registration
+        and the amounts) is written once, when the row is created.  A later
+        change of the company settings must never rewrite it, so only the
+        balance is derived here.
+        """
+        self.set("remaining_vat_amount", self._remaining_vat_amount())
+
+    def _remaining_vat_amount(self):
+        """Return the VAT of the row that is still undue.
+
+        For an active row the balance is the eligible VAT minus the VAT that
+        has been recognized.  A closed row carries no balance: it keeps its
+        snapshot as the history of the sale.
+        """
+        if self.get("status") in (
+            STATUS_CANCELLED,
+            STATUS_CONVERTED,
+            STATUS_NOT_APPLICABLE,
+        ):
+            return 0
+
+        eligible = flt(str(self.get("vat_amount") or 0))
+        recognized = flt(str(self.get("recognized_vat_amount") or 0))
+        return max(eligible - recognized, 0)
 
 
 def check_if_service_sale(doc):
-    """Check if Sales Invoice contains service items"""
-    if not doc.items:
+    """Check if Sales Invoice contains service items.
+
+    The answer is the one of the tax contract: a service row is a row of the
+    invoice whose item is a service, not every item that is not a stock item.
+    """
+    from print_designer.custom.sales_invoice_tax_contract import (
+        CLASSIFICATION_SERVICES,
+        get_service_tax_snapshot,
+    )
+
+    try:
+        snapshot = get_service_tax_snapshot(doc)
+    except Exception:
         return False
 
-    for item in doc.items:
-        if hasattr(item, 'is_service_item') and item.is_service_item:
-            return True
-
-        if item.item_code:
-            item_doc = frappe.get_cached_value("Item", item.item_code, ["is_stock_item", "item_group"], as_dict=True)
-            if item_doc:
-                if not item_doc.is_stock_item:
-                    return True
-                if item_doc.item_group and any(keyword in item_doc.item_group.lower() for keyword in ['service', 'consulting']):
-                    return True
-
-    return False
+    return snapshot.classification == CLASSIFICATION_SERVICES
 
 
 def create_output_vat_undue_record(doc, method=None):
+    """Compatibility wrapper of the old submit hook.
+
+    The row of the ledger is written by
+    :mod:`print_designer.custom.output_vat_undue_tracking` - the one
+    orchestration path of the tracking.  This wrapper only keeps the old
+    name of that function alive.
     """
-    Create Output VAT Undue record on Sales Invoice submission.
-    For credit sales (not cash/single invoice), track the output VAT as undue
-    until tax invoice is issued.
-    """
-    if doc.doctype != "Sales Invoice" or doc.docstatus != 1:
-        return
-
-    if doc.base_total_taxes_and_charges <= 0:
-        return
-
-    # Only create for credit sales (is_pos=0) or if configured to track all
-    # For now: create for all sales with VAT, update status when tax invoice issued
-    
-    existing = frappe.db.exists("Output VAT Undue", {"sales_invoice": doc.name})
-    if existing:
-        return
-
-    output_vat_undue_account = frappe.get_value("Company", doc.company, "default_output_vat_undue_account")
-    if not output_vat_undue_account:
-        # Don't block, just skip creation if account not configured
-        return
-
-    vat_record = frappe.new_doc("Output VAT Undue")
-    vat_record.sales_invoice = doc.name
-    vat_record.customer = doc.customer
-    vat_record.customer_name = doc.customer_name
-    vat_record.posting_date = doc.posting_date
-    vat_record.invoice_number = doc.name
-    
-    # Tax invoice info
-    if hasattr(doc, 'pd_custom_tax_invoice_number') and doc.pd_custom_tax_invoice_number:
-        vat_record.tax_invoice_number = doc.pd_custom_tax_invoice_number
-        vat_record.tax_invoice_date = getattr(doc, 'pd_custom_tax_invoice_date', None)
-    
-    # Amounts
-    vat_record.base_amount = doc.base_net_total or doc.base_grand_total_export or 0
-    vat_record.vat_amount = doc.base_total_taxes_and_charges or 0
-    vat_record.total_amount = doc.base_grand_total or 0
-    
-    # Account and status
-    vat_record.output_vat_account = output_vat_undue_account
-    vat_record.status = "Pending"
-    
-    # Customer info
-    if hasattr(doc, 'tax_id') and doc.tax_id:
-        vat_record.customer_tax_id = doc.tax_id
-    elif doc.customer:
-        customer_doc = frappe.get_doc("Customer", doc.customer)
-        vat_record.customer_tax_id = customer_doc.tax_id or ""
-        
-        if hasattr(customer_doc, 'pd_custom_branch_code'):
-            vat_record.customer_branch = customer_doc.pd_custom_branch_code or "00000"
-        else:
-            vat_record.customer_branch = "00000"
-    
-    try:
-        vat_record.save()
-        frappe.db.commit()
-    except Exception as e:
-        frappe.log_error(f"Error creating Output VAT Undue: {str(e)}")
+    return pd_ovu_tracking.create_output_vat_undue_record(doc, method)
 
 
 def update_output_vat_on_tax_invoice(doc, method=None):
-    """
-    Update Output VAT Undue when Sales Invoice receives tax invoice number.
-    Called on validate (save) of Sales Invoice.
-    """
-    if doc.doctype != "Sales Invoice":
-        return
+    """Compatibility wrapper of the old validate hook.
 
-    # Check if tax invoice number entered
-    has_tax_invoice = hasattr(doc, 'pd_custom_tax_invoice_number') and doc.pd_custom_tax_invoice_number
-    if not has_tax_invoice:
-        return
+    The old behaviour converted the row as soon as a tax invoice number was
+    typed into the invoice.  A number in a field is not evidence that a tax
+    invoice was issued, so the conversion is an explicit event now.  The
+    wrapper only keeps the snapshot of the tax invoice reference up to date.
+    """
+    if getattr(doc, "doctype", None) != "Sales Invoice":
+        return None
 
-    output_vat_undue = frappe.db.get_value(
-        "Output VAT Undue",
-        {"sales_invoice": doc.name},
-        "name"
-    )
-    
-    if output_vat_undue:
-        from frappe.utils import getdate
-        output_vat = frappe.get_doc("Output VAT Undue", output_vat_undue)
-        output_vat.tax_invoice_number = doc.pd_custom_tax_invoice_number
-        if hasattr(doc, 'pd_custom_tax_invoice_date'):
-            output_vat.tax_invoice_date = doc.pd_custom_tax_invoice_date
-        output_vat.status = "Converted to Output VAT"
-        output_vat.converted_date = getdate()
-        output_vat.converted_by = frappe.session.user
-        output_vat.flags.ignore_permissions = True
-        output_vat.save()
-        frappe.db.commit()
+    number = doc.get("pd_custom_tax_invoice_number")
+    if not number:
+        return None
+
+    name = frappe.db.exists("Output VAT Undue", {"sales_invoice": doc.name})
+    if not name:
+        return None
+
+    record = frappe.get_doc("Output VAT Undue", str(name))
+    record.set("tax_invoice_number", number)
+    record.set("tax_invoice_date", doc.get("pd_custom_tax_invoice_date"))
+    record.save(ignore_permissions=True)
+    return record

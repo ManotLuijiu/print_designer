@@ -1,5 +1,7 @@
 """Desk preview entry point independent of competing core RPC overrides."""
 
+from typing import Any
+
 import frappe
 
 
@@ -15,13 +17,13 @@ def get_html_and_style(
     settings=None,
     prompt_data=None,
 ):
-    args = dict(
+    args: dict[str, Any] = dict(
         doc=doc,
         name=name,
         print_format=print_format,
         no_letterhead=no_letterhead,
         letterhead=letterhead,
-        trigger_print=trigger_print,
+        trigger_print=bool(trigger_print),
         style=style,
         settings=settings,
     )
@@ -30,6 +32,8 @@ def get_html_and_style(
     if "pdf_forms" in frappe.get_installed_apps():
         from pdf_forms.api.print_format import (
             _get_form_template_id,
+        )
+        from pdf_forms.api.print_format import (
             get_html_and_style as get_form_preview,
         )
 

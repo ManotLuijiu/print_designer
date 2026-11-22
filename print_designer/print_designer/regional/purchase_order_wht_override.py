@@ -4,11 +4,15 @@ Prevents ERPNext standard Tax Withholding Category interference
 and provides precise Thai-compliant WHT calculations
 """
 
+from typing import cast
+
 import frappe
-from frappe.utils import flt, cint
 from frappe import _
+from frappe.defaults import get_defaults
+from frappe.utils import flt
 
 from print_designer.custom.item_wht_config import EXEMPT_VAT_TREATMENT, is_vat_undue
+
 
 @frappe.whitelist()
 def override_purchase_order_wht_calculation(doc, method=None):
@@ -66,7 +70,7 @@ def calculate_thai_compliant_wht(doc):
 
     # DEBUGGING: Show document totals FIRST (before any early returns)
     print(f"\n{'='*80}")
-    print(f"🔍 DOCUMENT TOTALS DEBUG (BEFORE get_wht_calculation_base)")
+    print("🔍 DOCUMENT TOTALS DEBUG (BEFORE get_wht_calculation_base)")
     print(f"{'='*80}")
 
     # Get WHT rate from custom field
@@ -74,15 +78,15 @@ def calculate_thai_compliant_wht(doc):
     print(f"📋 WHT Rate: {wht_rate}%")
 
     if wht_rate <= 0:
-        print(f"⚠️ WHT rate is 0 or negative, exiting early")
+        print("⚠️ WHT rate is 0 or negative, exiting early")
         print(f"{'='*80}\n")
         return
-    print(f"📊 Document Level Totals:")
+    print("📊 Document Level Totals:")
     print(f"   - base_total (Company Currency):     {flt(getattr(doc, 'base_total', 0))}")
     print(f"   - total (Transaction Currency):      {flt(getattr(doc, 'total', 0))}")
     print(f"   - base_net_total (before discount):  {flt(getattr(doc, 'base_net_total', 0))}")
     print(f"   - net_total (before discount):       {flt(getattr(doc, 'net_total', 0))}")
-    print(f"📦 Items:")
+    print("📦 Items:")
     print(f"   - Number of items: {len(doc.items) if hasattr(doc, 'items') and doc.items else 0}")
     if hasattr(doc, 'items') and doc.items:
         for idx, item in enumerate(doc.items):
@@ -231,9 +235,9 @@ def get_wht_calculation_base(doc):
             if is_service:
                 # Sum only service item amounts
                 service_items_total += item_amount
-                print(f"    ✅ INCLUDED in WHT calculation (Service Item)")
+                print("    ✅ INCLUDED in WHT calculation (Service Item)")
             else:
-                print(f"    ❌ EXCLUDED from WHT calculation (Asset/Good)")
+                print("    ❌ EXCLUDED from WHT calculation (Asset/Good)")
 
     print(f"💰 DEBUG: Total Service Items Amount (WHT Base): {service_items_total}")
     print(f"📊 DEBUG: Document net_total for comparison: {getattr(doc, 'net_total', 0)}")
@@ -286,14 +290,15 @@ def validate_thai_wht_configuration(doc, method=None):
         # Auto-fetch default WHT rate from Company if not specified
         if not getattr(doc, 'pd_custom_withholding_tax_pct') or flt(getattr(doc, 'pd_custom_withholding_tax_pct', 0)) == 0:
             default_wht_rate = frappe.db.get_value("Company", doc.company, "default_wht_rate")
+            default_wht_rate_value = cast(float, default_wht_rate)
 
-            if default_wht_rate and flt(default_wht_rate) > 0:
-                doc.pd_custom_withholding_tax_pct = flt(default_wht_rate)
+            if default_wht_rate and flt(default_wht_rate_value) > 0:
+                doc.set("pd_custom_withholding_tax_pct", flt(default_wht_rate_value))
                 frappe.logger().info(f"Auto-fetched default WHT rate {default_wht_rate}% from Company {doc.company}")
 
                 # Show user-friendly message
                 frappe.msgprint(
-                    _("Auto-applied default WHT rate {0}% from Company settings").format(flt(default_wht_rate)),
+                    _("Auto-applied default WHT rate {0}% from Company settings").format(flt(default_wht_rate_value)),
                     indicator='blue'
                 )
             else:
@@ -338,6 +343,7 @@ def validate_thai_wht_configuration(doc, method=None):
                 print("5. Retention is blank or zero, fetching from Company...")
 
                 default_retention_rate = frappe.db.get_value("Company", doc.company, "default_retention_rate")
+                default_retention_rate_value = cast(float, default_retention_rate)
                 print(f"6. default_retention_rate from Company: {default_retention_rate}")
 
                 # Browser debug message
@@ -347,14 +353,14 @@ def validate_thai_wht_configuration(doc, method=None):
                     title="Retention Debug"
                 )
 
-                if default_retention_rate and flt(default_retention_rate) > 0:
-                    doc.pd_custom_retention_pct = flt(default_retention_rate)
-                    print(f"7. ✅ Set doc.pd_custom_retention_pct to: {doc.pd_custom_retention_pct}")
+                if default_retention_rate and flt(default_retention_rate_value) > 0:
+                    doc.set("pd_custom_retention_pct", flt(default_retention_rate_value))
+                    print(f"7. ✅ Set doc.pd_custom_retention_pct to: {doc.get('pd_custom_retention_pct')}")
                     frappe.logger().info(f"Auto-fetched default retention rate {default_retention_rate}% from Company {doc.company}")
 
                     # Show success message
                     frappe.msgprint(
-                        f"✅ Auto-applied default retention rate {flt(default_retention_rate)}% from Company settings",
+                        f"✅ Auto-applied default retention rate {flt(default_retention_rate_value)}% from Company settings",
                         indicator='green',
                         title="Success"
                     )
@@ -468,8 +474,9 @@ def get_thai_wht_calculation_debug_info(purchase_order_name):
         }
 
     # ERPNext standard calculation (if any tax withholding entries exist)
-    if hasattr(doc, 'taxes') and doc.taxes:
-        for tax in doc.taxes:
+    taxes = doc.get('taxes')
+    if hasattr(doc, 'taxes') and taxes:
+        for tax in taxes:
             if tax.account_head and 'withholding' in tax.account_head.lower():
                 debug_info["erpnext_calculation"] = {
                     "account": tax.account_head,
@@ -535,9 +542,9 @@ def test_thai_wht_automation():
     try:
         # Create a test Purchase Order with Thai WHT enabled
         test_po = frappe.new_doc("Purchase Order")
-        test_po.supplier = "Test Supplier"  # Use a simple supplier name
-        test_po.currency = "THB"
-        test_po.company = frappe.defaults.get_defaults().get("company")
+        test_po.set("supplier", "Test Supplier")  # Use a simple supplier name
+        test_po.set("currency", "THB")
+        test_po.set("company", get_defaults().get("company"))
 
         # Add a test item
         test_po.append("items", {
@@ -549,15 +556,15 @@ def test_thai_wht_automation():
         })
 
         # Calculate totals to simulate ERPNext behavior
-        test_po.net_total = 10000
-        test_po.total = 10000
-        test_po.grand_total = 10000
+        test_po.set("net_total", 10000)
+        test_po.set("total", 10000)
+        test_po.set("grand_total", 10000)
 
         # Enable Thai WHT Compliance
-        test_po.pd_custom_apply_thai_wht_compliance = 1
-        test_po.pd_custom_subject_to_wht = 1
-        test_po.pd_custom_withholding_tax_pct = 3  # 3%
-        test_po.pd_custom_wht_income_type = "professional_services"
+        test_po.set("pd_custom_apply_thai_wht_compliance", 1)
+        test_po.set("pd_custom_subject_to_wht", 1)
+        test_po.set("pd_custom_withholding_tax_pct", 3)  # 3%
+        test_po.set("pd_custom_wht_income_type", "professional_services")
 
         # Test our calculation override
         calculate_thai_compliant_wht(test_po)
@@ -565,8 +572,8 @@ def test_thai_wht_automation():
         # Collect results
         results = {
             "test_status": "success",
-            "base_amount": flt(test_po.net_total),
-            "wht_rate": flt(test_po.pd_custom_withholding_tax_pct),
+            "base_amount": flt(cast(float, test_po.get("net_total"))),
+            "wht_rate": flt(cast(float, test_po.get("pd_custom_withholding_tax_pct"))),
             "calculated_wht": flt(getattr(test_po, 'pd_custom_withholding_tax_amount', 0)),
             "expected_wht": 300,
             "calculation_correct": flt(getattr(test_po, 'pd_custom_withholding_tax_amount', 0)) == 300,

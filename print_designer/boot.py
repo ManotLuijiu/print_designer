@@ -1,8 +1,10 @@
-import json
 import os
-import frappe
-from frappe import _
 
+import frappe
+from frappe.defaults import get_user_default
+
+OUTPUT_VAT_REPORT = "Output VAT Report"
+OUTPUT_VAT_UNDUE_REPORT = "Output VAT Undue Report"
 
 def boot_session(bootinfo):
     """Consolidated boot session with Print Designer + Thai Billing workspace"""
@@ -49,7 +51,7 @@ def boot_session(bootinfo):
         "enable_company_stamps": True,
         "default_signature_company_filter": True,
         # Add watermark settings for frontend availability
-        **watermark_config
+        **watermark_config,
     }
 
     # === ORIGINAL boot.py FUNCTIONALITY ===
@@ -74,18 +76,45 @@ def boot_session(bootinfo):
         "retention_management": True,
     }
 
+    # The report of the submitted output VAT.  The button of the submitted
+    # Sales Invoice is only useful when the report can be opened.
+    bootinfo.print_designer_output_vat_report = output_vat_report_info()
+    bootinfo.print_designer_output_vat_undue_report = output_vat_report_info(
+        OUTPUT_VAT_UNDUE_REPORT, "Output VAT Undue"
+    )
+
     # User-specific company settings
     if frappe.session.user != "Guest":
         bootinfo.user_defaults = {
-            "company": frappe.defaults.get_user_default("company"),
-            "currency": frappe.defaults.get_user_default("currency"),
-            "fiscal_year": frappe.defaults.get_user_default("fiscal_year"),
+            "company": get_user_default("company"),
+            "currency": get_user_default("currency"),
+            "fiscal_year": get_user_default("fiscal_year"),
         }
 
     # Extend Selling workspace with Thai Billing
     # NOTE: Commented out for Frappe v16 compatibility - bootinfo.workspaces structure changed
     # This is not a core function, workspace extension can be handled via workspace JSON instead
     # extend_selling_workspace(bootinfo)
+
+
+def output_vat_report_info(name=OUTPUT_VAT_REPORT, ledger="Thai Sales VAT") -> dict:
+    """Advertise the installed report only to users who can open its register."""
+    available = False
+    if (
+        frappe.db.exists("Report", name)
+        and frappe.db.exists("DocType", ledger)
+        and frappe.has_permission("Sales Invoice", "report")
+        and frappe.has_permission(ledger, "read")
+    ):
+        report = frappe.get_cached_doc("Report", name)
+        available = bool(
+            not report.disabled
+            and report.module == "Print Designer"
+            and report.report_type == "Script Report"
+            and report.is_standard == "Yes"
+            and report.is_permitted()
+        )
+    return {"report": name, "available": available}
 
 
 def log_to_print_designer(message, level="INFO"):
@@ -98,6 +127,7 @@ def log_to_print_designer(message, level="INFO"):
         log_file = os.path.join(log_dir, "print_designer.log")
 
         import datetime
+
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         with open(log_file, "a", encoding="utf-8") as f:
@@ -111,7 +141,7 @@ def extend_selling_workspace(bootinfo):
     """Extend the Selling workspace to include Thai Billing after Sales Invoice"""
 
     # Get the current workspaces from bootinfo
-    if not hasattr(bootinfo, 'workspaces') or not bootinfo.workspaces:
+    if not hasattr(bootinfo, "workspaces") or not bootinfo.workspaces:
         return
 
     # Frappe v16 changed bootinfo.workspaces structure - it's now a list of strings
@@ -124,20 +154,20 @@ def extend_selling_workspace(bootinfo):
     # Find the Selling workspace
     selling_workspace = None
     for workspace in bootinfo.workspaces:
-        if isinstance(workspace, dict) and workspace.get('name') == 'Selling':
+        if isinstance(workspace, dict) and workspace.get("name") == "Selling":
             selling_workspace = workspace
             break
 
-    if not selling_workspace or not selling_workspace.get('links'):
+    if not selling_workspace or not selling_workspace.get("links"):
         return
 
     # Find the Sales Invoice link and insert Thai Billing after it
-    links = selling_workspace['links']
+    links = selling_workspace["links"]
     sales_invoice_index = -1
 
     # Find the index of Sales Invoice
     for i, link in enumerate(links):
-        if link.get('link_to') == 'Sales Invoice' and link.get('type') == 'Link':
+        if link.get("link_to") == "Sales Invoice" and link.get("type") == "Link":
             sales_invoice_index = i
             break
 
@@ -152,7 +182,7 @@ def extend_selling_workspace(bootinfo):
             "link_to": "Thai Billing",
             "link_type": "DocType",
             "onboard": 0,
-            "type": "Link"
+            "type": "Link",
         }
 
         # Insert after Sales Invoice (index + 1)

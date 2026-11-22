@@ -68,6 +68,19 @@ function monitorFormDirtyState(frm) {
     };
 }
 
+function pd_sync_standard_withholding(frm) {
+    const field = frm.fields_dict.apply_tds;
+    if (!pd_is_editable(frm) || !field) return;
+
+    const thai_wht = Boolean(cint(frm.doc.pd_custom_subject_to_wht));
+    const standard_field = frappe.meta.get_docfield(frm.doctype, 'apply_tds');
+    frm.set_df_property('apply_tds', 'read_only', thai_wht ? 1 : standard_field.read_only);
+
+    if (thai_wht && cint(frm.doc.apply_tds)) {
+        return frm.set_value('apply_tds', 0);
+    }
+}
+
 frappe.ui.form.on('Sales Invoice', {
     onload: function(frm) {
         console.log("📋 Sales Invoice onload triggered", {
@@ -135,6 +148,7 @@ frappe.ui.form.on('Sales Invoice', {
 
         // Keep "Subject to Withholding Tax" in sync with the item groups
         pd_apply_subject_to_wht_from_items(frm);
+        return pd_sync_standard_withholding(frm);
     },
     
     before_save: function(frm) {
@@ -225,6 +239,11 @@ frappe.ui.form.on('Sales Invoice', {
     // Keep the WHT preview section in sync when the flag is toggled manually
     pd_custom_subject_to_wht: function(frm) {
         pd_sync_wht_preview_section(frm);
+        return pd_sync_standard_withholding(frm);
+    },
+
+    apply_tds: function(frm) {
+        return pd_sync_standard_withholding(frm);
     },
 
     // Handle WHT income type changes for description updates (language-aware)

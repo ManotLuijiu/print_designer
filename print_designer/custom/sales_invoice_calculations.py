@@ -3,12 +3,15 @@
 # Called during validate() method - NO client scripts needed
 # Consolidated from thai_wht_events.py to remove redundancy
 
+from typing import Any, cast
+
 import frappe
 from frappe import _
-from frappe.utils import flt, cint
+from frappe.utils import cint, flt
 
 from print_designer.custom.item_wht_config import apply_item_wht_config
 from print_designer.custom.service_item_wht import apply_subject_to_wht_from_items
+from print_designer.custom.thai_calculation_words import apply_amount_wording
 
 
 def get_currency_precision():
@@ -22,7 +25,7 @@ def get_currency_precision():
     1. currency_precision from System Settings (for Currency fields)
     2. Fallback to 2 (standard for most currencies)
     """
-    precision = cint(frappe.db.get_default("currency_precision"))
+    precision = cint(cast(str, frappe.db.get_default("currency_precision")))
     if not precision:
         # Fallback to 2 if not set (standard for most currencies like THB)
         precision = 2
@@ -51,7 +54,7 @@ def thai_flt(value, precision=None):
     """
     if precision is None:
         precision = get_currency_precision()
-    return flt(value, precision, rounding_method="Commercial Rounding")
+    return cast(Any, flt)(value, precision, rounding_method="Commercial Rounding")
 
 
 def sales_invoice_calculate_thailand_amounts(doc, method=None):
@@ -67,16 +70,22 @@ def sales_invoice_calculate_thailand_amounts(doc, method=None):
     Called from Sales Invoice validate() method - runs server-side before save.
     """
     # DEBUG: Log function entry
-    frappe.logger().info(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
-    print(f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}")
+    frappe.logger().info(
+        f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}"
+    )
+    print(
+        f"🔍 Sales Invoice Calc: sales_invoice_calculate_thailand_amounts called for {doc.doctype} {getattr(doc, 'name', 'new')}"
+    )
 
     # Ensure this function only processes Sales Invoice DocType
     if doc.doctype != "Sales Invoice":
-        frappe.logger().info(f"🔍 Sales Invoice Calc: Not a Sales Invoice ({doc.doctype}), skipping")
+        frappe.logger().info(
+            f"🔍 Sales Invoice Calc: Not a Sales Invoice ({doc.doctype}), skipping"
+        )
         return
 
     if not doc.company:
-        frappe.logger().info(f"🔍 Sales Invoice Calc: No company set, skipping")
+        frappe.logger().info("🔍 Sales Invoice Calc: No company set, skipping")
         return
 
     # Fill VAT treatment, WHT income type and rate from the items of the
@@ -88,25 +97,34 @@ def sales_invoice_calculate_thailand_amounts(doc, method=None):
     apply_company_defaults_for_sales_invoice(doc)
 
     # Switch on "Subject to Withholding Tax" when the items contain a service item
-    apply_subject_to_wht_from_items(doc)
-    
+    if not cint(doc.get("pd_custom_subject_to_wht")):
+        apply_subject_to_wht_from_items(doc)
+
     # Calculate withholding tax amounts
     calculate_withholding_tax_amounts_for_sales_invoice(doc)
-    
+
     # Calculate WHT preview (using preview system)
     calculate_wht_preview_for_sales_invoice(doc)
-    
+
     # Calculate retention amounts if applicable
     calculate_retention_amounts_for_sales_invoice(doc)
-    
+
     # Calculate final payment amounts
     calculate_final_payment_amounts_for_sales_invoice(doc)
-    
+
     # DEBUG: Log final state
-    frappe.logger().info(f"🔍 Sales Invoice Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}")
-    frappe.logger().info(f"🔍 Sales Invoice Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Invoice Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}")
-    print(f"🔍 Sales Invoice Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}")
+    frappe.logger().info(
+        f"🔍 Sales Invoice Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}"
+    )
+    frappe.logger().info(
+        f"🔍 Sales Invoice Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}"
+    )
+    print(
+        f"🔍 Sales Invoice Calc: AFTER - pd_custom_subject_to_wht = {getattr(doc, 'pd_custom_subject_to_wht', 'NOT_SET')}"
+    )
+    print(
+        f"🔍 Sales Invoice Calc: Final amounts - pd_custom_net_total_after_wht = {getattr(doc, 'pd_custom_net_total_after_wht', 'NOT_SET')}"
+    )
 
 
 def apply_company_defaults_for_sales_invoice(doc):
@@ -116,23 +134,27 @@ def apply_company_defaults_for_sales_invoice(doc):
     try:
         # Get Company configuration
         company_doc = frappe.get_cached_doc("Company", doc.company)
-        
+
         # Populate fields for client-side depends_on conditions
-        doc.thailand_service_business = company_doc.get('thailand_service_business', 0)
-        doc.construction_service = company_doc.get('construction_service', 0)
-        
+        doc.thailand_service_business = company_doc.get("thailand_service_business", 0)
+        doc.construction_service = company_doc.get("construction_service", 0)
+
         # Apply default WHT rate if pd_custom_withholding_tax_pct is not specified
-        if not doc.get('pd_custom_withholding_tax_pct') and company_doc.get('default_wht_rate'):
-            doc.pd_custom_withholding_tax_pct = flt(company_doc.default_wht_rate)
-        
-        # Apply default retention rate if pd_custom_retention_pct is not specified  
-        if not doc.get('pd_custom_retention_pct') and company_doc.get('default_retention_rate'):
-            doc.pd_custom_retention_pct = flt(company_doc.default_retention_rate)
-            
+        if not doc.get("pd_custom_withholding_tax_pct") and company_doc.get("default_wht_rate"):
+            doc.pd_custom_withholding_tax_pct = flt(
+                cast(float, company_doc.get("default_wht_rate"))
+            )
+
+        # Apply default retention rate if pd_custom_retention_pct is not specified
+        if not doc.get("pd_custom_retention_pct") and company_doc.get("default_retention_rate"):
+            doc.pd_custom_retention_pct = flt(
+                cast(float, company_doc.get("default_retention_rate"))
+            )
+
         # NOTE: Removed auto-enablement of pd_custom_subject_to_retention
         # Field visibility is controlled by depends_on condition: "eval:doc.company && doc.construction_service"
         # Users must manually enable retention when needed
-                
+
     except Exception as e:
         frappe.log_error(f"Error applying Company defaults to Sales Invoice {doc.name}: {str(e)}")
 
@@ -141,39 +163,57 @@ def calculate_withholding_tax_amounts_for_sales_invoice(doc):
     """Calculate withholding tax amounts based on pd_custom_withholding_tax_pct percentage"""
     try:
         # Only calculate WHT if user has enabled pd_custom_subject_to_wht
-        if doc.get('pd_custom_subject_to_wht') and doc.pd_custom_withholding_tax_pct and doc.net_total:
+        if (
+            doc.get("pd_custom_subject_to_wht")
+            and doc.pd_custom_withholding_tax_pct
+            and doc.net_total
+        ):
             wht_rate = flt(doc.pd_custom_withholding_tax_pct)  # Already in percentage
             current_net_total = flt(doc.net_total)
 
             # Calculate what the WHT amount SHOULD be based on current net_total
             # Use Thai Commercial Rounding: 100.505 → 100.51
             expected_wht_amount = thai_flt((current_net_total * wht_rate) / 100)
-            current_wht_amount = flt(doc.get('pd_custom_withholding_tax_amount', 0))
-            
+            current_wht_amount = flt(doc.get("pd_custom_withholding_tax_amount", 0))
+
             # Check if current amount is significantly different from expected (more than 0.01 difference)
             amount_mismatch = abs(current_wht_amount - expected_wht_amount) > 0.01
-            
+
             # Calculate if:
             # 1. No amount is set yet (new document), OR
             # 2. Current amount doesn't match what it should be based on net_total (after refresh/item changes)
             if not current_wht_amount or amount_mismatch:
                 doc.pd_custom_withholding_tax_amount = expected_wht_amount
-                
+
                 if amount_mismatch and current_wht_amount > 0:
-                    print(f"  - RECALCULATED pd_custom_withholding_tax_amount = {expected_wht_amount} (expected {expected_wht_amount} vs current {current_wht_amount})")
-                    frappe.logger().info(f"Sales Invoice Calc: Recalculated due to amount mismatch: expected {expected_wht_amount} vs current {current_wht_amount}")
+                    print(
+                        f"  - RECALCULATED pd_custom_withholding_tax_amount = {expected_wht_amount} (expected {expected_wht_amount} vs current {current_wht_amount})"
+                    )
+                    frappe.logger().info(
+                        f"Sales Invoice Calc: Recalculated due to amount mismatch: expected {expected_wht_amount} vs current {current_wht_amount}"
+                    )
                 else:
-                    print(f"  - CALCULATED pd_custom_withholding_tax_amount = {expected_wht_amount} (net_total {current_net_total} * rate {wht_rate}%)")
-                    frappe.logger().info(f"Sales Invoice Calc: Calculated pd_custom_withholding_tax_amount = {expected_wht_amount}")
+                    print(
+                        f"  - CALCULATED pd_custom_withholding_tax_amount = {expected_wht_amount} (net_total {current_net_total} * rate {wht_rate}%)"
+                    )
+                    frappe.logger().info(
+                        f"Sales Invoice Calc: Calculated pd_custom_withholding_tax_amount = {expected_wht_amount}"
+                    )
             else:
-                print(f"  - PRESERVED pd_custom_withholding_tax_amount = {current_wht_amount} (already correct value)")
-                frappe.logger().info(f"Sales Invoice Calc: Preserved pd_custom_withholding_tax_amount = {current_wht_amount}")
+                print(
+                    f"  - PRESERVED pd_custom_withholding_tax_amount = {current_wht_amount} (already correct value)"
+                )
+                frappe.logger().info(
+                    f"Sales Invoice Calc: Preserved pd_custom_withholding_tax_amount = {current_wht_amount}"
+                )
         else:
             # Clear amount if conditions not met
             doc.pd_custom_withholding_tax_amount = 0
-            
+
     except Exception as e:
-        frappe.log_error(f"Error calculating withholding tax amounts for Sales Invoice {doc.name}: {str(e)}")
+        frappe.log_error(
+            f"Error calculating withholding tax amounts for Sales Invoice {doc.name}: {str(e)}"
+        )
         # Don't fail validation, just clear WHT fields
         doc.pd_custom_withholding_tax_amount = 0
 
@@ -185,33 +225,39 @@ def calculate_wht_preview_for_sales_invoice(doc):
     """
     try:
         # Add informational message if WHT applies (using existing calculated amount)
-        if doc.get('pd_custom_subject_to_wht') and doc.get('pd_custom_withholding_tax_amount'):
+        if doc.get("pd_custom_subject_to_wht") and doc.get("pd_custom_withholding_tax_amount"):
             wht_amount = flt(doc.pd_custom_withholding_tax_amount, 2)
             net_amount = flt(doc.pd_custom_net_total_after_wht, 2)
-            
+
             if wht_amount > 0:
                 # Use realtime notification (bottom-right corner) instead of modal popup
                 frappe.publish_realtime(
                     event="show_alert",
                     message={
-                        "message": _(f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. Net payment: ฿{net_amount:,.2f}"),
-                        "indicator": "blue"
+                        "message": _(
+                            f"WHT Preview: ฿{wht_amount:,.2f} withholding tax calculated. Net payment: ฿{net_amount:,.2f}"
+                        ),
+                        "indicator": "blue",
                     },
-                    user=frappe.session.user
+                    user=frappe.session.user,
                 )
-        
+
     except Exception as e:
         # Log error but don't fail validation
         frappe.log_error(
             f"Error displaying WHT preview for Sales Invoice {doc.name}: {str(e)}",
-            "Sales Invoice WHT Preview Error"
+            "Sales Invoice WHT Preview Error",
         )
 
 
 def calculate_retention_amounts_for_sales_invoice(doc):
     """Calculate retention amounts when pd_custom_subject_to_retention is enabled"""
     try:
-        if doc.get('pd_custom_subject_to_retention') and doc.get('pd_custom_retention_pct') and doc.net_total:
+        if (
+            doc.get("pd_custom_subject_to_retention")
+            and doc.get("pd_custom_retention_pct")
+            and doc.net_total
+        ):
             retention_rate = flt(doc.pd_custom_retention_pct)
             base_amount = flt(doc.net_total)
 
@@ -219,9 +265,11 @@ def calculate_retention_amounts_for_sales_invoice(doc):
             doc.pd_custom_retention_amount = thai_flt((base_amount * retention_rate) / 100)
         else:
             doc.pd_custom_retention_amount = 0
-            
+
     except Exception as e:
-        frappe.log_error(f"Error calculating retention amounts for Sales Invoice {doc.name}: {str(e)}")
+        frappe.log_error(
+            f"Error calculating retention amounts for Sales Invoice {doc.name}: {str(e)}"
+        )
         doc.pd_custom_retention_amount = 0
 
 
@@ -229,61 +277,73 @@ def calculate_final_payment_amounts_for_sales_invoice(doc):
     """Calculate final payment amounts after WHT and retention deductions"""
     try:
         # Get totals
-        grand_total = flt(doc.grand_total)
         net_total = flt(doc.total)  # Sum of items before tax
-        
+
         # Get deduction amounts
-        wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
-        retention_amount = flt(getattr(doc, 'pd_custom_retention_amount', 0))
-        
+        wht_amount = flt(getattr(doc, "pd_custom_withholding_tax_amount", 0))
+        retention_amount = flt(getattr(doc, "pd_custom_retention_amount", 0))
+
         # For Thai WHT: pd_custom_net_total_after_wht = net_total - wht_amount
         # NOT grand_total - wht_amount, because Thai WHT is informational only
         # (WHT is handled at Payment step, not Invoice step)
         expected_net_total_after_wht = thai_flt(net_total - wht_amount)
-        current_net_total_after_wht = flt(doc.get('pd_custom_net_total_after_wht', 0))
-        
+        current_net_total_after_wht = flt(doc.get("pd_custom_net_total_after_wht", 0))
+
         # Check if current amount is significantly different from expected
         amount_mismatch = abs(current_net_total_after_wht - expected_net_total_after_wht) > 0.01
-        
+
         # Calculate if:
-        # 1. No amount is set yet (new document), OR  
+        # 1. No amount is set yet (new document), OR
         # 2. Current amount doesn't match what it should be based on grand_total and wht_amount
         if not current_net_total_after_wht or amount_mismatch:
             doc.pd_custom_net_total_after_wht = expected_net_total_after_wht
-            
+
             if amount_mismatch and current_net_total_after_wht > 0:
-                frappe.logger().info(f"Sales Invoice Calc: Recalculated pd_custom_net_total_after_wht due to amount mismatch: expected {expected_net_total_after_wht} vs current {current_net_total_after_wht}")
+                frappe.logger().info(
+                    f"Sales Invoice Calc: Recalculated pd_custom_net_total_after_wht due to amount mismatch: expected {expected_net_total_after_wht} vs current {current_net_total_after_wht}"
+                )
             else:
-                frappe.logger().info(f"Sales Invoice Calc: Calculated pd_custom_net_total_after_wht = {expected_net_total_after_wht}")
+                frappe.logger().info(
+                    f"Sales Invoice Calc: Calculated pd_custom_net_total_after_wht = {expected_net_total_after_wht}"
+                )
         else:
-            frappe.logger().info(f"Sales Invoice Calc: Preserved pd_custom_net_total_after_wht = {current_net_total_after_wht}")
-        
+            frappe.logger().info(
+                f"Sales Invoice Calc: Preserved pd_custom_net_total_after_wht = {current_net_total_after_wht}"
+            )
+
         # Calculate payment amount based on retention status
-        if doc.get('pd_custom_subject_to_retention') and retention_amount > 0:
+        if doc.get("pd_custom_subject_to_retention") and retention_amount > 0:
             # pd_custom_net_after_wht_retention = net_total - pd_custom_withholding_tax_amount - pd_custom_retention_amount
             # Use Thai Commercial Rounding for consistency
-            doc.pd_custom_net_after_wht_retention = thai_flt(net_total - wht_amount - retention_amount)
-            
+            doc.pd_custom_net_after_wht_retention = thai_flt(
+                net_total - wht_amount - retention_amount
+            )
+
             # pd_custom_payment_amount = pd_custom_net_after_wht_retention
             doc.pd_custom_payment_amount = doc.pd_custom_net_after_wht_retention
         else:
             # No retention: pd_custom_payment_amount = pd_custom_net_total_after_wht
             doc.pd_custom_net_after_wht_retention = 0
             doc.pd_custom_payment_amount = doc.pd_custom_net_total_after_wht
-        
+
         # Ensure payment amount is not negative
         if doc.pd_custom_payment_amount < 0:
             doc.pd_custom_payment_amount = 0
             frappe.msgprint(
-                _("Warning: Total deductions exceed sales invoice amount. Payment amount set to zero."),
-                alert=True, indicator="orange"
+                _(
+                    "Warning: Total deductions exceed sales invoice amount. Payment amount set to zero."
+                ),
+                alert=True,
+                indicator="orange",
             )
-        
+
         # Convert amounts to words (Thai language support)
         convert_amounts_to_words_for_sales_invoice(doc)
-            
+
     except Exception as e:
-        frappe.log_error(f"Error calculating final payment amounts for Sales Invoice {doc.name}: {str(e)}")
+        frappe.log_error(
+            f"Error calculating final payment amounts for Sales Invoice {doc.name}: {str(e)}"
+        )
         # Fallback to net_total (not grand_total, for Thai WHT)
         doc.pd_custom_net_total_after_wht = flt(doc.total)
         doc.pd_custom_payment_amount = flt(doc.total)
@@ -294,43 +354,12 @@ def convert_amounts_to_words_for_sales_invoice(doc):
     """
     Convert calculated amounts to words for display in Thai documents.
     Updates the 'in_words' fields for pd_custom_net_total_after_wht and custom_net_total_after_wht_and_retention.
+
+    The wording itself lives in print_designer.custom.thai_calculation_words,
+    so that the Sales Invoice, the Sales Order and the Quotation describe the
+    amounts in the same way.
     """
-    try:
-        from frappe.utils import money_in_words
-        
-        # Convert pd_custom_net_total_after_wht to words
-        if doc.pd_custom_net_total_after_wht and hasattr(doc, 'pd_custom_net_total_after_wht_words'):
-            try:
-                doc.pd_custom_net_total_after_wht_words = money_in_words(doc.pd_custom_net_total_after_wht)
-                print(f"🔍 Sales Invoice Calc: pd_custom_net_total_after_wht_words = {doc.pd_custom_net_total_after_wht_words}")
-            except Exception as e:
-                doc.pd_custom_net_total_after_wht_words = ""
-                print(f"🔍 Sales Invoice Calc: Error converting pd_custom_net_total_after_wht to words: {str(e)}")
-        
-        # Convert pd_custom_net_after_wht_retention to words (if retention applies)
-        if (doc.get('pd_custom_subject_to_retention') and 
-            doc.get('pd_custom_net_after_wht_retention') and 
-            hasattr(doc, 'pd_custom_net_after_wht_retention_words')):
-            try:
-                doc.pd_custom_net_after_wht_retention_words = money_in_words(doc.pd_custom_net_after_wht_retention)
-                print(f"🔍 Sales Invoice Calc: pd_custom_net_after_wht_retention_words = {doc.pd_custom_net_after_wht_retention_words}")
-            except Exception as e:
-                doc.pd_custom_net_after_wht_retention_words = ""
-                print(f"🔍 Sales Invoice Calc: Error converting pd_custom_net_after_wht_retention to words: {str(e)}")
-        else:
-            # Clear retention in_words field if not applicable
-            if hasattr(doc, 'pd_custom_net_after_wht_retention_words'):
-                doc.pd_custom_net_after_wht_retention_words = ""
-                print(f"🔍 Sales Invoice Calc: Cleared pd_custom_net_after_wht_retention_words (no retention)")
-                
-    except Exception as e:
-        frappe.log_error(f"Error converting amounts to words for Sales Invoice {doc.name}: {str(e)}")
-        # Clear the in_words fields on error
-        if hasattr(doc, 'pd_custom_net_total_after_wht_words'):
-            doc.pd_custom_net_total_after_wht_words = ""
-        if hasattr(doc, 'pd_custom_net_after_wht_retention_words'):
-            doc.pd_custom_net_after_wht_retention_words = ""
-        print(f"🔍 Sales Invoice Calc: Error in convert_amounts_to_words_for_sales_invoice: {str(e)}")
+    apply_amount_wording(doc, label="Sales Invoice Calc")
 
 
 def validate_thailand_calculations_for_sales_invoice(doc):
@@ -339,15 +368,20 @@ def validate_thailand_calculations_for_sales_invoice(doc):
     Called after calculations are complete.
     """
     # Validate retention constraints
-    if doc.get('pd_custom_retention_amount') and doc.pd_custom_retention_amount > doc.net_total:
+    if doc.get("pd_custom_retention_amount") and doc.pd_custom_retention_amount > doc.net_total:
         frappe.throw(_("Retention amount cannot exceed net total"))
-    
-    # Validate withholding tax constraints  
-    if doc.get('pd_custom_withholding_tax_amount') and doc.pd_custom_withholding_tax_amount > doc.net_total:
+
+    # Validate withholding tax constraints
+    if (
+        doc.get("pd_custom_withholding_tax_amount")
+        and doc.pd_custom_withholding_tax_amount > doc.net_total
+    ):
         frappe.throw(_("Withholding tax amount cannot exceed net total"))
-    
+
     # Validate total deductions don't exceed sales invoice amount
-    total_deductions = flt(doc.get('pd_custom_retention_amount', 0)) + flt(doc.get('pd_custom_withholding_tax_amount', 0))
+    total_deductions = flt(doc.get("pd_custom_retention_amount", 0)) + flt(
+        doc.get("pd_custom_withholding_tax_amount", 0)
+    )
     if total_deductions > doc.grand_total:
         frappe.throw(
             _("Total deductions ({0}) cannot exceed sales invoice grand total ({1})").format(
@@ -365,46 +399,50 @@ def validate_thailand_calculations_for_sales_invoice(doc):
 # ==================================================
 # Moved from thai_wht_events.py to consolidate calculation logic
 
+
 def sales_invoice_comprehensive_wht_handler(doc, method=None):
     """
     Comprehensive WHT handler for Sales Invoice lifecycle events
     Consolidated from thai_wht_events.py
     """
     try:
-        if method in ['validate', 'on_update', 'before_save']:
+        if method in ["validate", "on_update", "before_save"]:
             # Calculate both custom and preview WHT on validation/update
             sales_invoice_calculate_thailand_amounts(doc, method)
-            
-        elif method == 'on_submit':
+
+        elif method == "on_submit":
             # Add submission note about WHT
-            if getattr(doc, 'pd_custom_subject_to_wht', False):
-                wht_amount = getattr(doc, 'pd_custom_withholding_tax_amount', 0)
+            if getattr(doc, "pd_custom_subject_to_wht", False):
+                wht_amount = getattr(doc, "pd_custom_withholding_tax_amount", 0)
                 if wht_amount > 0:
                     frappe.msgprint(
-                        _(f"Sales Invoice submitted with WHT amount: ฿{flt(wht_amount, 2):,.2f}. "
-                          f"Actual WHT will be processed during payment."),
+                        _(
+                            f"Sales Invoice submitted with WHT amount: ฿{flt(wht_amount, 2):,.2f}. "
+                            f"Actual WHT will be processed during payment."
+                        ),
                         title=_("WHT Information"),
-                        indicator="blue"
+                        indicator="blue",
                     )
-        
-        elif method == 'on_cancel':
+
+        elif method == "on_cancel":
             # Clear WHT fields on cancellation
-            if hasattr(doc, 'pd_custom_subject_to_wht'):
+            if hasattr(doc, "pd_custom_subject_to_wht"):
                 doc.pd_custom_subject_to_wht = 0
-                if hasattr(doc, 'pd_custom_withholding_tax_amount'):
+                if hasattr(doc, "pd_custom_withholding_tax_amount"):
                     doc.pd_custom_withholding_tax_amount = 0
                 doc.pd_custom_net_total_after_wht = flt(doc.grand_total, 2)
-        
+
     except Exception as e:
         frappe.log_error(
             f"Error in Sales Invoice comprehensive WHT handler for {doc.name}: {str(e)}",
-            "Sales Invoice WHT Handler Error"
+            "Sales Invoice WHT Handler Error",
         )
 
 
 # ==================================================
 # CUSTOMER CONFIGURATION HANDLERS
 # ==================================================
+
 
 @frappe.whitelist()
 def get_customer_wht_info_for_sales_invoice(customer):
@@ -413,18 +451,20 @@ def get_customer_wht_info_for_sales_invoice(customer):
     """
     if not customer:
         return {}
-    
+
     try:
         customer_doc = frappe.get_cached_doc("Customer", customer)
-        
+
         return {
-            'pd_custom_subject_to_wht': getattr(customer_doc, 'pd_custom_subject_to_wht', False),
-            'pd_custom_wht_income_type': getattr(customer_doc, 'pd_custom_wht_income_type', 'service_fees'),
-            'custom_wht_rate': getattr(customer_doc, 'custom_wht_rate', 0),
-            'is_juristic_person': getattr(customer_doc, 'is_juristic_person', True),
-            'tax_id': getattr(customer_doc, 'tax_id', '')
+            "pd_custom_subject_to_wht": getattr(customer_doc, "pd_custom_subject_to_wht", False),
+            "pd_custom_wht_income_type": getattr(
+                customer_doc, "pd_custom_wht_income_type", "service_fees"
+            ),
+            "custom_wht_rate": getattr(customer_doc, "custom_wht_rate", 0),
+            "is_juristic_person": getattr(customer_doc, "is_juristic_person", True),
+            "tax_id": getattr(customer_doc, "tax_id", ""),
         }
-        
+
     except Exception as e:
         frappe.log_error(f"Error getting customer WHT info for Sales Invoice {customer}: {str(e)}")
         return {}
@@ -437,39 +477,38 @@ def handle_customer_wht_config_change_for_sales_invoice(customer_name):
     """
     try:
         # Find draft sales invoices for this customer
-        draft_invoices = frappe.get_all("Sales Invoice", 
-            filters={"customer": customer_name, "docstatus": 0},
-            fields=["name"]
+        draft_invoices = frappe.get_all(
+            "Sales Invoice", filters={"customer": customer_name, "docstatus": 0}, fields=["name"]
         )
-        
+
         if not draft_invoices:
             return 0
-            
+
         updated_count = 0
         for invoice_info in draft_invoices:
             try:
-                invoice_doc = frappe.get_doc("Sales Invoice", invoice_info['name'])
-                
+                invoice_doc = frappe.get_doc("Sales Invoice", invoice_info["name"])
+
                 # Recalculate WHT and amounts
                 sales_invoice_calculate_thailand_amounts(invoice_doc)
-                
+
                 # Save without triggering validation loops
                 invoice_doc.flags.ignore_validate = True
                 invoice_doc.save()
                 updated_count += 1
-                
+
             except Exception as e:
                 frappe.log_error(
                     f"Error updating WHT for Sales Invoice {invoice_info['name']}: {str(e)}",
-                    "Customer WHT Config Update Error"
+                    "Customer WHT Config Update Error",
                 )
-        
+
         return updated_count
-        
+
     except Exception as e:
         frappe.log_error(
             f"Error handling customer WHT config change for sales invoices: {str(e)}",
-            "Customer WHT Config Error"
+            "Customer WHT Config Error",
         )
         return 0
 
@@ -477,6 +516,7 @@ def handle_customer_wht_config_change_for_sales_invoice(customer_name):
 # ==================================================
 # UTILITY FUNCTIONS FOR API INTEGRATION
 # ==================================================
+
 
 @frappe.whitelist()
 def refresh_wht_preview_for_sales_invoice(docname):
@@ -486,32 +526,34 @@ def refresh_wht_preview_for_sales_invoice(docname):
     """
     try:
         doc = frappe.get_doc("Sales Invoice", docname)
-        
+
         # Calculate fresh WHT preview and custom calculations
         sales_invoice_calculate_thailand_amounts(doc)
-        
+
         # Save the document
         doc.save()
-        
+
         frappe.msgprint(
             _(f"WHT preview refreshed for Sales Invoice {docname}"),
             title=_("WHT Preview Updated"),
-            indicator="green"
+            indicator="green",
         )
-        
+
         return {
             "success": True,
-            "pd_custom_net_total_after_wht": doc.pd_custom_net_total_after_wht,
-            "pd_custom_withholding_tax_amount": getattr(doc, 'pd_custom_withholding_tax_amount', 0),
-            "pd_custom_payment_amount": getattr(doc, 'pd_custom_payment_amount', 0)
+            "pd_custom_net_total_after_wht": doc.get("pd_custom_net_total_after_wht"),
+            "pd_custom_withholding_tax_amount": getattr(doc, "pd_custom_withholding_tax_amount", 0),
+            "pd_custom_payment_amount": getattr(doc, "pd_custom_payment_amount", 0),
         }
-        
+
     except Exception as e:
         frappe.throw(_(f"Error refreshing WHT preview: {str(e)}"))
 
 
 @frappe.whitelist()
-def preview_wht_calculation_for_sales_invoice(customer, grand_total, net_total=None, income_type=None):
+def preview_wht_calculation_for_sales_invoice(
+    customer, grand_total, net_total=None, income_type=None
+):
     """
     API endpoint for previewing WHT calculation for Sales Invoice
     Simplified version without thai_wht_preview module dependency
@@ -519,30 +561,34 @@ def preview_wht_calculation_for_sales_invoice(customer, grand_total, net_total=N
     try:
         if not customer:
             return {"error": "Customer is required"}
-            
+
         # Get customer WHT info
         customer_doc = frappe.get_cached_doc("Customer", customer)
-        
+
         # Basic preview calculation
         preview_result = {
-            'pd_custom_subject_to_wht': getattr(customer_doc, 'pd_custom_subject_to_wht', False),
-            'pd_custom_withholding_tax_amount': 0,
-            'pd_custom_net_total_after_wht': flt(grand_total, 2)
+            "pd_custom_subject_to_wht": getattr(customer_doc, "pd_custom_subject_to_wht", False),
+            "pd_custom_withholding_tax_amount": 0,
+            "pd_custom_net_total_after_wht": flt(grand_total, 2),
         }
-        
+
         # If customer is subject to WHT, calculate basic amount
-        if preview_result['pd_custom_subject_to_wht']:
-            wht_rate = getattr(customer_doc, 'custom_wht_rate', 0)
+        if preview_result["pd_custom_subject_to_wht"]:
+            wht_rate = getattr(customer_doc, "custom_wht_rate", 0)
             if wht_rate > 0:
                 base_amount = flt(net_total) if net_total else flt(grand_total)
                 wht_amount = flt((base_amount * wht_rate) / 100, 2)
-                
-                preview_result.update({
-                    'pd_custom_withholding_tax_amount': wht_amount,
-                    'pd_custom_net_total_after_wht': flt(grand_total - wht_amount, 2),
-                    'pd_custom_wht_income_type': getattr(customer_doc, 'pd_custom_wht_income_type', 'service_fees')
-                })
-        
+
+                preview_result.update(
+                    {
+                        "pd_custom_withholding_tax_amount": wht_amount,
+                        "pd_custom_net_total_after_wht": flt(grand_total - wht_amount, 2),
+                        "pd_custom_wht_income_type": getattr(
+                            customer_doc, "pd_custom_wht_income_type", "service_fees"
+                        ),
+                    }
+                )
+
         return preview_result
 
     except Exception as e:
@@ -569,7 +615,21 @@ def before_validate_sales_invoice(doc, method=None):
 
     Only set the flag when document is being submitted (docstatus changing to 1).
     """
+    # Resolve the service-item default before ERPNext calculates TCS.
+    if doc.company and not cint(doc.get("pd_custom_subject_to_wht")):
+        apply_subject_to_wht_from_items(doc)
+
+    if cint(doc.get("pd_custom_subject_to_wht")):
+        doc.apply_tds = 0
+        taxes = doc.get("taxes") or []
+        # A previously saved ERPNext TCS row must not enter invoice totals.
+        ordinary_taxes = [row for row in taxes if not cint(row.get("is_tax_withholding_account"))]
+        if len(ordinary_taxes) != len(taxes):
+            doc.set("taxes", ordinary_taxes)
+
     # Only set flag when submitting (docstatus will be 1 during submit action)
     if doc.docstatus == 1:
         doc.flags.ignore_validate_update_after_submit = True
-        print(f"🔍 Sales Invoice before_validate: Set ignore_validate_update_after_submit flag for {doc.name} (submitting)")
+        print(
+            f"🔍 Sales Invoice before_validate: Set ignore_validate_update_after_submit flag for {doc.name} (submitting)"
+        )

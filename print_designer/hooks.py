@@ -140,7 +140,6 @@ page_js = {
         "print_designer/js/print_designer/client_scripts/print.js",
     ],
     "point-of-sale": "print_designer/print_designer/client_scripts/point_of_sale.js",
-
 }
 
 # include js in doctype views
@@ -170,6 +169,8 @@ doctype_js = {
         "public/js/invoice_schedule/sales_invoice_milestone_grid.js",
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
         "public/js/thailand_wht/thailand_wht_sales_invoice.js",
+        "public/js/sales_invoice/vat_preview.js",
+        "public/js/sales_invoice/output_vat_report.js",
     ],
     "Sales Order": [
         "public/js/thailand_wht/thailand_wht_vat_helper.js",
@@ -829,13 +830,15 @@ doc_events = {
         "before_validate": "print_designer.custom.sales_invoice_calculations.before_validate_sales_invoice",
         "validate": [
             "print_designer.custom.sales_invoice_calculations.sales_invoice_calculate_thailand_amounts",
-            "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.update_output_vat_on_tax_invoice",
         ],
         "on_submit": [
-            "print_designer.print_designer.doctype.output_vat_undue.output_vat_undue.create_output_vat_undue_record",
+            "print_designer.custom.output_vat_undue_tracking.create_output_vat_undue_record",
             "print_designer.custom.invoice_schedule.on_sales_invoice_submit",
         ],
-        "on_cancel": "print_designer.custom.invoice_schedule.on_sales_invoice_cancel",
+        "on_cancel": [
+            "print_designer.custom.output_vat_undue_tracking.cancel_output_vat_undue_record",
+            "print_designer.custom.invoice_schedule.on_sales_invoice_cancel",
+        ],
         "after_delete": "print_designer.custom.invoice_schedule.on_sales_invoice_delete",
     },
     # Customer WHT Configuration Changes - Consolidated handlers

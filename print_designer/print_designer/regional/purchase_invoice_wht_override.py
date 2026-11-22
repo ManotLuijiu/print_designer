@@ -1,15 +1,20 @@
-from print_designer.utils.thai_wht_helper import get_thai_wht_details_from_twc
 """
 Thai WHT Calculation Override for Purchase Invoice
 Prevents ERPNext standard Tax Withholding Category interference
 and provides precise Thai-compliant WHT calculations
 """
 
+from datetime import date
+from typing import cast
+
 import frappe
-from frappe.utils import flt, cint, getdate
 from frappe import _
+from frappe.defaults import get_defaults
+from frappe.utils import flt, getdate, nowdate
 
 from print_designer.custom.item_wht_config import EXEMPT_VAT_TREATMENT, is_vat_undue
+from print_designer.utils.thai_wht_helper import get_thai_wht_details_from_twc  # noqa: F401
+
 
 def override_purchase_invoice_wht_calculation(doc, method=None):
     """
@@ -64,7 +69,11 @@ def populate_compliance_section_from_preview(doc=None, docname=None):
         # If doc is a JSON string, parse it
         import json
 
-        doc = frappe._dict(json.loads(doc))
+        try:
+            doc = frappe._dict(json.loads(doc))
+        except (TypeError, ValueError):
+            # A malformed JSON payload is a client error, not a server crash
+            frappe.throw(_("Invalid document data"))
     elif docname:
         # If docname is provided, get the document
         doc = frappe.get_doc("Purchase Invoice", docname)
@@ -105,20 +114,21 @@ def _auto_create_wht_certificate(doc):
 
     try:
         cert = frappe.new_doc("Withholding Tax Certificate")
-        cert.purchase_invoice = doc.name
-        cert.company = doc.company
+        cert.set("purchase_invoice", doc.name)
+        cert.set("company", doc.company)
 
         # Supplier info
-        cert.supplier = doc.supplier
-        cert.supplier_name = doc.supplier_name
+        cert.set("supplier", doc.supplier)
+        cert.set("supplier_name", doc.supplier_name)
 
         # Supplier tax ID and branch
-        cert.supplier_tax_id = getattr(doc, "pd_custom_supplier_tax_id", None) or \
+        supplier_tax_id = getattr(doc, "pd_custom_supplier_tax_id", None) or \
             frappe.db.get_value("Supplier", doc.supplier, "tax_id") if doc.supplier else None
+        cert.set("supplier_tax_id", supplier_tax_id)
 
         if doc.supplier:
             supplier_doc = frappe.get_doc("Supplier", doc.supplier)
-            cert.supplier_branch_code = getattr(supplier_doc, "branch_code", None) or "00000"
+            cert.set("supplier_branch_code", getattr(supplier_doc, "branch_code", None) or "00000")
 
             # Get primary supplier address
             addr = frappe.db.get_value("Address", {
@@ -127,33 +137,35 @@ def _auto_create_wht_certificate(doc):
                 "is_your_company_address": 0,
             }, "address_line1", order_by="is_primary_address desc")
             if addr:
-                cert.supplier_address = addr
+                cert.set("supplier_address", addr)
 
         # Tax period from PI posting date (Buddhist calendar year)
-        posting_date = getdate(doc.posting_date)
-        cert.tax_year = str(posting_date.year + 543)
-        cert.tax_month = f"{posting_date.month:02d} - {posting_date.strftime('%B')}"
+        posting_date = cast(date, getdate(doc.posting_date))
+        cert.set("tax_year", str(posting_date.year + 543))
+        cert.set("tax_month", f"{posting_date.month:02d} - {posting_date.strftime('%B')}")
 
         # Income type and description from PI
         if getattr(doc, "pd_custom_wht_income_type", None):
-            cert.income_type = doc.pd_custom_wht_income_type
-        cert.income_description = getattr(doc, "pd_custom_wht_description", "") or \
+            cert.set("income_type", doc.pd_custom_wht_income_type)
+        income_description = getattr(doc, "pd_custom_wht_description", "") or \
             getattr(doc, "pd_custom_wht_note", "")
+        cert.set("income_description", income_description)
 
         # WHT rate
-        cert.wht_rate = getattr(doc, "pd_custom_withholding_tax_pct", None) or \
+        wht_rate = getattr(doc, "pd_custom_withholding_tax_pct", None) or \
             getattr(doc, "pd_custom_withholding_tax_rate", None)
+        cert.set("wht_rate", wht_rate)
 
         # Amounts
-        cert.tax_base_amount = getattr(doc, "pd_custom_tax_base_amount", None) or doc.net_total
-        cert.wht_amount = getattr(doc, "pd_custom_withholding_tax_amount", None)
-        cert.net_payment_amount = doc.grand_total
-        cert.total_payment_amount = doc.grand_total
+        cert.set("tax_base_amount", getattr(doc, "pd_custom_tax_base_amount", None) or doc.net_total)
+        cert.set("wht_amount", getattr(doc, "pd_custom_withholding_tax_amount", None))
+        cert.set("net_payment_amount", doc.grand_total)
+        cert.set("total_payment_amount", doc.grand_total)
 
         # Set certificate_number from PI's pd_custom_wht_certificate_no if already generated
         pi_cert_no = getattr(doc, "pd_custom_wht_certificate_no", None)
         if pi_cert_no:
-            cert.certificate_number = pi_cert_no
+            cert.set("certificate_number", pi_cert_no)
 
         # Add income item row from PI header-level WHT data
         cert.append("income_items", {
@@ -189,12 +201,12 @@ def _populate_compliance_section_fields(doc):
     """
 
     print(
-        f"💰 DEBUG: Purchase Invoice is cash purchase - populating compliance section from preview"
+        "💰 DEBUG: Purchase Invoice is cash purchase - populating compliance section from preview"
     )
 
     # Only populate if Thai WHT compliance is enabled and subject to WHT
     if not getattr(doc, "pd_custom_apply_thai_wht_compliance", 0) or not getattr(doc, "pd_custom_subject_to_wht", 0):
-        print(f"⏭️ DEBUG: Skipping compliance section - WHT not enabled")
+        print("⏭️ DEBUG: Skipping compliance section - WHT not enabled")
         return
 
     # Map preview fields to compliance fields
@@ -251,15 +263,19 @@ def _populate_defaults_from_supplier(doc):
     if not twc_name:
         return
 
-    twc_doc = frappe.get_doc("Tax Withholding Category", twc_name)
+    twc_doc = frappe.get_doc("Tax Withholding Category", cast(str, twc_name))
 
     # Fetch WHT rate from rates child table (match posting_date)
     if not getattr(doc, "pd_custom_withholding_tax_pct", None):
         posting_date = getattr(doc, "posting_date", None)
         if posting_date:
-            for rate_row in twc_doc.rates:
+            for rate_row in twc_doc.get("rates") or []:
                 # FIX: posting_date is a string from getattr(), rate_row dates are date objects
-                if getdate(rate_row.from_date) <= getdate(posting_date) <= getdate(rate_row.to_date):
+                if (
+                    cast(date, getdate(rate_row.from_date))
+                    <= cast(date, getdate(posting_date))
+                    <= cast(date, getdate(rate_row.to_date))
+                ):
                     doc.pd_custom_withholding_tax_pct = rate_row.tax_withholding_rate
                     break
 
@@ -346,7 +362,7 @@ def _apply_contract_installment_wht(doc):
     if not twc_name:
         return
 
-    twc_doc = frappe.get_doc("Tax Withholding Category", twc_name)
+    twc_doc = frappe.get_doc("Tax Withholding Category", cast(str, twc_name))
     if not getattr(twc_doc, "pd_custom_apply_wht_to_contract_installments", 0):
         return
 
@@ -359,9 +375,13 @@ def _apply_contract_installment_wht(doc):
     if not wht_rate:
         posting_date = getattr(doc, "posting_date", None)
         if posting_date:
-            for rate_row in twc_doc.rates:
+            for rate_row in twc_doc.get("rates") or []:
                 # FIX: posting_date is a string from getattr(), rate_row dates are date objects
-                if getdate(rate_row.from_date) <= getdate(posting_date) <= getdate(rate_row.to_date):
+                if (
+                    cast(date, getdate(rate_row.from_date))
+                    <= cast(date, getdate(posting_date))
+                    <= cast(date, getdate(rate_row.to_date))
+                ):
                     wht_rate = flt(rate_row.tax_withholding_rate)
                     break
 
@@ -409,16 +429,16 @@ def _populate_tax_invoice_from_bill_fields(doc):
 
     # Cash purchase: Tax Invoice always received at PI stage
     if getattr(doc, "is_paid", 0):
-        print(f"💰 DEBUG: Cash purchase — auto-populating tax invoice fields")
+        print("💰 DEBUG: Cash purchase — auto-populating tax invoice fields")
         _do_populate_tax_invoice(doc)
         return
 
     # Credit purchase: only populate if user confirmed Tax Invoice received
     if getattr(doc, "pd_custom_tax_invoice_received", 0):
-        print(f"💰 DEBUG: Credit purchase + Tax Invoice Received — populating tax invoice fields")
+        print("💰 DEBUG: Credit purchase + Tax Invoice Received — populating tax invoice fields")
         _do_populate_tax_invoice(doc)
     else:
-        print(f"💰 DEBUG: Credit purchase, Tax Invoice not yet received — skipping auto-populate")
+        print("💰 DEBUG: Credit purchase, Tax Invoice not yet received — skipping auto-populate")
 
 
 def _do_populate_tax_invoice(doc):
@@ -428,21 +448,21 @@ def _do_populate_tax_invoice(doc):
         print(f"📝 DEBUG: Auto-populated tax invoice number: {doc.bill_no}")
         frappe.logger().info(f"Auto-populated tax invoice number from bill_no: {doc.bill_no}")
     else:
-        print(f"📝 DEBUG: Tax invoice number already set or bill_no missing")
+        print("📝 DEBUG: Tax invoice number already set or bill_no missing")
 
     if not getattr(doc, "pd_custom_tax_invoice_date", None) and getattr(doc, "bill_date", None):
         doc.pd_custom_tax_invoice_date = doc.bill_date
         print(f"📅 DEBUG: Auto-populated tax invoice date: {doc.bill_date}")
         frappe.logger().info(f"Auto-populated tax invoice date from bill_date: {doc.bill_date}")
     else:
-        print(f"📅 DEBUG: Tax invoice date already set or bill_date missing")
+        print("📅 DEBUG: Tax invoice date already set or bill_date missing")
 
     if not getattr(doc, "pd_custom_tax_base_amount", None) and getattr(doc, "net_total", None):
         doc.pd_custom_tax_base_amount = doc.net_total
         print(f"💰 DEBUG: Auto-populated tax base amount: {doc.net_total}")
         frappe.logger().info(f"Auto-populated tax base amount from net_total: {doc.net_total}")
     else:
-        print(f"💰 DEBUG: Tax base amount already set or net_total missing")
+        print("💰 DEBUG: Tax base amount already set or net_total missing")
 
 
 def _populate_from_linked_purchase_orders(doc):
@@ -455,7 +475,7 @@ def _populate_from_linked_purchase_orders(doc):
     )
 
     if not doc.items:
-        print(f"❌ DEBUG: No items found in Purchase Invoice")
+        print("❌ DEBUG: No items found in Purchase Invoice")
         return
 
     # Find linked Purchase Orders from Purchase Invoice items
@@ -470,11 +490,11 @@ def _populate_from_linked_purchase_orders(doc):
 
     # If no direct Purchase Order links, check via Purchase Receipts
     if not purchase_orders:
-        print(f"🔍 DEBUG: No direct Purchase Order links found, checking via Purchase Receipts")
+        print("🔍 DEBUG: No direct Purchase Order links found, checking via Purchase Receipts")
         purchase_orders = _find_purchase_orders_via_receipts(doc)
 
     if not purchase_orders:
-        print(f"❌ DEBUG: No linked Purchase Orders found through any workflow")
+        print("❌ DEBUG: No linked Purchase Orders found through any workflow")
         frappe.logger().info("No linked Purchase Orders found for auto-population")
         return
 
@@ -606,7 +626,7 @@ def _populate_wht_certificate_fields(pi_doc, po_doc):
 
     # Only populate WHT certificate fields for cash purchases
     if not getattr(pi_doc, "is_paid", 0):
-        print(f"❌ DEBUG: Not a cash purchase (is_paid = 0), skipping WHT certificate fields")
+        print("❌ DEBUG: Not a cash purchase (is_paid = 0), skipping WHT certificate fields")
         return
 
     # Enable WHT certificate application if WHT is applicable AND it's a cash purchase
@@ -617,7 +637,7 @@ def _populate_wht_certificate_fields(pi_doc, po_doc):
     ):
 
         pi_doc.pd_custom_apply_withholding_tax = 1
-        print(f"🏆 DEBUG: Auto-enabled WHT certificate application for cash purchase")
+        print("🏆 DEBUG: Auto-enabled WHT certificate application for cash purchase")
         frappe.logger().info("Auto-enabled WHT certificate application for cash purchase")
 
         # WHT Certificate Date - use posting date if not set
@@ -633,7 +653,7 @@ def _populate_wht_certificate_fields(pi_doc, po_doc):
         # Auto-generate WHT certificate number if needed
         _auto_generate_wht_certificate_number(pi_doc)
     else:
-        print(f"❌ DEBUG: WHT certificate conditions not met for cash purchase")
+        print("❌ DEBUG: WHT certificate conditions not met for cash purchase")
 
 
 def _auto_generate_wht_certificate_number(pi_doc):
@@ -645,7 +665,7 @@ def _auto_generate_wht_certificate_number(pi_doc):
         try:
             # Generate certificate number: Company-WHT-Year-Sequence
             company_abbr = frappe.db.get_value("Company", pi_doc.company, "abbr") or "COMP"
-            year = frappe.utils.nowdate()[:4]
+            year = nowdate()[:4]
 
             # Get next sequence number
             sequence = _get_next_wht_certificate_sequence(pi_doc.company, year)
@@ -671,8 +691,9 @@ def _get_next_wht_certificate_sequence(company, year):
         # Query existing certificates for this company and year
         pattern = f"%-WHT-{year}-%"
 
-        existing_certs = frappe.db.sql(
-            """
+        existing_certs = list(
+            frappe.db.sql(
+                """
             SELECT pd_custom_wht_certificate_no
             FROM `tabPurchase Invoice`
             WHERE company = %s
@@ -681,7 +702,9 @@ def _get_next_wht_certificate_sequence(company, year):
             ORDER BY creation DESC
             LIMIT 1
         """,
-            (company, pattern),
+                (company, pattern),
+            )
+            or []
         )
 
         if existing_certs and existing_certs[0][0]:
@@ -781,7 +804,7 @@ def calculate_thai_compliant_wht(doc):
     print(f"🧮 DEBUG: WHT rate: {wht_rate}%")
 
     if wht_rate <= 0:
-        print(f"⏭️ DEBUG: WHT rate is 0 or negative, skipping calculation")
+        print("⏭️ DEBUG: WHT rate is 0 or negative, skipping calculation")
         return
 
     # Calculate WHT base amount (SERVICE ITEMS ONLY - Thai tax law)
@@ -816,7 +839,7 @@ def calculate_thai_compliant_wht(doc):
         )
     else:
         doc.pd_custom_subject_to_wht = 0
-        print(f"❌ DEBUG: Set pd_custom_subject_to_wht = 0 (No WHT amount)")
+        print("❌ DEBUG: Set pd_custom_subject_to_wht = 0 (No WHT amount)")
         frappe.logger().info(f"Set pd_custom_subject_to_wht = 0 for PI {doc.name} (No WHT amount)")
 
     # Calculate retention amount if retention is enabled
@@ -870,7 +893,7 @@ def calculate_thai_compliant_wht(doc):
 
     # Update preview fields for user display
     update_thai_wht_preview_fields(doc, wht_base_amount, wht_amount, final_payment)
-    print(f"🧮 DEBUG: Updated preview fields")
+    print("🧮 DEBUG: Updated preview fields")
 
     frappe.logger().info(
         f"Thai WHT Calculation: {wht_base_amount} × {wht_rate}% = {wht_amount} "
@@ -965,7 +988,7 @@ def validate_thai_wht_configuration(doc, method=None):
             print("🔄 DEBUG: WHT rate empty, attempting auto-population")
 
             # Try to get default WHT rate based on income type
-            wht_rate = get_default_wht_rate_by_income_type(doc)
+            wht_rate = cast(float, get_default_wht_rate_by_income_type(doc))
 
             if wht_rate and flt(wht_rate) > 0:
                 doc.pd_custom_withholding_tax_pct = flt(wht_rate)
@@ -1052,11 +1075,12 @@ def validate_thai_wht_configuration(doc, method=None):
                 )
             elif not current_retention or current_retention_value == 0:
                 # Case 2: No PO reference OR PO has no retention → Auto-fetch from Company
-                print(f"7. No retention from PO, fetching from Company default...")
+                print("7. No retention from PO, fetching from Company default...")
 
                 default_retention_rate = frappe.db.get_value(
                     "Company", doc.company, "default_retention_rate"
                 )
+                default_retention_rate_value = cast(float, default_retention_rate)
                 print(f"8. default_retention_rate from Company: {default_retention_rate}")
 
                 # Browser debug message
@@ -1066,15 +1090,15 @@ def validate_thai_wht_configuration(doc, method=None):
                     title="Retention Debug - PI",
                 )
 
-                if default_retention_rate and flt(default_retention_rate) > 0:
-                    doc.pd_custom_retention_pct = flt(default_retention_rate)
+                if default_retention_rate and flt(default_retention_rate_value) > 0:
+                    doc.set("pd_custom_retention_pct", flt(default_retention_rate_value))
                     print(
-                        f"9. ✅ Set doc.pd_custom_retention_pct to Company default: {doc.pd_custom_retention_pct}"
+                        f"9. ✅ Set doc.pd_custom_retention_pct to Company default: {doc.get('pd_custom_retention_pct')}"
                     )
 
                     # Show success message
                     frappe.msgprint(
-                        f"✅ Auto-applied Company default retention rate: {flt(default_retention_rate)}%",
+                        f"✅ Auto-applied Company default retention rate: {flt(default_retention_rate_value)}%",
                         indicator="green",
                         title="Success - PI",
                     )
@@ -1188,7 +1212,7 @@ def get_default_wht_rate_by_income_type(doc):
 
     rate = wht_rate_mapping.get(pd_custom_wht_income_type, None)
 
-    print(f"🔍 DEBUG: get_default_wht_rate_by_income_type")
+    print("🔍 DEBUG: get_default_wht_rate_by_income_type")
     print(f"  Income type: {pd_custom_wht_income_type}")
     print(f"  Mapped rate: {rate}%")
 
@@ -1196,10 +1220,11 @@ def get_default_wht_rate_by_income_type(doc):
         # Try to get from Company default_wht_rate as fallback
         try:
             company_default = frappe.db.get_value("Company", doc.company, "default_wht_rate")
-            if company_default and flt(company_default) > 0:
-                rate = flt(company_default)
+            company_default_value = cast(float, company_default)
+            if company_default and flt(company_default_value) > 0:
+                rate = flt(company_default_value)
                 print(f"  Using company default: {rate}%")
-        except:
+        except Exception:
             pass
 
     return rate
@@ -1271,7 +1296,7 @@ def validate_thai_mandatory_bill_fields(doc):
     # Additional validation: bill_date should not be in future
     from frappe.utils import getdate, nowdate
 
-    if getdate(bill_date) > getdate(nowdate()):
+    if cast(date, getdate(bill_date)) > cast(date, getdate(nowdate())):
         frappe.throw(
             _("Supplier Invoice Date cannot be in the future. Please enter a valid invoice date."),
             frappe.ValidationError,
@@ -1328,8 +1353,9 @@ def get_thai_wht_calculation_debug_info(purchase_invoice_name):
         }
 
     # ERPNext standard calculation (if any tax withholding entries exist)
-    if hasattr(doc, "taxes") and doc.taxes:
-        for tax in doc.taxes:
+    doc_taxes = doc.get("taxes")
+    if hasattr(doc, "taxes") and doc_taxes:
+        for tax in doc_taxes:
             if tax.account_head and "withholding" in tax.account_head.lower():
                 debug_info["erpnext_calculation"] = {
                     "account": tax.account_head,
@@ -1352,9 +1378,9 @@ def test_thai_wht_automation():
     try:
         # Create a test Purchase Invoice with Thai WHT enabled
         test_pi = frappe.new_doc("Purchase Invoice")
-        test_pi.supplier = "Test Supplier"  # Use a simple supplier name
-        test_pi.currency = "THB"
-        test_pi.company = frappe.defaults.get_defaults().get("company")
+        test_pi.set("supplier", "Test Supplier")  # Use a simple supplier name
+        test_pi.set("currency", "THB")
+        test_pi.set("company", get_defaults().get("company"))
 
         # Add a test item
         test_pi.append(
@@ -1369,15 +1395,15 @@ def test_thai_wht_automation():
         )
 
         # Calculate totals to simulate ERPNext behavior
-        test_pi.net_total = 10000
-        test_pi.total = 10000
-        test_pi.grand_total = 10000
+        test_pi.set("net_total", 10000)
+        test_pi.set("total", 10000)
+        test_pi.set("grand_total", 10000)
 
         # Enable Thai WHT Compliance
-        test_pi.pd_custom_apply_thai_wht_compliance = 1
-        test_pi.pd_custom_subject_to_wht = 1
-        test_pi.pd_custom_withholding_tax_pct = 3  # 3%
-        test_pi.pd_custom_wht_income_type = "professional_services"
+        test_pi.set("pd_custom_apply_thai_wht_compliance", 1)
+        test_pi.set("pd_custom_subject_to_wht", 1)
+        test_pi.set("pd_custom_withholding_tax_pct", 3)  # 3%
+        test_pi.set("pd_custom_wht_income_type", "professional_services")
 
         # Test our calculation override
         calculate_thai_compliant_wht(test_pi)
@@ -1385,8 +1411,8 @@ def test_thai_wht_automation():
         # Collect results
         results = {
             "test_status": "success",
-            "base_amount": flt(test_pi.net_total),
-            "wht_rate": flt(test_pi.pd_custom_withholding_tax_pct),
+            "base_amount": flt(cast(float, test_pi.get("net_total"))),
+            "wht_rate": flt(cast(float, test_pi.get("pd_custom_withholding_tax_pct"))),
             "calculated_wht": flt(getattr(test_pi, "pd_custom_withholding_tax_amount", 0)),
             "expected_wht": 300,
             "calculation_correct": flt(getattr(test_pi, "pd_custom_withholding_tax_amount", 0))

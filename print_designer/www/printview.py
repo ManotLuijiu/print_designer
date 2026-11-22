@@ -12,7 +12,7 @@ It comes from the core Frappe file: frappe/frappe/www/printview.py
 
 import html as html_module
 import re
-from typing import Any
+from typing import Any, cast
 
 import frappe
 from frappe.www.printview import get_context as core_get_context
@@ -55,7 +55,7 @@ debug_get_html_and_style()
 # Import shared helpers from the newer override path
 
 
-def get_context(context: Any) -> dict:
+def get_context(context: Any) -> dict[str, Any]:
     """
     Custom print view that wraps Frappe's core get_context()
     and adds watermark/page number support for Print Designer formats.
@@ -63,7 +63,7 @@ def get_context(context: Any) -> dict:
     log_to_print_designer("[PRINTVIEW] Custom get_context called")
 
     # Call Frappe's core get_context
-    print_context = core_get_context(context)
+    print_context = cast(dict[str, Any], core_get_context(context))
 
     # Get the body HTML
     body_html = print_context.get("body", "")
@@ -71,7 +71,7 @@ def get_context(context: Any) -> dict:
         return print_context
 
     # Get settings from form_dict
-    settings = frappe.parse_json(frappe.form_dict.get("settings", "{}"))
+    settings = cast(dict[str, Any], frappe.parse_json(frappe.form_dict.get("settings", "{}")))
 
     # Get print format to check if it's Print Designer
     print_format_name = frappe.form_dict.get("format")
@@ -81,11 +81,9 @@ def get_context(context: Any) -> dict:
     if print_format_name:
         try:
             print_format_doc = frappe.get_doc("Print Format", print_format_name)
-            is_print_designer = (
-                hasattr(print_format_doc, "print_designer")
-                and print_format_doc.print_designer
-                and hasattr(print_format_doc, "print_designer_body")
-                and print_format_doc.print_designer_body
+            is_print_designer = bool(
+                print_format_doc.get("print_designer")
+                and print_format_doc.get("print_designer_body")
             )
         except Exception:
             pass
@@ -116,7 +114,7 @@ def get_context(context: Any) -> dict:
 def resolve_printview_watermark(settings: dict, print_format_doc) -> dict:
     """Resolve the same watermark mode for single- and multi-copy rendering."""
     # Parse settings using shared helper
-    parsed_settings = parse_watermark_settings_dict(settings)
+    parsed_settings = cast(dict[str, Any], parse_watermark_settings_dict(settings))
 
     # Get doctype/name from settings for dynamic watermark
     context_doctype = parsed_settings.get("doctype")
@@ -137,7 +135,7 @@ def resolve_printview_watermark(settings: dict, print_format_doc) -> dict:
     if (not watermark_mode or watermark_mode == "None") and print_format_doc:
         pd_settings_str = print_format_doc.get("print_designer_settings", "{}")
         try:
-            pd_settings = frappe.parse_json(pd_settings_str)
+            pd_settings = cast(dict[str, Any], frappe.parse_json(pd_settings_str))
             if pd_settings and isinstance(pd_settings, dict):
                 pd_watermark = pd_settings.get("watermark", {})
                 if pd_watermark and isinstance(pd_watermark, dict):
@@ -161,7 +159,7 @@ def resolve_printview_watermark(settings: dict, print_format_doc) -> dict:
 
 def inject_watermark(html_content: str, settings: dict, print_format_doc) -> str:
     """Inject a watermark for a single-copy browser print view."""
-    parsed_settings = parse_watermark_settings_dict(settings)
+    parsed_settings = cast(dict[str, Any], parse_watermark_settings_dict(settings))
     base_context = resolve_printview_watermark(settings, print_format_doc)
     watermark_mode = base_context["watermark_settings"]
     watermark_text = base_context["watermark_text"]
@@ -331,7 +329,7 @@ def inject_page_numbers(html_content: str, settings: dict, print_format_doc) -> 
     Uses position: absolute (not fixed) so it anchors to the relative container.
     """
     # Parse settings using shared helper
-    parsed_settings = parse_watermark_settings_dict(settings)
+    parsed_settings = cast(dict[str, Any], parse_watermark_settings_dict(settings))
 
     # Try to get print settings for fallback
     try:
@@ -344,7 +342,7 @@ def inject_page_numbers(html_content: str, settings: dict, print_format_doc) -> 
     if print_format_doc:
         pd_settings_str = print_format_doc.get("print_designer_settings", "{}")
         try:
-            pd_settings = frappe.parse_json(pd_settings_str)
+            pd_settings = cast(dict[str, Any], frappe.parse_json(pd_settings_str))
             if pd_settings and isinstance(pd_settings, dict):
                 pd_page_number = pd_settings.get("page_number", {})
         except Exception:
@@ -576,7 +574,7 @@ def inject_page_numbers(html_content: str, settings: dict, print_format_doc) -> 
 
 def get_copy_options(settings: dict) -> tuple[bool, int]:
     """Use identical copy settings when choosing and building the copy renderer."""
-    parsed_settings = parse_watermark_settings_dict(settings)
+    parsed_settings = cast(dict[str, Any], parse_watermark_settings_dict(settings))
 
     # Try to get print settings for fallback
     try:
@@ -601,7 +599,7 @@ def get_copy_options(settings: dict) -> tuple[bool, int]:
 
 def inject_multi_copy(html_content: str, settings: dict, print_format_doc) -> str:
     """Duplicate unwatermarked HTML, adding only each copy's own watermark."""
-    parsed_settings = parse_watermark_settings_dict(settings)
+    parsed_settings = cast(dict[str, Any], parse_watermark_settings_dict(settings))
     copy_enabled, copy_count = get_copy_options(settings)
 
     log_to_print_designer(
