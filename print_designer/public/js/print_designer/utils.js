@@ -191,7 +191,12 @@ const childrensCleanUp = (parentElement, element, isClone, isMainElement) => {
     } else if (element.type === "table") {
       element.columns = [
         ...element.columns.map((el) => {
-          return { ...el };
+          const copy = { ...el, style: { ...el.style } };
+          if (el.headerBorderStyle) copy.headerBorderStyle = { ...el.headerBorderStyle };
+          if (el.linkedHeaderBorderStyle) {
+            copy.linkedHeaderBorderStyle = { ...el.linkedHeaderBorderStyle };
+          }
+          return copy;
         }),
       ];
       element.columns.forEach((col) => {

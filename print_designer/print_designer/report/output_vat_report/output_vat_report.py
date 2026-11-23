@@ -12,6 +12,7 @@ COLUMNS = (
     ("customer_branch", "Customer Branch", "Data", None, 120),
     ("base_amount", "Base Amount", "Float", None, 120),
     ("vat_amount", "VAT Amount", "Float", None, 115),
+    ("is_vat_exempt", "VAT Exempt", "Check", None, 95),
     ("total_amount", "Total Amount", "Float", None, 120),
     ("payment_entry_reference", "Payment Entry", "Link", "Payment Entry", 145),
 )

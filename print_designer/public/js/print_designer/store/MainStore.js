@@ -334,6 +334,14 @@ export const useMainStore = defineStore("MainStore", {
         } else if (selectedTable) {
           metaFields = selectedTable.childfields;
         }
+        const columnLabels = selectedTable ? state.rawMeta?.print_designer_column_labels : null;
+        if (columnLabels) {
+          metaFields = metaFields.map((field) =>
+            Object.hasOwn(columnLabels, field.label)
+              ? { ...field, label: columnLabels[field.label] }
+              : field,
+          );
+        }
         if (!show_hidden_fields) {
           metaFields = metaFields.filter((field) => !field["print_hide"]);
         }
@@ -350,16 +358,17 @@ export const useMainStore = defineStore("MainStore", {
           );
         }
         if (selectedTable) {
+          const orderLabel = columnLabels?.Order || "Order";
           if (
             typeof search_string != "string" ||
             !search_string.length ||
-            "line number no idx".includes(search_string.toLowerCase())
+            `${orderLabel} line number no idx`.toLowerCase().includes(search_string.toLowerCase())
           ) {
             fields["Line Number"] = [
               {
                 fieldname: "idx",
                 fieldtype: "Int",
-                label: "No.",
+                label: orderLabel,
                 options: undefined,
                 table: selectedTable,
               },

@@ -72,7 +72,6 @@ commands = [
     # Note: install_thai_wht_preview.py deleted - functionality moved to DocType-specific field installers
     # Payment Entry check functions (installation handled in after_install/before_uninstall)
     "print_designer.commands.install_payment_entry_fields.check_payment_entry_fields_status",
-    "print_designer.commands.install_payment_entry_thai_fields.check_fields_exist",
     # Console Utilities for Development and Debugging
     "print_designer.commands.console_utils.execute_sql_query",
     "print_designer.commands.console_utils.check_custom_field",
@@ -89,7 +88,7 @@ commands = [
     "print_designer.regional.purchase_order_wht_override.test_thai_wht_automation",
     # Purchase Invoice Thai WHT Testing
     "print_designer.regional.purchase_invoice_wht_override.test_thai_wht_automation",
-    # WHT Certificate Link Field Management - REDUNDANT: Fields now handled by install_payment_entry_thai_fields.py
+    # Payment Entry Thai tax fields are installed by install_payment_entry_fields.py
     # "print_designer.commands.install_wht_certificate_link_field.install_wht_certificate_link_field",
     # "print_designer.commands.install_wht_certificate_link_field.check_wht_certificate_link_field",
     # Field cleanup commands
@@ -460,6 +459,7 @@ fixtures = [
 jinja = {
     "methods": [
         "print_designer.utils.print_labels.translate_print_label",
+        "print_designer.utils.print_labels.translate_table_column_label",
         "print_designer.print_designer.page.print_designer.print_designer.render_user_text",
         "print_designer.print_designer.page.print_designer.print_designer.convert_css",
         "print_designer.print_designer.page.print_designer.print_designer.convert_uom",
@@ -555,7 +555,6 @@ after_install = [
     "print_designer.commands.install_account_thai_fields.install_account_thai_fields",  # Install Account Thai translation fields
     "print_designer.commands.install_enhanced_retention_fields.install_enhanced_retention_fields",  # Install Company retention fields (construction_service, default_retention_rate, default_retention_account)
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Install Payment Entry Thai tax preview fields
-    "print_designer.commands.install_payment_entry_thai_fields.execute",  # Install Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Install Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.execute",  # Install Purchase Order Thai tax compliance fields
     "print_designer.overrides.tax_charge_type.execute",  # Add 'Thai Tax Compliance' to charge_type options in tax tables
@@ -622,7 +621,6 @@ after_migrate = [
     "print_designer.commands.install_sales_invoice_fields.reinstall_sales_invoice_custom_fields",  # Ensure Sales Invoice WHT fields have correct depends_on conditions
     "print_designer.commands.install_milestone_invoice_item_fields.install_milestone_invoice_item_fields",  # Percent column of the milestone Sales Invoice Item
     "print_designer.commands.install_payment_entry_fields.install_payment_entry_custom_fields",  # Ensure Payment Entry Thai tax preview fields are installed during migration
-    "print_designer.commands.install_payment_entry_thai_fields.execute",  # Ensure Payment Entry Thai compliance fields are installed during migration
     "print_designer.commands.install_purchase_invoice_fields.install_purchase_invoice_thai_tax_fields",  # Ensure Purchase Invoice Thai tax compliance fields are installed during migration
     "print_designer.commands.install_purchase_order_fields.execute",  # Ensure Purchase Order Thai tax compliance fields are installed during migration
     "print_designer.commands.install_item_service_field.install_item_service_field",  # Ensure Item Is Service field is installed during migration (required before WHT fields)
@@ -662,7 +660,6 @@ before_uninstall = [
     "print_designer.commands.install_employee_thai_tax_fields.remove_employee_thai_tax_fields",  # Remove Employee Thai Tax ID field
     "print_designer.commands.install_account_thai_fields.remove_account_thai_translation_fields",  # Remove Account Thai translation fields
     "print_designer.commands.install_payment_entry_fields.uninstall_payment_entry_custom_fields",  # Remove Payment Entry Thai tax preview fields
-    "print_designer.commands.install_payment_entry_thai_fields.remove_thai_fields",  # Remove Payment Entry Thai compliance fields
     "print_designer.commands.install_purchase_invoice_fields.remove_purchase_invoice_thai_tax_fields",  # Remove Purchase Invoice Thai tax compliance fields
     "print_designer.commands.install_purchase_order_fields.uninstall_purchase_order_fields",  # Remove Purchase Order Thai tax compliance fields
     "print_designer.commands.install_item_service_field.uninstall_item_service_field",  # Remove Item Is Service field

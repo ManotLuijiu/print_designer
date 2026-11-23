@@ -10,6 +10,7 @@
 			class="form-control input-sm col-4 my-2"
 			:placeholder="__('Enter Label')"
 			v-model="label"
+			@input="labelEdited = true"
 		/>
 	</div>
 	<div
@@ -180,6 +181,7 @@ const props = defineProps({
 });
 const draggableEl = ref(-1);
 const label = ref("");
+const labelEdited = ref(false);
 
 const setLabel = (value) => {
 	if (label.value != value) {
@@ -224,7 +226,7 @@ const setSelectedEl = (value) => {
 	}
 };
 const contenteditable = ref(false);
-defineExpose({ parentField, setParentField, selectedEl, setSelectedEl, label, setLabel });
+defineExpose({ parentField, setParentField, selectedEl, setSelectedEl, label, labelEdited, setLabel });
 
 const handleClick = (event, field, index) => {
 	selectedEl.value = { index, field };

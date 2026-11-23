@@ -98,6 +98,138 @@ Build and clear the target-site cache before running browser verification
 against changed frontend assets. The regression test changes only the browser's
 unsaved design state.
 
+## Whole-table border edits and Table grid presets
+
+Investigated on the AWS Receipt designer (issue `print_designer-ejr`).
+Selecting the table set Style Mode to **All Rows**, but the previous color
+picker and Solid/Dotted/Dashed buttons edited only the table defaults.
+`BaseTableTd.vue` renders column styles last. Receipt had table color
+`#4F9DD9` and five columns overriding it with `#B4CD29`. Changing the line
+pattern used the same write scope. The old Solid indicator also assumed
+`solid` whenever the selected object omitted its own line pattern.
+The designer's outer-cell CSS forced solid edges with `!important`, so those
+edges could disagree with the active pattern or preset. Keep the solid edges
+as a CSS fallback that yields to inline table styling.
+
+- Use `tableBorders.js` for whole-table color and line-pattern edits. All Rows
+  updates the body defaults and matching alternate-row, column, and edge
+  overrides. Table Header updates the header independently. Keep legacy
+  Apply Style to Header behavior for explicit column edits and preserve the
+  prior linked header values during a bulk body edit using
+  `column.linkedHeaderBorderStyle`. Apply that snapshot only while the link is
+  enabled, and clear it on an explicit Yes/No change. Explicit header edits in
+  `column.headerBorderStyle` apply independently. Preserve widths, alignment,
+  and hidden edges.
+- An empty column `backgroundColor` inherits the table header fill when
+  Apply Style to Header is enabled. Receipt had a saved fill of `#cdcbf2`
+  and empty column colors. Vue dropped the empty inline value and fell back
+  to white. Jinja converted the empty value to transparent. Skip the empty
+  column background for linked header styles in both renderers so they use
+  the same fill. A non-empty column color still overrides the header fill
+  when linked. To edit the shared fill, select the whole table and use
+  **Style Mode → Table Header**, then **Font Settings → Background**.
+- Treat selected columns and dynamic text as editor state. Clear these on
+  load and in the serialized layout, and let a click on an empty body cell
+  return to the whole table. Receipt previously reopened with an old column
+  selection from its saved JSON. Initialize the canvas marquee on canvas
+  mousedown. An eager marquee element caused the first table mouseup to clear
+  the selection even though the table had handled mousedown.
+- The combined Border Color control shows the effective shared value for the
+  current scope, or an empty value for mixed colors. This lets users reapply a
+  table default that already exists in storage. The Solid/Dotted/Dashed
+  indicator reflects a common visible pattern.
+- The old preset buttons ignored the inner-border flags, so Outline Only
+  could leave a grid. The table-only **Table grid** buttons store
+  `borderPreset` on the table. **No Grid** hides all edges. **Full Grid**
+  shows the outline, column dividers and populated-row separators.
+  **Outline Only** shows the outside perimeter. **Horizontal** shows the
+  top and bottom edges and populated-row separators. Padding skips interior
+  horizontal separators and keeps the final edge when the preset calls for it.
+  **Custom** restores the manual edge layout without altering color or pattern.
+- Keep the Vue geometry in `tableBorders.js` and the print geometry in
+  `jinja/macros/table_border_presets.html` in sync. Both print schema versions
+  include the same preset mask. The shared Desk/browser border script replays
+  those borders and leaves a preset table's padding edges under its control.
+  Tables without a saved preset use their manual edges.
+- Receipt's Horizontal header regression (`print_designer-4vq`) came from
+  Vue keeping saved side-style keys ahead of a later `borderStyle`
+  shorthand when merging style objects. For named presets, merge the saved
+  styles first and append the four preset edge styles at the end. Verify
+  both sides of each header cell in the browser with the shorthand saved
+  after the side keys.
+
+Use `print_designer/tests/test_receipt_border_presets.py` to verify real
+designer actions without saving edits. `test_desk_preview_table_borders.py`
+covers the current and legacy print renderers, with and without presets.
+
+## Receipt designer save, footer, and preview language regression
+
+Verified on the AWS Solution Receipt designer (issue `print_designer-x1g`).
+The layout save, the thumbnail capture, and the language refresh each had a
+separate role in the reported behavior.
+
+- **Slow Save.** After the layout save response, `ElementStore.generatePreview()`
+  used html2canvas to clone the full Desk DOM. Scope the clone to the first
+  print page, its ancestors, and styles. Keep automatic thumbnail work in the
+  background and hold its in-progress flag through capture, upload, and
+  linking. In the authenticated browser comparison, capture dropped from about
+  7.8 seconds to 0.3 seconds. The test intercepted network writes, so these are
+  browser capture timings.
+- **Save Footer crash.** The thumbnail uploader assigned `null` to the
+  undeclared `MainStore.print_designer_preview_img` property. When Page Settings
+  remounted, Pinia's `storeToRefs(MainStore)` scanned that value and threw
+  `Cannot read properties of null (reading 'effect')`. The uploader now returns
+  the file URL without assigning temporary state to the store. In
+  `PropertiesPanelState.js`, use `toRef(MainStore, fieldName)` for the individual
+  reactive inputs these controls need. Save Footer persists the restored
+  layout, and Close returns to the canvas without saving.
+- **Language toggle discarded unsaved edits.** The toggle previously reran
+  `fetchMeta()`, which loaded the saved layout again and registered another
+  preview-document watcher. `App.vue` now uses
+  `fetchMeta({ loadLayout: false })` to refresh translated metadata and preview
+  values in the open design. Load the layout on initial open and register the
+  preview-document watcher once.
+
+Keep the `[Print Designer Save]` timings for layout preparation, the save
+request, thumbnail capture, and upload/linking until the user explicitly asks
+to remove them. Use
+`print_designer/tests/test_receipt_designer_save.py` for authenticated
+Playwright verification after building the app and clearing the target site
+cache. The test intercepts layout and thumbnail writes, checks Save Footer for
+Vue errors, and verifies that unsaved width and height edits survive switching
+among Thai, English, and System Default.
+
+## Saved table column headings and language preview
+
+Receipt's Payment References dialog can rename the Allocated Amount column
+from `จัดสรร` to `รับชำระ` (issue `print_designer-rba`). The previous
+metadata refresh replaced every linked column's saved `label` with the
+translated field label. Keep that refresh read-only for saved captions.
+Display translated metadata for default headings. A typed heading receives
+`labelIsCustom` on Confirm and prints literally in both template versions.
+The main Save action persists the caption and flag. The Receipt designer
+browser test covers the dialog, language changes, Save payload, and reload.
+
+The shared default table-column captions are `Order` / `ลำดับที่`, `Receive` / `รับชำระ`,
+`Document Type` / `ประเภทเอกสาร`, and
+`Document Number` / `เลขที่เอกสาร` (issue `print_designer-xrj`).
+`utils/print_labels.py` maps exact old captions for the designer and both
+print templates. This affects default headings across Print Designer tables.
+Keep custom headings literal and preserve the underlying DocType field names.
+
+## Footer text and signature line alignment
+
+On Receipt (issue `print_designer-3r1`), a generated footer flex row held
+the receipt label and a signature rectangle as direct siblings. Both X
+coordinates were saved relative to the same row. The renderer added the
+label's rendered width to the rectangle's left margin, moving the line
+63 px right and shrinking it. In `relative_containers.html`, give direct
+items in these footer rows a shared horizontal origin while preserving
+their height in the row. Keep generated columns in their normal flow.
+The shared footer renderer preserves the saved offsets without editing
+the Print Format. Regression coverage is in
+`print_designer/tests/test_printview_footer_and_table_height.py`.
+
 ## Desk preview watermark and page number routing
 
 Investigated on 2026-11-20 with `Quotation - AWS Solution` (issue
@@ -1258,3 +1390,48 @@ is intentionally required. Keep VAT Due / VAT Undue under **VAT Treatment**.
 The SI field **Net Total After WHT** shows the amount before VAT less WHT
 (฿9,700 in the example). Use the Payment Entry to verify the actual bank
 receipt (฿10,400). The Thai calculator is owned by Print Designer.
+
+
+## Issued and received 50 Tawi certificate ownership
+
+The agreed issued WHT record is Print Designer's **Withholding Tax
+Certificate**. Use it for 50 Tawi the company issues on supplier payments.
+**Receive WHT Register** is the separate Print Designer DocType for
+certificates received from customers. An Issued WHT Register report should
+read the issued certificate records. The existing **WHT Certificate Register**
+report queries legacy Payment Entry columns absent on AWS and needs updating
+before it can serve as that register.
+
+- Both certificate parents currently have an `income_items` table using
+  **Withholding Tax Item**. Keep the existing child DocType and table name.
+  The user moved its live AWS module to **Print Designer**. Verification
+  confirmed the ownership change, zero rows on AWS, and an effective
+  `income_type` field that is still a mandatory **Select**.
+- The canonical Print Designer child definition uses a mandatory **Link**
+  to **Thai WHT Income Type**. Switch the live field to that contract and
+  map legacy Select values to valid master record IDs wherever data exists.
+  Check each site's rows and callers. Both apps still ship a definition
+  for this child, so coordinate source retirement to prevent future app
+  syncs from restoring the old module or Select schema.
+- The current TBS Payment Entry submit hook can still create **Withholding
+  Tax Cert**. The legacy calculator writes Select-style labels into
+  `income_items.income_type`. The Print Designer generator currently fills
+  header amounts. Update the Pay issuance and cancellation flow to use the
+  Print Designer certificate and populate one child row per WHT line with
+  a valid income type ID. Verify one certificate per qualifying payment,
+  multiple income rows, totals, cancellation, print output and PND
+  reporting. Retire the old **Withholding Tax Cert** and TBS's duplicate
+  child definition only after checking historical records and repointing
+  callers. Preserve any existing certificate numbers and source links.
+- **Thai Withholding Tax Detail** is a legacy Form 50 Tawi child intended
+  for details stored directly on Payment Entry. It is separate from
+  **Withholding Tax Item**. AWS has zero rows and no Payment Entry field
+  referencing it. A self-reference remains in its definition. Audit other
+  sites and the legacy Form 50 Tawi installer before retiring it.
+
+The Payment Entry field installer review found 21 active preview field
+definitions in `install_payment_entry_fields.py` and 26 active compliance
+definitions in `install_payment_entry_thai_fields.py`, with no overlapping
+fieldnames. `install_payment_entry_thai_wht_fields.py` is a draft stub.
+If consolidating the installers, preserve active fieldnames and stored values
+until consumers of similar fields have been reviewed.

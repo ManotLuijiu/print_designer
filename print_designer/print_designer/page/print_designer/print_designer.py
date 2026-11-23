@@ -218,6 +218,8 @@ def translate_in_words_fields(doctype, docname, language=None):
 @frappe.whitelist(allow_guest=False)
 @frappe.whitelist(allow_guest=False)
 def get_meta(doctype, _lang=None):
+    from print_designer.utils.print_labels import get_table_column_labels
+
     meta = frappe.get_meta(doctype).as_dict()
     # Translate field labels if language is specified
     if _lang:
@@ -229,6 +231,7 @@ def get_meta(doctype, _lang=None):
                     field["label"] = _(field["label"])
         finally:
             frappe.local.lang = old_lang
+    meta["print_designer_column_labels"] = get_table_column_labels(_lang)
     return meta
 
 

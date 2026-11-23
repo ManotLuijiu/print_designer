@@ -83,6 +83,10 @@ element.get("minRows") or element.get("min_rows") or 0 -%} {%- set source_rows =
 (doc.get(element.table.fieldname) if element.table and element.table.fieldname else None) or [] -%}
 {%- set actual_row_count = source_rows | length -%} {%- set padded_row_count = [min_rows,
 actual_row_count] | max -%}
+{%- set preset = element.get("borderPreset") -%}
+{%- if preset -%}
+	{% from 'print_designer/page/print_designer/jinja/macros/table_border_presets.html' import preset_borders %}
+{%- endif -%}
 <div
 	style="position: absolute; top:{% if 'printY' in element %}{{ element.printY }}{% else %}{{ element.startY }}{% endif %}px; left:{% if 'printX' in element %}{{ element.printX }}{% else %}{{ element.startX }}{% endif %}px;width:{{ element.width }}px;height:{{ element.height }}px;"
 	class="
@@ -90,17 +94,35 @@ actual_row_count] | max -%}
 >
 	<table
 		class="printTable"
-		style="position: relative; width:100%; max-width:{{ element.width }}px;"
+		style="position: relative; width:100%; max-width:{{ element.width }}px;{% if preset %}border-collapse:collapse;{% endif %}"
+		{% if preset %}data-pd-border-preset="{{ preset | e }}"{% endif %}
 	>
 		<thead>
 			{% if element.columns %}
 			<tr>
 				{% for column in element.columns%}
+				{%- set column_header = none -%}
+				{%- if column.applyStyleToHeader -%}
+					{%- set column_header = dict(column.get("style") or {}, **(column.get("linkedHeaderBorderStyle") or {})) -%}
+					{%- if column_header.get("backgroundColor") == "" -%}
+						{%- set column_header = dict(column_header.items() | rejectattr("0", "equalto", "backgroundColor")) -%}
+					{%- endif -%}
+				{%- endif -%}
+				{%- set header_css -%}
+					{{ convert_css(element.headerStyle) }}{{ convert_css(column_header) }}{{ convert_css(column.get("headerBorderStyle")) }}
+					{%- if preset -%}
+						{{ preset_borders(preset, loop.first, loop.last, true, not padded_row_count, false, [element.headerStyle, column_header, column.get("headerBorderStyle")]) }}
+					{%- endif -%}
+				{%- endset -%}
 				<th
-					data-pd-preview-borders="border: 1px solid black;{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
-					style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%} border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.headerStyle)}}{%- if column.applyStyleToHeader and column.style -%}{{convert_css(column.style)}}{%- endif -%}"
+					data-pd-preview-borders="border: 1px solid black;{{ header_css }}"
+					style="{% if column.width %}width: {{column.width}}%; max-width: {{column.width}}%;{%endif%}{% if preset %}border: 1px solid black !important;{% else %}border: 0 !important;border-top: 1px solid black !important;border-bottom: 1px solid black !important;{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{% endif %}{{ header_css }}"
 				>
-					{{ translate_print_label(column.label) }}
+					{%- if column.get("labelIsCustom") -%}
+						{{ column.label | e }}
+					{%- else -%}
+						{{ translate_table_column_label(column.label) }}
+					{%- endif -%}
 				</th>
 				{% endfor %}
 			</tr>
@@ -113,9 +135,16 @@ actual_row_count] | max -%}
 			- 1) -%}
 			<tr data-pd-row-kind="{{ 'data' if is_data_row else 'padding' }}" data-pd-last-row="{{ '1' if is_last_data_row else '0' }}">
 				{% set isLastRow = loop.last %} {% for column in element.columns%}
+				{%- set alternate = element.altStyle if row and row.idx and row.idx % 2 == 0 else None -%}
+				{%- set cell_css -%}
+					{{ convert_css(element.style) }}{{ convert_css(alternate) }}{{ convert_css(column.style) }}
+					{%- if preset -%}
+						{{ preset_borders(preset, loop.first, loop.last, false, is_last_data_row, not is_data_row, [element.style, alternate, column.style]) }}
+					{%- endif -%}
+				{%- endset -%}
 				<td
-					data-pd-preview-borders="border: 1px solid black;{{convert_css(element.style)}}{%if row and row.idx and row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}"
-					style="border: 0 !important;{%if is_first_data_row%}border-top: 1px solid black !important;{%endif%}{%if is_last_data_row%}border-bottom: 1px solid black !important;{%endif%}{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{{convert_css(element.style)}}{%if row and row.idx and row.idx % 2 == 0 %}{{convert_css(element.altStyle)}}{%endif%}{%- if column.style -%}{{convert_css(column.style)}}{%- endif -%}"
+					data-pd-preview-borders="border: 1px solid black;{{ cell_css }}"
+					style="{% if preset %}border: 1px solid black !important;{% else %}border: 0 !important;{%if is_first_data_row%}border-top: 1px solid black !important;{%endif%}{%if is_last_data_row%}border-bottom: 1px solid black !important;{%endif%}{%if loop.first%}border-left: 1px solid black !important;{%elif loop.last%}border-right: 1px solid black !important;{%endif%}{% endif %}{{ cell_css }}"
 				>
 					{% if column is mapping and is_data_row %} {% for field in
 					column.dynamicContent%} {{ render_spantag(field, element, row, send_to_jinja)

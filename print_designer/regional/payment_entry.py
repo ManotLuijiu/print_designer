@@ -5,6 +5,8 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from print_designer.custom.payment_vat_link import get_payment_vat_treatment
+
 
 def add_regional_gl_entries(gl_entries, doc):
     """Add regional GL entries for Thai tax compliance (ERPNext standard pattern).
@@ -33,11 +35,11 @@ def add_regional_gl_entries(gl_entries, doc):
 
     # Check primary flag - Use multiple possible fields that indicate Thai tax compliance
     has_thai_taxes = (getattr(doc, 'pd_custom_subject_to_wht', 0) or
-                     getattr(doc, 'pd_custom_apply_withholding_tax', 0))
+                     getattr(doc, 'pd_custom_subject_to_wht', 0))
                      # COMMENTED OUT: pd_custom_has_thai_taxes field removed
                      # or getattr(doc, 'pd_custom_has_thai_taxes', 0))
     print(f"   📋 pd_custom_subject_to_wht: {getattr(doc, 'pd_custom_subject_to_wht', 0)} (type: {type(getattr(doc, 'pd_custom_subject_to_wht', 0))})")
-    print(f"   📋 pd_custom_apply_withholding_tax: {getattr(doc, 'pd_custom_apply_withholding_tax', 0)} (type: {type(getattr(doc, 'pd_custom_apply_withholding_tax', 0))})")
+    print(f"   📋 pd_custom_subject_to_wht: {getattr(doc, 'pd_custom_subject_to_wht', 0)} (type: {type(getattr(doc, 'pd_custom_subject_to_wht', 0))})")
     # COMMENTED OUT: pd_custom_has_thai_taxes field removed from debug logging
     # print(f"   📋 pd_custom_has_thai_taxes: {getattr(doc, 'pd_custom_has_thai_taxes', 0)} (type: {type(getattr(doc, 'pd_custom_has_thai_taxes', 0))})")
     print(f"   📋 Combined has_thai_taxes: {has_thai_taxes} (type: {type(has_thai_taxes)})")
@@ -57,8 +59,7 @@ def add_regional_gl_entries(gl_entries, doc):
 
     # Check total amounts - Use the actual fields that are being populated by JavaScript
     # Try multiple field naming patterns to find the correct values
-    total_wht = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                   getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+    total_wht = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0) or
                    getattr(doc, 'pd_custom_total_wht_amount', 0))
     total_retention = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
     total_vat_undue = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0))
@@ -68,10 +69,10 @@ def add_regional_gl_entries(gl_entries, doc):
     print(f"   💰 total_vat_undue_amount: {total_vat_undue} (type: {type(total_vat_undue)})")
 
     # Check other WHT fields that might be relevant - Use the correct prefixed fields
-    apply_wht = getattr(doc, 'pd_custom_apply_withholding_tax', 0)
+    apply_wht = getattr(doc, 'pd_custom_subject_to_wht', 0)
     tax_base = getattr(doc, 'pd_custom_tax_base_amount', 0)
     net_payment = getattr(doc, 'pd_custom_net_total_after_wht', 0)  # This field exists from the console log
-    print(f"   🏛️ pd_custom_apply_withholding_tax: {apply_wht} (type: {type(apply_wht)})")
+    print(f"   🏛️ pd_custom_subject_to_wht: {apply_wht} (type: {type(apply_wht)})")
     print(f"   💵 pd_custom_tax_base_amount: {tax_base} (type: {type(tax_base)})")
     print(f"   💵 pd_custom_net_total_after_wht: {net_payment} (type: {type(net_payment)})")
 
@@ -157,7 +158,7 @@ def add_regional_gl_entries(gl_entries, doc):
     print(f"   💰 Any amounts > 0: {amounts_check}")
 
     # Check for VAT Undue treatment - this also triggers the GL entries
-    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    vat_treatment = get_payment_vat_treatment(doc)
     tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
     vat_undue_from_treatment = (vat_treatment == "VAT Undue" and tax_base_amount > 0)
     
@@ -239,8 +240,7 @@ def _adjust_cash_gl_entry_for_thai_compliance(gl_entries, doc):
     print(f"🔧 ADJUSTING CASH GL ENTRY DEBUG:")
 
     # Get Thai tax deduction amounts - Use correct field names that match client script population
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                    getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0) or
                     getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
     total_deductions = wht_amount + retention_amount
@@ -333,13 +333,12 @@ def _add_thai_compliance_gl_entries(gl_entries, doc):
 
     # Get Thai tax amounts - use the actual field names populated by client scripts
     # Check both possible field naming patterns (individual fields and consolidated fields)
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
-                    getattr(doc, 'pd_custom_withholding_tax_amount', 0) or
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0) or
                     getattr(doc, 'pd_custom_total_wht_amount', 0), 2)
     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0), 2)
 
     # Check for VAT Undue treatment and calculate VAT amount if needed
-    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    vat_treatment = get_payment_vat_treatment(doc)
     tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0), 2)
     vat_amount = flt(getattr(doc, 'pd_custom_total_vat_undue_amount', 0), 2)
 

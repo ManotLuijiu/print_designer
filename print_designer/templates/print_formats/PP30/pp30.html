@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>แบบแสดงรายการภาษีมูลค่าเพิ่ม (ภ.พ.30)</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Print-ready styles - following 50Tawi pattern */
+      .print-preview iframe,
+      #print-preview iframe {
+        height: 1100px !important;
+        min-height: 1100px !important;
+      }
+
+      @page {
+        margin: 0 !important;
+        padding: 0 !important;
+        size: A4;
+      }
+
+      html,
+      body {
+        font-family: "Sarabun", "Kanit", "Noto Sans Thai", "Arial", sans-serif;
+        background: #fff;
+        padding: 0 !important;
+        line-height: 1.3;
+        font-size: 11pt;
+        color: #000;
+      }
+
+      .container {
+        max-width: 100%;
+        margin: 0 auto;
+        background-color: white;
+        padding: 15px;
+        box-shadow: none;
+      }
+
+      /* Header */
+      .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: center;
+        position: relative;
+      }
+
+      .revenue-logo {
+        width: 60px;
+        height: auto;
+        display: inline-block;
+      }
+
+      .form-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .form-subtitle {
+        font-size: 14px;
+      }
+
+      .form-code {
+        font-size: 40px;
+        font-weight: bold;
+        color: #333;
+        border: #333 solid 1px;
+        border-radius: 15px;
+        padding: 8px 18px;
+      }
+
+      /* Sections */
+      .sub-header {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+      }
+
+      .section-title {
+        font-size: 14px;
+        font-weight: bold;
+        background-color: #e8e8e8;
+        border-left: 4px solid #333;
+      }
+
+      /* Info Section */
+      .info-section {
+        display: flex;
+        flex-direction: column;
+        width: 55%;
+      }
+
+      .first-address-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .first-address-row label {
+        font-size: 13px;
+        font-weight: 500;
+        min-width: fit-content;
+      }
+
+      .info-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .info-row label {
+        font-size: 13px;
+        font-weight: 500;
+        min-width: 120px;
+      }
+
+      .input-field {
+        border: none;
+        border-bottom: 1px dotted #333;
+        padding: 4px 6px;
+        font-size: 13px;
+        font-family: inherit;
+      }
+
+      .input-field:focus {
+        outline: none;
+        background-color: #fffacd;
+      }
+
+      .input-field.full-width {
+        flex: 1;
+        min-width: 300px;
+      }
+
+      .filled-value {
+        border-bottom: 1px dotted #333;
+        padding: 4px 6px;
+        font-size: 13px;
+        min-width: 200px;
+        display: inline-block;
+      }
+
+      .filled-value-small {
+        border-bottom: 1px dotted #333;
+        display: inline-block;
+      }
+
+      /* Character boxes for Thai Tax ID, Branch Code, Postal Code */
+      .char-boxes {
+        display: inline-flex;
+        gap: 0;
+        align-items: center;
+      }
+
+      .char-box {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px dashed #999;
+        width: 18px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        margin-left: -1px;
+      }
+
+      .char-box-5 {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px dashed #999;
+        width: 18px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        margin-left: -1px;
+      }
+
+      .char-box:first-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box:last-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box-5:first-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px dashed #999;
+      }
+
+      .char-box-5:last-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box.dash {
+        width: 8px;
+        border-top: none;
+        border-bottom: none;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+        background-color: transparent;
+      }
+
+      .address-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
+      }
+
+      .address-row span {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      /* Filing Section */
+      .filing-section {
+        display: flex;
+        flex-direction: column;
+        width: 45%;
+        background-color: #f9f9f9;
+        padding: 10px;
+        border: 1px dotted #ddd;
+        border-radius: 4px;
+      }
+
+      .filing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .filing-row label {
+        font-size: 12px;
+      }
+
+      .filing-row input[type="radio"],
+      .filing-row input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .option-group {
+        padding-left: 15px;
+      }
+
+      .option-group input[type="radio"] {
+        margin-right: 8px;
+      }
+
+      .option-group label {
+        font-size: 12px;
+      }
+
+      .sub-options {
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .sub-options input[type="radio"] {
+        margin-right: 4px;
+      }
+
+      .sub-options label {
+        font-size: 11px;
+        margin-right: 8px;
+      }
+
+      .months-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        margin-top: 2px;
+      }
+
+      .month-option {
+        display: flex;
+        align-items: center;
+      }
+
+      .month-option input[type="checkbox"] {
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        width: 8px;
+        height: 8px;
+        border: 1px solid #999;
+        position: relative;
+      }
+
+      .month-option input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px;
+        height: 6px;
+        background-color: #333;
+      }
+
+      .month-option label {
+        font-size: 10px;
+        cursor: pointer;
+        margin-left: 2px;
+      }
+
+      .note {
+        font-size: 12px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .tax-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+        border-top: 2px solid #333;
+        border-bottom: 2px solid #333;
+      }
+
+      .tax-table thead {
+        border-bottom: 1px solid #333;
+      }
+
+      .tax-table th {
+        border: none;
+        border-bottom: 1px solid #333;
+        padding: 3px 8px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .tax-table td {
+        border: none;
+        padding: 2px 6px;
+        text-align: center;
+      }
+
+      .tax-table tbody tr {
+        border-bottom: 1px solid #ddd;
+      }
+
+      .tax-table tbody tr.highlight-row {
+        border-bottom: 1px solid #333;
+      }
+
+      .tax-table .col-num {
+        width: 40px;
+      }
+
+      .tax-table .col-desc {
+        text-align: left;
+        width: auto;
+      }
+
+      .tax-table .col-amount {
+        width: 80px;
+      }
+
+      .amount-input {
+        width: 100%;
+        border: none;
+        text-align: right;
+        padding: 2px;
+        font-size: 12px;
+      }
+
+      .amount-input:focus {
+        outline: none;
+        background-color: #fffacd;
+      }
+
+      .highlight-row {
+        background-color: #e8e8e8;
+        font-weight: bold;
+      }
+
+      .amount-unit {
+        text-align: right;
+        font-size: 12px;
+        padding-right: 10px;
+      }
+
+      /* Refund Section */
+      .refund-section {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      .refund-text {
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .refund-option {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .refund-option input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .refund-option label {
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .refund-option .signature-line {
+        border-bottom: none;
+      }
+
+      .refund-section > .signature-line {
+        display: block;
+        text-align: right;
+        border-bottom: none;
+      }
+
+      .signature-section .signature-line {
+        border-bottom: none;
+      }
+
+      .signature-line {
+        border-bottom: 1px solid #333;
+        display: inline-block;
+        min-width: 300px;
+        text-align: center;
+        font-size: 12px;
+      }
+
+      /* Declaration Section */
+      .declaration-section {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      .declaration-text {
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: justify;
+      }
+
+      .signature-section {
+        display: inline-block;
+        vertical-align: top;
+        width: 65%;
+      }
+
+      .signature-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .signature-row span:first-child {
+        font-size: 12px;
+        min-width: 80px;
+      }
+
+      .seal-section {
+        display: inline-block;
+        vertical-align: top;
+        width: 30%;
+        text-align: right;
+      }
+
+      .seal-box {
+        border: 1px solid #333;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 8px;
+      }
+
+      /* Footer */
+      .footer-note {
+        text-align: center;
+        font-size: 11px;
+        color: #666;
+        border-top: 1px solid #ddd;
+        font-style: italic;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 15px;
+        }
+
+        .months-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tax-table {
+          font-size: 11px;
+        }
+
+        .tax-table th,
+        .tax-table td {
+          padding: 4px;
+        }
+
+        .signature-line {
+          min-width: 200px;
+        }
+
+        .address-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      @media print {
+        body {
+          background-color: white;
+          padding: 0;
+        }
+
+        .container {
+          box-shadow: none;
+          max-width: 100%;
+        }
+
+        .input-field {
+          border-bottom: 1px solid #000;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header Section -->
+      <div id="form__wrapper" class="form-header">
+        <div id="form__left" class="logo-container">
+          <img
+            src="/assets/digisoft_erp/images/logo/Emblem_of_the_Revenue_Department_of_Thailand.svg.png"
+            alt="Thai Revenue Department Logo"
+            class="revenue-logo"
+          />
+        </div>
+        <div id="form__name">
+          <div class="form-title">แบบแสดงรายการภาษีมูลค่าเพิ่ม</div>
+          <div class="form-subtitle">ตามประมวลรัษฎากร</div>
+        </div>
+        <div id="form__right" class="form-code">ภ.พ.30</div>
+      </div>
+
+      <div id="sub__header" class="sub-header">
+        <!-- Taxpayer Information Section -->
+        <section class="info-section">
+          <div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2px;
+              "
+            >
+              <label style="font-size: 14px">เลขประจำตัวผู้เสียภาษีอากร</label>
+              <div style="margin-left: 2px" class="char-boxes">
+                {% set tax_id_clean = tax_id.replace('-', '') %} {% for i in
+                range(13) %} {% if i in [1, 5, 10, 12] %}
+                <span class="char-box dash">-</span>
+                {% endif %}
+                <span class="char-box"
+                  >{{ tax_id_clean[i] if i < tax_id_clean|length else ''
+                  }}</span
+                >
+                {% endfor %}
+              </div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: flex-end;
+                align-items: center;
+                gap: 2px;
+                width: 80%;
+              "
+            >
+              <label style="font-size: 14px">สาขาที่</label>
+              <div class="char-boxes">
+                {% for i in range(5) %}
+                <span class="char-box-5"
+                  >{{ branch_code[i] if branch_code and i < branch_code|length
+                  else '' }}</span
+                >
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <label>ชื่อผู้ประกอบการ</label>
+            <span class="filled-value" style="flex: 1">{{ company_name }}</span>
+          </div>
+
+          <div class="info-row">
+            <span class="filled-value" style="flex: 1">{{ company_name }}</span>
+          </div>
+
+          <div class="info-row">
+            <label>ชื่อสถานประกอบการ</label>
+            <span class="filled-value" style="flex: 1"
+              >{{ establishment_name }}</span
+            >
+          </div>
+
+          <div class="first-address-row">
+            <label>ที่อยู่:</label>
+            <div class="address-row">
+              <span>อาคาร</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ address.building }}</span
+              >
+              <span>ห้องเลขที่</span>
+              <span class="filled-value" style="min-width: 60px"
+                >{{ address.room_no }}</span
+              >
+              <span>ชั้นที่</span>
+              <span class="filled-value" style="min-width: 50px"
+                >{{ address.floor }}</span
+              >
+            </div>
+          </div>
+
+          <div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2px;
+              "
+            >
+              <span style="font-size: 12px">หมู่บ้าน</span>
+              <span class="filled-value" style="min-width: 80px"
+                >{{ address.village }}</span
+              >
+              <span style="font-size: 12px">เลขที่</span>
+              <span class="filled-value" style="min-width: 60px"
+                >{{ address.house_no }}</span
+              >
+              <span style="font-size: 12px">หมู่ที่</span>
+              <span class="filled-value" style="min-width: 50px"
+                >{{ address.moo }}</span
+              >
+              <span style="font-size: 12px">ตรอก/ซอย</span>
+              <span class="filled-value" style="min-width: 80px"
+                >{{ address.soi }}</span
+              >
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="address-row">
+              <span>ถนน</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ address.road }}</span
+              >
+              <span>ตำบล/แขวง</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ address.subdistrict }}</span
+              >
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="address-row">
+              <span>อำเภอ/เขต</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ address.district }}</span
+              >
+              <span>จังหวัด</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ address.province }}</span
+              >
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              gap: 2px;
+            "
+          >
+            <label style="font-size: 12px">รหัสไปรษณีย์</label>
+            <div class="char-boxes">
+              {% for i in range(5) %}
+              <span class="char-box-5"
+                >{{ address.postal_code[i] if address.postal_code and i <
+                address.postal_code|length else '' }}</span
+              >
+              {% endfor %}
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              gap: 2px;
+            "
+          >
+            <label style="font-size: 12px">โทรศัพท์</label>
+            <span class="filled-value" style="min-width: 120px"
+              >{{ address.phone }}</span
+            >
+          </div>
+        </section>
+
+        <!-- Filing Type Section -->
+        <section class="filing-section">
+          <div class="filing-row">
+            <label>กรณีมีสาขา ยื่นแบบแสดงรายการโดย:</label>
+          </div>
+
+          <div class="filing-options">
+            <div class="option-group">
+              <div
+                style="
+                  display: flex;
+                  justify-content: flex-start;
+                  align-items: center;
+                  gap: 2px;
+                "
+              >
+                <input
+                  type="radio"
+                  id="separate"
+                  name="filing_type"
+                  value="separate"
+                  checked
+                />
+                <label for="separate"
+                  >(1) แยกยื่นเป็นรายสถานประกอบการ เป็นแบบฯ ของ</label
+                >
+              </div>
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: flex-start;
+                  gap: 2px;
+                "
+              >
+                <div style="display: flex; align-items: center">
+                  <input
+                    type="radio"
+                    id="main_office"
+                    name="office_type"
+                    value="main"
+                    checked
+                  />
+                  <label for="main_office">(1.1) สำนักงานใหญ่</label>
+                </div>
+                <div style="display: flex; align-items: center">
+                  <input
+                    type="radio"
+                    id="branch"
+                    name="office_type"
+                    value="branch"
+                  />
+                  <label for="branch">(1.2) สาขาที่</label>
+                  <div class="char-boxes">
+                    {% for i in range(5) %}
+                    <span class="char-box-5"
+                      >{{ branch_code[i] if branch_code and branch_code !=
+                      '00000' and i < branch_code|length else '&nbsp;' }}</span
+                    >
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div
+                style="
+                  display: flex;
+                  justify-content: flex-start;
+                  align-items: center;
+                  gap: 2px;
+                "
+              >
+                <input
+                  type="radio"
+                  id="combined"
+                  name="filing_type"
+                  value="combined"
+                />
+                <label for="combined"
+                  >(2) ยื่นรวมกันที่
+                  (ตามที่ได้ยื่นคำขอฯและได้รับอนุมัติแล้ว)</label
+                >
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: flex-start;
+                  align-items: center;
+                  gap: 2px;
+                "
+              >
+                <input
+                  type="radio"
+                  id="combined_main"
+                  name="combined_type"
+                  value="main"
+                />
+                <label for="combined_main">(2.1) สำนักงานใหญ่</label>
+                <input
+                  type="radio"
+                  id="combined_branch"
+                  name="combined_type"
+                  value="branch"
+                />
+                <label for="combined_branch">(2.2) สาขาที่</label>
+                <div class="char-boxes">
+                  {% for i in range(5) %}
+                  <span class="char-box-5"
+                    >{{ branch_code[i] if branch_code and branch_code != '00000'
+                    and i < branch_code|length else '&nbsp;' }}</span
+                  >
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              width: 100%;
+              gap: 2px;
+            "
+          >
+            <input
+              type="radio"
+              id="normal"
+              name="submission_type"
+              value="normal"
+              checked
+            />
+            <label for="normal" style="font-size: 10px">ยื่นปกติ</label>
+            <input
+              type="radio"
+              id="normal"
+              name="submission_type"
+              value="normal"
+            />
+            <label style="font-size: 10px">ยื่นเพิ่มเติมครั้งที่</label>
+            <span class="filled-value-small" style="font-size: 10px"></span>
+            <span style="font-size: 10px">ของ ภ.พ.30 ซึ่งยื่นไว้</span>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+            "
+          >
+            <label style="font-size: 10px"
+              >สำหรับเดือนภาษี (ให้ทำเครื่องหมาย "✓" ลงใน "☐"
+              หน้าชื่อเดือน)</label
+            >
+            <label style="font-size: 10px">พ.ศ.</label>
+            <span style="font-size: 10px" class="filled-value-small"
+              >{{ filing_year }}</span
+            >
+          </div>
+
+          <div class="months-grid">
+            <div class="month-option">
+              <input type="checkbox" id="jan" name="month" value="1" {% if
+              filing_month == 1 %}checked{% endif %} />
+              <label for="jan">(1)มกราคม</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="apr" name="month" value="4" {% if
+              filing_month == 4 %}checked{% endif %} />
+              <label for="apr">(4)เมษายน</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="jul" name="month" value="7" {% if
+              filing_month == 7 %}checked{% endif %} />
+              <label for="jul">(7)กรกฎาคม</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="oct" name="month" value="10" {% if
+              filing_month == 10 %}checked{% endif %} />
+              <label for="oct">(10)ตุลาคม</label>
+            </div>
+
+            <div class="month-option">
+              <input type="checkbox" id="feb" name="month" value="2" {% if
+              filing_month == 2 %}checked{% endif %} />
+              <label for="feb">(2)กุมภาพันธ์</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="may" name="month" value="5" {% if
+              filing_month == 5 %}checked{% endif %} />
+              <label for="may">(5)พฤษภาคม</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="aug" name="month" value="8" {% if
+              filing_month == 8 %}checked{% endif %} />
+              <label for="aug">(8)สิงหาคม</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="nov" name="month" value="11" {% if
+              filing_month == 11 %}checked{% endif %} />
+              <label for="nov">(11)พฤศจิกายน</label>
+            </div>
+
+            <div class="month-option">
+              <input type="checkbox" id="mar" name="month" value="3" {% if
+              filing_month == 3 %}checked{% endif %} />
+              <label for="mar">(3)มีนาคม</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="jun" name="month" value="6" {% if
+              filing_month == 6 %}checked{% endif %} />
+              <label for="jun">(6)มิถุนายน</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="sep" name="month" value="9" {% if
+              filing_month == 9 %}checked{% endif %} />
+              <label for="sep">(9)กันยายน</label>
+            </div>
+            <div class="month-option">
+              <input type="checkbox" id="dec" name="month" value="12" {% if
+              filing_month == 12 %}checked{% endif %} />
+              <label for="dec">(12)ธันวาคม</label>
+            </div>
+          </div>
+
+          <div class="filing-row">
+            <input
+              type="radio"
+              id="on_time"
+              name="timing"
+              value="on_time"
+              checked
+            />
+            <label for="on_time">ภายในกำหนดเวลา</label>
+            <input
+              type="radio"
+              id="late"
+              name="timing"
+              value="late"
+              style="margin-left: 30px"
+            />
+            <label for="late">เกินกำหนดเวลา</label>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tax Calculation Table -->
+      <section class="calculation-section">
+        <div class="section-title">การคำนวณภาษี</div>
+        <!-- <div class="note">สำหรับบันทึกข้อมูลจากระบบ</div> -->
+
+        <table class="tax-table">
+          <thead>
+            <tr>
+              <th class="col-num">ลำดับ</th>
+              <th class="col-desc">รายการ</th>
+              <th class="col-amount">ภาษีขาย</th>
+              <th class="col-amount">ภาษีซื้อ</th>
+              <th class="col-amount">ภาษีมูลค่าเพิ่ม</th>
+              <th class="col-amount">ภาษีสุทธิ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-num">1</td>
+              <td class="col-desc">ยอดขายในเดือนนี้</td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_1) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">2</td>
+              <td class="col-desc">
+                ลบ ยอดขายที่เสียภาษีในอัตราร้อยละ 0 (ถ้ามี)
+              </td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_2) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">3</td>
+              <td class="col-desc">ลบ ยอดขายที่ได้รับยกเว้น (ถ้ามี)</td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_3) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">4</td>
+              <td class="col-desc">ยอดขายที่ต้องเสียภาษี (1. - 2. - 3.)</td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_4) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">5</td>
+              <td class="col-desc">ภาษีขายเดือนนี้</td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_5) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">6</td>
+              <td class="col-desc">ยอดซื้อที่มีสิทธินำภาษีซื้อ</td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_6) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">7</td>
+              <td class="col-desc">
+                ภาษีซื้อเดือนนี้ (ตามหลักฐานใบกำกับภาษีของยอดซื้อตาม 6.)
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_7) }}
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">8</td>
+              <td class="col-desc">
+                ภาษีที่ต้องชำระเดือนนี้ (ถ้า 5. มากกว่า 7.)
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_8) }}
+              </td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">9</td>
+              <td class="col-desc">
+                ภาษีที่ชำระเกินเดือนนี้ (ถ้า 7. น้อยกว่า 5.)
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_9) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="col-num">10</td>
+              <td class="col-desc">ภาษีที่ชำระเกินยกมา</td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_10) }}
+              </td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">11</td>
+              <td class="col-desc">ต้องชำระ (ถ้า 8. มากกว่า 10.)</td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_11) }}
+              </td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">12</td>
+              <td class="col-desc">
+                ชำระเกิน ((ถ้า 10. มากกว่า 8.) หรือ (9. รวมกับ 10.))
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_12) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="col-num">13</td>
+              <td class="col-desc">เงินเพิ่ม</td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_13) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="col-num">14</td>
+              <td class="col-desc">เบี้ยปรับ</td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_14) }}
+              </td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">15</td>
+              <td class="col-desc">
+                รวมภาษี เงินเพิ่ม และเบี้ยปรับที่ต้องชำระ ((11. + 13. + 14.)
+                หรือ (13. + 14. - 12.))
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_15) }}
+              </td>
+            </tr>
+            <tr class="highlight-row">
+              <td class="col-num">16</td>
+              <td class="col-desc">
+                รวมภาษีที่ชำระเกิน หลังคำนวณเงินเพิ่มและเบี้ยปรับแล้ว (12. - 13.
+                - 14.)
+              </td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount"></td>
+              <td class="col-amount">
+                {{ "{:,.2f}".format(pp30_data.row_16) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="amount-unit">บาท สต.</div>
+      </section>
+
+      <div
+        style="
+          display: flex;
+          flex-direction: row;
+          gap: 2px;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+        "
+      >
+        <!-- Tax Refund Section -->
+        <section class="refund-section" style="flex: 1">
+          <div class="section-title">การขอคืนภาษี</div>
+          <p class="refund-text">
+            ถ้าประสงค์จะขอคืนภาษีที่ชำระเกินตามจำนวนเงินที่แสดงไว้ตาม 12. หรือ
+            16.<br />
+            เป็นเงินสด หรือให้โอนเข้าธนาคาร โปรดลงชื่อในช่องข้างล่าง
+            แล้วแต่กรณี<br />
+          </p>
+          <p class="refund-text">
+            หากไม่ลงชื่อถือว่าขอนำภาษีที่ชำระเกินเดือนนี้ไปชำระภาษีมูลค่าเพิ่มในเดือน<br />
+            ถัดไป เว้นแต่กรณียื่นเพิ่มเติม หากไม่ลงชื่อจะต้องยื่นขอคืนด้วยแบบ
+            ค.10เท่านั้น
+          </p>
+
+          <div class="refund-option">
+            <label for="cash_refund">เป็นเงินสด</label>
+            <span class="signature-line"
+              >ลงชื่อ...................................................................ผู้ประกอบการ</span
+            >
+          </div>
+
+          <div class="refund-option">
+            <label for="bank_refund"
+              >โอนเข้าธนาคาร
+              <span style="font-size: 8px"
+                >(ตามที่ได้ยื่นคำขอฯ
+                และได้รับอนุมัติจากสำนักงานสรรพากรพื้นที่สาขาแล้ว)</span
+              ></label
+            >
+          </div>
+          <span style="align-items: flex-end" class="signature-line"
+            >ลงชื่อ..................................................................ผู้ประกอบการ</span
+          >
+        </section>
+
+        <!-- Declaration Section -->
+        <section class="declaration-section" style="flex: 1">
+          <div class="section-title">คำรับรอง</div>
+          <p class="declaration-text">
+            ข้าพเจ้าขอรับรองว่า ข้อความที่แสดงในแบบแสดงรายการนี้<br />
+            ถูกต้องและเป็นความจริงทุกประการ กรณียื่นแบบแสดงรายการ<br />
+            เกินกำหนดเวลาหรือยื่นเพิ่มเติม ข้าพเจ้าขอลดเบี้ยปรับด้วย
+          </p>
+
+          <div style="display: flex; gap: 2px">
+            <div
+              style="
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 15px;
+              "
+            >
+              <div>
+                <span style="font-size: 12px"
+                  >ลงชื่อ.........................................ผู้ประกอบการ</span
+                >
+              </div>
+              <div>
+                <span>(..............................................)</span>
+              </div>
+              <div style="font-size: 12px">
+                <span>ยื่นวันที่</span>
+                <span>{{ filing_date }}</span>
+              </div>
+            </div>
+
+            <div
+              style="
+                flex: 0 0 90px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              <div class="seal-box">
+                <p>ประทับตรา</p>
+                <p>นิติบุคคล</p>
+                <p>(ถ้ามี)</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="footer-note">(ก่อนกรอกรายการโปรดดูคำแนะนำด้านหลัง)</div>
+    </div>
+  </body>
+</html>

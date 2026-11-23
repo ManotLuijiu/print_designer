@@ -194,6 +194,14 @@
 	       border-width: 0 !important;
 	       flex: auto;
 	   }
+	   .pd-footer-positioned-item {
+	       /* Designer offsets share a footer row origin. Cancel the wrapper's
+	          horizontal footprint while keeping its height in the row. */
+	       width: 100%;
+	       -webkit-flex: 0 0 100%;
+	       flex: 0 0 100%;
+	       margin-right: -100%;
+	   }
 	   .relative-column {
 	       border-width: 0px !important;
 	       border-color: transparent !important;

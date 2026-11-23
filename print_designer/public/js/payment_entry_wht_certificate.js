@@ -29,7 +29,7 @@ frappe.ui.form.on("Payment Entry", {
         }
     },
 
-    pd_custom_withholding_tax_rate: function(frm) {
+    pd_custom_withholding_tax_pct_details: function(frm) {
         // Recalculate WHT amount when rate changes
         calculate_wht_amount(frm);
     },
@@ -48,7 +48,7 @@ function add_wht_certificate_buttons(frm) {
     frm.remove_custom_button(__("View WHT Certificate"));
 
     // Check if this Payment Entry has WHT amounts
-    const wht_amount = flt(frm.doc.pd_custom_withholding_tax_amount || 0);
+    const wht_amount = flt(frm.doc.pd_custom_withholding_tax_amount_details || 0);
 
     // Check if document is saved (not new) - following ERPNext pattern
     const is_saved = !frm.doc.__islocal && !frm.is_new();
@@ -76,14 +76,14 @@ function add_wht_certificate_buttons(frm) {
         console.log("DEBUG: Adding View button - certificate exists");
         frm.add_custom_button(__("View WHT Certificate"), function() {
             view_wht_certificate(frm);
-        }, __("Thai Compliance"));
+        }, __("Actions"));
 
     } else if (is_saved) {
         // No certificate exists but Payment Entry is saved - Add preview button only
         console.log("DEBUG: Adding Preview button - document is saved and no certificate");
         frm.add_custom_button(__("Preview WHT Certificate"), function() {
             preview_wht_certificate(frm);
-        }, __("Thai Compliance"));
+        }, __("Actions"));
     } else {
         console.log("DEBUG: No buttons added - document is new/unsaved");
     }
@@ -123,7 +123,7 @@ function create_wht_certificate(frm) {
         payment_type: frm.doc.payment_type,
         is_new: frm.is_new(),
         docstatus: frm.doc.docstatus,
-        wht_amount: frm.doc.pd_custom_withholding_tax_amount
+        wht_amount: frm.doc.pd_custom_withholding_tax_amount_details
     });
 
     // Confirm before creating
@@ -298,19 +298,21 @@ function get_wht_certificate_preview_html(data) {
 }
 
 function calculate_wht_amount(frm) {
+    if (frm.doc.payment_type !== "Pay") return;
+
     const tax_base = flt(frm.doc.pd_custom_tax_base_amount || 0);
-    const wht_rate = flt(frm.doc.pd_custom_withholding_tax_rate || 0);
+    const wht_rate = flt(frm.doc.pd_custom_withholding_tax_pct_details || 0);
 
     if (tax_base > 0 && wht_rate > 0) {
         const calculated_wht = tax_base * (wht_rate / 100);
-        frm.set_value("pd_custom_withholding_tax_amount", calculated_wht);
+        frm.set_value("pd_custom_withholding_tax_amount_details", calculated_wht);
     }
 }
 
 function setup_wht_certificate_watchers(frm) {
     // Watch for changes that might affect WHT certificate eligibility
-    if (frm.fields_dict.pd_custom_withholding_tax_amount && frm.fields_dict.pd_custom_withholding_tax_amount.$input) {
-        frm.fields_dict.pd_custom_withholding_tax_amount.$input.on('change', function() {
+    if (frm.fields_dict.pd_custom_withholding_tax_amount_details && frm.fields_dict.pd_custom_withholding_tax_amount_details.$input) {
+        frm.fields_dict.pd_custom_withholding_tax_amount_details.$input.on('change', function() {
             setTimeout(() => {
                 add_wht_certificate_buttons(frm);
             }, 500);

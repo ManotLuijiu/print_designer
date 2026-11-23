@@ -1,6 +1,6 @@
 {
  "actions": [],
- "creation": "2026-04-02 05:51:19.718157",
+ "creation": "2024-01-01 10:00:00",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -25,10 +25,10 @@
   },
   {
    "fieldname": "income_type",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Income Type",
-   "options": "Thai WHT Income Type",
+   "options": "\n40(1) \u0e40\u0e07\u0e34\u0e19\u0e40\u0e14\u0e37\u0e2d\u0e19 \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\n40(2) \u0e04\u0e48\u0e32\u0e19\u0e32\u0e22\u0e2b\u0e19\u0e49\u0e32 \u0e04\u0e48\u0e32\u0e04\u0e2d\u0e21\u0e21\u0e34\u0e0a\u0e0a\u0e31\u0e48\u0e19\n40(3) \u0e04\u0e48\u0e32\u0e25\u0e34\u0e02\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\n40(4)\u0e01 \u0e14\u0e2d\u0e01\u0e40\u0e1a\u0e35\u0e49\u0e22\n40(4)\u0e02 \u0e40\u0e07\u0e34\u0e19\u0e1b\u0e31\u0e19\u0e1c\u0e25\n40(5) \u0e04\u0e48\u0e32\u0e40\u0e0a\u0e48\u0e32\n40(6) \u0e23\u0e32\u0e07\u0e27\u0e31\u0e25 \u0e2a\u0e48\u0e27\u0e19\u0e25\u0e14\n40(7) \u0e04\u0e48\u0e32\u0e08\u0e49\u0e32\u0e07\u0e17\u0e33\u0e02\u0e2d\u0e07\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23/\u0e04\u0e48\u0e32\u0e27\u0e34\u0e0a\u0e32\u0e0a\u0e35\u0e1e\u0e2d\u0e34\u0e2a\u0e23\u0e30\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23\u0e19\u0e34\u0e15\u0e34\u0e1a\u0e38\u0e04\u0e04\u0e25 3%\n40(8) \u0e04\u0e48\u0e32\u0e1a\u0e23\u0e34\u0e01\u0e32\u0e23\u0e19\u0e34\u0e15\u0e34\u0e1a\u0e38\u0e04\u0e04\u0e25 5%\n40(8) \u0e04\u0e48\u0e32\u0e02\u0e19\u0e2a\u0e48\u0e07 1%\n40(8) \u0e04\u0e48\u0e32\u0e40\u0e1a\u0e35\u0e49\u0e22\u0e1b\u0e23\u0e30\u0e01\u0e31\u0e19 1%\n40(8) \u0e04\u0e48\u0e32\u0e42\u0e06\u0e29\u0e13\u0e32 2%",
    "reqd": 1,
    "width": "200px"
   },
@@ -85,7 +85,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-04-02 05:51:19.718157",
+ "modified": "2026-11-22 16:07:45.795754",
  "modified_by": "Administrator",
  "module": "Print Designer",
  "name": "Withholding Tax Item",

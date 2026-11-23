@@ -120,6 +120,7 @@
 							<label
 								v-if="
 									!fd.frappeControl &&
+									!fd.component &&
 									fd.isLabelled &&
 									(fd.icon == null || !fd.icon?.onlyIcon) &&
 									!fd.button
@@ -130,6 +131,7 @@
 							<input
 								v-if="
 									!fd.frappeControl &&
+									!fd.component &&
 									(fd.icon == null || !fd.icon.onlyIcon) &&
 									!fd.button
 								"

@@ -17,6 +17,12 @@ import {
 
 import html2canvas from "html2canvas";
 
+function logSaveTiming(stage, startedAt) {
+  console.log("[Print Designer Save]", stage, {
+    elapsedMs: Math.round(performance.now() - startedAt),
+  });
+}
+
 // Enhanced layout types
 const LAYOUT_TYPES = {
   ABSOLUTE: "absolute", // Current behavior - precise positioning
@@ -431,33 +437,21 @@ export const useElementStore = defineStore("ElementStore", {
     // This is modified version of upload function used in frappe/FileUploader.vue
     async upload_file(file) {
       const MainStore = useMainStore();
-      MainStore.print_designer_preview_img = null;
       return new Promise((resolve, reject) => {
         console.log("upload_file_resolve", resolve);
         console.log("upload_file_reject", reject);
 
         const xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = () => {
-          if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (xhr.status === 200) {
-              try {
-                r = JSON.parse(xhr.responseText);
-                if (r.message.doctype === "File") {
-                  file_url = r.message.file_url;
-                  frappe.db.set_value(
-                    "Print Format",
-                    MainStore.printDesignName,
-                    "print_designer_preview_img",
-                    file_url,
-                  );
-                }
-              } catch (e) {
-                console.error("upload_file_error", e);
-                r = xhr.responseText;
-              }
-            }
+        xhr.responseType = "json";
+        xhr.onload = () => {
+          const uploaded = xhr.response?.message;
+          if (xhr.status !== 200 || uploaded?.doctype !== "File" || !uploaded.file_url) {
+            reject(new Error(`Thumbnail upload failed (HTTP ${xhr.status})`));
+            return;
           }
+          resolve(uploaded.file_url);
         };
+        xhr.onerror = () => reject(new Error("Thumbnail upload failed"));
         xhr.open("POST", "/api/method/upload_file", true);
         xhr.setRequestHeader("Accept", "application/json");
         xhr.setRequestHeader("X-Frappe-CSRF-Token", frappe.csrf_token);
@@ -481,71 +475,66 @@ export const useElementStore = defineStore("ElementStore", {
     },
     async generatePreview() {
       const MainStore = useMainStore();
-      // first delete old preview image
+      const page = document.querySelector(".main-container");
+      if (!page) return;
+      const printFormat = MainStore.printDesignName;
+      const startedAt = performance.now();
+      const printStylesheet = document.createElement("style");
+      printStylesheet.textContent = ".main-container::after { display: none; }";
+      page.appendChild(printStylesheet);
+
+      let canvas;
+      try {
+        canvas = await html2canvas(page, {
+          backgroundColor: "#ffffff",
+          height: MainStore.page.height,
+          width: MainStore.page.width,
+          // Keep the printed page, its layout ancestors and global styles.
+          // Desk chrome, the toolbar and other pages aren't in the thumbnail.
+          ignoreElements: (element) =>
+            !element.contains(page) &&
+            !page.contains(element) &&
+            !document.head.contains(element) &&
+            !["STYLE", "LINK"].includes(element.tagName),
+        });
+      } finally {
+        printStylesheet.remove();
+      }
+      logSaveTiming("thumbnail capture", startedAt);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg"));
+      if (!blob || MainStore.printDesignName !== printFormat) return;
+
       const filter = {
         attached_to_doctype: "Print Format",
-        attached_to_name: MainStore.printDesignName,
+        attached_to_name: printFormat,
         attached_to_field: "print_designer_preview_img",
       };
-      // get filename before uploading new file
-      let old_filename = await frappe.db.get_value("File", filter, "name");
-      old_filename = old_filename.message.name;
-      if (old_filename) {
-        frappe.db.delete_doc("File", old_filename);
+      const oldFile = await frappe.db.get_value("File", filter, "name");
+      if (MainStore.printDesignName !== printFormat) return;
+      if (oldFile.message?.name) {
+        await frappe.xcall("frappe.client.delete", {
+          doctype: "File",
+          name: oldFile.message.name,
+        });
       }
-
-      const options = {
-        backgroundColor: "#ffffff",
-        height: MainStore.page.height,
-        width: MainStore.page.width,
-      };
-      const print_stylesheet = document.createElement("style");
-      print_stylesheet.rel = "stylesheet";
-      const st = `.main-container::after {
-				display: none;
-			}`;
-      document
-        .getElementsByClassName("main-container")[0]
-        .appendChild(print_stylesheet);
-      print_stylesheet.sheet.insertRule(st, 0);
-      const preview_canvas = await html2canvas(
-        document.getElementsByClassName("main-container")[0],
-        options,
+      if (MainStore.printDesignName !== printFormat) return;
+      const file = new File(
+        [blob],
+        `print_designer-${frappe.scrub(printFormat)}-preview.jpg`,
+        { type: "image/jpeg" },
       );
-      document
-        .getElementsByClassName("main-container")[0]
-        .removeChild(print_stylesheet);
-      preview_canvas.toBlob(async (blob) => {
-        const file = new File(
-          [blob],
-          `print_designer-${frappe.scrub(MainStore.printDesignName)}-preview.jpg`,
-          { type: "image/jpeg" },
-        );
-        const file_data = {
-          file_obj: file,
-          optimize: 1,
-          name: file.name,
-          private: true,
-        };
-        await this.upload_file(file_data);
-      });
+      const uploadStartedAt = performance.now();
+      const fileUrl = await this.upload_file({ file_obj: file, optimize: 1, name: file.name });
+      await frappe.db.set_value("Print Format", printFormat, "print_designer_preview_img", fileUrl);
+      logSaveTiming("thumbnail upload and link", uploadStartedAt);
+      logSaveTiming("thumbnail complete", startedAt);
     },
     async saveElements(options = {}) {
       const MainStore = useMainStore();
       if (this.checkIfAnyTableIsEmpty()) return;
 
-      // Optimization: Check debounce for thumbnail generation
-      const now = Date.now();
-      const shouldGenerateThumbnail =
-        options.generateThumbnail !== false &&
-        MainStore.thumbnailEnabled !== false &&
-        !MainStore.isGeneratingThumbnail &&
-        now - MainStore.lastSaveTime > MainStore.thumbnailDebounceMs;
-
-      // Prevent concurrent thumbnail generation
-      if (shouldGenerateThumbnail) {
-        MainStore.isGeneratingThumbnail = true;
-      }
+      const startedAt = performance.now();
+      logSaveTiming("started", startedAt);
 
       try {
         const is_standard = await frappe.db.get_value(
@@ -554,6 +543,7 @@ export const useElementStore = defineStore("ElementStore", {
           "standard",
         );
         MainStore.is_standard = is_standard.message.standard === "Yes";
+        logSaveTiming("format metadata", startedAt);
         // Update the header and footer height with margin
         MainStore.page.headerHeightWithMargin =
           MainStore.page.headerHeight + MainStore.page.marginTop;
@@ -595,14 +585,17 @@ export const useElementStore = defineStore("ElementStore", {
         objectToSave.print_designer_settings = JSON.stringify(settingsForSave);
         objectToSave.print_designer_after_table = null;
         objectToSave.css = css;
+        logSaveTiming("layout prepared", startedAt);
         if (MainStore.isOlderSchema("1.3.0")) {
           await this.printFormatCopyOnOlderSchema(objectToSave);
         } else {
+          const requestStartedAt = performance.now();
           await frappe.db.set_value(
             "Print Format",
             MainStore.printDesignName,
             objectToSave,
           );
+          logSaveTiming("save request", requestStartedAt);
           frappe.show_alert(
             {
               message: `Print Format Saved Successfully`,
@@ -611,14 +604,18 @@ export const useElementStore = defineStore("ElementStore", {
             5,
           );
 
-          // Update last save time
+          logSaveTiming("layout saved", startedAt);
+          const now = Date.now();
+          const shouldGenerateThumbnail =
+            options.generateThumbnail !== false &&
+            MainStore.thumbnailEnabled !== false &&
+            !MainStore.isGeneratingThumbnail &&
+            (options.generateThumbnail === true ||
+              now - MainStore.lastSaveTime > MainStore.thumbnailDebounceMs);
           MainStore.lastSaveTime = now;
-
-          // Generate thumbnail only if conditions are met
-          // Note: thumbnail generation runs async, doesn't block UI
           if (shouldGenerateThumbnail) {
-            // Run thumbnail generation async, don't await
-            this.generatePreview()
+            MainStore.isGeneratingThumbnail = true;
+            const thumbnail = this.generatePreview()
               .catch((err) => {
                 console.error(
                   "[Performance] Thumbnail generation failed:",
@@ -628,16 +625,12 @@ export const useElementStore = defineStore("ElementStore", {
               .finally(() => {
                 MainStore.isGeneratingThumbnail = false;
               });
-          } else if (options.generateThumbnail) {
-            // Force thumbnail even if debounced
-            await this.generatePreview();
+            if (options.generateThumbnail === true) await thumbnail;
           }
         }
-      } finally {
-        // Only reset flag if thumbnail wasn't started
-        if (!shouldGenerateThumbnail) {
-          MainStore.isGeneratingThumbnail = false;
-        }
+      } catch (error) {
+        logSaveTiming("save failed", startedAt);
+        throw error;
       }
     },
     checkIfAnyTableIsEmpty() {
@@ -1140,6 +1133,8 @@ export const useElementStore = defineStore("ElementStore", {
           ];
           element.selectedDynamicText = null;
         } else if (element.type === "table") {
+          element.selectedColumn = null;
+          element.selectedDynamicText = null;
           element.columns = [
             ...element.columns.map((el) => {
               const newEl = { ...el };
@@ -1513,6 +1508,8 @@ export const useElementStore = defineStore("ElementStore", {
           element.selectedDynamicText = null;
           MainStore.dynamicData.push(...element.dynamicContent);
         } else if (element.type === "table") {
+          element.selectedColumn = null;
+          element.selectedDynamicText = null;
           if (element.table) {
             const mf = MainStore.metaFields.find(
               (field) => field.fieldname === element.table.fieldname,

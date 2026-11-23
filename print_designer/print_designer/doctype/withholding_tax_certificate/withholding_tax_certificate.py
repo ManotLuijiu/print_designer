@@ -5,6 +5,8 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import flt, getdate
 
+from print_designer.custom.payment_wht_certificate_link import get_issued_wht_certificate, set_issued_wht_certificate
+
 
 class WithholdingTaxCertificate(Document):
     def validate(self):
@@ -38,14 +40,11 @@ class WithholdingTaxCertificate(Document):
         # Clear the payment_entry link using db directly (bypass any hooks)
         frappe.db.sql("UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s", (self.name,))
         
-        # Also clear the PE's pd_custom_wht_certificate_details field
-        if pe_name:
-            frappe.db.sql("""
-                UPDATE `tabPayment Entry` 
-                SET pd_custom_wht_certificate_details = NULL 
-                WHERE name = %s
-            """, (pe_name,))
-        
+        if pe_name and frappe.db.exists("Payment Entry", pe_name):
+            payment = frappe.get_doc("Payment Entry", pe_name)
+            if get_issued_wht_certificate(payment) == self.name:
+                set_issued_wht_certificate(payment, None)
+
         frappe.db.commit()
     
     

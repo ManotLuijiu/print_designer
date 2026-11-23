@@ -25,6 +25,62 @@ def browser():
         instance.close()
 
 
+@pytest.mark.parametrize("media", ["screen", "print"])
+def test_footer_rectangle_uses_saved_x_even_beside_dynamic_width_label(browser, media):
+    env = Environment(loader=FileSystemLoader(APP))
+    template = env.from_string(
+        '{% from "print_designer/page/print_designer/jinja/macros/render.html" '
+        'import render with context %}'
+        '{% from "print_designer/page/print_designer/jinja/macros/styles.html" '
+        'import render_styles with context %}'
+        '{{ render_styles(settings) }}'
+        '<div id="footer-row">{{ render(rows, {}, footer=true) }}</div>'
+    )
+    text = {
+        "type": "text", "startX": 458, "startY": 0, "width": 66, "height": 22,
+        "isFixedSize": False, "style": {}, "classes": ["receipt-label"],
+        "content": "Received payment",
+    }
+    signature = {
+        "type": "rectangle", "layoutType": "column", "rectangleContainer": True,
+        "startX": 462, "startY": 11, "width": 287, "height": 86, "heightType": "fixed",
+        "style": {"borderBottom": "1px solid black"}, "classes": ["signature-line"],
+        "childrens": [],
+    }
+    row = {
+        "type": "rectangle", "layoutType": "row", "heightType": "auto",
+        "startX": 0, "startY": 0, "width": 794, "height": 97,
+        "style": {}, "classes": [], "childrens": [text, signature],
+    }
+    html = template.render(
+        rows=[row],
+        settings={
+            "schema_version": "1.3.0",
+            "page": dict(width=794, height=1123, marginTop=0, marginBottom=0,
+                         marginLeft=0, marginRight=0),
+        },
+        convert_css=lambda style: ";".join(
+            f"{'border-bottom' if key == 'borderBottom' else key}:{value}"
+            for key, value in (style or {}).items()
+        ),
+        convert_uom=lambda number, to_uom: f"{number}{to_uom}",
+        translate_print_label=lambda value: value,
+    )
+    page = browser.new_page()
+    try:
+        page.emulate_media(media=media)
+        page.set_content('<div style="width:794px">' + html + '</div>')
+        box = page.locator('#footer-row').bounding_box()
+        label = page.locator('p.receipt-label').bounding_box()
+        line = page.locator('.signature-line').bounding_box()
+        assert label['x'] - box['x'] == pytest.approx(458, abs=0.1)
+        assert line['x'] - box['x'] == pytest.approx(462, abs=0.1)
+        assert line['width'] == pytest.approx(287, abs=0.1)
+        assert box['height'] >= 97
+    finally:
+        page.close()
+
+
 @pytest.mark.parametrize("designer,copies", [(True, 1), (True, 2), (False, 1)])
 def test_footer_visibility_in_screen_and_print(browser, designer, copies):
     footer = '<div id="footer-html">Signature footer</div>'
@@ -77,7 +133,7 @@ def test_table_height_mode_with_rows(browser, height_mode, row_count):
         convert_css=lambda _: "padding: 4px;",
         span_tag=lambda *args: "Single item",
         _=lambda value: value,
-        translate_print_label=lambda value: value,
+        translate_table_column_label=lambda value: value,
     )
     page = browser.new_page()
     try:

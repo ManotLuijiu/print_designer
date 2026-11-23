@@ -9,6 +9,8 @@ when using "Create > Payment" button from Sales Invoice.
 import frappe
 from frappe import _
 
+from print_designer.custom.payment_entry_wht_rate import apply_sales_invoice_wht_details
+
 
 @frappe.whitelist()
 def get_payment_entry_with_thai_tax(dt, dn, **kwargs):
@@ -27,6 +29,7 @@ def get_payment_entry_with_thai_tax(dt, dn, **kwargs):
     
     # If this is a Sales Invoice, populate Thai tax fields
     if dt == "Sales Invoice" and pe.references:
+        apply_sales_invoice_wht_details(pe)
         for ref in pe.references:
             if ref.reference_doctype == "Sales Invoice" and ref.reference_name == dn:
                 # Fetch Thai tax data from the Sales Invoice
@@ -243,20 +246,20 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     if not thai_tax_data:
         return
     print(f"DEBUG: Populating Payment Entry header fields with Purchase Invoice data:")
-    print(f"  - pd_custom_subject_to_wht_details: {thai_tax_data.get('pd_custom_subject_to_wht')}")
-    print(f"  - pd_custom_vat_treatment_details: {thai_tax_data.get('pd_custom_vat_treatment')}")
+    print(f"  - pd_custom_subject_to_wht: {thai_tax_data.get('pd_custom_subject_to_wht')}")
+    print(f"  - pd_custom_vat_treatment: {thai_tax_data.get('pd_custom_vat_treatment')}")
     print(f"  - wht_amount: {thai_tax_data.get('wht_amount')}")
     print(f"  - wht_percentage: {thai_tax_data.get('wht_percentage')}")
-    # Set the main Thai tax fields in Payment Entry (_details suffix for PE)
-    if hasattr(pe, 'pd_custom_subject_to_wht_details'):
-        pe.pd_custom_subject_to_wht_details = thai_tax_data.get("pd_custom_subject_to_wht", 0)
-        print(f"  - Set pe.pd_custom_subject_to_wht_details = {pe.pd_custom_subject_to_wht_details}")
-    if hasattr(pe, 'pd_custom_vat_treatment_details'):
-        pe.pd_custom_vat_treatment_details = thai_tax_data.get("pd_custom_vat_treatment", "")
-        print(f"  - Set pe.pd_custom_vat_treatment_details = '{pe.pd_custom_vat_treatment_details}'")
-    if hasattr(pe, 'pd_custom_net_total_after_wht_details'):
-        pe.pd_custom_net_total_after_wht_details = thai_tax_data.get("pd_custom_net_total_after_wht", 0)
-        print(f"  - Set pe.pd_custom_net_total_after_wht_details = {pe.pd_custom_net_total_after_wht_details}")
+    # Set the main Thai tax fields in Payment Entry.
+    if hasattr(pe, 'pd_custom_subject_to_wht'):
+        pe.pd_custom_subject_to_wht = thai_tax_data.get("pd_custom_subject_to_wht", 0)
+        print(f"  - Set pe.pd_custom_subject_to_wht = {pe.pd_custom_subject_to_wht}")
+    if pe.meta.has_field("pd_custom_vat_treatment"):
+        pe.set("pd_custom_vat_treatment", thai_tax_data.get("pd_custom_vat_treatment", ""))
+        print(f"  - Set pe.pd_custom_vat_treatment = '{pe.pd_custom_vat_treatment}'")
+    if hasattr(pe, 'pd_custom_net_total_after_wht'):
+        pe.pd_custom_net_total_after_wht = thai_tax_data.get("pd_custom_net_total_after_wht", 0)
+        print(f"  - Set pe.pd_custom_net_total_after_wht = {pe.pd_custom_net_total_after_wht}")
     # Set WHT fields (_details suffix for PE)
     if hasattr(pe, 'pd_custom_withholding_tax_pct_details'):
         pe.pd_custom_withholding_tax_pct_details = thai_tax_data.get("wht_percentage", 0)
@@ -264,49 +267,49 @@ def _populate_payment_entry_purchase_fields(pe, thai_tax_data):
     if hasattr(pe, 'pd_custom_withholding_tax_amount_details'):
         pe.pd_custom_withholding_tax_amount_details = thai_tax_data.get("wht_amount", 0)
         print(f"  - Set pe.pd_custom_withholding_tax_amount_details = {pe.pd_custom_withholding_tax_amount_details}")
-    # Set income type and description from Purchase Invoice (_details suffix for PE)
-    if hasattr(pe, 'pd_custom_wht_income_type_details') and thai_tax_data.get("pd_custom_wht_income_type"):
-        pe.pd_custom_wht_income_type_details = thai_tax_data.get("pd_custom_wht_income_type", "")
-        print(f"  - Set pe.pd_custom_wht_income_type_details = '{pe.pd_custom_wht_income_type_details}'")
-    if hasattr(pe, 'pd_custom_wht_description_details') and thai_tax_data.get("pd_custom_wht_description"):
-        pe.pd_custom_wht_description_details = thai_tax_data.get("pd_custom_wht_description", "")
-        print(f"  - Set pe.pd_custom_wht_description_details = '{pe.pd_custom_wht_description_details}'")
-    # Set WHT certificate required flag (_details suffix for PE)
-    if hasattr(pe, 'pd_custom_wht_certificate_required_details'):
-        pe.pd_custom_wht_certificate_required_details = 1 if thai_tax_data.get("pd_custom_subject_to_wht", 0) else 0
-        print(f"  - Set pe.pd_custom_wht_certificate_required_details = {pe.pd_custom_wht_certificate_required_details}")
+    # Set income type and description from Purchase Invoice
+    if hasattr(pe, 'pd_custom_wht_income_type') and thai_tax_data.get("pd_custom_wht_income_type"):
+        pe.pd_custom_wht_income_type = thai_tax_data.get("pd_custom_wht_income_type", "")
+        print(f"  - Set pe.pd_custom_wht_income_type = '{pe.pd_custom_wht_income_type}'")
+    if hasattr(pe, 'pd_custom_wht_description') and thai_tax_data.get("pd_custom_wht_description"):
+        pe.pd_custom_wht_description = thai_tax_data.get("pd_custom_wht_description", "")
+        print(f"  - Set pe.pd_custom_wht_description = '{pe.pd_custom_wht_description}'")
+    # Set WHT certificate required flag
+    if hasattr(pe, 'pd_custom_wht_certificate_required'):
+        pe.pd_custom_wht_certificate_required = 1 if thai_tax_data.get("pd_custom_subject_to_wht", 0) else 0
+        print(f"  - Set pe.pd_custom_wht_certificate_required = {pe.pd_custom_wht_certificate_required}")
     # Set Thai compliance application flags (_details suffix for PE)
     if hasattr(pe, 'pd_custom_apply_thai_wht_compliance_details'):
         pe.pd_custom_apply_thai_wht_compliance_details = thai_tax_data.get("pd_custom_apply_thai_wht_compliance", 0)
         print(f"  - Set pe.pd_custom_apply_thai_wht_compliance_details = {pe.pd_custom_apply_thai_wht_compliance_details}")
     # Set retention fields (_details suffix for PE)
-    if hasattr(pe, 'pd_custom_subject_to_retention_details'):
-        pe.pd_custom_subject_to_retention_details = thai_tax_data.get("pd_custom_subject_to_retention", 0)
-        print(f"  - Set pe.pd_custom_subject_to_retention_details = {pe.pd_custom_subject_to_retention_details}")
+    if hasattr(pe, 'pd_custom_subject_to_retention'):
+        pe.pd_custom_subject_to_retention = thai_tax_data.get("pd_custom_subject_to_retention", 0)
+        print(f"  - Set pe.pd_custom_subject_to_retention = {pe.pd_custom_subject_to_retention}")
     if hasattr(pe, 'pd_custom_retention_pct_details'):
         pe.pd_custom_retention_pct_details = thai_tax_data.get("pd_custom_retention_pct", 0)
         print(f"  - Set pe.pd_custom_retention_pct_details = {pe.pd_custom_retention_pct_details}")
     if hasattr(pe, 'pd_custom_retention_amount_details'):
         pe.pd_custom_retention_amount_details = thai_tax_data.get("pd_custom_retention_amount", 0)
         print(f"  - Set pe.pd_custom_retention_amount_details = {pe.pd_custom_retention_amount_details}")
-    # Set net after WHT + retention fields (_details suffix for PE)
+    # Set net after WHT + retention fields
     net_after_wht_retention = thai_tax_data.get("pd_custom_net_total_after_wht", 0) - thai_tax_data.get("pd_custom_retention_amount", 0)
-    if hasattr(pe, 'pd_custom_net_after_wht_retention_details'):
-        pe.pd_custom_net_after_wht_retention_details = net_after_wht_retention
-        print(f"  - Set pe.pd_custom_net_after_wht_retention_details = {pe.pd_custom_net_after_wht_retention_details}")
-    # Set Words and Note fields (_details suffix for PE) - user can edit these
+    if hasattr(pe, 'pd_custom_net_after_wht_retention'):
+        pe.pd_custom_net_after_wht_retention = net_after_wht_retention
+        print(f"  - Set pe.pd_custom_net_after_wht_retention = {pe.pd_custom_net_after_wht_retention}")
+    # Set Words and Note fields - user can edit these
     if hasattr(pe, 'pd_custom_net_total_after_wht_words'):
         pe.pd_custom_net_total_after_wht_words = thai_tax_data.get("pd_custom_net_total_after_wht_words", "")
         print(f"  - Set pe.pd_custom_net_total_after_wht_words = '{pe.pd_custom_net_total_after_wht_words}'")
-    if hasattr(pe, 'pd_custom_wht_note_details'):
-        pe.pd_custom_wht_note_details = thai_tax_data.get("pd_custom_wht_note", "")
-        print(f"  - Set pe.pd_custom_wht_note_details = '{pe.pd_custom_wht_note_details}'")
-    if hasattr(pe, 'pd_custom_net_after_wht_retention_words_details'):
-        pe.pd_custom_net_after_wht_retention_words_details = thai_tax_data.get("pd_custom_net_after_wht_retention_words", "")
-        print(f"  - Set pe.pd_custom_net_after_wht_retention_words_details = '{pe.pd_custom_net_after_wht_retention_words_details}'")
-    if hasattr(pe, 'pd_custom_retention_note_details'):
-        pe.pd_custom_retention_note_details = thai_tax_data.get("pd_custom_retention_note", "")
-        print(f"  - Set pe.pd_custom_retention_note_details = '{pe.pd_custom_retention_note_details}'")
+    if hasattr(pe, 'pd_custom_wht_note'):
+        pe.pd_custom_wht_note = thai_tax_data.get("pd_custom_wht_note", "")
+        print(f"  - Set pe.pd_custom_wht_note = '{pe.pd_custom_wht_note}'")
+    if hasattr(pe, 'pd_custom_net_after_wht_retention_words'):
+        pe.pd_custom_net_after_wht_retention_words = thai_tax_data.get("pd_custom_net_after_wht_retention_words", "")
+        print(f"  - Set pe.pd_custom_net_after_wht_retention_words = '{pe.pd_custom_net_after_wht_retention_words}'")
+    if hasattr(pe, 'pd_custom_retention_note'):
+        pe.pd_custom_retention_note = thai_tax_data.get("pd_custom_retention_note", "")
+        print(f"  - Set pe.pd_custom_retention_note = '{pe.pd_custom_retention_note}'")
 
 
 def _calculate_vat_undue_amount(invoice_name, taxes_and_charges_template, pd_custom_vat_treatment=""):

@@ -131,7 +131,11 @@
 				</div>
 			</div>
 			<AppDynamicPreviewModal
-				v-bind="{ fieldnames, modalLabel: openDynamicModal.label, isTable: !!table }"
+				v-bind="{
+					fieldnames,
+					modalLabel: table ? getTableColumnLabel(openDynamicModal) : openDynamicModal.label,
+					isTable: !!table,
+				}"
 				:ref="
 					(childRef) => {
 						childRef && (previewRef = childRef);
@@ -143,7 +147,7 @@
 </template>
 <script setup>
 import { ref, onMounted, watch, nextTick } from "vue";
-import { getMeta, getValue } from "../../store/fetchMetaAndData";
+import { getMeta, getTableColumnLabel, getValue } from "../../store/fetchMetaAndData";
 import { useMainStore } from "../../store/MainStore";
 import AppModal from "./AppModal.vue";
 import IconsUse from "../../icons/IconsUse.vue";
@@ -310,10 +314,9 @@ const selectField = async (field, fieldtype) => {
 	}
 	previewRef.value.setSelectedEl({ index, field: dynamicField });
 	if (props.table) {
-		if (fieldnames.value?.length === 1) {
-			previewRef.value.setLabel(fieldnames.value[0].label);
-		} else if (fieldnames.value?.length === 0) {
-			previewRef.value.setLabel("");
+		if (fieldnames.value.length === 1 &&
+			props.openDynamicModal.labelIsCustom !== true && !previewRef.value.labelEdited) {
+			previewRef.value.setLabel(getTableColumnLabel({ label: fieldnames.value[0].label }));
 		}
 	}
 };
@@ -331,8 +334,15 @@ const primaryClick = (e) => {
 		}
 	});
 	if (props.table) {
-		props.openDynamicModal.label = "";
-		fieldnames.value.length && (props.openDynamicModal.label = previewRef.value?.label || "");
+		const column = props.openDynamicModal;
+		const label = previewRef.value?.label || "";
+		if (previewRef.value?.labelEdited) {
+			column.label = label;
+			column.labelIsCustom = true;
+		} else if (label !== getTableColumnLabel(column)) {
+			column.label = label;
+			column.labelIsCustom = false;
+		}
 		props.openDynamicModal.dynamicContent = [];
 	}
 	if (fieldnames.value.length) {

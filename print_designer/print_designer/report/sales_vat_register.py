@@ -27,6 +27,8 @@ def get_register_rows(doctype, filters, fields, *, due=False):
     ledger_filters = {"sales_invoice": ["in", invoices]}
     if due:
         ledger_filters["vat_type"] = "VAT Due"
+        if filters.payment_entry_reference:
+            ledger_filters["payment_entry_reference"] = filters.payment_entry_reference
     rows = frappe.get_list(
         doctype, filters=ledger_filters, fields=fields, limit_page_length=0
     )

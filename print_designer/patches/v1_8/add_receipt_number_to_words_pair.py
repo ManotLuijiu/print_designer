@@ -5,8 +5,8 @@ import frappe
 from print_designer.utils.number_to_words_fields import merge_number_to_words_pair
 
 PAIR = {
-    "source_field": "pd_custom_net_total_after_wht_details",
-    "target_field": "pd_custom_net_total_after_wht_words_details",
+    "source_field": "pd_custom_net_total_after_wht",
+    "target_field": "pd_custom_net_total_after_wht_words",
 }
 
 

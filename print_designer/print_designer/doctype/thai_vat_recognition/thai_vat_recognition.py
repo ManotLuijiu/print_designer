@@ -43,6 +43,7 @@ from print_designer.custom.document_permission import (
     require_doctype_permission,
     require_document_read,
 )
+from print_designer.custom.payment_vat_link import sync_payment_vat_link
 
 
 class ThaiVATRecognition(Document):
@@ -53,10 +54,25 @@ class ThaiVATRecognition(Document):
         self.calculate_vat_amount()
         self.normalize_dates()
 
+    def before_submit(self):
+        if (
+            self.trigger_document_type == "Payment Entry" and self.trigger_document and self.sales_invoice
+            and frappe.db.exists(
+                "Thai Sales VAT",
+                {
+                    "sales_invoice": self.sales_invoice,
+                    "payment_entry_reference": self.trigger_document,
+                    "vat_type": "VAT Due",
+                },
+            )
+        ):
+            frappe.throw(_("The receipt has already posted this Output VAT."))
+
     def on_submit(self):
         self.create_vat_gl_entry()
         self.update_sales_invoice_vat_status()
         self.update_thai_sales_vat()
+        self.sync_trigger_payment_vat_link()
         # The status is written after the document has been saved, so it
         # needs the write of the database and not only the value of the
         # document.
@@ -66,6 +82,7 @@ class ThaiVATRecognition(Document):
         self.reverse_vat_gl_entry()
         self.reverse_sales_invoice_vat_status()
         self.revert_thai_sales_vat()
+        self.sync_trigger_payment_vat_link()
         self.db_set("status", "Cancelled")
 
     def normalize_dates(self):
@@ -342,6 +359,10 @@ class ThaiVATRecognition(Document):
         if je.docstatus == 1:
             je.cancel()
 
+    def sync_trigger_payment_vat_link(self):
+        if self.trigger_document_type == "Payment Entry" and self.trigger_document:
+            sync_payment_vat_link(frappe.get_doc("Payment Entry", self.trigger_document))
+
     def update_thai_sales_vat(self):
         """Mark the related ThaiSalesVAT record as VAT Due (payment received)."""
         if not self.sales_invoice:
@@ -374,11 +395,17 @@ class ThaiVATRecognition(Document):
         )
         for rec in records:
             doc = frappe.get_doc("Thai Sales VAT", rec.name)
-            if doc.vat_type == "VAT Due":
-                doc.vat_type = "VAT Undue"
-                doc.payment_entry_reference = None
-                doc.vat_conversion_date = None
-                doc.save(ignore_permissions=True)
+            if doc.vat_type != "VAT Due":
+                continue
+            # Reversing this payment must not clear another receipt's VAT record.
+            if self.trigger_document_type == "Payment Entry" and (
+                doc.payment_entry_reference != self.trigger_document
+            ):
+                continue
+            doc.vat_type = "VAT Undue"
+            doc.payment_entry_reference = None
+            doc.vat_conversion_date = None
+            doc.save(ignore_permissions=True)
 
     def _get_vat_account(self, account_type):
         """The VAT account of the company.

@@ -1565,16 +1565,15 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
 
         # PD_CUSTOM TAB FIELDS (confirmed to exist from database check)
         pd_fields = {
-            "pd_custom_apply_withholding_tax": 1 if apply_wht else 0,
-            "pd_custom_withholding_tax_amount": total_withholding_amount,
-            "pd_custom_withholding_tax_rate": list(wht_rates)[0]
-            if wht_rates
-            else 0,  # Populate WHT rate from Sales Invoice
+            "pd_custom_withholding_tax_amount_details": total_withholding_amount,
             "pd_custom_tax_base_amount": total_net_total,  # Use net_total (excluding VAT) as tax base
-            "pd_custom_net_payment_amount": sum(ref.allocated_amount for ref in references)
+            "pd_custom_net_after_wht_retention": sum(ref.allocated_amount for ref in references)
             - total_withholding_amount
             - total_retention_amount,
         }
+
+        if doc.payment_type == "Pay":
+            pd_fields["pd_custom_withholding_tax_pct_details"] = next(iter(wht_rates), 0)
 
         # DEPRECATED: pd_custom_income_type - Use pd_custom_wht_income_type (Link to Tax Withholding Category) instead
         # This Select field caused validation errors when copying Tax Withholding Category names to it
@@ -1593,8 +1592,9 @@ def _populate_main_payment_entry_thai_preview_fields(doc):
 
         # Add pd_custom fields to update
         for field, value in pd_fields.items():
-            update_fields[field] = value
-            print(f"✅ Will update {field}: {value}")
+            if doc.meta.has_field(field):
+                update_fields[field] = value
+                print(f"✅ Will update {field}: {value}")
 
         # Perform database update if we have fields to update
         if update_fields:

@@ -45,7 +45,7 @@
 				}
 			"
 		>
-			<table class="printTable" :style="!columns.length && { minWidth: '200px', minHeight: '100px', display: 'block', border: '2px dashed #d32f2f' }">
+			<table class="printTable" :data-pd-border-preset="object.borderPreset" :style="!columns.length && { minWidth: '200px', minHeight: '100px', display: 'block', border: '2px dashed #d32f2f' }">
 				<thead>
 					<tr v-if="columns.length">
 						<th
@@ -55,8 +55,9 @@
 									width: `${column.width}%`,
 									maxWidth: `${column.width}%`,
 								},
-								headerStyle,
-								column.style, // Always apply column style for border overrides
+								getTableCellStyles(object.borderPreset, {
+									index, columnCount: columns.length, isHeader: true,
+								}, headerStyle, linkedHeaderStyles[index], column.headerBorderStyle),
 							]"
 							v-for="(column, index) in columns"
 							:class="
@@ -79,7 +80,7 @@
 							"
 						>
 							<span :class="{ emptyColumnHead: !Boolean(column.label.length) }">{{
-								getColumnLabel(column?.label)
+								getColumnLabel(column)
 							}}</span>
 							<div
 								class="resizer"
@@ -103,10 +104,7 @@
 				<tbody>
 					<tr
 						v-if="columns.length"
-						v-for="row in MainStore.docData[table?.fieldname]?.slice(
-							0,
-							PreviewRowNo || 3
-						) || [{ idx: 0 }]"
+						v-for="(row, rowIndex) in visibleRows"
 						:key="row.idx"
 					>
 						<BaseTableTd
@@ -119,6 +117,8 @@
 								setSelectedDynamicText,
 								table,
 								altStyle,
+								borderPreset: object.borderPreset,
+								isLastRow: !reservedRows && rowIndex === visibleRows.length - 1,
 							}"
 						/>
 					</tr>
@@ -130,10 +130,13 @@
 						class="reserved-row"
 					>
 						<td
-							v-for="column in columns"
+							v-for="(column, index) in columns"
 							:key="column.fieldname"
 							:style="[
-								style,
+								getTableCellStyles(object.borderPreset, {
+									index, columnCount: columns.length,
+									isLastRow: n === reservedRows, isPadding: true,
+								}, style, object.borderPreset && column.style),
 								{ backgroundColor: 'rgba(200, 200, 200, 0.3)' },
 							]"
 							class="reserved-cell"
@@ -156,6 +159,7 @@
 </template>
 
 <script setup>
+import { getLinkedColumnHeaderStyle, getTableCellStyles } from "../../tableBorders";
 import { useMainStore } from "../../store/MainStore";
 import { useElement } from "../../composables/Element";
 import {
@@ -171,13 +175,13 @@ import { useDraw } from "../../composables/Draw";
 import BaseResizeHandles from "./BaseResizeHandles.vue";
 import AppTableContextMenu from "../layout/AppTableContextMenu.vue";
 import BaseTableTd from "./BaseTableTd.vue";
+import { getTableColumnLabel } from "../../store/fetchMetaAndData";
 import { onClickOutside } from "@vueuse/core";
 const MainStore = useMainStore();
 
 // Translation map for column headers
 // English -> Thai translations for common print column labels
 const columnLabelTranslations = {
-  "No.": "เลขที่",
   "Item Name": "ชื่อสินค้า",
   "Description": "รายละเอียด",
   "Quantity": "ปริมาณ",
@@ -196,9 +200,10 @@ const columnLabelTranslations = {
 };
 
 // Get translated column label based on previewLanguage
-const getColumnLabel = (label) => {
+const getColumnLabel = (column) => {
+  const label = getTableColumnLabel(column);
   if (!label) return "";
-  if (MainStore.previewLanguage === "th" && columnLabelTranslations[label]) {
+  if (column.labelIsCustom !== true && MainStore.previewLanguage === "th" && columnLabelTranslations[label]) {
     return columnLabelTranslations[label];
   }
   return label;
@@ -241,6 +246,11 @@ const {
 	DOMRef,
 } = toRefs(props.object);
 
+const visibleRows = computed(() =>
+	MainStore.docData[table.value?.fieldname]?.slice(0, PreviewRowNo.value || 3) || [{ idx: 0 }]
+);
+const linkedHeaderStyles = computed(() => columns.value.map(getLinkedColumnHeaderStyle));
+
 // Compute reserved rows for visual padding in Design View
 const reservedRows = computed(() => {
 	const dataRows = MainStore.docData[props.object.table?.fieldname]?.length || 0;
@@ -267,12 +277,18 @@ watch(
 			"| isWholeTable:", !value
 		);
 		if (value) {
-			MainStore.frappeControls.applyStyleToHeader?.set_value(value.applyStyleToHeader);
+			MainStore.frappeControls.applyStyleToHeader?.set_value(value.applyStyleToHeader ? "Yes" : "No");
 		}
 	}
 );
 
 const setSelectedDynamicText = (value, isLabel) => {
+	if (!value) {
+		selectedColumn.value = null;
+		selectedDynamicText.value = null;
+		styleEditMode.value = "main";
+		return;
+	}
 	if (
 		selectedDynamicText.value === value &&
 		styleEditMode.value == (isLabel ? "label" : "main")
@@ -650,11 +666,17 @@ const handleMouseUp = (e, tablewidth) => {
 /* Reserved/Padding rows - light background to indicate minimum rows */
 .reserved-row {
 	background-color: rgba(200, 200, 200, 0.3);
-	border: 1px dashed rgba(150, 150, 150, 0.5);
 }
 
 .reserved-cell {
 	background-color: rgba(200, 200, 200, 0.3) !important;
+}
+
+table:not([data-pd-border-preset]) .reserved-row {
+	border: 1px dashed rgba(150, 150, 150, 0.5);
+}
+
+table:not([data-pd-border-preset]) .reserved-cell {
 	border: 1px dashed rgba(150, 150, 150, 0.3) !important;
 }
 </style>

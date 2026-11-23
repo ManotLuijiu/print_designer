@@ -10,6 +10,15 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
+from print_designer.custom.payment_entry_wht_rate import apply_sales_invoice_wht_details
+from print_designer.custom.payment_vat_link import get_payment_vat_treatment, sync_payment_vat_link
+from print_designer.custom.service_receipt_vat import (
+    apply_service_receipt_vat,
+    record_service_receipt_vat,
+    reverse_service_receipt_vat,
+)
+from print_designer.custom.payment_wht_certificate_link import get_issued_wht_certificate, set_issued_wht_certificate
+
 
 def after_insert(doc, method):
     """
@@ -28,11 +37,11 @@ def after_insert(doc, method):
         return
 
     # Check if user enabled WHT certificate generation
-    apply_wht = getattr(doc, 'pd_custom_apply_withholding_tax', 0)
+    apply_wht = getattr(doc, 'pd_custom_subject_to_wht', 0)
 
-    print(f"DEBUG: pd_custom_apply_withholding_tax = {apply_wht}")
+    print(f"DEBUG: pd_custom_subject_to_wht = {apply_wht}")
 
-    if not apply_wht:
+    if not apply_wht or doc.flags.skip_wht_certificate or not flt(doc.get("pd_custom_withholding_tax_amount_details")):
         print("DEBUG: Skipping - WHT not enabled by user")
         return
 
@@ -64,12 +73,12 @@ def on_submit(doc, method):
     """
     Called when Payment Entry is submitted.
     Submit the linked WHT Certificate if it exists (Pay scenario).
-    Create Receive WHT Register entry if it exists (Receive scenario).
+    Sync the VAT link for Receive payments.
     """
     # Handle Pay scenario - submit WHT Certificate
     if doc.payment_type == "Pay":
         # Check if there's a linked WHT Certificate
-        wht_certificate_name = getattr(doc, 'pd_custom_wht_certificate_details', None)
+        wht_certificate_name = get_issued_wht_certificate(doc)
         if wht_certificate_name:
             try:
                 # Get the WHT Certificate and submit it
@@ -96,9 +105,11 @@ def on_submit(doc, method):
         _create_input_vat_conversion_gl_entries(doc)
         # Also create Thai Purchase VAT record for reconciliation
         _create_thai_purchase_vat_from_pe_simple(doc)
-    # Handle Receive scenario - create Receive WHT Register entry
+        sync_payment_vat_link(doc)
+    # Sync the VAT link for Receive payments.
     elif doc.payment_type == "Receive":
-        _create_receive_wht_register_entry(doc)
+        record_service_receipt_vat(doc)
+        sync_payment_vat_link(doc)
 
 
 def _create_thai_purchase_vat_from_pe_simple(doc):
@@ -113,7 +124,7 @@ def _create_thai_purchase_vat_from_pe_simple(doc):
         return
 
     # Check if this PE has VAT Undue treatment
-    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    vat_treatment = get_payment_vat_treatment(doc)
     if not vat_treatment or vat_treatment != "VAT Undue":
         return
 
@@ -176,9 +187,8 @@ def _create_thai_purchase_vat_from_pe_simple(doc):
 
         thai_vat.flags.ignore_permissions = True
         thai_vat.insert()
-        frappe.db.commit()
 
-        # Update PE with VAT amount and Thai Purchase VAT reference
+        # Update PE with the VAT amount recorded on the purchase VAT document
         _update_pe_vat_fields(doc, thai_vat)
 
         frappe.log_error(
@@ -206,88 +216,27 @@ def _create_thai_purchase_vat_from_pe_simple(doc):
 
 
 def _update_pe_vat_fields(doc, thai_vat_record):
-    """
-    Update Payment Entry with VAT amount and Thai Purchase VAT reference.
-    Called after Thai Purchase VAT record is created.
-    """
-    try:
-        # Calculate VAT amount from tax_base * 7%
-        tax_base = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
-        vat_amount = tax_base * 0.07 if tax_base > 0 else 0
-
-        # Update PE in database
+    """Copy the recorded VAT amount. The submit hook updates the record link."""
+    if doc.meta.has_field("pd_custom_vat_amount"):
+        vat_amount = flt(thai_vat_record.vat_amount)
         frappe.db.set_value(
-            "Payment Entry",
-            doc.name,
-            {
-                "pd_custom_vat_amount": vat_amount,
-                "pd_custom_input_vat_ref": thai_vat_record.name
-            }
+            "Payment Entry", doc.name, "pd_custom_vat_amount", vat_amount, update_modified=False
         )
-        frappe.db.commit()
-
-        # Update in-memory doc for immediate UI reflection
         doc.pd_custom_vat_amount = vat_amount
-        doc.pd_custom_input_vat_ref = thai_vat_record.name
 
-    except Exception as e:
-        frappe.log_error(
-            message=f"Error updating PE VAT fields for {doc.name}: {str(e)}",
-            title="PE VAT Fields Update Error"
-        )
-
-
-
-def _create_receive_wht_register_entry(doc):
-    """
-    Create Receive WHT Register entry from Payment Entry (Receive) values.
-    Only creates if WHT certificate number is provided.
-    """
-    # Check if WHT certificate number is provided
-    wht_cert_no = getattr(doc, 'pd_custom_wht_certificate_no', None)
-    if not wht_cert_no:
-        return  # No WHT certificate, nothing to create
-    # Check if entry already exists (avoid duplicates)
-    existing_register = getattr(doc, 'pd_custom_receive_wht_register', None)
-    if existing_register:
-        return  # Already linked to an existing register
-    try:
-        from print_designer.print_designer.doctype.receive_wht_register.receive_wht_register import create_receive_wht_register_entry
-        result = create_receive_wht_register_entry(doc.name)
-        if result.get("status") == "created":
-            # Update PE with the link
-            frappe.db.set_value(
-                "Payment Entry",
-                doc.name,
-                "pd_custom_receive_wht_register",
-                result.get("name")
-            )
-            frappe.msgprint(
-                _("Receive WHT Register {0} has been created").format(result.get("name")),
-                alert=True,
-                indicator="green"
-            )
-    except Exception as e:
-        frappe.log_error(
-            message=f"Error creating Receive WHT Register for PE {doc.name}: {str(e)}",
-            title="Receive WHT Register Creation Error"
-        )
-        frappe.msgprint(
-            _("Payment Entry submitted, but Receive WHT Register creation failed: {0}").format(str(e)),
-            alert=True,
-            indicator="orange"
-        )
 
 def on_cancel(doc, method):
     """
     Called when Payment Entry is cancelled.
     Cancel the linked WHT Certificate and delete Input VAT GL entries if they exist.
     """
+    reverse_service_receipt_vat(doc)
+    sync_payment_vat_link(doc)
     if doc.payment_type != "Pay":
         return
-    
+
     # C.1 Cancel linked WHT Certificate and clear the link
-    wht_certificate_name = getattr(doc, 'pd_custom_wht_certificate_details', None)
+    wht_certificate_name = get_issued_wht_certificate(doc)
     if wht_certificate_name:
         try:
             wht_cert = frappe.get_doc("Withholding Tax Certificate", wht_certificate_name)
@@ -316,24 +265,19 @@ def on_cancel(doc, method):
 def on_update_after_submit(doc, method):
     """
     After amended PE is saved (but before submit).
-    Clear any stale WHTC references from pd_custom_wht_certificate_details.
+    Clear any stale WHTC references from the Payment Entry.
     """
     if doc.payment_type != "Pay":
         return
     
     # Get current WHTC ref
-    wht_cert_ref = getattr(doc, 'pd_custom_wht_certificate_details', None)
+    wht_cert_ref = get_issued_wht_certificate(doc)
     if wht_cert_ref:
         # Check if the referenced WHTC is cancelled
         wht_status = frappe.db.get_value("Withholding Tax Certificate", wht_cert_ref, "docstatus")
         if wht_status == 2:  # Cancelled
             # Clear the stale reference
-            frappe.db.sql("""
-                UPDATE `tabPayment Entry` 
-                SET pd_custom_wht_certificate_details = NULL 
-                WHERE name = %s
-            """, (doc.name,))
-            frappe.db.commit()
+            set_issued_wht_certificate(doc, None)
             frappe.msgprint(
                 _("Cleared cancelled WHT Certificate reference from {0}").format(doc.name),
                 alert=True,
@@ -423,25 +367,10 @@ def _delete_thai_purchase_vat_record(doc):
 
 
 def _clear_pe_vat_fields(doc):
-    """
-    Clear VAT-related fields in Payment Entry on cancellation.
-    Clears: pd_custom_vat_amount, pd_custom_input_vat_ref
-    """
-    try:
-        frappe.db.set_value(
-            "Payment Entry",
-            doc.name,
-            {
-                "pd_custom_vat_amount": 0,
-                "pd_custom_input_vat_ref": None
-            }
-        )
-        frappe.db.commit()
-    except Exception as e:
-        frappe.log_error(
-            message=f"Error clearing PE VAT fields for {doc.name}: {str(e)}",
-            title="PE VAT Fields Clear Error"
-        )
+    """Clear the recorded VAT amount on cancellation."""
+    if doc.meta.has_field("pd_custom_vat_amount"):
+        frappe.db.set_value("Payment Entry", doc.name, "pd_custom_vat_amount", 0, update_modified=False)
+        doc.pd_custom_vat_amount = 0
 
 
 def validate(doc, method):
@@ -454,6 +383,10 @@ def validate(doc, method):
     # Step 1: Sync Total Expense Amount = Balance Payable (advance payment mode)
     _sync_total_expense_from_balance(doc)
 
+    if doc.payment_type == "Receive":
+        apply_sales_invoice_wht_details(doc)
+        apply_service_receipt_vat(doc)
+        return
     if doc.payment_type != "Pay":
         return
     # Step 2: Auto-fill pd_custom_tax_base_amount
@@ -565,8 +498,8 @@ def _validate_thai_tax_consistency(doc):
     """
     # Get tax amounts
     tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
-    wht_rate = flt(getattr(doc, 'pd_custom_withholding_tax_rate', 0))
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+    wht_rate = flt(getattr(doc, 'pd_custom_withholding_tax_pct_details', 0))
+    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0))
 
     # If WHT rate and tax base exist, validate calculated WHT amount
     if tax_base_amount > 0 and wht_rate > 0:
@@ -588,7 +521,7 @@ def _validate_thai_tax_consistency(doc):
 #     """
 #     Update the has_thai_taxes flag based on actual tax amounts.
 #     """
-#     wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount', 0))
+#     wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0))
 #     retention_amount = flt(getattr(doc, 'pd_custom_total_retention_amount', 0))
 
 #     has_thai_taxes = bool(wht_amount > 0 or retention_amount > 0)
@@ -610,7 +543,7 @@ def create_wht_certificate_from_payment_entry(payment_entry_name):
         print(f"DEBUG: Payment Entry loaded - Name: {payment_entry_doc.name}, Type: {payment_entry_doc.payment_type}")
         print(f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, flags: {payment_entry_doc.flags}")
         print(f"DEBUG: Payment Entry is_new: {payment_entry_doc.is_new()}")
-        print(f"DEBUG: WHT fields - apply_wht: {getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 'NOT_SET')}, wht_amount: {getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 'NOT_SET')}")
+        print(f"DEBUG: WHT fields - apply_wht: {getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 'NOT_SET')}, wht_amount: {getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 'NOT_SET')}")
 
         # Import and call the certificate generator
         from print_designer.custom.wht_certificate_generator import create_wht_certificate_from_payment_entry
@@ -676,7 +609,7 @@ def _create_input_vat_conversion_gl_entries(doc):
         return
     
     # Check if this PE has VAT Undue treatment
-    vat_treatment = getattr(doc, 'pd_custom_vat_treatment_details', None)
+    vat_treatment = get_payment_vat_treatment(doc)
     if not vat_treatment or vat_treatment != "VAT Undue":
         return
     

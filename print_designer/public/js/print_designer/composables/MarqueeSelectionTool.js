@@ -3,7 +3,7 @@ import { useElementStore } from "../store/ElementStore";
 import { useDraw } from "./Draw";
 export function useMarqueeSelection() {
   let canvas;
-  let marqueeElement = document.createElement("div");
+  let marqueeElement = null;
   let isElementInCanvas;
   let beforeDraw, callback;
   const MainStore = useMainStore();

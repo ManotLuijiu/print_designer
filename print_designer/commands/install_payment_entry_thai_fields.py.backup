@@ -27,116 +27,30 @@ def create_payment_entry_thai_fields():
 
     custom_fields = {
         "Payment Entry": [
-            # Thai Compliance Tab - placed after title field
-            {
-                "fieldname": "pd_custom_thai_compliance_tab",
-                "fieldtype": "Tab Break",
-                "label": "Thai Tax Compliance",
-                "insert_after": "title",
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
-            {
-                "fieldname": "pd_custom_vat_section",
-                "fieldtype": "Section Break",
-                "label": "Value Added Tax",
-                "insert_after": "pd_custom_thai_compliance_tab",
-            },
-            # Column 1 - Removed button and redundant fields
-            {
-                "fieldname": "pd_custom_thai_tax_column_1",
-                "fieldtype": "Column Break",
-                "insert_after": "pd_custom_vat_section",
-                "width": "50%",
-            },
-            {
-                "fieldname": "pd_custom_tax_invoice_number",
-                "fieldtype": "Data",
-                "label": "Tax Invoice Number",
-                "insert_after": "pd_custom_thai_tax_column_1",
-                "translatable": 0,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-                "read_only": 0,  # Ensure it's editable
-            },
-            {
-                "fieldname": "pd_custom_tax_invoice_date",
-                "fieldtype": "Date",
-                "label": "Tax Invoice Date",
-                "insert_after": "pd_custom_tax_invoice_number",
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-                "read_only": 0,  # Ensure it's editable
-            },
-            {
-                "fieldname": "pd_custom_thai_tax_column_2",
-                "fieldtype": "Column Break",
-                "insert_after": "pd_custom_tax_invoice_date",
-                "width": "50%",
-            },
-            {
-                "fieldname": "pd_custom_tax_base_amount",
-                "fieldtype": "Currency",
-                "label": "Tax Base Amount",
-                "insert_after": "pd_custom_thai_tax_column_2",  # Updated - pd_custom_income_type DEPRECATED
-                "options": "Company:company:default_currency",
-                "read_only": 1,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-                "bold": 1,
-            },
-            {
-                "fieldname": "pd_custom_vat_amount",
-                "fieldtype": "Currency",
-                "label": "VAT Amount",
-                "insert_after": "pd_custom_tax_base_amount",
-                "options": "Company:company:default_currency",
-                "read_only": 1,
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-                "bold": 1,
-            },
-            {
-                "fieldname": "pd_custom_input_vat_ref",
-                "fieldtype": "Link",
-                "label": "Input VAT Report Ref.",
-                "insert_after": "pd_custom_vat_amount",
-                "options": "Thai Purchase VAT",
-                "translatable": 0,
-                "hidden": 0,
-                "read_only": 1,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
             # Withholding Tax Section
-            {
-                "fieldname": "pd_custom_wht_section",
-                "fieldtype": "Section Break",
-                "label": "Withholding Tax",
-                "insert_after": "pd_custom_input_vat_ref",
-            },
+            # {
+            #     "fieldname": "pd_custom_wht_section",
+            #     "fieldtype": "Section Break",
+            #     "label": "Withholding Tax",
+            #     "insert_after": "pd_custom_input_vat_ref",
+            # },
             # Column 2
-            {
-                "fieldname": "pd_custom_thai_tax_column_3",
-                "fieldtype": "Column Break",
-                "insert_after": "pd_custom_wht_section",
-                "width": "50%",
-            },
-            {
-                "fieldname": "pd_custom_apply_withholding_tax",
-                "fieldtype": "Check",
-                "label": "Apply Withholding Tax",
-                "insert_after": "pd_custom_thai_tax_column_3",
-                "default": "0",
-                "hidden": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
+            # {
+            #     "fieldname": "pd_custom_thai_tax_column_3",
+            #     "fieldtype": "Column Break",
+            #     "insert_after": "pd_custom_wht_section",
+            #     "width": "50%",
+            # },
+            # {
+            #     "fieldname": "pd_custom_apply_withholding_tax",
+            #     "fieldtype": "Check",
+            #     "label": "Apply Withholding Tax",
+            #     "insert_after": "pd_custom_thai_tax_column_3",
+            #     "default": "0",
+            #     "hidden": 0,
+            #     "no_copy": 0,
+            #     "print_hide": 0,
+            # },
             # Receive WHT
             {
                 "fieldname": "pd_custom_wht_certificate_no",

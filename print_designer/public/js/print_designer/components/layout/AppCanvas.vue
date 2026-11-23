@@ -199,6 +199,8 @@ const addNewPage = async (event) => {
 	event.target.blur();
 };
 const saveHeaderFooter = async (e, isCanceled = false) => {
+	const startedAt = performance.now();
+	const section = MainStore.mode;
 	let object, headerFooterObj;
 	if (MainStore.mode == "header") {
 		object = [...ElementStore.HeadersRawObject];
@@ -253,7 +255,12 @@ const saveHeaderFooter = async (e, isCanceled = false) => {
 	);
 	MainStore.mode = "editing";
 	await updateDynamicData();
-	
+
+	if (isCanceled) return;
+	console.log("[Print Designer Save]", `${section} layout restored`, {
+		elapsedMs: Math.round(performance.now() - startedAt),
+	});
+
 	// Save watermark settings after header/footer save
 	await ElementStore.saveElements();
 	console.log('[AppCanvas] Header/Footer saved, watermark settings synced');

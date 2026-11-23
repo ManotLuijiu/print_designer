@@ -56,10 +56,15 @@
    "bold": 0
   },
   {
+   "fieldname": "wht_certificate_column_break",
+   "fieldtype": "Column Break",
+   "insert_after": "wht_certificate_date"
+  },
+  {
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "insert_after": "wht_certificate_date",
+   "insert_after": "wht_certificate_column_break",
    "width": null,
    "hidden": 0,
    "reqd": 0,
@@ -120,10 +125,15 @@
    "fetch_if_empty": 1
   },
   {
+   "fieldname": "customer_column_break",
+   "fieldtype": "Column Break",
+   "insert_after": "customer_tax_id"
+  },
+  {
    "fieldname": "customer_branch_code",
    "fieldtype": "Data",
    "label": "Branch Code",
-   "insert_after": "customer_tax_id",
+   "insert_after": "customer_column_break",
    "width": null,
    "hidden": 0,
    "reqd": 0,
@@ -178,10 +188,15 @@
    "bold": 0
   },
   {
+   "fieldname": "payment_column_break",
+   "fieldtype": "Column Break",
+   "insert_after": "payment_date"
+  },
+  {
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "insert_after": "payment_date",
+   "insert_after": "payment_column_break",
    "width": null,
    "hidden": 0,
    "reqd": 1,
@@ -202,7 +217,7 @@
   },
   {
    "fieldname": "income_type",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Income Type",
    "insert_after": "wht_details_section",
    "width": null,
@@ -210,13 +225,22 @@
    "reqd": 0,
    "in_list_view": 1,
    "bold": 0,
-   "options": "40(1)\n40(2)\n40(3)\n40(4)\n40(5)\n40(6)\n40(7)\n3 65-2\n3 65-3\n3 65-4\n3 65-5\nOther"
+   "options": "Tax Withholding Category"
+  },
+  {
+   "fieldname": "legacy_income_type",
+   "fieldtype": "Data",
+   "label": "Legacy Income Type",
+   "hidden": 1,
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
   },
   {
    "fieldname": "wht_rate",
    "fieldtype": "Percent",
    "label": "WHT Rate (%)",
-   "insert_after": "income_type",
+   "insert_after": "legacy_income_type",
    "width": null,
    "hidden": 0,
    "reqd": 0,
@@ -224,10 +248,15 @@
    "bold": 0
   },
   {
-   "fieldname": "wht_amount",
+   "fieldname": "wht_details_column_break",
+   "fieldtype": "Column Break",
+   "insert_after": "wht_rate"
+  },
+  {
+   "fieldname": "tax_base_amount",
    "fieldtype": "Currency",
-   "label": "WHT Amount",
-   "insert_after": "wht_rate",
+   "label": "Tax Base Amount",
+   "insert_after": "wht_details_column_break",
    "width": null,
    "hidden": 0,
    "reqd": 0,
@@ -236,10 +265,10 @@
    "options": "Company:company:default_currency"
   },
   {
-   "fieldname": "tax_base_amount",
+   "fieldname": "wht_amount",
    "fieldtype": "Currency",
-   "label": "Tax Base Amount",
-   "insert_after": "wht_amount",
+   "label": "WHT Amount",
+   "insert_after": "tax_base_amount",
    "width": null,
    "hidden": 0,
    "reqd": 0,
@@ -251,7 +280,7 @@
    "fieldname": "remarks_section",
    "fieldtype": "Section Break",
    "label": "Remarks",
-   "insert_after": "tax_base_amount",
+   "insert_after": "wht_amount",
    "width": null,
    "hidden": 0,
    "reqd": 0,

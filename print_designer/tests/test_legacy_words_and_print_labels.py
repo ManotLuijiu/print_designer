@@ -96,7 +96,7 @@ def test_english_source_headers_translate_through_the_same_helper():
                             ("Quantity", "Due Date", "จำนวน", "วันที่ครบกำหนด")],
             },
             settings={}, doc={"items": []}, convert_css=lambda _: "",
-            translate_print_label=lambda value: translate_print_label(value, "th"),
+            translate_table_column_label=lambda value: translate_print_label(value, "th"),
         )
     assert "Quantity" not in html
     assert "Due Date" not in html

@@ -1,0 +1,15 @@
+{%- macro preset_borders(preset, first_column, last_column, is_header, last_row, padding, styles) -%}
+	{%- set edge = namespace(pattern="solid") -%}
+	{%- for style in styles if style -%}
+		{%- set pattern = style.get("borderStyle") -%}
+		{%- if pattern and pattern not in ["none", "hidden"] -%}
+			{%- set edge.pattern = pattern -%}
+		{%- endif -%}
+	{%- endfor -%}
+	{%- set outline = preset in ["outline", "full-grid"] -%}
+	{%- set row_lines = preset in ["horizontal", "full-grid"] -%}
+	border-top-style:{{ edge.pattern if is_header and (outline or row_lines) else "none" }}!important;
+	border-right-style:{{ edge.pattern if outline and last_column else "none" }}!important;
+	border-bottom-style:{{ edge.pattern if (last_row and (outline or row_lines)) or (row_lines and not padding) else "none" }}!important;
+	border-left-style:{{ edge.pattern if (outline and first_column) or preset == "full-grid" else "none" }}!important;
+{%- endmacro -%}

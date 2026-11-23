@@ -22,6 +22,7 @@ function applyPDPreviewTableBorders(previewDocument) {
     const row = cell.parentElement;
     if (row.dataset.pdRowKind === "padding") {
       paddingCells++;
+      if (cell.closest("table").dataset.pdBorderPreset) continue;
       cell.style.setProperty("border-top-width", "0px", "important");
       cell.style.setProperty(
         "border-bottom-width", row.dataset.pdLastRow === "1" ? "1px" : "0px", "important",

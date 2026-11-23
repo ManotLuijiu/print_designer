@@ -55,7 +55,7 @@ import AppToolbar from "./components/layout/AppToolbar.vue";
 import AppCanvas from "./components/layout/AppCanvas.vue";
 import AppPropertiesPanel from "./components/layout/AppPropertiesPanel.vue";
 import { useAttachKeyBindings } from "./composables/AttachKeyBindings";
-import { fetchMeta } from "./store/fetchMetaAndData";
+import { fetchDoc, fetchMeta } from "./store/fetchMetaAndData";
 
 const props = defineProps({
 	print_format_name: {
@@ -64,6 +64,8 @@ const props = defineProps({
 	},
 });
 const MainStore = useMainStore();
+let previewReady = false;
+let languageRefresh = Promise.resolve();
 
 const toolbarClasses = computed(() => {
 	return [
@@ -115,7 +117,15 @@ const populatePageNumbers = () => {
 useAttachKeyBindings();
 onMounted(() => {
 	MainStore.printDesignName = props.print_format_name;
-	fetchMeta();
+	const initialLanguage = MainStore.previewLanguage;
+	fetchMeta()
+		.then(() => {
+			previewReady = true;
+			if (MainStore.previewLanguage !== initialLanguage) {
+				return refreshPreviewLanguage();
+			}
+		})
+		.catch((error) => console.error("[PD] Initial preview failed:", error));
 	const screen_stylesheet = document.createElement("style");
 	screen_stylesheet.title = "print-designer-stylesheet";
 	screen_stylesheet.rel = "stylesheet";
@@ -168,13 +178,29 @@ watchEffect(() => {
 	}
 });
 
-// Re-fetch metadata when preview language changes (for language toggle)
+function refreshPreviewLanguage() {
+	const language = MainStore.previewLanguage;
+	languageRefresh = languageRefresh
+		.then(() => {
+			if (language === MainStore.previewLanguage) {
+				return fetchMeta({ loadLayout: false });
+			}
+		})
+		.catch((error) => console.error("[PD] Language preview failed:", error));
+	return languageRefresh;
+}
+
+watch(() => MainStore.currentDoc, async () => {
+	if (previewReady) await fetchDoc();
+});
+
+// Refresh translated metadata and values in the current, possibly unsaved layout.
 watch(
 	() => MainStore.previewLanguage,
 	(newLang, oldLang) => {
-		if (oldLang !== undefined && newLang !== oldLang) {
+		if (previewReady && newLang !== oldLang) {
 			console.log("[PD] Language changed, re-fetching metadata:", oldLang, "->", newLang);
-			fetchMeta();
+			return refreshPreviewLanguage();
 		}
 	}
 );

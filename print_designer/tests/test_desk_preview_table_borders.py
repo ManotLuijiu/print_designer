@@ -3,10 +3,11 @@
 from pathlib import Path
 
 import pytest
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
 
 from print_designer.print_designer.page.print_designer.print_designer import convert_css
+from print_designer.utils.print_labels import translate_table_column_label
 
 APP = Path(__file__).parents[1]
 MACROS = APP / 'print_designer/page/print_designer/jinja/macros'
@@ -24,8 +25,8 @@ def browser():
         browser.close()
 
 
-def render_table(row_count, legacy=False):
-    env = Environment(loader=FileSystemLoader(MACROS))
+def render_table(row_count, legacy=False, preset=None, columns=None, translate=lambda value: value):
+    env = Environment(loader=ChoiceLoader([FileSystemLoader(MACROS), FileSystemLoader(APP)]))
     if legacy:
         source = (MACROS.parent / 'old_print_format.html').read_text()
         start = source.index('{% macro render_table(')
@@ -39,11 +40,12 @@ def render_table(row_count, legacy=False):
     return template.render(
         element={
             'heightType': 'auto', 'table': {'fieldname': 'items'}, 'minRows': 4,
+            'borderPreset': preset,
             'width': 500, 'startX': 0, 'startY': 0, 'classes': [],
-            'headerStyle': {'textAlign': 'center'},
+            'headerStyle': {'textAlign': 'center', 'backgroundColor': '#cdcbf2'},
             'style': {'textAlign': 'right', 'verticalAlign': 'top', 'borderColor': '#ECAD4B'},
             'altStyle': {'borderColor': '#ff0000'},
-            'columns': [
+            'columns': columns if columns is not None else [
                 {'label': 'Hidden left', 'dynamicContent': [{}], 'applyStyleToHeader': True,
                  'style': {'borderLeftStyle': 'hidden', 'borderColor': '#4F9DD9'}},
                 {'label': 'Visible', 'dynamicContent': [{}], 'style': {}},
@@ -51,10 +53,119 @@ def render_table(row_count, legacy=False):
         },
         settings={'schema_version': '1.3.0'},
         doc={'items': [{'idx': i + 1} for i in range(row_count)]},
-        convert_css=convert_css, translate_print_label=lambda value: value,
+        convert_css=convert_css, translate_table_column_label=translate,
         span_tag=lambda *args: 'Populated item',
         render_spantag=lambda *args: 'Populated item',
     )
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+@pytest.mark.parametrize('language, expected', [
+    ('en', ['Order', 'Receive', 'Document Type', 'Document Number', 'Name']),
+    ('th', ['ลำดับที่', 'รับชำระ', 'ประเภทเอกสาร', 'เลขที่เอกสาร', 'Name']),
+])
+def test_standard_column_captions_are_global_but_custom_captions_are_literal(
+    browser, legacy, language, expected
+):
+    columns = [
+        {'label': 'No.', 'style': {}},
+        {'label': 'Allocated', 'style': {}},
+        {'label': 'Type', 'style': {}},
+        {'label': 'Name', 'style': {}},
+        {'label': 'Name', 'labelIsCustom': True, 'style': {}},
+    ]
+    page = browser.new_page()
+    try:
+        page.set_content(render_table(
+            0, legacy, columns=columns,
+            translate=lambda value: translate_table_column_label(value, language),
+        ))
+        assert page.locator('th').all_inner_texts() == expected
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_custom_column_caption_prints_literally_in_both_schemas(browser, legacy):
+    columns = [
+        {'label': 'รับชำระ', 'labelIsCustom': True, 'dynamicContent': [], 'style': {}},
+        {'label': 'Allocated', 'dynamicContent': [], 'style': {}},
+    ]
+    page = browser.new_page()
+    try:
+        page.set_content(render_table(
+            1, legacy, columns=columns,
+            translate=lambda value: 'Translated default',
+        ))
+        assert page.locator('th').all_inner_texts() == ['รับชำระ', 'Translated default']
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_header_inherits_explicit_column_styles_only_when_linked(browser, legacy):
+    columns = [
+        {'label': 'Blank fill', 'applyStyleToHeader': True, 'dynamicContent': [],
+         'style': {'backgroundColor': '', 'borderColor': '#CB2929'},
+         'linkedHeaderBorderStyle': {'borderColor': '#B4CD29'}},
+        {'label': 'Explicit fill', 'applyStyleToHeader': True, 'dynamicContent': [],
+         'style': {'backgroundColor': '#ECAD4B'}},
+        {'label': 'Unlinked', 'applyStyleToHeader': False, 'dynamicContent': [],
+         'style': {'backgroundColor': '#ECAD4B'},
+         'linkedHeaderBorderStyle': {'borderColor': '#B4CD29'},
+         'headerBorderStyle': {'borderColor': '#4F9DD9'}},
+    ]
+    page = browser.new_page()
+    try:
+        page.set_content(render_table(1, legacy, preset='full-grid', columns=columns))
+        headers = page.locator('th').evaluate_all('''cells => cells.map(cell => {
+          const style = getComputedStyle(cell);
+          return [style.backgroundColor, style.borderTopColor];
+        })''')
+        assert headers == [
+            ['rgb(205, 203, 242)', 'rgb(180, 205, 41)'],
+            ['rgb(236, 173, 75)', 'rgb(0, 0, 0)'],
+            ['rgb(205, 203, 242)', 'rgb(79, 157, 217)'],
+        ]
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+@pytest.mark.parametrize('preset, expected', [
+    ('no-grid', [False] * 6),
+    ('full-grid', [True, True, True, True, False, True]),
+    ('outline', [True, True, False, False, False, True]),
+    ('horizontal', [True, False, False, True, False, True]),
+])
+def test_presets_keep_their_edge_layout_in_print_and_desk(browser, legacy, preset, expected):
+    page = browser.new_page()
+    try:
+        page.set_content(
+            '<div id="tbs__print__page__preview"><div id="__print_designer">'
+            + render_table(2, legacy, preset) + '</div></div>'
+        )
+        read_edges = """table => {
+            const visible = (cell, side) => parseFloat(getComputedStyle(cell)[side]) > 0;
+            const [firstHeader] = table.tHead.rows[0].cells;
+            const [firstData, , firstPadding, lastPadding] = table.tBodies[0].rows;
+            return [
+                visible(firstHeader, 'borderTopWidth'),
+                visible(firstData.cells[0], 'borderLeftWidth'),
+                visible(firstData.cells[1], 'borderLeftWidth'),
+                visible(firstData.cells[0], 'borderBottomWidth'),
+                visible(firstPadding.cells[0], 'borderBottomWidth'),
+                visible(lastPadding.cells[0], 'borderBottomWidth'),
+            ];
+        }"""
+        table = page.locator('table.printTable')
+        page.emulate_media(media='print')
+        assert table.evaluate(read_edges) == expected
+        page.emulate_media(media='screen')
+        page.evaluate('() => {' + BORDER_SCRIPT + '\napplyPDPreviewTableBorders(document);}')
+        assert table.evaluate(read_edges) == expected
+    finally:
+        page.close()
 
 
 @pytest.mark.parametrize('row_count', [0, 1, 2])

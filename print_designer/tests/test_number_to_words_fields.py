@@ -33,8 +33,8 @@ class TestNumberToWordsFieldPairs(unittest.TestCase):
 
         settings = {"numberToWordsFieldPairs": []}
         pair = {
-            "source_field": "pd_custom_net_total_after_wht_details",
-            "target_field": "pd_custom_net_total_after_wht_words_details",
+            "source_field": "pd_custom_net_total_after_wht",
+            "target_field": "pd_custom_net_total_after_wht_words",
         }
 
         merge_number_to_words_pair(settings, pair)
@@ -54,6 +54,7 @@ class TestNumberToWordsFieldPairs(unittest.TestCase):
         )
 
         with (
+            patch.object(print_designer.frappe.local, "lang", "th", create=True),
             patch.object(
                 print_designer.frappe,
                 "get_doc",

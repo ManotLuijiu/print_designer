@@ -75,6 +75,7 @@ const toggle = (side) => {
   const prop = propMap[side];
   if (!style || !prop) return;
 
+  if (element.value?.borderPreset) delete element.value.borderPreset;
   const isHidden = style[prop] === "hidden";
   if (isHidden) {
     // Remove hidden or set to solid

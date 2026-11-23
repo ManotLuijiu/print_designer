@@ -25,7 +25,9 @@
     "description_section",
     "doc_title_th",
     "income_description",
-    "income_description_th"
+    "income_description_th",
+    "legal_reference",
+    "legal_reference_th"
   ],
   "fields": [
     {
@@ -153,6 +155,16 @@
       "fieldname": "income_description_th",
       "fieldtype": "Small Text",
       "label": "Income Description (TH)"
+    },
+    {
+      "fieldname": "legal_reference",
+      "fieldtype": "Small Text",
+      "label": "Legal Reference (EN)"
+    },
+    {
+      "fieldname": "legal_reference_th",
+      "fieldtype": "Small Text",
+      "label": "Legal Reference (TH)"
     }
   ],
   "grid_page_length": 50,

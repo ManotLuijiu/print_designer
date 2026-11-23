@@ -4,6 +4,7 @@ import { onClickOutside } from "@vueuse/core";
 import { getConditonalObject } from "./utils";
 export const makeFeild = ({
   name,
+  fieldname,
   ref,
   fieldtype,
   requiredData,
@@ -13,6 +14,7 @@ export const makeFeild = ({
   isStyle = false,
   isFontStyle = false,
   onChangeCallback = null,
+  applyValue = (object, value) => { object[propertyName] = value; },
   formatValue = (object, property, isStyle, _toDB = false) => {
     if (isStyle) {
       const MainStore = useMainStore();
@@ -43,6 +45,7 @@ export const makeFeild = ({
       frappe.ui.form.make_control({
         parent: $(ref),
         df: {
+          fieldname,
           fieldtype: fieldtype,
           options: typeof options == "function" ? options() : options || "",
           change: () => {
@@ -64,7 +67,7 @@ export const makeFeild = ({
                 fieldtype == "Color") &&
               obj_value != value
             ) {
-              object[propertyName] = value;
+              applyValue(object, value);
               onChangeCallback && onChangeCallback(value);
             } else if (!value && formatValue(object, propertyName, isStyle)) {
               if (
@@ -140,17 +143,17 @@ export const makeFeild = ({
       }
     }
     if (isStyle && !MainStore.frappeControls[name].vueWatcher) {
+      const currentValue = () =>
+        formatValue(MainStore.getStyleObject(isFontStyle), propertyName, isStyle);
       MainStore.frappeControls[name].vueWatcher = watch(
-        () => MainStore.getCurrentStyle(propertyName),
+        currentValue,
         () => {
           if (MainStore.getCurrentElementsValues.length < 2) {
             MainStore.frappeControls[name]?.refresh();
             nextTick(() => {
-              MainStore.frappeControls[name]?.set_value(
-                MainStore.getCurrentStyle(propertyName),
-              );
-              onChangeCallback &&
-                onChangeCallback(MainStore.getCurrentStyle(propertyName));
+              const value = currentValue();
+              MainStore.frappeControls[name]?.set_value(value);
+              onChangeCallback && onChangeCallback(value);
             });
           }
         },

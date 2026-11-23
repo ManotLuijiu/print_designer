@@ -3,6 +3,8 @@ from frappe import _
 from frappe.utils import flt, getdate, add_months
 from frappe.model.naming import make_autoname
 
+from print_designer.custom.payment_wht_certificate_link import set_issued_wht_certificate
+
 def create_wht_certificate_from_payment_entry(payment_entry_doc):
     """
     Create Withholding Tax Certificate automatically when Payment Entry is created
@@ -13,16 +15,16 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
     print(f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, is_new: {payment_entry_doc.is_new()}")
 
     # Only process Payment Entry documents where user enabled WHT
-    apply_wht = getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 0)
-    print(f"DEBUG: pd_custom_apply_withholding_tax = {apply_wht} (type: {type(apply_wht)})")
+    apply_wht = getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 0)
+    print(f"DEBUG: pd_custom_subject_to_wht = {apply_wht} (type: {type(apply_wht)})")
 
     if not apply_wht:
         print("DEBUG: Skipping - WHT not enabled by user")
-        raise frappe.ValidationError("WHT Certificate creation not enabled. Please check 'Apply Withholding Tax' checkbox.")
+        raise frappe.ValidationError("WHT Certificate creation not enabled. Please check 'Subject to Withholding Tax' checkbox.")
 
     # Check if WHT amount exists
-    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 0))
-    print(f"DEBUG: pd_custom_withholding_tax_amount = {wht_amount} (type: {type(wht_amount)})")
+    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 0))
+    print(f"DEBUG: pd_custom_withholding_tax_amount_details = {wht_amount} (type: {type(wht_amount)})")
 
     if wht_amount <= 0:
         print(f"DEBUG: Skipping - WHT amount is {wht_amount}")
@@ -155,7 +157,7 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         print(f"DEBUG: Set income_description: {wht_cert.income_description}")
 
         print(f"DEBUG: Setting WHT rate")
-        wht_cert.wht_rate = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_rate', 0))
+        wht_cert.wht_rate = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_pct_details', 0))
         print(f"DEBUG: Set wht_rate: {wht_cert.wht_rate}")
 
         print(f"DEBUG: Setting WHT condition")
@@ -206,17 +208,14 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
             raise insert_error
 
         # Create a link back to Payment Entry
-        if not hasattr(payment_entry_doc, 'pd_custom_wht_certificate_details'):
-            # Add custom field to Payment Entry if it doesn't exist
-            _ensure_wht_certificate_link_field()
-
         # Update Payment Entry with certificate link
         print(f"DEBUG: Linking WHT Certificate {wht_cert.name} to Payment Entry {payment_entry_doc.name}")
-        frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate_details", wht_cert.name)
+        set_issued_wht_certificate(payment_entry_doc, wht_cert.name)
         # Update Payment Entry with certificate NUMBER for Pay scenario
         # This makes the certificate number visible in the PE UI (_details fields)
         print(f"DEBUG: Setting pd_custom_wht_number_details = {wht_cert.certificate_number}")
-        frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_number_details", wht_cert.certificate_number)
+        if payment_entry_doc.meta.has_field("pd_custom_wht_number_details"):
+            frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_number_details", wht_cert.certificate_number)
 
         # Submit the certificate to finalize it
         print(f"DEBUG: Submitting WHT Certificate {wht_cert.name}")
@@ -227,7 +226,7 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         print(f"DEBUG: All changes committed to database")
 
         # Verify the link was created successfully
-        linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate_details")
+        linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate")
         print(f"DEBUG: Verification - Payment Entry {payment_entry_doc.name} now linked to certificate: {linked_cert}")
 
         if linked_cert != wht_cert.name:
@@ -374,26 +373,6 @@ def _get_pnd_form_and_classification(supplier_name):
         return ("PND3 Form", "Individual - Non-staff (PND.3)")
 
 
-def _ensure_wht_certificate_link_field():
-    """Ensure WHT Certificate link field exists in Payment Entry"""
-    try:
-        if not frappe.db.exists("Custom Field", {"dt": "Payment Entry", "fieldname": "pd_custom_wht_certificate_details"}):
-            custom_field = frappe.new_doc("Custom Field")
-            custom_field.dt = "Payment Entry"
-            custom_field.fieldname = "pd_custom_wht_certificate_details"
-            custom_field.fieldtype = "Link"
-            custom_field.options = "Withholding Tax Certificate"
-            custom_field.label = "WHT Certificate"
-            custom_field.description = "Link to generated Withholding Tax Certificate"
-            custom_field.insert_after = "pd_custom_thai_compliance_tab"
-            custom_field.depends_on = "eval:doc.pd_custom_has_thai_taxes"
-            custom_field.read_only = 1
-            custom_field.insert(ignore_permissions=True)
-
-    except Exception as e:
-        frappe.log_error(f"Error creating WHT Certificate link field: {str(e)}")
-
-
 @frappe.whitelist()
 def create_wht_certificate_manually(payment_entry_name):
     """Manual creation of WHT Certificate from Payment Entry"""
@@ -408,11 +387,11 @@ def get_wht_certificate_preview(payment_entry_name):
     payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
 
     # Check if eligible for WHT certificate
-    apply_wht = getattr(payment_entry_doc, 'pd_custom_apply_withholding_tax', 0)
+    apply_wht = getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 0)
     if not apply_wht:
         return {"eligible": False, "message": "WHT not enabled"}
 
-    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount', 0))
+    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 0))
     if wht_amount <= 0:
         return {"eligible": False, "message": "No WHT amount found"}
 
@@ -438,7 +417,7 @@ def get_wht_certificate_preview(payment_entry_name):
         "tax_month": _get_thai_month_display(posting_date.month),
         "supplier": payment_entry_doc.party_name,
         "tax_base_amount": flt(getattr(payment_entry_doc, 'pd_custom_tax_base_amount', 0)),
-        "wht_rate": flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_rate', 0)),
+        "wht_rate": flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_pct_details', 0)),
         "wht_amount": wht_amount,
         "income_type": _get_income_type_from_purchase_invoice(purchase_invoice),
         "pnd_form_type": _get_pnd_form_and_classification(payment_entry_doc.party)[0]  # Get only the PND form type

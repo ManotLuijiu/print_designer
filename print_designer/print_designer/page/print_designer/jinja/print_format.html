@@ -56,19 +56,19 @@ with context %} {{ render_google_fonts(settings) }}
 		>
 			<div id="firstPageFooter" style="display: block">
 				{% if pd_format.footer.firstPage %}{{ render(pd_format.footer.firstPage,
-				send_to_jinja) }}{%endif%}
+				send_to_jinja, footer=true) }}{%endif%}
 			</div>
 			<div id="oddPageFooter" style="display: none">
-				{% if pd_format.footer.oddPage %}{{ render(pd_format.footer.oddPage, send_to_jinja)
+				{% if pd_format.footer.oddPage %}{{ render(pd_format.footer.oddPage, send_to_jinja, footer=true)
 				}}{%endif%}
 			</div>
 			<div id="evenPageFooter" style="display: none">
 				{% if pd_format.footer.evenPage %}{{ render(pd_format.footer.evenPage,
-				send_to_jinja) }}{%endif%}
+				send_to_jinja, footer=true) }}{%endif%}
 			</div>
 			<div id="lastPageFooter" style="display: none">
 				{% if pd_format.footer.lastPage %}{{ render(pd_format.footer.lastPage,
-				send_to_jinja) }}{%endif%}
+				send_to_jinja, footer=true) }}{%endif%}
 			</div>
 		</div>
 	</div>

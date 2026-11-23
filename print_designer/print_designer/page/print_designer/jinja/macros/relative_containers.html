@@ -21,15 +21,19 @@
     </div>
 {%- endmacro %}
 
-{% macro relative_containers(element, send_to_jinja) -%}
+{% macro relative_containers(element, send_to_jinja, footer=false) -%}
     {%- set heightType = element.get("heightType") -%}
     {%- if settings.get("schema_version") == "1.1.0" -%}
         {%- set heightType = "auto" if element.get("isDynamicHeight", False) else "fixed" -%}
     {%- endif -%}
+    {%- set shared_origin = footer and element.childrens and element.childrens | length > 1
+        and (element.childrens | selectattr("rectangleContainer") | list)
+        and not (element.childrens | selectattr("relativeColumn") | list) -%}
     <div style="position:relative; left:{{ element.startX }}px; {%- if heightType != 'auto' -%}{%- if heightType == 'auto-min-height' -%}min-{%- endif -%}height:{{ element.height }}px; {%- endif -%} {{convert_css(element.style)}}"
     class="rectangle relative-row {{ element.classes | join(' ') }}">
         {% if element.childrens %}
             {% for object in element.childrens %}
+                {% if shared_origin %}<div class="pd-footer-positioned-item">{% endif %}
                 {%- if object.layoutType == "column" -%}
                     {{ relative_columns(object, send_to_jinja) }}
                 {%- elif object.layoutType == "row" -%}
@@ -37,6 +41,7 @@
                 {%- else -%}
                     {{ render_element(object, send_to_jinja, heightType) }}
                 {%- endif -%}
+                {% if shared_origin %}</div>{% endif %}
             {% endfor %}
         {% endif %}
     </div>

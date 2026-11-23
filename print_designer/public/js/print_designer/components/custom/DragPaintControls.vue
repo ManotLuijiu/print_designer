@@ -113,6 +113,7 @@ const handlePaint = (e) => {
 
   if (!borderProp) return;
 
+  if (el.borderPreset) delete el.borderPreset;
   // Apply based on paint mode
   switch (MainStore.borderPaintMode) {
     case "on":

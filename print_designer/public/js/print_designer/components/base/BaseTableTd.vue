@@ -1,8 +1,11 @@
 <template>
 	<td
-		v-for="column in columns"
+		v-for="(column, index) in columns"
 		:key="column.fieldname"
-		:style="[style, altStyle && row.idx % 2 == 0 && altStyle, column.style]"
+		:style="getTableCellStyles(
+			borderPreset, { index, columnCount: columns.length, isLastRow },
+			style, row.idx % 2 === 0 && altStyle, column.style,
+		)"
 		@click.self="setSelectedDynamicText(null)"
 	>
 		<template
@@ -25,8 +28,11 @@
 </template>
 
 <script setup>
+import { getTableCellStyles } from "../../tableBorders";
 import BaseDynamicTextSpanTag from "./BaseDynamicTextSpanTag.vue";
 const props = defineProps({
+	borderPreset: String,
+	isLastRow: Boolean,
 	table: {
 		type: Object,
 		required: true,
@@ -64,12 +70,12 @@ const props = defineProps({
 
 <style lang="scss" scoped>
 tr:last-child td {
-	border-bottom-style: solid !important;
+	border-bottom-style: solid;
 }
 tr td:first-child {
-	border-left-style: solid !important;
+	border-left-style: solid;
 }
 tr td:last-child {
-	border-right-style: solid !important;
+	border-right-style: solid;
 }
 </style>

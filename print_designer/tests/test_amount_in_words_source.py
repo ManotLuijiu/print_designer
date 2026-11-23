@@ -6,7 +6,7 @@ withholding tax.  The Print Format now declares the field that carries the
 amount it wants in words and that field is authoritative.
 
     paid_amount                       = 105,000
-    pd_custom_net_total_after_wht_details = 101,850  <- amount in words
+    pd_custom_net_total_after_wht = 101,850  <- amount in words
 """
 
 import json
@@ -15,15 +15,15 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 WHT_PAIR = {
-    "source_field": "pd_custom_net_total_after_wht_details",
-    "target_field": "pd_custom_net_total_after_wht_words_details",
+    "source_field": "pd_custom_net_total_after_wht",
+    "target_field": "pd_custom_net_total_after_wht_words",
 }
 
 
 class FakeMeta:
     fields = {
-        "pd_custom_net_total_after_wht_details": SimpleNamespace(fieldtype="Currency"),
-        "pd_custom_net_total_after_wht_words_details": SimpleNamespace(fieldtype="Data"),
+        "pd_custom_net_total_after_wht": SimpleNamespace(fieldtype="Currency"),
+        "pd_custom_net_total_after_wht_words": SimpleNamespace(fieldtype="Data"),
         "paid_amount": SimpleNamespace(fieldtype="Currency"),
         "received_amount": SimpleNamespace(fieldtype="Currency"),
         "grand_total": SimpleNamespace(fieldtype="Currency"),
@@ -44,8 +44,8 @@ def _payment_entry(**overrides):
         "name": "ACC-PAY-2606-00001",
         "paid_amount": 105000.0,
         "received_amount": 105000.0,
-        "pd_custom_net_total_after_wht_details": 101850.0,
-        "pd_custom_net_total_after_wht_words_details": "THB One Hundred And One Thousand, Eight Hundred And Fifty only.",
+        "pd_custom_net_total_after_wht": 101850.0,
+        "pd_custom_net_total_after_wht_words": "THB One Hundred And One Thousand, Eight Hundred And Fifty only.",
         "in_words": "THB One Hundred And Five Thousand only.",
         "currency": "THB",
     }
@@ -84,7 +84,7 @@ class TestPrimaryAmountSource(unittest.TestCase):
     def test_falls_back_to_paid_amount_when_source_field_is_empty(self):
         from print_designer.utils.number_to_words_fields import get_primary_amount
 
-        doc = _payment_entry(pd_custom_net_total_after_wht_details=0.0)
+        doc = _payment_entry(pd_custom_net_total_after_wht=0.0)
 
         self.assertEqual(get_primary_amount(doc, FakeMeta(), [WHT_PAIR]), 105000.0)
 
@@ -114,7 +114,7 @@ class TestThaiAmountEnhancement(unittest.TestCase):
 
         words, legacy_words = self._run(doc, _print_format())
 
-        self.assertEqual(doc.pd_custom_net_total_after_wht_words_details, "THAI_WORDS_101850")
+        self.assertEqual(doc.pd_custom_net_total_after_wht_words, "THAI_WORDS_101850")
         self.assertEqual(doc.in_words, "THAI_WORDS_101850")
         self.assertEqual(words.call_args_list[-1].args, (101850,))
         self.assertEqual(legacy_words.call_args_list[-1].args, (101850,))
@@ -132,7 +132,7 @@ class TestThaiAmountEnhancement(unittest.TestCase):
         self.assertEqual(legacy_words.call_args_list[-1].args, (105000,))
         # nothing to populate without a configured pair
         self.assertEqual(
-            doc.pd_custom_net_total_after_wht_words_details,
+            doc.pd_custom_net_total_after_wht_words,
             "THB One Hundred And One Thousand, Eight Hundred And Fifty only.",
         )
 

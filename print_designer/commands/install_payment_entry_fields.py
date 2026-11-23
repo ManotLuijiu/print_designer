@@ -46,6 +46,8 @@ def install_payment_entry_custom_fields():
         # Migrate pd_custom_wht_income_type from Select to Link (if exists as Select)
         migrate_wht_income_type_field("Payment Entry")
 
+        migrate_wht_certificate_link(custom_fields["Payment Entry"])
+
         # Install fields using Frappe's standard method
         create_custom_fields(custom_fields, update=True)
 
@@ -70,6 +72,26 @@ def install_payment_entry_custom_fields():
         return {"success": False, "error": error_msg}
 
 
+def migrate_wht_certificate_link(fields):
+    """Convert the two WHT link definitions without dropping stored values."""
+    link = "pd_custom_wht_certificate"
+    target = "pd_custom_wht_certificate_doctype"
+    old_type = frappe.db.get_value(
+        "Custom Field", {"dt": "Payment Entry", "fieldname": link}, "fieldtype"
+    )
+    if old_type != "Link":
+        return
+
+    # Frappe rejects Link → Dynamic Link during a normal Custom Field update.
+    # Both types use the same database column type. Limit the bypass to this pair.
+    definitions = [field for field in fields if field["fieldname"] in (target, link)]
+    create_custom_fields({"Payment Entry": definitions}, ignore_validate=True, update=True)
+    for name in frappe.get_all("Payment Entry", filters={link: ["is", "set"]}, pluck="name"):
+        frappe.db.set_value(
+            "Payment Entry", name, target, "Withholding Tax Certificate", update_modified=False
+        )
+
+
 def get_payment_entry_custom_fields_definition():
     """
     Define all Payment Entry custom fields based on Sales Invoice structure
@@ -81,28 +103,105 @@ def get_payment_entry_custom_fields_definition():
 
     return {
         "Payment Entry": [
-            # Thai WHT Compliance - Independent system
             {
-                "fieldname": "pd_custom_apply_thai_wht_compliance_details",
-                "label": "Apply Thai Withholding Tax Compliance",
-                "fieldtype": "Check",
-                "insert_after": "mode_of_payment",
-                "description": 'TDS enabled: VAT Treatment will be auto-set to "VAT Undue" for compliance',
-                "default": "0",
-                "read_only": 0,
+                "fieldname": "pd_custom_thai_compliance_tab",
+                "fieldtype": "Tab Break",
+                "label": "Thai Tax Compliance",
+                "insert_after": "title",
                 "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+            },
+            {
+                "fieldname": "pd_custom_vat_section",
+                "fieldtype": "Section Break",
+                "label": "Value Added Tax",
+                "insert_after": "pd_custom_thai_compliance_tab",
+            },
+            # Column 1 - Removed button and redundant fields
+            {
+                "fieldname": "pd_custom_thai_tax_column_1",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_vat_section",
+                "width": "50%",
+            },
+            {
+                "fieldname": "pd_custom_tax_invoice_number",
+                "fieldtype": "Data",
+                "label": "Tax Invoice Number",
+                "insert_after": "pd_custom_thai_tax_column_1",
+                "translatable": 0,
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+                "read_only": 0,  # Ensure it's editable
+            },
+            {
+                "fieldname": "pd_custom_tax_invoice_date",
+                "fieldtype": "Date",
+                "label": "Tax Invoice Date",
+                "insert_after": "pd_custom_tax_invoice_number",
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+                "read_only": 0,  # Ensure it's editable
+            },
+            {
+                "fieldname": "pd_custom_thai_tax_column_2",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_tax_invoice_date",
+                "width": "50%",
+            },
+            {
+                "fieldname": "pd_custom_tax_base_amount",
+                "fieldtype": "Currency",
+                "label": "Tax Base Amount",
+                "insert_after": "pd_custom_thai_tax_column_2",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+                "bold": 1,
+            },
+            {
+                "fieldname": "pd_custom_vat_amount",
+                "fieldtype": "Currency",
+                "label": "VAT Amount",
+                "insert_after": "pd_custom_tax_base_amount",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
+                "hidden": 0,
+                "no_copy": 0,
+                "print_hide": 0,
+                "bold": 1,
+            },
+            {
+                "fieldname": "pd_custom_vat_ref_doctype",
+                "fieldtype": "Link",
+                "label": "VAT Record Type",
+                "options": "DocType",
+                "insert_after": "pd_custom_vat_amount",
+                "hidden": 1,
+                "read_only": 1,
+                "no_copy": 1,
+            },
+            {
+                "fieldname": "pd_custom_vat_ref",
+                "fieldtype": "Dynamic Link",
+                "label": "VAT Record",
+                "options": "pd_custom_vat_ref_doctype",
+                "insert_after": "pd_custom_vat_ref_doctype",
+                "depends_on": "eval:doc.payment_type === 'Pay' || doc.payment_type === 'Receive'",
+                "read_only": 1,
+                "no_copy": 1,
             },
             # Main Thai WHT and Retention Preview Section
             {
-                "fieldname": "pd_custom_wht_preview_section",
+                "fieldname": "pd_custom_wht_and_retention_section",
                 "fieldtype": "Section Break",
-                "label": "Thai Ecosystem (Withholding Tax & Retention)",
-                "insert_after": "references",
-                "collapsible": 1,
-                "collapsible_depends_on": "eval:doc.pd_custom_apply_thai_wht_compliance_details",
+                "label": "Withholding Tax & Retention",
+                "insert_after": "pd_custom_vat_ref",
                 "no_copy": 1,
                 "read_only": 1,
                 "hidden": 0,
@@ -113,7 +212,7 @@ def get_payment_entry_custom_fields_definition():
             {
                 "fieldname": "pd_custom_wht_amounts_cb",
                 "fieldtype": "Column Break",
-                "insert_after": "pd_custom_wht_preview_section",
+                "insert_after": "pd_custom_wht_and_retention_section",
                 "no_copy": 1,
                 "read_only": 1,
                 "hidden": 0,
@@ -123,11 +222,10 @@ def get_payment_entry_custom_fields_definition():
             },
             # VAT Treatment (Foundation field - matches Sales Invoice exactly)
             {
-                "fieldname": "pd_custom_vat_treatment_details",
+                "fieldname": "pd_custom_vat_treatment",
                 "fieldtype": "Select",
                 "label": "VAT Treatment",
                 "insert_after": "pd_custom_wht_amounts_cb",
-                "description": "VAT treatment from invoices in this payment ('Standard VAT' is the legacy name of 'VAT Due')",
                 "options": "\nVAT Due\nVAT Undue\nExempt from VAT\nZero-rated for Export\nStandard VAT",
                 "read_only": 1,
                 "in_list_view": 1,
@@ -140,11 +238,10 @@ def get_payment_entry_custom_fields_definition():
             },
             # WHT Chain (matches Sales Invoice exactly)
             {
-                "fieldname": "pd_custom_subject_to_wht_details",
+                "fieldname": "pd_custom_subject_to_wht",
                 "fieldtype": "Check",
                 "label": "Subject to Withholding Tax",
-                "insert_after": "pd_custom_vat_treatment_details",
-                "description": "This payment includes invoices subject to withholding tax (auto-populated from PI)",
+                "insert_after": "pd_custom_vat_treatment",
                 "default": "0",
                 "read_only": 0,
                 "hidden": 0,
@@ -152,12 +249,45 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
+            # WHT Certificate Required
             {
-                "fieldname": "pd_custom_wht_income_type_details",
+                "fieldname": "pd_custom_wht_certificate_required",
+                "fieldtype": "Check",
+                "label": "WHT Certificate Required",
+                "insert_after": "pd_custom_subject_to_wht",
+                "default": "0",
+                "read_only": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # WHT Certificate Section
+            {
+                "fieldname": "pd_custom_wht_certificate_doctype",
+                "fieldtype": "Link",
+                "label": "WHT Certificate Type",
+                "options": "DocType",
+                "insert_after": "pd_custom_wht_certificate_required",
+                "hidden": 1,
+                "read_only": 1,
+                "no_copy": 1,
+            },
+            {
+                "fieldname": "pd_custom_wht_certificate",
+                "fieldtype": "Dynamic Link",
+                "label": "WHT Certificate",
+                "options": "pd_custom_wht_certificate_doctype",
+                "insert_after": "pd_custom_wht_certificate_doctype",
+                "depends_on": "eval:doc.payment_type === 'Pay' || doc.payment_type === 'Receive'",
+                "read_only": 1,
+                "no_copy": 1,
+            },
+            {
+                "fieldname": "pd_custom_wht_income_type",
                 "fieldtype": "Link",
                 "label": "WHT Income Type",
-                "insert_after": "pd_custom_subject_to_wht_details",
-                "description": "Type of income for WHT calculation (auto-populated from PI)",
+                "insert_after": "pd_custom_wht_certificate",
                 "options": "Tax Withholding Category",
                 "no_copy": 0,
                 "read_only": 0,
@@ -167,10 +297,147 @@ def get_payment_entry_custom_fields_definition():
                 "bold": 0,
             },
             {
+                "fieldname": "pd_custom_wht_description",
+                "fieldtype": "Data",
+                "label": "WHT Description",
+                "insert_after": "pd_custom_wht_income_type",
+                "no_copy": 0,
+                "read_only": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_net_total_after_wht",
+                "fieldtype": "Currency",
+                "label": "Net Total (After WHT)",
+                "insert_after": "pd_custom_wht_description",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_net_total_after_wht_words",
+                "fieldtype": "Data",
+                "label": "Net Total (After WHT) in Words",
+                "insert_after": "pd_custom_net_total_after_wht",
+                "read_only": 1,
+                "translatable": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_wht_note",
+                "fieldtype": "Small Text",
+                "label": "WHT Note",
+                "insert_after": "pd_custom_net_total_after_wht_words",
+                "default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักในการชำระเงินครั้งนี้\nNote: Withholding tax amount will be deducted in this payment",
+                "no_copy": 0,
+                "read_only": 0,
+                "translatable": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # Start Right Column in WHT and Retention section under Thai Tax Compliance tab
+            {
+                "fieldname": "pd_custom_wht_preview_cb",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_wht_note",
+                "read_only": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # Retention Chain (matches Sales Invoice exactly)
+            {
+                "fieldname": "pd_custom_subject_to_retention",
+                "fieldtype": "Check",
+                "label": "Subject to Retention",
+                "insert_after": "pd_custom_wht_preview_cb",
+                "read_only": 1,
+                "no_copy": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_net_after_wht_retention",
+                "fieldtype": "Currency",
+                "label": "Net Total (After WHT & Retention)",
+                "insert_after": "pd_custom_subject_to_retention",
+                "options": "Company:company:default_currency",
+                "read_only": 1,
+                "no_copy": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_net_after_wht_retention_words",
+                "fieldtype": "Data",
+                "label": "Net Total (After WHT and Retention) in Words",
+                "insert_after": "pd_custom_net_after_wht_retention",
+                "description": "Net total amount in Thai words (After WHT & Retention)",
+                "translatable": 1,
+                "read_only": 1,
+                "no_copy": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_retention_note",
+                "fieldtype": "Small Text",
+                "label": "Retention Note",
+                "insert_after": "pd_custom_net_after_wht_retention_words",
+                "description": "Important note about retention deduction timing (editable)",
+                "default": "หมายเหตุ: จำนวนเงินประกันผลงาน จะถูกหักในการชำระเงินครั้งนี้\nNote: Retention amount will be deducted in this payment",
+                "translatable": 1,
+                "read_only": 0,
+                "no_copy": 0,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # Put in Details tab
+            {
+                "fieldname": "pd_custom_amounts_section_details",
+                "fieldtype": "Section Break",
+                "label": "WHT & Retention Amounts",
+                "insert_after": "paid_to_account_currency",
+                "no_copy": 1,
+                "read_only": 1,
+                "hidden": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # Left Column in Details tab - WHT (Withholding Tax) Fields (matches Payment Entry structure)
+            {
+                "fieldname": "pd_custom_wht_amounts_left_cb_details",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_amounts_section_details",
+                "no_copy": 1,
+                "read_only": 1,
+                "hidden": 0,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            {
                 "fieldname": "pd_custom_withholding_tax_pct_details",
                 "label": "Withholding Tax (%)",
                 "fieldtype": "Percent",
-                "insert_after": "pd_custom_wht_income_type_details",
+                "insert_after": "pd_custom_wht_amounts_left_cb_details",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -188,113 +455,24 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
+            # End of WHT (Withholding Tax) Fields in Details tab
+            # Right Column in Details tab - Retention (Retention) Fields (matches Payment Entry structure)
             {
-                "fieldname": "pd_custom_net_total_after_wht_details",
-                "fieldtype": "Currency",
-                "label": "Net Total (After WHT)",
-                "insert_after": "pd_custom_withholding_tax_amount_details",
-                "description": "Net total after deducting WHT",
-                "options": "Company:company:default_currency",
-                "read_only": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_net_total_after_wht_words_details",
-                "fieldtype": "Data",
-                "label": "Net Total (After WHT) in Words",
-                "insert_after": "pd_custom_net_total_after_wht_details",
-                "description": "Net total amount in Thai words",
-                "read_only": 1,
-                "translatable": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_description_details",
-                "fieldtype": "Data",
-                "label": "WHT Description",
-                "insert_after": "pd_custom_net_total_after_wht_words_details",
-                "description": "Thai description of WHT income type",
-                "no_copy": 0,
-                "read_only": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_certificate_required_details",
-                "fieldtype": "Check",
-                "label": "WHT Certificate Required",
-                "insert_after": "pd_custom_wht_description_details",
-                "description": "Customer will provide withholding tax certificate (auto-populated from PI)",
-                "default": "1",
-                "read_only": 0,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_certificate_details",
-                "fieldtype": "Link",
-                "label": "WHT Certificate",
-                "insert_after": "pd_custom_wht_certificate_required_details",
-                "depends_on": "eval:doc.payment_type=='Pay'",
-                "options": "Withholding Tax Certificate",
-                "translatable": 0,
-                "hidden": 0,
-                "read_only": 0,
-                "no_copy": 0,
-                "print_hide": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_note_details",
-                "fieldtype": "Small Text",
-                "label": "WHT Note",
-                "insert_after": "pd_custom_wht_certificate_details",
-                "description": "Important note about WHT deduction timing (editable)",
-                "default": "หมายเหตุ: จำนวนเงินภาษีหัก ณ ที่จ่าย จะถูกหักในการชำระเงินครั้งนี้\nNote: Withholding tax amount will be deducted in this payment",
-                "no_copy": 0,
-                "read_only": 0,
-                "translatable": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_wht_preview_cb",
+                "fieldname": "pd_custom_retention_amounts_right_cb_details",
                 "fieldtype": "Column Break",
-                "insert_after": "pd_custom_wht_note_details",
-                "read_only": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            # Retention Chain (matches Sales Invoice exactly)
-            {
-                "fieldname": "pd_custom_subject_to_retention_details",
-                "fieldtype": "Check",
-                "label": "Subject to Retention",
-                "insert_after": "pd_custom_wht_preview_cb",
-                "description": "This payment includes invoices subject to retention deduction",
-                "read_only": 1,
+                "insert_after": "pd_custom_withholding_tax_amount_details",
                 "no_copy": 1,
+                "read_only": 1,
                 "hidden": 0,
                 "collapsible": 0,
                 "length": 0,
                 "bold": 0,
             },
-            # Insert at Thai Ecosystem section (addon)
             {
                 "fieldname": "pd_custom_retention_pct_details",
                 "label": "Retention (%)",
                 "fieldtype": "Percent",
-                "insert_after": "pd_custom_subject_to_retention_details",
+                "insert_after": "pd_custom_retention_amounts_right_cb_details",
                 "read_only": 0,
                 "hidden": 0,
                 "collapsible": 0,
@@ -312,48 +490,122 @@ def get_payment_entry_custom_fields_definition():
                 "length": 0,
                 "bold": 0,
             },
+            # End of retention Fields in Details tab
+            # System Section
             {
-                "fieldname": "pd_custom_net_after_wht_retention_details",
+                "fieldname": "pd_custom_system_section",
+                "fieldtype": "Section Break",
+                "label": "System",
+                "insert_after": "pd_custom_retention_note",
+                "no_copy": 1,
+                "read_only": 1,
+                "hidden": 1,  # Hidden as it's populated from Company defaults
+                "length": 0,
+                "bold": 0,
+            },
+            {
+                "fieldname": "pd_custom_system_left_cb",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_system_section",
+                "no_copy": 1,
+                "read_only": 1,
+                "hidden": 1,
+                "collapsible": 0,
+                "length": 0,
+                "bold": 0,
+            },
+            # CRITICAL: Mirror Fields for Regional GL Function (regional/payment_entry.py)
+            # These fields match the exact field names the regional function expects
+            {
+                "fieldname": "pd_custom_tax_base_amount",
                 "fieldtype": "Currency",
-                "label": "Net Total (After WHT & Retention)",
-                "insert_after": "pd_custom_retention_amount_details",
-                "description": "Net total after deducting WHT and retention",
+                "label": "Tax Base Amount (System)",
                 "options": "Company:company:default_currency",
+                "insert_after": "pd_custom_system_left_cb",
+                "description": "Mirror field for regional GL function",
+                "hidden": 1,  # Hidden as it's synced from pd_custom_tax_base_amount
                 "read_only": 1,
                 "no_copy": 1,
-                "hidden": 0,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_apply_withholding_tax",
+                "fieldtype": "Check",
+                "label": "Apply Withholding Tax (System)",
+                "insert_after": "pd_custom_tax_base_amount",
+                "description": "Mirror field for regional GL function",
+                "hidden": 1,  # Hidden as it's synced from pd_custom_apply_withholding_tax
+                "read_only": 1,
+                "no_copy": 1,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_withholding_tax_amount",
+                "fieldtype": "Currency",
+                "label": "Withholding Tax Amount (System)",
+                "options": "Company:company:default_currency",
+                "insert_after": "pd_custom_apply_withholding_tax",
+                "description": "Mirror field for regional GL function",
+                "hidden": 1,  # Hidden as it's synced from pd_custom_withholding_tax_amount
+                "read_only": 1,
+                "no_copy": 1,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_system_right_cb",
+                "fieldtype": "Column Break",
+                "insert_after": "pd_custom_withholding_tax_amount",
+                "no_copy": 1,
+                "read_only": 1,
+                "hidden": 1,
                 "collapsible": 0,
                 "length": 0,
                 "bold": 0,
             },
+            # CRITICAL: Account Configuration Fields for Thai Tax GL Entries
+            # These fields are required by regional/payment_entry.py for GL entries
             {
-                "fieldname": "pd_custom_net_after_wht_retention_words_details",
-                "fieldtype": "Data",
-                "label": "Net Total (After WHT and Retention) in Words",
-                "insert_after": "pd_custom_net_after_wht_retention_details",
-                "description": "Net total amount in Thai words (After WHT & Retention)",
-                "translatable": 1,
-                "read_only": 1,
-                "no_copy": 1,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
-            },
-            {
-                "fieldname": "pd_custom_retention_note_details",
-                "fieldtype": "Small Text",
-                "label": "Retention Note",
-                "insert_after": "pd_custom_net_after_wht_retention_words_details",
-                "description": "Important note about retention deduction timing (editable)",
-                "default": "หมายเหตุ: จำนวนเงินประกันผลงาน จะถูกหักในการชำระเงินครั้งนี้\nNote: Retention amount will be deducted in this payment",
-                "translatable": 1,
-                "read_only": 0,
+                "fieldname": "pd_custom_wht_account",
+                "fieldtype": "Link",
+                "label": "Withholding Tax Account (System)",
+                "options": "Account",
+                "insert_after": "pd_custom_system_right_cb",
+                "description": "Account for withholding tax GL entries",
+                "hidden": 1,  # Hidden as it's populated from Company defaults
                 "no_copy": 0,
-                "hidden": 0,
-                "collapsible": 0,
-                "length": 0,
-                "bold": 0,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_retention_account",
+                "fieldtype": "Link",
+                "label": "Retention Account (System)",
+                "options": "Account",
+                "insert_after": "pd_custom_wht_account",
+                "description": "Account for retention GL entries",
+                "hidden": 1,  # Hidden as it's populated from Company defaults
+                "no_copy": 0,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_output_vat_undue_account",
+                "fieldtype": "Link",
+                "label": "Output VAT Undue Account (System)",
+                "options": "Account",
+                "insert_after": "pd_custom_retention_account",
+                "description": "Account for output VAT undue GL entries",
+                "hidden": 1,  # Hidden as it's populated from Company defaults
+                "no_copy": 0,
+                "print_hide": 1,
+            },
+            {
+                "fieldname": "pd_custom_output_vat_account",
+                "fieldtype": "Link",
+                "label": "Output VAT Account (System)",
+                "options": "Account",
+                "insert_after": "pd_custom_output_vat_undue_account",
+                "description": "Account for output VAT GL entries",
+                "hidden": 1,  # Hidden as it's populated from Company defaults
+                "print_hide": 1,
             },
         ]
     }
@@ -430,7 +682,7 @@ def validate_payment_entry_fields_installation():
         installed_fields = frappe.get_all(
             "Custom Field",
             filters={"dt": "Payment Entry"},
-            fields=["fieldname", "fieldtype", "label", "insert_after", "depends_on"],
+            fields=["fieldname", "fieldtype", "label", "insert_after", "depends_on", "options"],
             order_by="idx asc, modified asc",
         )
 
@@ -457,6 +709,8 @@ def validate_payment_entry_fields_installation():
 
                 # Compare essential properties
                 essential_props = ["fieldtype", "label", "insert_after"]
+                if field_def["fieldtype"] == "Dynamic Link":
+                    essential_props.append("options")
                 for prop in essential_props:
                     expected_val = field_def.get(prop)
                     installed_val = installed_field.get(prop)

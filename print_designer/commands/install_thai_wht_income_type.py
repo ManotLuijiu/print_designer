@@ -140,10 +140,53 @@ def parse_csv_data():
                     "income_description": row.get("Income Description", "").strip(),
                     "conditions": row.get("Conditions", "").strip(),
                     "tax_rate": flt(row.get("Tax Rate (%)", 0)),
+                    "legal_reference": (row.get("Legal Reference (EN)") or "").strip(),
+                    "legal_reference_th": (row.get("Legal Reference (TH)") or "").strip(),
                 }
             )
 
     return records
+
+
+def _legal_reference_key(record):
+    return (
+        record.get("form_type"),
+        record.get("recipient_type"),
+        record.get("income_category"),
+        flt(record.get("tax_rate")),
+        " ".join((record.get("conditions") or "").split()),
+    )
+
+
+def seed_thai_wht_legal_references(records=None):
+    """Fill blank references on exact matches to the standard income types."""
+    doctype = "Thai WHT Income Type"
+    fields = ("legal_reference", "legal_reference_th")
+    if not frappe.db.exists("DocType", doctype):
+        return 0
+    if not all(frappe.get_meta(doctype).has_field(field) for field in fields):
+        return 0
+
+    if records is None:
+        records = parse_csv_data()
+    references = {_legal_reference_key(record): record for record in records}
+    existing = frappe.get_all(
+        doctype,
+        fields=["name", "form_type", "recipient_type", "income_category", "tax_rate", "conditions", *fields],
+    )
+    updated = 0
+    for row in existing:
+        seed = references.get(_legal_reference_key(row))
+        if not seed:
+            continue
+        values = {
+            field: seed[field] for field in fields
+            if seed[field] and not (row.get(field) or "").strip()
+        }
+        if values:
+            frappe.db.set_value(doctype, row.name, values)
+            updated += 1
+    return updated
 
 
 def _cleanup_invalid_tax_withholding_category_links():
@@ -287,12 +330,14 @@ def install_thai_wht_income_types():
                 )
                 created_count += 1
 
+    legal_reference_count = seed_thai_wht_legal_references(records)
     frappe.db.commit()
 
     print("Thai WHT Income Type installation complete:")
     print(f"  - Created: {created_count} records")
     print(f"  - Updated: {updated_count} records")
     print(f"  - Total: {created_count + updated_count} records")
+    print(f"  - Legal references seeded: {legal_reference_count} records")
 
     return {
         "created": created_count,
