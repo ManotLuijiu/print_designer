@@ -18,9 +18,11 @@ Architecture:
 
 import base64
 import re
+from typing import Any, cast
 
 import frappe
 from frappe.utils.data import escape_html
+from frappe.utils.jinja import render_template
 from frappe.www.printview import validate_print_permission
 from werkzeug.wrappers import Response
 
@@ -42,7 +44,7 @@ def download_tbs_pdf(
     Args:
         doctype: Document type (e.g., "Stock Entry")
         name: Document name (e.g., "MAT-STE-2026-00004")
-        print_format: Print Format name (e.g., "DGS Stock Transfer - Form 4")
+        print_format: Print Format name (e.g., "Stock Transfer - Form 4")
         no_letterhead: 0 = include letterhead, 1 = exclude
         letterhead: Letterhead name
         language: Language code (e.g., "th")
@@ -148,7 +150,7 @@ def pdf_comparison(
             letterhead=letterhead,
             pdf_generator="chrome",
         )
-        pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
+        pdf_base64 = base64.b64encode(cast(bytes, pdf_bytes)).decode("utf-8")
     except Exception as e:
         frappe.log_error(f"PDF comparison error: {e}")
         pdf_base64 = ""
@@ -547,11 +549,9 @@ def get_standalone_print_html(
     letterhead_html = ""
     if not no_letterhead and letterhead:
         try:
-            lh = frappe.get_doc("Letter Head", letterhead)
+            lh = cast(Any, frappe.get_doc("Letter Head", letterhead))
             if lh.content:
-                letterhead_html = frappe.utils.jinja.render_template(
-                    lh.content, {"doc": doc.as_dict()}
-                )
+                letterhead_html = render_template(lh.content, {"doc": doc.as_dict()})
         except Exception:
             pass
 
@@ -564,8 +564,8 @@ def get_standalone_print_html(
 
     # Get Print Format CSS
     print_css = ""
-    if pf and pf.css:
-        print_css = pf.css
+    if pf:
+        print_css = cast(Any, pf).css or ""
 
     # Build standalone HTML
     # Wrap body content with letterhead if present
@@ -587,8 +587,8 @@ def get_standalone_print_html(
     # - .print-format-gutter CSS
     # - .action-banner HTML
     # - Any framework CSS (Bootstrap, Desk, etc.)
-    title = escape_html(doc.get_title() or name)
-    lang_attr = escape_html(language or frappe.local.lang or "en")
+    title = escape_html(cast(str, doc.get_title() or name))
+    lang_attr = escape_html(cast(str, language or frappe.local.lang or "en"))
 
     standalone_html = f"""<!DOCTYPE html>
 <html lang="{lang_attr}" dir="ltr">

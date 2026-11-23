@@ -1,5 +1,7 @@
 import frappe
 
+from print_designer.utils.db import set_values
+
 
 def get_issued_wht_certificate(payment):
     if payment.payment_type != "Pay":
@@ -24,7 +26,7 @@ def set_issued_wht_certificate(payment, certificate):
     if field.fieldtype == "Dynamic Link":
         values[field.options] = "Withholding Tax Certificate" if certificate else None
 
-    frappe.db.set_value("Payment Entry", payment.name, values, update_modified=False)
+    set_values("Payment Entry", payment.name, values, update_modified=False)
     payment.update(values)
 
 
@@ -48,5 +50,5 @@ def set_received_wht_register(payment, register):
         field.fieldname: register,
         field.options: "Receive WHT Register" if register else None,
     }
-    frappe.db.set_value("Payment Entry", payment.name, values.copy(), update_modified=False)
+    set_values("Payment Entry", payment.name, values, update_modified=False)
     payment.update(values)

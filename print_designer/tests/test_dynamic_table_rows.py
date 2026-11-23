@@ -22,7 +22,7 @@ from playwright.sync_api import sync_playwright
 # =============================================================================
 # Test Configuration
 # =============================================================================
-SITE_URL = "https://digisoft-erp.bunchee.online"
+SITE_URL = "https://[site]"
 USERNAME = "Administrator"
 PASSWORD = "manlucha"
 EXECUTABLE_PATH = "/home/frappe/frappe-bench/chromium/chrome-linux/headless_shell"
@@ -30,7 +30,7 @@ EXECUTABLE_PATH = "/home/frappe/frappe-bench/chromium/chrome-linux/headless_shel
 # Test document
 DOCTYPE = "Stock Entry"
 DOCNAME = "MAT-STE-2026-00004"
-PRINT_FORMAT = "DGS Stock Transfer - Form 4"
+PRINT_FORMAT = "Stock Transfer - Form 4"
 
 
 def get_print_url():
@@ -298,7 +298,7 @@ def test_dynamic_rows_manual():
     Manual test - just navigate and run JS manually in browser console.
 
     Navigate to:
-        https://digisoft-erp.bunchee.online/desk/print/Stock%20Entry/MAT-STE-2026-00004?format=DGS%20Stock%20Transfer%20-%20Form%204
+        https://[site]/desk/print/Stock%20Entry/MAT-STE-2026-00004?format=the peer app%20Stock%20Transfer%20-%20Form%204
 
     Then in browser console, run:
 

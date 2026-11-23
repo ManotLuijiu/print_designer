@@ -11,9 +11,13 @@ Features:
 - Smart data migration from legacy branch_code fields
 """
 
+from typing import cast
+
 import click
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+from print_designer.utils.db import sql_rows
 
 # Field configuration for Customer DocType
 CUSTOMER_CUSTOM_FIELDS = {
@@ -34,7 +38,7 @@ CUSTOMER_CUSTOM_FIELDS = {
 LEGACY_BRANCH_FIELDS = [
     "branch_code",
     "custom_branch_code",
-    "dgs_custom_branch_code",  # From digisoft_erp app
+    "dgs_custom_branch_code",  # Legacy field of a peer app
     "customer_branch_code",
 ]
 
@@ -56,7 +60,7 @@ def migrate_legacy_branch_data():
         print("\n🔍 Checking for legacy branch_code fields to migrate...")
 
         # Get all existing custom fields for Customer with 'branch' in name
-        existing_fields = frappe.db.sql(
+        existing_fields = sql_rows(frappe.db.sql(
             """
             SELECT fieldname, label
             FROM `tabCustom Field`
@@ -66,6 +70,7 @@ def migrate_legacy_branch_data():
         """,
             as_dict=True,
         )
+        )
 
         if not existing_fields:
             print("   ℹ️  No legacy branch fields found - fresh installation")
@@ -73,7 +78,7 @@ def migrate_legacy_branch_data():
 
         print(f"   📋 Found {len(existing_fields)} legacy branch field(s):")
         for field in existing_fields:
-            print(f"      - {field.fieldname} ({field.label})")
+            print(f"      - {field['fieldname']} ({field['label']})")
 
         # Check if pd_custom_branch_code field exists in database
         try:
@@ -95,7 +100,7 @@ def migrate_legacy_branch_data():
                 frappe.db.sql(f"SELECT {fieldname} FROM `tabCustomer` LIMIT 1")
 
                 # Find customers with values in legacy field but empty pd_custom_branch_code
-                customers_to_migrate = frappe.db.sql(
+                customers_to_migrate = sql_rows(frappe.db.sql(
                     f"""
                     SELECT name, {fieldname} as legacy_value
                     FROM `tabCustomer`
@@ -104,6 +109,7 @@ def migrate_legacy_branch_data():
                     AND (pd_custom_branch_code IS NULL OR pd_custom_branch_code = '' OR pd_custom_branch_code = '00000')
                 """,
                     as_dict=True,
+                )
                 )
 
                 if customers_to_migrate:
@@ -114,19 +120,19 @@ def migrate_legacy_branch_data():
                             # Update pd_custom_branch_code with legacy value
                             frappe.db.set_value(
                                 "Customer",
-                                customer.name,
+                                customer["name"],
                                 "pd_custom_branch_code",
-                                customer.legacy_value,
+                                customer["legacy_value"],
                                 update_modified=False,  # Don't update modified timestamp
                             )
 
                             print(
-                                f"      ✓ {customer.name}: '{customer.legacy_value}' → pd_custom_branch_code"
+                                f"      ✓ {customer['name']}: '{customer['legacy_value']}' → pd_custom_branch_code"
                             )
                             migration_stats["migrated"] += 1
 
                         except Exception as e:
-                            print(f"      ✗ {customer.name}: Migration failed - {str(e)}")
+                            print(f"      ✗ {customer['name']}: Migration failed - {str(e)}")
                             migration_stats["errors"] += 1
 
                     # Commit after each field migration
@@ -224,7 +230,7 @@ def check_customer_fields():
         )
 
         # Check for legacy fields that might need migration
-        legacy_fields = frappe.db.sql(
+        legacy_fields = sql_rows(frappe.db.sql(
             """
             SELECT fieldname, label
             FROM `tabCustom Field`
@@ -234,16 +240,17 @@ def check_customer_fields():
         """,
             as_dict=True,
         )
+        )
 
         if legacy_fields:
             print(f"\n⚠️  Found {len(legacy_fields)} legacy branch field(s):")
             for field in legacy_fields:
-                print(f"   - {field.fieldname} ({field.label})")
+                print(f"   - {field['fieldname']} ({field['label']})")
 
             # Check if any have data
             for legacy_field in legacy_fields:
                 try:
-                    count = frappe.db.sql(
+                    count = sql_rows(frappe.db.sql(
                         f"""
                         SELECT COUNT(*) as count
                         FROM `tabCustomer`
@@ -251,7 +258,7 @@ def check_customer_fields():
                         AND {legacy_field['fieldname']} != ''
                     """,
                         as_dict=True,
-                    )[0].count
+                    ))[0]["count"]
 
                     if count > 0:
                         print(
@@ -292,7 +299,7 @@ def uninstall_customer_fields():
             )
 
             if custom_field:
-                frappe.delete_doc("Custom Field", custom_field, force=1)
+                frappe.delete_doc("Custom Field", cast(str, custom_field), force=True)
                 removed_count += 1
                 print(f"   ✓ Removed {fieldname}")
 
@@ -300,7 +307,7 @@ def uninstall_customer_fields():
         print(f"✅ Successfully removed {removed_count} Customer custom field(s)!")
 
         # Check for legacy fields
-        legacy_fields = frappe.db.sql(
+        legacy_fields = sql_rows(frappe.db.sql(
             """
             SELECT fieldname
             FROM `tabCustom Field`
@@ -309,11 +316,12 @@ def uninstall_customer_fields():
         """,
             as_dict=True,
         )
+        )
 
         if legacy_fields:
             print(f"\n⚠️  {len(legacy_fields)} legacy branch field(s) remain:")
             for field in legacy_fields:
-                print(f"   - {field.fieldname}")
+                print(f"   - {field['fieldname']}")
             print("\n💡 These are legacy fields from other apps/installations.")
             print("   You may want to manually remove them after verifying data migration.")
 

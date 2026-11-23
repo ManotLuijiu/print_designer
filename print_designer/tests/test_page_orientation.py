@@ -15,7 +15,7 @@ from playwright.sync_api import sync_playwright
 def test_page_orientation():
     """Test page orientation in print preview."""
 
-    site_url = "https://digisoft-erp.bunchee.online"
+    site_url = "https://[site]"
     username = "Administrator"
     password = "manlucha"
     executable_path = "/home/frappe/frappe-bench/chromium/chrome-linux/headless_shell"

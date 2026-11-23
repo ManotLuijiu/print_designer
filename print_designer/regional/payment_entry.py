@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, now
 
 from print_designer.custom.payment_vat_link import get_payment_vat_treatment
 
@@ -17,9 +17,13 @@ def add_regional_gl_entries(gl_entries, doc):
 
     print(f"🇹🇭 =========================== REGIONAL GL DEBUG START ===========================")
     # CRITICAL: Log to file system as well
-    with open("/tmp/thai_debug.log", "a") as f:
-        f.write(f"REGIONAL GL FUNCTION CALLED: {doc.name} at {frappe.utils.now()}\n")
-        f.flush()
+    # Debug logging must never break the submission of a payment entry.
+    try:
+        with open("/tmp/thai_debug.log", "a") as f:
+            f.write(f"REGIONAL GL FUNCTION CALLED: {doc.name} at {now()}\n")
+            f.flush()
+    except OSError:
+        pass
     print(f"🇹🇭 Processing regional GL entries for {doc.doctype}: {doc.name}")
     print(f"🇹🇭 Document status (docstatus): {getattr(doc, 'docstatus', 'NOT_SET')}")
     print(f"🇹🇭 Payment type: {getattr(doc, 'payment_type', 'NOT_SET')}")
@@ -224,13 +228,6 @@ def add_regional_gl_entries(gl_entries, doc):
         print(f"   📄 Full error: {str(e)}")
         frappe.log_error(f"Thai GL: {doc.name}: {error_msg}", "Thai GL Error")
         print(f"🇹🇭 =========================== REGIONAL GL DEBUG END (ERROR) ===========================")
-    except Exception as e:
-        error_msg = str(e)[:100] if len(str(e)) > 100 else str(e)
-        print(f"❌ ERROR CREATING REGIONAL GL ENTRIES:")
-        print(f"   💥 Error message: {error_msg}")
-        print(f"   📄 Full error: {str(e)}")
-        frappe.log_error(f"Thai GL: {doc.name}: {error_msg}", "Thai GL Error")
-        print(f"🇹🇭 =========================== REGIONAL GL DEBUG END (ERROR) ===========================")
         frappe.throw(_("Failed to create Thai compliance GL entries: {0}").format(str(e)))
 
 
@@ -393,11 +390,14 @@ def _get_vat_undue_from_linked_sales_invoices(doc, company_doc):
             print(f"   ⏭️ Skipping non-Sales Invoice reference: {ref_doctype} - {ref_name}")
             continue
 
+        if not ref_name:
+            continue
+
         print(f"   📄 Processing Sales Invoice: {ref_name} (Allocated: ฿{allocated_amount})")
 
         try:
             # Fetch Sales Invoice to check pd_custom_vat_treatment
-            si_doc = frappe.get_doc("Sales Invoice", ref_name)
+            si_doc = frappe.get_doc("Sales Invoice", str(ref_name))
             pd_custom_vat_treatment = getattr(si_doc, 'pd_custom_vat_treatment', None)
 
             print(f"      VAT Treatment: {pd_custom_vat_treatment}")

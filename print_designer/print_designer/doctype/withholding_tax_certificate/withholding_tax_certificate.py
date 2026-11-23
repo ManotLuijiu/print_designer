@@ -1,11 +1,25 @@
 # Copyright (c) 2025, Frappe Technologies Pvt Ltd. and contributors
 # For license information, please see license.txt
 
+from typing import Any, cast
+
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt, getdate
+from frappe.utils import flt
 
-from print_designer.custom.payment_wht_certificate_link import get_issued_wht_certificate, set_issued_wht_certificate
+from print_designer.custom.document_fields import field_text, field_value
+from print_designer.custom.payment_wht_certificate_link import (
+    get_issued_wht_certificate,
+    set_issued_wht_certificate,
+)
+
+# The items child table of every supported PND form. The form doctype is the key itself.
+PND_FORM_ITEMS = {
+    "PND1 Form": "PND1 Items",
+    "PND3 Form": "PND3 Items",
+    "PND53 Form": "PND53 Items",
+    "PND54 Form": "PND54 Items",
+}
 
 
 class WithholdingTaxCertificate(Document):
@@ -14,48 +28,60 @@ class WithholdingTaxCertificate(Document):
 
     def aggregate_income_items(self):
         """Compute totals from income_items child table and sync to parent summary fields."""
-        if not self.get("income_items"):
+        income_items = cast("list[Any]", self.get("income_items") or [])
+        if not income_items:
             return
 
-        total_base = 0
-        total_wht = 0
-        for item in self.income_items:
-            total_base += flt(item.gross_amount)
-            total_wht += flt(item.tax_amount)
+        total_base = 0.0
+        total_wht = 0.0
+        for item in income_items:
+            total_base += flt(item.get("gross_amount"))
+            total_wht += flt(item.get("tax_amount"))
 
-        self.tax_base_amount = flt(total_base, self.precision("tax_base_amount"))
-        self.wht_amount = flt(total_wht, self.precision("wht_amount"))
-        self.net_payment_amount = flt(total_base - total_wht, self.precision("net_payment_amount"))
+        self.set("tax_base_amount", flt(total_base, self.precision("tax_base_amount")))
+        self.set("wht_amount", flt(total_wht, self.precision("wht_amount")))
+        self.set(
+            "net_payment_amount",
+            flt(total_base - total_wht, self.precision("net_payment_amount")),
+        )
+
     def on_cancel(self):
         """Remove PND form item and clear payment entry link when certificate is cancelled"""
         # Set flag to allow link to cancelled doc during save
         frappe.flags.allow_cancelled_linked_doc = True
-        
+
         # First remove PND items (before clearing the link)
         self.remove_pnd_form_item()
-        
+
         # Get the PE name before clearing payment_entry
-        pe_name = self.payment_entry
-        
+        pe_name = field_text(self, "payment_entry")
+
         # Clear the payment_entry link using db directly (bypass any hooks)
-        frappe.db.sql("UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s", (self.name,))
-        
+        frappe.db.sql(
+            "UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s",
+            (self.name,),
+        )
+
         if pe_name and frappe.db.exists("Payment Entry", pe_name):
             payment = frappe.get_doc("Payment Entry", pe_name)
             if get_issued_wht_certificate(payment) == self.name:
                 set_issued_wht_certificate(payment, None)
 
-        frappe.db.commit()
-    
-    
-    
+        # The clearing of the links belongs to the transaction of the caller.
+        # A commit here would persist the half finished work of the caller and
+        # would destroy the savepoints of the caller, so the cancellation
+        # takes part in the transaction of the request that asked for it.
+
     def make_payment_entry_editable(self):
         """
         Make this cancelled WHTC editable by setting payment_entry to NULL.
         Called when PE needs to amend after cancelling.
         """
         if self.docstatus == 2:  # Cancelled
-            frappe.db.sql("UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s", (self.name,))
+            frappe.db.sql(
+                "UPDATE `tabWithholding Tax Certificate` SET payment_entry = NULL WHERE name = %s",
+                (self.name,),
+            )
             frappe.db.commit()
 
     def create_or_update_pnd_form_item(self, update_only=False):
@@ -63,25 +89,18 @@ class WithholdingTaxCertificate(Document):
         Create or update appropriate PND Items child table entry based on PND form type.
         This enables accounting automation where PND forms are pre-populated and ready for review.
         """
-        if not self.pnd_form_type:
+        pnd_form_type = field_text(self, "pnd_form_type")
+        if not pnd_form_type:
             return
 
-        # Determine the PND form and items doctype based on form type
-        pnd_form_mapping = {
-            "PND1 Form": ("PND1 Form", "PND1 Items"),
-            "PND3 Form": ("PND3 Form", "PND3 Items"),
-            "PND53 Form": ("PND53 Form", "PND53 Items"),
-            "PND54 Form": ("PND54 Form", "PND54 Items"),
-        }
-
-        if self.pnd_form_type not in pnd_form_mapping:
-            frappe.log_error(f"Unknown PND form type: {self.pnd_form_type}", "WHT Certificate")
+        # Determine the PND items doctype based on form type
+        pnd_items_doctype = PND_FORM_ITEMS.get(pnd_form_type)
+        if not pnd_items_doctype:
+            frappe.log_error(f"Unknown PND form type: {pnd_form_type}", "WHT Certificate")
             return
-
-        pnd_form_doctype, pnd_items_doctype = pnd_form_mapping[self.pnd_form_type]
 
         # Get or create the PND form for this tax period
-        pnd_form = self.get_or_create_pnd_form(pnd_form_doctype)
+        pnd_form = self.get_or_create_pnd_form(pnd_form_type)
         if not pnd_form:
             return
 
@@ -103,8 +122,9 @@ class WithholdingTaxCertificate(Document):
     def get_or_create_pnd_form(self, pnd_form_doctype):
         """Get existing PND form for the tax period or create a new one in draft"""
         # Extract year and month from tax fields
-        tax_year = self.tax_year
-        tax_month = self.tax_month.split(" - ")[0] if self.tax_month else None
+        tax_year = field_text(self, "tax_year")
+        raw_tax_month = field_text(self, "tax_month")
+        tax_month = raw_tax_month.split(" - ")[0] if raw_tax_month else None
 
         # Remove leading zero from month (convert "09" to "9")
         if tax_month:
@@ -132,20 +152,14 @@ class WithholdingTaxCertificate(Document):
 
         # Create new PND form in draft
         pnd_form = frappe.new_doc(pnd_form_doctype)
-        pnd_form.tax_period_year = tax_year
-        pnd_form.tax_period_month = tax_month
-        pnd_form.company = self.company
-        pnd_form.submission_status = "Draft"
+        pnd_form.set("tax_period_year", tax_year)
+        pnd_form.set("tax_period_month", tax_month)
+        pnd_form.set("company", field_value(self, "company"))
+        pnd_form.set("submission_status", "Draft")
 
-        # Set form-specific fields
-        if pnd_form_doctype == "PND53 Form":
-            pnd_form.form_number = f"PND53-{tax_year}-{tax_month}-DRAFT"
-        elif pnd_form_doctype == "PND3 Form":
-            pnd_form.form_number = f"PND3-{tax_year}-{tax_month}-DRAFT"
-        elif pnd_form_doctype == "PND1 Form":
-            pnd_form.form_number = f"PND1-{tax_year}-{tax_month}-DRAFT"
-        elif pnd_form_doctype == "PND54 Form":
-            pnd_form.form_number = f"PND54-{tax_year}-{tax_month}-DRAFT"
+        # Set form-specific fields, e.g. "PND53 Form" -> "PND53-2026-9-DRAFT"
+        form_prefix = pnd_form_doctype.split(" ")[0]
+        pnd_form.set("form_number", f"{form_prefix}-{tax_year}-{tax_month}-DRAFT")
 
         pnd_form.insert(ignore_permissions=True)
 
@@ -174,46 +188,47 @@ class WithholdingTaxCertificate(Document):
 
         # Create the item
         pnd_item = frappe.new_doc(pnd_items_doctype)
-        pnd_item.parent = pnd_form.name
-        pnd_item.parenttype = pnd_form.doctype
-        pnd_item.parentfield = "items"
-        pnd_item.sequence_number = next_sequence
-        pnd_item.withholding_tax_cert = self.name
+        pnd_item.set("parent", pnd_form.name)
+        pnd_item.set("parenttype", pnd_form.doctype)
+        pnd_item.set("parentfield", "items")
+        pnd_item.set("sequence_number", next_sequence)
+        pnd_item.set("withholding_tax_cert", self.name)
 
         # Set common fields based on the specific PND Items doctype
         if pnd_items_doctype == "PND53 Items":
-            pnd_item.company_name = self.supplier_name
-            pnd_item.company_tax_id = self.supplier_tax_id
+            pnd_item.set("company_name", field_value(self, "supplier_name"))
+            pnd_item.set("company_tax_id", field_value(self, "supplier_tax_id"))
         elif pnd_items_doctype == "PND3 Items":
             # PND3 uses supplier_name field
-            pnd_item.supplier_name = self.supplier_name
-            pnd_item.supplier_tax_id = self.supplier_tax_id
+            pnd_item.set("supplier_name", field_value(self, "supplier_name"))
+            pnd_item.set("supplier_tax_id", field_value(self, "supplier_tax_id"))
         else:
             # For PND1, PND54 - check their field names
             # Using supplier_name as default fallback
             if hasattr(pnd_item, "person_name"):
-                pnd_item.person_name = self.supplier_name
-                pnd_item.person_tax_id = self.supplier_tax_id
+                pnd_item.set("person_name", field_value(self, "supplier_name"))
+                pnd_item.set("person_tax_id", field_value(self, "supplier_tax_id"))
             else:
-                pnd_item.supplier_name = self.supplier_name
-                pnd_item.supplier_tax_id = self.supplier_tax_id
+                pnd_item.set("supplier_name", field_value(self, "supplier_name"))
+                pnd_item.set("supplier_tax_id", field_value(self, "supplier_tax_id"))
 
-        pnd_item.income_type = self.income_type
-        pnd_item.income_description = self.income_description
-        pnd_item.gross_amount = self.tax_base_amount
-        pnd_item.wht_rate = self.wht_rate
-        pnd_item.tax_amount = self.wht_amount
+        pnd_item.set("income_type", field_value(self, "income_type"))
+        pnd_item.set("income_description", field_value(self, "income_description"))
+        pnd_item.set("gross_amount", field_value(self, "tax_base_amount"))
+        pnd_item.set("wht_rate", field_value(self, "wht_rate"))
+        pnd_item.set("tax_amount", field_value(self, "wht_amount"))
 
         pnd_item.insert(ignore_permissions=True)
 
         # Update PND form totals
         pnd_form.reload()
-        if hasattr(pnd_form, "calculate_totals"):
-            pnd_form.calculate_totals()
+        calculate_totals = getattr(pnd_form, "calculate_totals", None)
+        if callable(calculate_totals):
+            calculate_totals()
             pnd_form.save(ignore_permissions=True)
 
         # Link this certificate to the PND form
-        self.custom_pnd_form = pnd_form.name
+        self.set("custom_pnd_form", pnd_form.name)
         self.save(ignore_permissions=True)
 
         frappe.msgprint(
@@ -225,36 +240,32 @@ class WithholdingTaxCertificate(Document):
         pnd_item = frappe.get_doc(pnd_items_doctype, item_name)
 
         # Update amounts and rates
-        pnd_item.gross_amount = self.tax_base_amount
-        pnd_item.wht_rate = self.wht_rate
-        pnd_item.tax_amount = self.wht_amount
-        pnd_item.income_type = self.income_type
-        pnd_item.income_description = self.income_description
+        pnd_item.set("gross_amount", field_value(self, "tax_base_amount"))
+        pnd_item.set("wht_rate", field_value(self, "wht_rate"))
+        pnd_item.set("tax_amount", field_value(self, "wht_amount"))
+        pnd_item.set("income_type", field_value(self, "income_type"))
+        pnd_item.set("income_description", field_value(self, "income_description"))
 
         pnd_item.save(ignore_permissions=True)
 
         # Update parent form totals
-        parent_form = frappe.get_doc(pnd_item.parenttype, pnd_item.parent)
-        if hasattr(parent_form, "calculate_totals"):
-            parent_form.calculate_totals()
+        parent_form = frappe.get_doc(
+            cast("str", pnd_item.get("parenttype")), cast("str", pnd_item.get("parent"))
+        )
+        calculate_totals = getattr(parent_form, "calculate_totals", None)
+        if callable(calculate_totals):
+            calculate_totals()
             parent_form.save(ignore_permissions=True)
 
     def remove_pnd_form_item(self):
         """Remove PND form item when certificate is cancelled"""
-        if not self.custom_pnd_form or not self.pnd_form_type:
+        pnd_form_type = field_text(self, "pnd_form_type")
+        if not field_value(self, "custom_pnd_form") or not pnd_form_type:
             return
 
-        pnd_form_mapping = {
-            "PND1 Form": "PND1 Items",
-            "PND3 Form": "PND3 Items",
-            "PND53 Form": "PND53 Items",
-            "PND54 Form": "PND54 Items",
-        }
-
-        if self.pnd_form_type not in pnd_form_mapping:
+        pnd_items_doctype = PND_FORM_ITEMS.get(pnd_form_type)
+        if not pnd_items_doctype:
             return
-
-        pnd_items_doctype = pnd_form_mapping[self.pnd_form_type]
 
         # Find and delete the item
         items_to_delete = frappe.get_all(
@@ -265,5 +276,5 @@ class WithholdingTaxCertificate(Document):
             frappe.delete_doc(pnd_items_doctype, item.name, ignore_permissions=True)
 
         frappe.msgprint(
-            f"Removed WHT Certificate from PND form items", alert=True, indicator="orange"
+            "Removed WHT Certificate from PND form items", alert=True, indicator="orange"
         )

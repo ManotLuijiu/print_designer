@@ -36,7 +36,7 @@ then invoke the nextjs-doc skill for documentation.
 ## Table editing: collapse, selection, and column width fixes
 
 Regression investigated on 2026-11-19 in `Quotation - AWS Solution` on
-`aws-solution.bunchee.online` (tracking issue: `print_designer-wsg`).
+`[site]` (tracking issue: `print_designer-wsg`).
 Symptoms: clicking a table collapsed it to one line, cleared the selected
 column, and prevented normal width editing. Removing the console exception
 alone did not fix the interaction.
@@ -87,11 +87,11 @@ alone did not fix the interaction.
 
 ```bash
 PRINT_DESIGNER_E2E=1 \
-PRINT_DESIGNER_E2E_SITE_URL=https://aws-solution.bunchee.online \
+PRINT_DESIGNER_E2E_SITE_URL=https://[site] \
 python -m pytest print_designer/tests/test_table_column_editing.py \
   print_designer/tests/test_properties_panel_label_neutralized.py -q
 bench build --app print_designer
-bench --site aws-solution.bunchee.online clear-cache
+bench --site [site] clear-cache
 ```
 
 Build and clear the target-site cache before running browser verification
@@ -321,6 +321,135 @@ which is a separate step that needs its own authorization - see the tracked
 issue. Regression tests:
 `print_designer/tests/test_default_templates_installer.py`.
 
+## Phase 2: export as default template, transaction profiles
+
+See [Phase 2 notes](wiki/default-template-export-phase-2-minimax.md). The
+Desk action **Export as Default Template** (alongside, not replacing,
+**Export Format**) exports a saved Print Designer format as an
+installer-ready JSON file. It is download only: it never writes into the app
+folder and never writes into a site, because a site that may write into an
+app folder turns a content decision into a remote code path.
+
+- Export: `print_designer/api/default_template_export.py`
+  (`build_template_document`, `get_categories`, `export_as_default_template`).
+  Both endpoints of the client are `@frappe.whitelist()`: an endpoint that
+  is not whitelisted is refused by the request handler before the function
+  starts, so the call of the Desk never reaches the code. A test checks
+  that they stay whitelisted.
+- Profile: `print_designer/custom/print_format_profile.py` with the Print
+  Format fields `pd_custom_transaction_direction` (`Pay`, `Receive`) and
+  `pd_custom_transaction_type` (`Services`, `Goods`). A Sales Invoice has no
+  direction; a Payment Entry has an optional direction and type; every other
+  doctype has no profile. The profile is advisory: it never changes a posting
+  or a tax.
+- Suggestions: `print_designer/api/print_format_suggestion.py` and the
+  advisory preselection in `print_designer/public/js/print.js`. A format
+  without a profile stays general purpose and is never suggested; the
+  selection of the user is never overwritten. The client tracks the choice
+  of the user (`PDProfileSuggestionState`), refuses to overwrite a choice
+  that was made while the request was in flight, and bounds its retries
+  with `patchMaxRetries`.
+  The behaviour of the client is covered by
+  `print_designer/tests/test_print_view_profile_suggestion.cjs`, which
+  runs the real client script in a sandbox and runs with the suite
+  through `print_designer/tests/test_print_view_profile_suggestion.py`.
+- The profile fields are installed **before** the savepoint of the import
+  loop: a schema change commits the transaction of MySQL implicitly and
+  destroys the savepoint of the installer.
+- The profile is **validated against the doctype of the format** in
+  `build_template_document()`, the single point where a profile enters a
+  template: a Sales Invoice format has no direction, and a format of any
+  other doctype has no profile. The Desk hides the fields of the
+  unsupported doctypes, but the hidden field is only a convenience, the
+  server refuses the value. `validate_profile()` carries the rules.
+- Both profile fields carry a **blank first option** (`"\nPay\nReceive"`,
+  `"\nServices\nGoods"`). Frappe fills the value of a new `Select` with
+  its **first option** (`frappe/model/create_new.py`), so a field that
+  started with `Pay` would silently give **every** new format a profile,
+  and a general purpose template would be suggested as if it were
+  transaction specific. Never remove the blank option.
+
+Two column rules decide what a template may hold, and both are enforced by
+the installer:
+
+- Every design field of the `Print Format` doctype is a JSON custom field
+  whose column carries `CHECK (json_valid(...))`. An empty string is not
+  valid JSON, so the export writes `null` and never `""` for an absent
+  design. A template that carries `""` fails the insert with
+  `OperationalError: (4025, 'CONSTRAINT tabPrint Format.<field> failed')`.
+- A field that is not a child table holds a scalar or a string. The
+  installer normalises a list or an object into its JSON string, the way
+  Frappe stores `format_data` of the print format builder. This is the
+  safety net for the templates of **other** sources: a template that an
+  older version of the app exported, or a template of another app.
+- The packages of this app carry the shape that Frappe stores themselves.
+  The shipped `payment_entry_thai_tax_invoice.json` used to carry its
+  `format_data` as a JSON list, so the file could not be inserted at all
+  and only survived because the installer rewrote the value first. It
+  carries the JSON string now. Regression test:
+  `print_designer/tests/test_thai_tax_invoice_template.py`.
+
+The first package of Phase 2 is the `ASEAN Receipt`
+(`default_templates/asean_business_suite/receipt.json` with its
+`.assets.yaml`): a Payment Entry layout with the labels of ERPNext, the
+dynamic `Company.company_logo` branding, the profile `Receive` / `Services`
+and the amount in words of a receipt (`received_amount` in the currency of
+the account that receives the money). It was built with the export pipeline,
+so it has the shape that the export produces. The payload of the package is
+the **designer blobs of the package itself**: row containers with their
+geometry, the page variants, the text leaves and the image binding. A
+package that carries only the `header`, `body` and `footer` blobs renders
+an **empty page**, because the renderer needs the container envelope.
+Regression tests:
+`print_designer/tests/test_asean_receipt_template.py` and the round trip in
+`print_designer/tests/test_default_template_export.py`.
+
+The plan asks for a **review before an export is accepted for a release**:
+the remaining static text, the Jinja, the assets, the DocType fields and
+the renderer dependencies. The outcome is recorded in the companion
+manifest of the package, in its `review_before_release` section, so the
+review is auditable. For the `ASEAN Receipt` the package ships no static
+asset (its only image is the dynamic company logo), so no privacy
+preserving asset creation or rollback is needed, and the design carries
+no Jinja at all: every value is a field binding of the designer.
+
+A transaction is classified through the **real path of the workflow**: a
+Sales Invoice through its own item rows, a receipt (`Receive`) through the
+Sales Invoices of its `references`, a supplier payment (`Pay`) through the
+Purchase Invoices of its `references`. The type is only suggested when the
+linked invoices agree, so a receipt that pays a service invoice and a
+goods invoice at once stays unclassified and the manual selection stays
+available. **A Payment Entry has no `items` table**, so a receipt is never
+classified from its own rows. A linked invoice is only read when the user
+may read it (`frappe.has_permission(doctype, "read", invoice)`), so a
+restricted invoice is never classified through a side channel.
+
+The Desk actions of a saved Print Designer format are the three actions of
+the menu of the form: the backup **Export Format**, the existing
+**Import Format** and the new **Export as Default Template**. Each of them
+is registered exactly once, and a format that is not a Print Designer
+format carries none of them. The export asks for the public format name,
+the filename and the destination category, and the default filename is a
+slug of the name of the format. Executable proof:
+`print_designer/tests/test_print_format_default_template_action.cjs` (run
+with `node`). It runs with the suite as well, so a client script that the
+browser refuses does not stay unnoticed. The check that also runs with the
+suite reads the registered client code: `print_designer/tests/test_print_format_default_template_action.py`.
+
+The installer is hardened against a hostile template file, because a
+template is data that a site downloads:
+
+- The walk that collects the referenced fields is bounded by
+  `MAX_DESIGN_DEPTH`, so a deeply nested payload cannot exhaust the stack
+  of the installer.
+- A template whose analysis throws is reported under `failed` and skipped.
+  One malformed template never aborts the whole installation.
+
+The dialog of the export uses the real Frappe API
+(`dialog.disable_primary_action()`, `dialog.enable_primary_action()`).
+A failed export leaves the dialog open and restores the primary action, so
+the user can try again.
+
 ## Sales Order milestone actions
 
 See [Generate Invoice / copy feedback handoff](wiki/sales-order-generate-invoice-button-minimax.md)
@@ -520,7 +649,7 @@ e.g. `ค่าโฆษณา นิติบุคคล 2 ภงด.53`
 Credentials for testing are stored in `print_designer/.env`:
 
 ```bash
-SITE_URL="https://digisoft-erp.bunchee.online"
+SITE_URL="https://[site]"
 SITE_USERNAME="Administrator"
 SITE_PASSWORD="manlucha"
 ```
@@ -567,7 +696,7 @@ bench run-tests --app print_designer
 it runs the first test (`frappe/testing/environment.py` ->
 `_create_global_test_record_dependencies`). On a site whose other apps carry
 incomplete fixture data that preload dies before any Print Designer test
-runs. On `demo.bunchee.online` HRMS is installed without its payroll module,
+runs. On `[site]` HRMS is installed without its payroll module,
 so the Leave Type records that HRMS generates link to the Earning Component,
 a DocType that is not installed there, and the preload fails with
 `LinkValidationError`.
@@ -682,7 +811,7 @@ Schedule; preserve its behavior elsewhere. Use native Autocomplete with
 Use the Print Designer permission-checked lookup; this site's TBS override of
 Desk search has an incompatible signature. Do not edit core or TBS for this fix.
 
-Verified in a real browser on `aws-solution.bunchee.online`
+Verified in a real browser on `[site]`
 (Sales Order `SO-69-08-00001`, never saved): the milestone cell lists
 `ส่งงานช่วง UAT (60%)` for the text `ส่งงาน`, a mouse click puts the exact name
 in the row, a manual name survives the blur without the "Payment Term not
@@ -864,6 +993,10 @@ whole workflow and imports no Thai Business Suite module:
   `print_designer/tests/test_thai_tax_invoice_intake.cjs`,
   `print_designer/tests/test_thai_tax_settings_client.cjs` and the retained
   `thai_business_suite/tests/test_tax_invoice_intake_authorization.py` (23).
+- The two client scripts belong to the suite of the app and not only to a
+  proof that has to be repeated by hand:
+  `print_designer/tests/test_thai_tax_client_workflows.py` runs them with
+  `node` and fails when one of them fails.
 
 Intake is an optional supplier-document capture/verification workflow that
 creates a draft Purchase Invoice; it must not submit it or independently post
@@ -898,7 +1031,7 @@ Rules that follow from that decision:
   Suite is installed the Thai variables resolve exactly as before, because
   the hook is global and not bound to the owner of the DocType.
 - On a site without Thai Business Suite (for example
-  `digisoft-erp.bunchee.online`, which installs `digisoft_erp` as the peer of
+  `[site]`, which installs `your_app` as the peer of
   TBS on purpose), a naming part that no app provides is not resolved by
   Frappe and stays literal in the name. Frappe's own naming logic stays the
   fallback of the site. This is a known later item, tracked separately: when
@@ -1001,7 +1134,7 @@ impossible. It creates nothing: no row, no GL entry, no backfill.
 The tests are `print_designer/tests/test_output_vat_undue_tracking.py`. The
 tests of the site skip themselves while the ledger of the site is not migrated.
 
-The ledger was migrated and verified on `demo.bunchee.online`: `autoname` is
+The ledger was migrated and verified on `[site]`: `autoname` is
 `field:sales_invoice`, `allow_rename` is 0, the metadata carries 39 DocFields,
 the table carries 41 physical columns, the only physical indexes are
 `PRIMARY (name)` and `creation`, there is no separate unique index on
@@ -1017,7 +1150,7 @@ of the company leads to. The ledger reads the persisted treatment, so the row
 of the demo site carries `VAT Due` and the status `Already Due`. A site level
 test has to expect the decision of the invoice and not a reason of its own.
 
-`aws-solution.bunchee.online` still carries the legacy schema, the legacy
+`[site]` still carries the legacy schema, the legacy
 metadata and no row; its migration needs a separate authorization. Detail in
 [SI-02 notes](wiki/si-services-output-vat-undue-minimax.md).
 
@@ -1049,7 +1182,7 @@ whose row name is the Sales Invoice name. A collision check over all apps
 found no report or doctype called `Output VAT Undue Report`.
 
 Tests: `print_designer/tests/test_sales_invoice_vat_preview.py` (19 tests, 0
-failures, 0 errors, 0 skipped on `demo.bunchee.online`) and
+failures, 0 errors, 0 skipped on `[site]`) and
 `print_designer/tests/test_sales_invoice_vat_preview.cjs` (run with `node`).
 The full app on that site: 540 tests, 0 failures, 0 errors, 4 skipped. The
 browser proof of the buttons needs a build of the app and a cleared cache of
@@ -1133,6 +1266,36 @@ Tests: `print_designer/tests/test_si_vat_wht_calculation_audit.py` (17 tests,
 The related suites (contract, ledger, preview, resolver): 138 tests, 0
 failures, 0 errors. The full app: 588 tests, 0 failures, 0 errors, 4 skipped.
 
+## The VAT of a Payment Entry and the mandatory tax invoice fields
+
+Fixed on 2026-11-24 (tracked as `print_designer-622`). The taxes of a
+Payment Entry are the rows of **Advance Taxes and Charges**, and that
+doctype carries the amount of the tax in `tax_amount`. It has **no**
+`amount` field.
+
+Two functions read the amount of a tax row, and both read `amount`, so both
+always read zero:
+
+- `_validate_mandatory_tax_invoice_fields()` in
+  `print_designer/custom/payment_entry_server_events.py`: `has_vat` stayed
+  `False`, so the function returned before it checked anything. The
+  mandatory Thai tax invoice number (`pd_custom_tax_invoice_number`) and
+  the mandatory Thai tax invoice date (`pd_custom_tax_invoice_date`) were
+  never enforced on a payment that carries a VAT.
+- `_auto_fill_tax_base_amount()` of the same module: the fallback that
+  derives the tax base from the allocated amount of the payment never ran.
+
+Both read `tax_amount` now. The receipt of a customer is **not** refused:
+`validate()` returns for a `payment_type` of `Receive` before it reaches
+the check, and the mandatory fields are the fields of the tax invoice of a
+**purchase**.
+
+Never read `amount` on a tax row of a Payment Entry. Read `tax_amount`.
+The details are in
+`wiki/payment-entry-vat-tax-invoice-validation-minimax.md`.
+Tests: `print_designer/tests/test_payment_entry_tax_invoice_validation.py`
+(9 tests). Without the fix the suite reports 1 failure and 1 error.
+
 ## The Thai Tax Settings controller is ported to Print Designer
 
 Done on 2026-11-22, the first of the relocated tax controllers that is a
@@ -1156,7 +1319,7 @@ certificates and the reports of the forms 1, 3 and 53.
 - `print_designer/patches/relocate_thai_tax_doctypes.py` puts the ownership
   back after the model synchronisation. The patch carries the `Thai Tax
   Settings` and the `Thai WHT Rate Setting`, and it touches the metadata
-  only. The ownership was applied to `demo.bunchee.online` and the settings
+  only. The ownership was applied to `[site]` and the settings
   of that site were not touched.
 - The old path of Thai Business Suite is a behaviour-free shim that
   re-exports the controller and the endpoints from Print Designer.
@@ -1205,7 +1368,7 @@ Done on 2026-11-21 for `print_designer/regional/purchase_order_wht_override.py`,
 `print_designer/regional/purchase_invoice_wht_override.py` and
 `print_designer/custom/payment_entry_retention.py`. All three are now clean
 (basedpyright 0 errors, ruff passes, `py_compile` ok) and the full app on
-`demo.bunchee.online` still runs 540 tests with 0 failures and 0 errors.
+`[site]` still runs 540 tests with 0 failures and 0 errors.
 
 Only behaviour-identical transformations are allowed in this area:
 
@@ -1227,6 +1390,45 @@ rewrite: an earlier scripted attempt mangled seven files and had to be restored
 from HEAD. The rest of the repository debt stays in `print_designer-4hc`; the
 repository wide error count of basedpyright is now 2978, down from 3413.
 Detail in [the cleanup notes](wiki/type-debt-cleanup-wht-retention-minimax.md).
+
+## Type safety of the canonical WHT controllers
+
+Done on 2026-11-23 for the three canonical WHT files: the certificate
+controller, the receive register controller and the retirement patch of the
+legacy link. The 121 BasedPyRight diagnostics of those files are zero, the
+full app on `[site]` still runs 717 tests with 0 failures and 0
+errors.
+
+The shared helper is `print_designer/custom/document_fields.py`:
+
+- `field_value(doc, fieldname)` returns the raw value of a dynamic field.
+- `field_text(doc, fieldname)` returns a string, an empty string for `None`.
+
+Use them instead of repeating `cast("Any", doc.get(fieldname))` at every call
+site. The rules for this area:
+
+- A dynamic field of a document is read with `doc.get("field")` and written
+  with `doc.set("field", value)`. Frappe does not declare the fields of a
+  DocType on the class, `Document` has no `__getattr__`, and the type checker
+  therefore rejects the attribute access even though the value exists at
+  runtime.
+- `Meta.get_field(fieldname)` returns `None` for an unknown field. Narrow the
+  result before `field.fieldtype`, `field.fieldname` or `field.options`.
+- `frappe.db.get_value(..., as_dict=True)` and `frappe.get_all()` are
+  dynamically typed. Cast or check the result before a dynamic key is read.
+- `frappe.msgprint` accepts `blue`, `green`, `orange`, `red` and `yellow`.
+  The client maps `orange` and `yellow` to the warning alert, so there is no
+  `warning` indicator.
+- Do not add a whole file BasedPyRight suppression for these files.
+- Format only the files that were edited. The repository mixes tabs and spaces
+  per file.
+
+The PND item path of the certificate controller is not wired to a hook, so it
+was proven with an A/B probe against HEAD instead of an assumption: the
+`PND53Form.before_save()` rebuilds `items` from the submitted and issued
+certificates of the period, so a manually inserted item is replaced by the
+form on save. That is pre-existing behaviour. Detail in
+[the cleanup notes](wiki/type-debt-cleanup-wht-retention-minimax.md).
 
 ## The VAT Offset Entry controller is ported to Print Designer
 
@@ -1256,7 +1458,7 @@ come before the Purchase Invoice side, which is not urgent now.
   removed together with the old Thai Business Suite source folder, when the
   remaining callers use the Print Designer path.
 
-On `demo.bunchee.online`: 8 tests of the ported controller, 3 tests of the
+On `[site]`: 8 tests of the ported controller, 3 tests of the
 Thai Business Suite module that imports the old path, and the whole app with
 548 tests, 0 failures, 0 errors, 4 skipped. Detail in
 [the relocation plan](wiki/vat-relocation-and-sales-vat-plan-minimax.md).
@@ -1323,7 +1525,7 @@ account as a receivable or as a payable. Tracked as `print_designer-dbb`.
 - The cancellation of the recognition cancels the journal entry, and the
   journal entry writes the reversal of its own rows in the ledger.
 
-On `demo.bunchee.online`: 16 tests of the ported controller and the whole app
+On `[site]`: 16 tests of the ported controller and the whole app
 with 564 tests, 0 failures, 0 errors, 4 skipped. The disposable VAT accounts
 of the tests live inside a savepoint, so the site keeps no account, no entry
 of the ledger and no trace of the tests. Detail in
@@ -1435,3 +1637,324 @@ definitions in `install_payment_entry_thai_fields.py`, with no overlapping
 fieldnames. `install_payment_entry_thai_wht_fields.py` is a draft stub.
 If consolidating the installers, preserve active fieldnames and stored values
 until consumers of similar fields have been reviewed.
+
+## Canonical withholding tax certificate mapping
+
+`print_designer/custom/wht_canonical_mapping.py` decides the line of the
+certificate, the line of a row, the form of the tax and the classification.
+`print_designer/custom/wht_certificate_creator.py` creates the certificate
+from that decision. Both are Print Designer owned.
+
+- The catalogue of **Thai WHT Income Type** is the source of truth. A
+  transaction reaches it through
+  `Tax Withholding Category.pd_custom_thai_wht_income_type`.
+- **The classification names the form of the tax.** `Individual - Staff
+  (PND.1)`, `Individual - Non-staff (PND.3)` and `Company/Juristic Person
+  (PND.53)` always agree with `PND1 Form`, `PND3 Form` and `PND53 Form`. A
+  certificate whose classification and form disagree lands in the wrong PND
+  return.
+- The kind of the payee decides the form of the legacy fallback: a juristic
+  person is reported on PND53, an individual on PND1 or PND3. A service paid to
+  a juristic person uses the line of a service of a company
+  (`5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส - Service`), the same service paid to
+  an individual uses the line of an individual.
+- The line of the certificate and the line of a row are strict `Select` values
+  of the canonical DocType. The strings must match the runtime options
+  exactly, including the Thai spelling.
+  `print_designer/tests/test_wht_canonical_mapping.py` asserts every mapped
+  line against the metadata of the certificate.
+- `print_designer/tests/test_wht_certificate_creator.py` asserts the creation
+  itself: one submitted certificate per payment entry, the reuse of that
+  certificate by a second call, the amounts of the certificate and of its
+  rows, the agreement of the classification and the form of the tax, the
+  validity of every line, and the refusal of a payment entry that is not an
+  outgoing payment to a supplier.
+- **One mapping decides the certificate.** `wht_certificate_generator.py`
+  reads the same mapping as the creator: its fallback carries only the
+  description of the items of the purchase invoice and the rate of the
+  payment entry, never the line of the certificate, the line of its rows,
+  the form of the tax or the classification. A fallback fills the gaps of
+  the canonical mapping and never replaces a value of that mapping with
+  nothing. The preview of the generator shows the values that the creation
+  makes.
+  `print_designer/tests/test_wht_certificate_generator.py` asserts this.
+- **The certificate names the payment that pays it.** `payment_entry` is a
+  mandatory field of the `Withholding Tax Certificate`, so a cash purchase,
+  which carries no payment entry, cannot have a certificate. The path that
+  created a certificate from the purchase invoice could therefore never
+  insert one and made the submit of the purchase invoice fail with
+  `Failed to create WHT Certificate`. That path is retired; a cash purchase
+  that is paid through a payment entry receives its certificate from that
+  payment entry.
+  `print_designer/tests/test_cash_purchase_wht_certificate_path.py` guards
+  this: the retired path is not registered, and a cash purchase of a service
+  with the tax of Thailand submits and creates no certificate.
+- **The endpoints of the certificate ask for the right.** The creation of a
+  certificate from a payment entry and the manual creation are a POST, and
+  the caller must be allowed to read the payment entry and to create the
+  certificate. The preview asks for the right to read the payment entry,
+  because it shows the data of the payment entry and of its purchase
+  invoice. The refusal is made before the payment entry is loaded, so that
+  a caller without the right learns nothing about the document, and it is
+  raised out of the endpoint instead of being reported as a failure of the
+  work. `print_designer/tests/test_wht_certificate_endpoints.py` guards
+  this.
+- **The payment entry names its certificate.** The creator of the
+  certificate keeps the link of the payment entry and its certificate, so
+  that every path of the creation leaves the payment entry linked: the path
+  of the calculator and the path of the payment entry of a purchase invoice
+  alike. The link is kept again when the certificate exists already. A site
+  without the field of the link has no link to keep, and the certificate is
+  then the only record of the withholding.
+  `print_designer/tests/test_wht_certificate_creator.py` guards this.
+- **The cancellation of the certificate clears the links and leaves the
+  status.** The controller removes the item of the form of the tax, clears
+  the link of the payment entry in both directions and leaves the status of
+  the certificate as it was written at its creation. The status drifts: the
+  field carries `Draft`, `Issued`, `Submitted to Revenue Dept` and
+  `Cancelled`, and the controller moves it neither on a submit nor on a
+  cancel. Which of them the field shall carry is a decision of the product
+  and is tracked on its own.
+  `print_designer/tests/test_wht_certificate_cancellation.py` holds the
+  behaviour of today.
+  The cancellation of the certificate takes part in the transaction of the
+  caller and commits nothing of its own. A commit inside `on_cancel()` ended
+  the transaction of the caller: it persisted the half finished work of the
+  caller and it destroyed the savepoints of the caller. Frappe owns the
+  transaction boundary of the request, of the background job and of the
+  command line, so the controller of a document must not commit. The removal
+  of that commit is tracked in Beads (`print_designer-64n`), where it is closed.
+  A test of the cancellation leans on a savepoint therefore: the savepoint of
+  the test is rolled back at the end, and the test keeps the removal of the
+  rows one by one as a fallback for the case where the savepoint is gone.
+
+## The canonical reader of the report data of the withholding tax
+
+`print_designer/custom/wht_report_data.py` owns the reading of the canonical
+documents of the withholding tax of Thailand. The reports and the tasks of
+the Thai Business Suite read the data of the withholding tax through it, so
+the knowledge of the schema lives in one place and no report of the suite
+names a table or a column of the certificate any more.
+
+- `get_certificates(...)` reads the **Withholding Tax Certificate** with the
+  filters of the company, of the date of the certificate, of the date of the
+  payment, of the form of the tax, of the state, of the supplier and of the
+  tax identification number.
+- `get_income_items(...)` reads the **Withholding Tax Item**, the incomes of
+  the certificates.
+- `get_certificate_lines(...)` returns **one row for every income** of every
+  certificate. A certificate without an income is still reported: the row
+  carries the totals of the certificate and the income type of the
+  certificate itself.
+- `get_receive_registers(...)` reads the **Receive WHT Register**, the
+  counterpart of the certificate for the withholding tax that is received.
+  The withholding tax that is paid and the withholding tax that is received
+  stay apart.
+- `get_invalid_certificates()` returns the submitted certificates whose tax
+  is not the tax of their base amount at their own rate.
+- `get_pnd_form_type_names(...)` and `get_pnd_type_of_form(...)` map the form
+  of the withholding tax between the name of the report (`PND53`) and the name
+  of the certificate (`PND53 Form`).
+- `get_income_code(...)` reads the code of the income of Thailand at the
+  beginning of the type of an income, `find_income_code(...)` finds it
+  anywhere in the description of the income of a certificate, e.g.
+  `1. เงินเดือน ค่าจ้าง ฯลฯ 40(1) - Salary` carries `40(1)`.
+- The reader asks for the right to read the certificate and of the register
+  before it reads them.
+
+`print_designer/tests/test_wht_report_data.py` guards the reader.
+
+### The suite reads the canonical documents
+
+The reports, the tasks and the validators of the Thai Business Suite name no
+table of the certificate that was deleted:
+
+- `thai_tax/report/company_tax_report/company_tax_report.py` reports one row
+  for every income of the certificate.
+- `thai_tax/report/tax_withholding_summary/tax_withholding_summary.py`
+  reports the outgoing certificates and the incoming registers.
+- `thai_tax/report/thai_wht_attachment/thai_wht_attachment.py` reports the
+  certificates with their attachments. The four names that face the
+  attachment belong together and name the canonical certificate: the link of
+  the column of the report, the `ref_doctype` of the report, the
+  `attached_to_doctype` of the file that the client uploads and the route of
+  the link of the client. A name that stays on the deleted certificate
+  silently breaks the upload, because the file hangs on a document that does
+  not exist, and the route breaks the link the same way. The client builds
+  the route out of the name of the certificate and never out of a written
+  slug.
+  `thai_business_suite/tests/test_wht_reports_canonical.py` holds the four
+  names together.
+- `thai_tax/report/pnd_reports/pnd_reports.py`, `thai_tax/tasks.py`,
+  `thai_tax/utils/base_report.py` and `thai_tax/utils/validators.py` read the
+  canonical columns.
+- The print format `New WHT Cert` prints the canonical certificate; it reads
+  the address of the supplier from the link `supplier` and from the field
+  `supplier_address` of the certificate.
+- The client of the payment entry, the page of the accounting of the suite
+  and the link of the workspace name the canonical certificate.
+
+The one place that still names the deleted certificate is the manager of the
+workspace of AWS Solution Ltd.: the shortcut belongs to the workspace of `your_app`,
+whose records of the withholding tax are not moved.
+
+## The ownership of the DocTypes of the tax is put back safely
+
+Several DocTypes of the tax of Thailand live in more than one app: the
+canonical DocTypes of Print Designer, the copies of the Thai Business Suite
+and the copies of a fork of a client. The model synchronisation imports the
+metadata of every app, and the owner of a DocType is the app whose metadata
+was imported last.
+
+`print_designer/custom/doctype_ownership.py` owns the rule:
+
+- a DocType of the modules of the Thai Business Suite (`Thai Tax`,
+  `Thai Business Suite`) is taken back to Print Designer,
+- a DocType of a fork of a client (`AWS Solution Ltd.`) is **never** taken. The
+  fork carries the records of the withholding tax of that client, and a
+  DocType that is taken from such an owner changes the metadata of those
+  records with it,
+- a DocType of an unknown owner is kept, with a message in the log of the
+  migration.
+
+`print_designer/patches/relocate_thai_tax_doctypes.py` follows that rule and
+covers the canonical `Withholding Tax Certificate` and `Withholding Tax
+Item` next to the three DocTypes of the tax. The patch
+`print_designer/patches/guard_thai_tax_doctype_ownership.py` applies the same
+rule to every DocType of the tax, of the VAT and of the withholding tax, so
+that the sites that already ran the first patches are guarded as well.
+
+`print_designer/tests/test_tax_doctype_ownership_guard.py` guards the rule.
+On the demo site the guard is a no-op: every DocType is already owned by
+Print Designer and no metadata is imported. On
+`[site]` the `Withholding Tax Item` is owned by
+`AWS Solution Ltd.` and is kept; its schema is the same as the canonical one, so
+the certificate of Print Designer reads its incomes unchanged.
+
+## The rules of the income type of the certificate
+
+The certificate of the withholding tax carries one income type of its own and
+one income type for every row of its incomes. The rules that decide them
+live in `print_designer/custom/wht_certificate_creator.py` and are held by
+`print_designer/tests/test_wht_certificate_income_type_rules.py`.
+
+- **The income type of the certificate is the income type of the transaction.**
+  It is read from the field `pd_custom_wht_income_type` (or
+  `pd_custom_wht_income_type_details`) of the payment entry. The value is
+  either the name of a `Thai WHT Income Type` or the name of a
+  `Tax Withholding Category` of ERPNext, which is resolved through the link
+  `pd_custom_thai_wht_income_type` of that category.
+- **A transaction without a type falls back to the type of the kind of the
+  payee.** A company falls back to the service, an individual to the service
+  of an individual.
+- **A row of the incomes keeps its own type when it carries one.** The field
+  `tbs_income_type` of the row of the withholding tax wins; a row without one
+  takes the type of the transaction.
+- **The rate of the certificate is the rate of its first row.** A transaction
+  that mixes two rates therefore shows the rate of its first row next to the
+  income type of the transaction. This is the current behavior; it is
+  recorded as an open question in Beads and is not changed silently.
+- **A party that is not a supplier has no tax id and no address.** The tax id
+  is read from the `Supplier` and the address only from a supplier, so a
+  payment to another kind of party leaves both fields empty.
+- **Every record of the catalogue of the site has a line.** The map of
+  `CERTIFICATE_INCOME_TYPES` in `print_designer/custom/wht_canonical_mapping.py`
+  covers every record of `Thai WHT Income Type` of the site; the test proves
+  it for the records that are installed.
+
+The certificate is created only for a payment entry that pays a supplier. A
+payment that receives money belongs to the `Receive WHT Register`, not to the
+certificate.
+
+## The retirement of the legacy certificate of the withholding tax
+
+The legacy `Withholding Tax Cert` is gone as a doctype. The mapping of every
+one of its fields onto the canonical documents, the decision about the records
+of the client, and the plan of the retirement are written down in
+[the retirement plan](wiki/wht-legacy-retirement-and-field-mapping-minimax.md).
+
+The short version: the client site carries 13 legacy rows. Eight of them are
+mirrored in the canonical `Withholding Tax Certificate` and five in the
+canonical `Receive WHT Register`, so nothing is lost when the legacy table
+goes. Two gaps have to be closed first: the postal address of the payee is
+not carried over into `supplier_address`, and the link `income_type` of the
+five incoming rows is empty. The child table `Withholding Tax Item` is
+shared, so the child rows of the legacy certificates have to be deleted with
+their parents.
+
+Nothing on a live site of a client is written without the word of the client.
+
+## Thai Withholding Tax Certificate Form 50 Tawi
+
+- The reusable form 50 ทวิ view model lives in Print Designer:
+  `print_designer/custom/form_50_tawi.py`. It maps a **Withholding Tax
+  Certificate** onto the statutory rows 1 to 6 (row 4 split into 4a and 4b),
+  the totals, the Thai amount in words, the PND and withholding method
+  checkboxes, the party identity, the tax ID boxes, the branch text and the
+  signature date. A certificate without `income_items` falls back to the
+  parent fields. Amounts are read from the certificate, never recalculated
+  from a rate.
+- It is registered as a Jinja method in `hooks.py`
+  (`get_form_50_tawi_data`, `get_form_50_tawi_wrapper_class`), so a client
+  print format only binds presentation values and never repeats tax mapping.
+- **The two parties of the form:** the reference form 50 ทวิ asks the
+  **withholder of the tax** (the payer, the company that pays) in its first
+  section and the **party that is withheld from** (the supplier of the
+  certificate) in its second one. The view model gives `company_tax_id`
+  (from the linked Company), `company` and `company_address` for the first,
+  and `supplier_tax_id`, `supplier_name` and `supplier_address` (from the
+  certificate) for the second. A print format keeps the two apart; the the peer app
+  format is guarded by `test_the_section_of_the_withholder_carries_the_company`
+  and `test_the_section_of_the_withheld_carries_the_supplier` in
+  `your_app/tests/the Form 50 test of the peer app`.
+- Only the print format named exactly **Form 50 Tawi** is a Form 50 format.
+  Every other print format follows the Print Designer path.
+- **Per format wrapper marker:** a form or report may put its own unique
+  marker (class or id) on the first `<div>` of its wrapper. Format local CSS
+  may then be scoped to that marker. A correction that must not reach other
+  formats, the browser print output or the PDF output belongs in a screen
+  only media rule inside the format's own stylesheet. Never neutralize the
+  shared `.print-format` rules of Frappe core or of Print Designer.
+- The scoped Desk preview rule of the Form 50 format is
+  `.print-format.print-format-preview:not(.landscape):has(.dgs-form-50-tawi)`
+  and it stays inside the Form 50 format CSS.
+- **Page orientation of the certificate formats:** `page_orientation` is a
+  Print Designer custom field on Print Format and the Desk preview takes the
+  orientation of the selected format through
+  `print_designer/public/js/print.js`
+  (`apply_page_orientation_from_print_format()`). A certificate format
+  created before that field existed carries no orientation and falls back to
+  the global Print Settings, which can start the preview in Landscape. The
+  patch `print_designer/patches/set_certificate_print_format_orientation.py`
+  fills the empty value of every **Withholding Tax Certificate** print format
+  with `Portrait`. Only empty values are filled, so an orientation chosen
+  explicitly is never changed and a sidebar selection still wins.
+
+## The assets of the templates of this app
+
+- A template of this app is printed on a site that may not install another
+  app. A font that is loaded from the assets of another app is therefore
+  missing on such a site, and the Thai text falls back to a font that has no
+  Thai glyphs. **Every font of this app is loaded from
+  `/assets/print_designer/fonts/...`**, the path of this app.
+- The font files are shipped by this app under
+  `print_designer/public/fonts/thai/`. The path of the framework
+  (`/assets/frappe/...`) is also fine, because Frappe is installed on every
+  site.
+- The guard is `print_designer/tests/test_template_asset_ownership.py`:
+  - `test_no_font_of_the_app_comes_from_another_app` proves that every font
+    of every source of the app is loaded from `/assets/print_designer/`.
+  - `test_every_font_of_the_app_is_shipped_by_the_app` proves that every such
+    font file exists in `print_designer/public/`.
+  - `test_the_only_asset_of_another_app_is_the_known_one` names the one
+    asset of another app that this app still uses, the emblem of the Revenue
+    Department of the PP30 form, so a new dependency fails loudly.
+- The PND templates `PND/PND3/pnd3.html` and `PND/PND53/pnd53.html` used to
+  load the Thai font from `/assets/your_app/fonts/thai/THSarabunNew/`.
+  They now load it from the path of this app.
+- **The digit boxes of the PND forms** render the character at an index with
+  `x[i:i+1]` and not with `x[i] if i < x|length else ''`. A comparison
+  operator in the text of an HTML template is flagged by the linter, and the
+  escaped form (`&lt;`) breaks the template with a `TemplateSyntaxError`.
+  Slicing never raises and returns an empty string out of range, so the two
+  forms are equivalent for a string, a list and an empty input.

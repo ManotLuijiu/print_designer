@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ใบแนบ ภ.ง.ด.53 - รายละเอียดการหักภาษี</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Sarabun", "Kanit", sans-serif;
+        background: #f5f5f5;
+        padding: 15px;
+        color: #333;
+      }
+
+      .container {
+        max-width: 11.5in;
+        background: white;
+        margin: 0 auto 20px;
+        padding: 25px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-code {
+        position: absolute;
+        top: 25px;
+        right: 25px;
+        font-weight: bold;
+        font-size: 13px;
+        border: 2px solid #000;
+        padding: 6px 12px;
+        border-radius: 4px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 12px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 8px;
+      }
+
+      .form-title {
+        font-size: 15px;
+        font-weight: bold;
+        margin: 4px 0;
+      }
+
+      .form-subtitle {
+        font-size: 11px;
+        margin: 2px 0;
+        line-height: 1.3;
+      }
+
+      .tax-id-row {
+        display: flex;
+        gap: 25px;
+        margin: 10px 0;
+        font-size: 12px;
+        align-items: center;
+      }
+
+      .tax-id-label {
+        font-weight: bold;
+      }
+
+      .tax-id-input {
+        border: 1px solid #999;
+        padding: 3px 6px;
+        font-size: 12px;
+      }
+
+      .page-info {
+        text-align: right;
+        margin: 10px 0;
+        font-size: 12px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+        font-size: 10px;
+      }
+
+      th,
+      td {
+        border: 1px solid #666;
+        padding: 4px 3px;
+        text-align: center;
+        vertical-align: middle;
+      }
+
+      th {
+        background: #e0e0e0;
+        font-weight: bold;
+        font-size: 9px;
+        line-height: 1.2;
+      }
+
+      td {
+        font-size: 10px;
+      }
+
+      td input[type="text"] {
+        width: 100%;
+        border: none;
+        padding: 1px;
+        font-size: 10px;
+        background: transparent;
+      }
+
+      .seq-col {
+        width: 3%;
+      }
+
+      .tax-id-col {
+        width: 10%;
+      }
+
+      .name-col {
+        width: 14%;
+      }
+
+      .country-col {
+        width: 6%;
+      }
+
+      .address-col {
+        width: 16%;
+      }
+
+      .date-col {
+        width: 7%;
+      }
+
+      .income-desc-col {
+        width: 12%;
+      }
+
+      .amount-col {
+        width: 9%;
+      }
+
+      .rate-col {
+        width: 5%;
+      }
+
+      .tax-col {
+        width: 9%;
+      }
+
+      .treaty-col {
+        width: 5%;
+      }
+
+      .cond-col {
+        width: 4%;
+      }
+
+      .text-left {
+        text-align: left !important;
+        padding-left: 4px !important;
+      }
+
+      .text-right {
+        text-align: right !important;
+        padding-right: 4px !important;
+      }
+
+      .summary-section {
+        margin: 15px 0;
+        padding: 8px;
+        border: 1px solid #999;
+        background: #f9f9f9;
+      }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+        font-size: 12px;
+      }
+
+      .summary-label {
+        font-weight: bold;
+      }
+
+      .summary-value {
+        font-family: monospace;
+      }
+
+      .notes-section {
+        margin: 15px 0;
+        padding: 10px;
+        background: #fffacd;
+        border: 1px solid #daa520;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .notes-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .signature-section {
+        margin-top: 25px;
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+      }
+
+      .signature-box {
+        text-align: center;
+        width: 45%;
+      }
+
+      .signature-line {
+        border-top: 1px solid #000;
+        margin: 45px auto 5px;
+        width: 180px;
+      }
+
+      .stamp-circle {
+        width: 90px;
+        height: 90px;
+        border: 1px solid #999;
+        border-radius: 50%;
+        margin: 15px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .footer-note {
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px solid #ccc;
+        text-align: center;
+        font-size: 10px;
+      }
+
+      .position-relative {
+        position: relative;
+      }
+
+      @media print {
+        body {
+          background: white;
+          padding: 0;
+        }
+        .container {
+          box-shadow: none;
+          margin: 0;
+          page-break-after: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container position-relative">
+      <div class="form-code">ใบแนบ ภ.ง.ด.53</div>
+
+      <div class="header">
+        <div class="form-title">ใบแนบ ภ.ง.ด.53</div>
+        <div class="form-subtitle">
+          รายละเอียดเกี่ยวกับการจ่ายเงินได้และการหักภาษี ณ ที่จ่าย
+        </div>
+        <div class="form-subtitle">
+          กรณีการจ่ายเงินได้พึงประเมินแก่บุคคลต่างด้าว หรือนิติบุคคลต่างประเทศ
+        </div>
+      </div>
+
+      <div class="tax-id-row">
+        <div>
+          <span class="tax-id-label">เลขประจำตัวผู้เสียภาษีอากร:</span>
+          <input
+            type="text"
+            class="tax-id-input"
+            placeholder="_____-_____-____-__"
+            value="{{ tax_id }}"
+            readonly
+            style="width: 130px"
+          />
+        </div>
+        <div>
+          <span class="tax-id-label">สาขาที่:</span>
+          <input
+            type="text"
+            class="tax-id-input"
+            value="{{ branch_code }}"
+            readonly
+            style="width: 70px"
+          />
+        </div>
+      </div>
+
+      <div class="page-info">
+        <strong>แผ่นที่:</strong>
+        <input
+          type="text"
+          class="tax-id-input"
+          style="width: 45px; text-align: center"
+        />
+        <strong>ในจำนวน</strong>
+        <input
+          type="text"
+          class="tax-id-input"
+          style="width: 45px; text-align: center"
+        />
+        <strong>แผ่น</strong>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2" class="seq-col">ลำดับ<br />ที่</th>
+            <th rowspan="2" class="tax-id-col">
+              เลขประจำตัว<br />ผู้เสียภาษีอากร<br />หรือ Passport No.
+            </th>
+            <th rowspan="2" class="name-col">ชื่อ-สกุล/ชื่อนิติบุคคล</th>
+            <th rowspan="2" class="country-col">ประเทศ<br />ภูมิลำเนา</th>
+            <th rowspan="2" class="address-col">ที่อยู่</th>
+            <th rowspan="2" class="date-col">วันเดือนปี<br />ที่จ่ายเงิน</th>
+            <th rowspan="2" class="income-desc-col">
+              ประเภท/ลักษณะ<br />เงินได้ที่จ่าย
+            </th>
+            <th colspan="4">รายการจ่ายเงินได้และภาษีหัก ณ ที่จ่าย</th>
+            <th rowspan="2" class="treaty-col">
+              ความตกลง<br />ระหว่าง<br />ประเทศ<br />(มี/ไม่มี)
+            </th>
+            <th rowspan="2" class="cond-col">เงื่อน<br />ไข*</th>
+          </tr>
+          <tr>
+            <th class="amount-col">จำนวนเงิน<br />ที่จ่าย (บาท)</th>
+            <th class="rate-col">อัตรา<br />(%)</th>
+            <th class="tax-col">ภาษีหัก ณ<br />ที่จ่าย (บาท)</th>
+            <th class="rate-col">อัตรา<br />Treaty<br />(%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in payment_items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.tax_id or item.passport_no or '' }}</td>
+            <td class="text-left">{{ item.payee_name or '' }}</td>
+            <td>{{ item.country_code or '' }}</td>
+            <td class="text-left">{{ item.address or '' }}</td>
+            <td>{{ item.payment_date or '' }}</td>
+            <td class="text-left">{{ item.income_description or '' }}</td>
+            <td class="text-right">
+              {{ '{:,.2f}'.format(item.gross_amount or 0) }}
+            </td>
+            <td>{{ item.tax_rate or '' }}</td>
+            <td class="text-right">
+              {{ '{:,.2f}'.format(item.tax_amount or 0) }}
+            </td>
+            <td>{{ item.treaty_rate or '' }}</td>
+            <td>{{ 'มี' if item.has_treaty else 'ไม่มี' }}</td>
+            <td>{{ item.condition or '1' }}</td>
+          </tr>
+          {% endfor %}
+          <!-- Empty rows for manual filling -->
+          {% if not payment_items or payment_items|length < 10 %} {% for i in
+          range(10 - (payment_items|length if payment_items else 0)) %}
+          <tr>
+            <td>
+              {{ (payment_items|length if payment_items else 0) + loop.index }}
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          {% endfor %} {% endif %}
+        </tbody>
+      </table>
+
+      <div class="notes-section">
+        <div class="notes-title">หมายเหตุ: * เงื่อนไขการหักและนำส่งภาษี</div>
+        <div style="margin-left: 20px">
+          <div><strong>1</strong> = หัก ณ ที่จ่าย</div>
+          <div><strong>2</strong> = ออกให้ตลอดไป</div>
+          <div><strong>3</strong> = ออกให้ครั้งเดียว</div>
+        </div>
+        <div style="margin-top: 8px">
+          <strong>ความตกลงระหว่างประเทศ:</strong>
+          ระบุ "มี"
+          หากมีการใช้สิทธิตามความตกลงระหว่างประเทศว่าด้วยการเว้นการเก็บภาษีซ้อน
+          และระบุอัตราภาษีตามความตกลง<br />
+          ระบุ "ไม่มี" หากไม่มีการใช้สิทธิดังกล่าว
+        </div>
+      </div>
+
+      <div class="summary-section">
+        <div style="font-weight: bold; text-align: center; margin-bottom: 8px">
+          สรุปรายการในแผ่นนี้
+        </div>
+        <div class="summary-row">
+          <span class="summary-label"
+            >รวมยอดเงินได้ที่จ่ายในแผ่นนี้ (บาท):</span
+          >
+          <span class="summary-value"
+            >{{ '{:,.2f}'.format(summary.total_income or 0) }}</span
+          >
+        </div>
+        <div class="summary-row">
+          <span class="summary-label"
+            >รวมยอดภาษีที่หักนำส่งในแผ่นนี้ (บาท):</span
+          >
+          <span class="summary-value"
+            >{{ '{:,.2f}'.format(summary.total_tax or 0) }}</span
+          >
+        </div>
+      </div>
+
+      <div style="margin: 15px 0; font-size: 12px">
+        ข้าพเจ้าขอรับรองว่า รายการที่แจ้งไว้ข้างต้นนี้
+        เป็นรายการที่ถูกต้องและครบถ้วนทุกประการ
+      </div>
+
+      <div class="signature-section">
+        <div class="signature-box">
+          <div style="font-size: 12px">ลงชื่อ</div>
+          <div class="signature-line"></div>
+          <div style="font-size: 11px; margin: 3px 0">ผู้จ่ายเงิน</div>
+          <div style="font-size: 11px">
+            ({{ payer_name or '........................................' }})
+          </div>
+          <div style="font-size: 11px; margin-top: 15px">ตำแหน่ง</div>
+          <div class="signature-line" style="margin-top: 5px"></div>
+        </div>
+
+        <div class="signature-box">
+          <div style="font-size: 12px; margin-bottom: 10px">
+            ยื่นวันที่ ..... เดือน ................... พ.ศ. .........
+          </div>
+          <div style="font-size: 11px; margin: 10px 0">
+            <strong>ประทับตรา</strong>
+          </div>
+          <div class="stamp-circle">นิติบุคคล<br />(ถ้ามี)</div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        สอบถามข้อมูลเพิ่มเติมได้ที่ศูนย์สารนิเทศสรรพากร RD Intelligence Center
+        โทร. 1161
+      </div>
+    </div>
+  </body>
+</html>

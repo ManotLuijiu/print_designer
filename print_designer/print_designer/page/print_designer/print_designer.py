@@ -89,7 +89,10 @@ def get_number_to_words_preview(doctype, docname, print_format, language=None):
         print_format_doc,
         explicit_language=language,
         document_language=doc.get("language"),
-        user_language=frappe.local.lang,
+        # `getattr` and not `frappe.local.lang`: the language of the local is
+        # absent when the request runs outside a session (a background job, a
+        # command, a test), and the preview still has to answer.
+        user_language=getattr(frappe.local, "lang", None),
     )
     meta = frappe.get_meta(doctype)
     pairs = get_number_to_words_pairs(print_format_doc)

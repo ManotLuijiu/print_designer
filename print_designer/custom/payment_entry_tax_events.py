@@ -9,6 +9,8 @@ This runs BEFORE PaymentTaxWithholding.calculate() to ensure the correct
 account_head is set in the taxes child table rows.
 """
 
+from typing import Any, cast
+
 import frappe
 
 
@@ -58,7 +60,7 @@ def get_wht_liability_account(doc):
 
     try:
         twc = frappe.get_cached_doc("Tax Withholding Category", twc_name)
-        for row in twc.accounts:
+        for row in cast(list[Any], twc.get("accounts")):
             if row.company == doc.company:
                 liability = row.get("pd_custom_wht_liability_account")
                 if liability:

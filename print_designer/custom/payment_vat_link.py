@@ -2,6 +2,8 @@
 
 import frappe
 
+from print_designer.utils.db import set_values
+
 VAT_RECORD_DOCTYPE = {
     "Pay": "Thai Purchase VAT",
     "Receive": "Thai Sales VAT",
@@ -54,5 +56,5 @@ def sync_payment_vat_link(payment):
 
     values = get_payment_vat_link_values(payment_type, names)
     if any(payment.get(field) != value for field, value in values.items()):
-        frappe.db.set_value("Payment Entry", payment.name, values.copy(), update_modified=False)
+        set_values("Payment Entry", payment.name, values, update_modified=False)
         payment.update(values)

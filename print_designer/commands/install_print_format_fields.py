@@ -149,7 +149,7 @@ def check_print_format_fields():
 if __name__ == "__main__":
     import sys
 
-    site = "digisoft-erp.bunchee.online"
+    site = "[site]"
     frappe.init(site=site)
     frappe.connect()
 

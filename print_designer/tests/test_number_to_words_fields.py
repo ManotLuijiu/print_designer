@@ -1,7 +1,30 @@
 import json
 import unittest
+from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+import frappe
+
+
+@contextmanager
+def _the_language_of_the_request(language):
+    """Set the language of the request and put the old one back afterwards.
+
+    `frappe.local` is a proxy over a context variable, so `mock.patch.object`
+    with `create=True` deletes the language when it stops instead of restoring
+    it, and every test that runs afterwards is left without a language.
+    """
+    missing = object()
+    previous = getattr(frappe.local, "lang", missing)
+    frappe.local.lang = language
+    try:
+        yield
+    finally:
+        if previous is missing:
+            del frappe.local.lang
+        else:
+            frappe.local.lang = previous
 
 
 class FakeMeta:
@@ -54,7 +77,7 @@ class TestNumberToWordsFieldPairs(unittest.TestCase):
         )
 
         with (
-            patch.object(print_designer.frappe.local, "lang", "th", create=True),
+            _the_language_of_the_request("th"),
             patch.object(
                 print_designer.frappe,
                 "get_doc",

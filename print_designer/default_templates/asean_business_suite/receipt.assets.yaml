@@ -1,0 +1,72 @@
+kind: print_designer_template_assets
+version: 1
+template_file: receipt.json
+template_name: ASEAN Receipt
+source_site: print_designer
+source_format: ASEAN Receipt
+source_modified: '2026-01-01 00:00:00'
+assets: []
+missing_assets: []
+dynamic_images:
+  - doctype: Company
+    fieldname: company_logo
+    parent_field: company
+    behavior_when_empty: >-
+      Print no image; the editor uses its existing image placeholder.
+portability_changes:
+  - >-
+    The design of the template comes from the export pipeline of Print
+    Designer (print_designer.api.default_template_export), so it has the
+    same shape that the export produces for a saved format. The render
+    payload carries the same node schema that a saved format carries, so
+    the renderer lays the template out as it lays out a format of the
+    site.
+  - >-
+    The branding is the dynamic Company.company_logo binding, so the
+    destination company prints its own logo. No source-site logo is
+    distributed.
+  - Branded thumbnail omitted; no source-site files are distributed.
+  - Saved currentDoc reset to null; each site chooses a local Payment Entry.
+  - The rows use the labels of ERPNext and the fields of the standard
+    Payment Entry. A site that installs the template adapts the wording
+    and the rows to its own layout.
+  - >-
+    The amount in words is the pair that ERPNext fills for a receipt:
+    received_amount in the currency of the account that receives the money.
+  - >-
+    The transaction profile is Payment Entry, Receive, Services. The
+    profile is advisory: it suggests the layout in the print selector and
+    changes neither the posting nor the tax calculation.
+  - Source owner/modified_by and transient export keys omitted.
+review_before_release:
+  - The wording of the rows is the wording of ERPNext, not the wording of
+    the ASEAN member states. The tax content of a receipt is added by the
+    site that installs the template.
+  - >-
+    Static text: the seven rows carry the labels of ERPNext only. No text
+    of the source company is distributed.
+  - >-
+    Jinja: the design carries no Jinja expression and userProvidedJinja is
+    empty. Every value is a field binding of the designer, so the template
+    depends on no Jinja context of the source site.
+  - >-
+    Assets: assets and missing_assets are empty. The only image is the
+    dynamic Company.company_logo, so no static file ships and no privacy
+    preserving asset creation or rollback is needed for this template.
+  - >-
+    DocType fields: the seven referenced fields (reference_no, posting_date,
+    party_name, mode_of_payment, received_amount, in_words, remarks) all
+    exist on the standard Payment Entry. The amount in words pair
+    (received_amount into in_words, currency paid_to_account_currency) is
+    declared in the designer settings, so the designer fills the field
+    itself.
+  - >-
+    Renderer dependencies: the design uses the page, the text and the
+    image node type, the same node schema as the bundled services_quotation
+    template. The geometry is the geometry of this receipt: the header
+    holds the logo, the title and the company, the body holds the seven
+    rows. No renderer extension and no additional asset is needed.
+  - >-
+    Render: the installed template was rendered on a site and the labels
+    and the values of the document reached the page. The layout has not
+    been reviewed in a browser.

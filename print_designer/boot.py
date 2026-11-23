@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 
 import frappe
 from frappe.defaults import get_user_default
@@ -70,7 +71,7 @@ def boot_session(bootinfo):
     }
 
     # Custom modules availability (enabled)
-    bootinfo.digisoft_features = {
+    bootinfo.thai_tax_features = {
         "input_vat_report": frappe.db.exists("Report", "Thai Input VAT Report"),
         "wht_certificates": True,
         "retention_management": True,
@@ -106,7 +107,7 @@ def output_vat_report_info(name=OUTPUT_VAT_REPORT, ledger="Thai Sales VAT") -> d
         and frappe.has_permission("Sales Invoice", "report")
         and frappe.has_permission(ledger, "read")
     ):
-        report = frappe.get_cached_doc("Report", name)
+        report = cast(Any, frappe.get_cached_doc("Report", name))
         available = bool(
             not report.disabled
             and report.module == "Print Designer"

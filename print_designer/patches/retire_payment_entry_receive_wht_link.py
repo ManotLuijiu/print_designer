@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import frappe
 
 from print_designer.commands.install_payment_entry_fields import (
@@ -13,9 +15,14 @@ LEGACY_FIELD = "pd_custom_receive_wht_register"
 
 
 def execute():
-    legacy = frappe.db.get_value(
-        "Custom Field", {"dt": "Payment Entry", "fieldname": LEGACY_FIELD},
-        ["name", "insert_after"], as_dict=True,
+    legacy = cast(
+        "dict[str, Any] | None",
+        frappe.db.get_value(
+            "Custom Field",
+            {"dt": "Payment Entry", "fieldname": LEGACY_FIELD},
+            ["name", "insert_after"],
+            as_dict=True,
+        ),
     )
     if not legacy:
         return 0
@@ -35,21 +42,31 @@ def execute():
             if payment.get("pd_custom_wht_certificate"):
                 frappe.throw(f"Payment Entry {payment.name} already has a different WHT link.")
             if not frappe.db.exists(
-                "Receive WHT Register", {"name": register, "payment_entry": payment.name, "docstatus": ["<", 2]}
+                "Receive WHT Register",
+                {"name": register, "payment_entry": payment.name, "docstatus": ["<", 2]},
             ):
-                frappe.throw(f"Payment Entry {payment.name} has an unresolved received WHT register.")
+                frappe.throw(
+                    f"Payment Entry {payment.name} has an unresolved received WHT register."
+                )
             set_received_wht_register(payment, register)
     else:
         meta = frappe.get_meta("Payment Entry")
         link = meta.get_field("pd_custom_wht_certificate")
-        if link and link.fieldtype == "Link" and frappe.db.exists("DocType", "Receive WHT Register"):
+        if (
+            link
+            and link.fieldtype == "Link"
+            and frappe.db.exists("DocType", "Receive WHT Register")
+        ):
             definitions = get_payment_entry_custom_fields_definition()["Payment Entry"]
             migrate_wht_certificate_link(definitions)
 
     frappe.db.set_value(
-        "Custom Field", {"dt": "Payment Entry", "insert_after": LEGACY_FIELD},
-        "insert_after", legacy.insert_after, update_modified=False,
+        "Custom Field",
+        {"dt": "Payment Entry", "insert_after": LEGACY_FIELD},
+        "insert_after",
+        legacy["insert_after"],
+        update_modified=False,
     )
-    frappe.delete_doc("Custom Field", legacy.name)
+    frappe.delete_doc("Custom Field", legacy["name"])
     frappe.clear_cache(doctype="Payment Entry")
     return 1

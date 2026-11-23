@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ใบแนบ ภ.ง.ด.3 - รายละเอียดการหักภาษี</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Sarabun", "Kanit", sans-serif;
+        background: #f5f5f5;
+        padding: 20px;
+        color: #333;
+      }
+
+      .container {
+        max-width: 11in;
+        background: white;
+        margin: 0 auto 20px;
+        padding: 30px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-code {
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        font-weight: bold;
+        font-size: 14px;
+        border: 2px solid #000;
+        padding: 8px 15px;
+        border-radius: 5px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+      }
+
+      .form-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 5px 0;
+      }
+
+      .form-subtitle {
+        font-size: 12px;
+        margin: 3px 0;
+      }
+
+      .section-title {
+        font-weight: bold;
+        font-size: 13px;
+        margin: 12px 0 8px 0;
+        background: #f0f0f0;
+        padding: 6px;
+        border: 1px solid #999;
+      }
+
+      .form-group {
+        display: flex;
+        margin: 8px 0;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+      }
+
+      .form-group label {
+        min-width: 180px;
+        font-weight: bold;
+      }
+
+      .form-group input[type="text"],
+      .form-group input[type="number"] {
+        border: 1px solid #999;
+        padding: 4px;
+        font-size: 12px;
+      }
+
+      .checkbox-group {
+        display: flex;
+        gap: 20px;
+        margin: 10px 0;
+        flex-wrap: wrap;
+      }
+
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      .income-type-selector {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+
+      .income-type-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 12px;
+        padding: 6px;
+        border: 1px solid #e8e8e8;
+        background: #fafafa;
+      }
+
+      .income-type-item input[type="checkbox"] {
+        margin-top: 3px;
+        flex-shrink: 0;
+        width: 16px;
+        height: 16px;
+      }
+
+      .income-type-item label {
+        cursor: pointer;
+        margin: 0;
+        line-height: 1.4;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        border: 1px solid #999;
+        padding: 5px;
+        text-align: center;
+      }
+
+      th {
+        background: #e8e8e8;
+        font-weight: bold;
+        font-size: 11px;
+        line-height: 1.3;
+      }
+
+      td {
+        padding: 4px 3px;
+      }
+
+      td input[type="text"],
+      td input[type="number"],
+      td input[type="date"] {
+        width: 100%;
+        border: none;
+        padding: 2px;
+        font-size: 11px;
+      }
+
+      .seq-col {
+        width: 4%;
+      }
+
+      .tax-id-col {
+        width: 11%;
+      }
+
+      .name-col {
+        width: 16%;
+      }
+
+      .address-col {
+        width: 18%;
+      }
+
+      .date-col {
+        width: 8%;
+      }
+
+      .income-type-col {
+        width: 12%;
+      }
+
+      .amount-col {
+        width: 9%;
+      }
+
+      .tax-rate-col {
+        width: 6%;
+      }
+
+      .tax-col {
+        width: 9%;
+      }
+
+      .cond-col {
+        width: 7%;
+      }
+
+      .summary-table {
+        width: 100%;
+        margin: 20px 0;
+        font-size: 12px;
+      }
+
+      .summary-table td {
+        border: 1px solid #999;
+        padding: 8px;
+      }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .signature-section {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-around;
+      }
+
+      .signature-box {
+        text-align: center;
+      }
+
+      .signature-box p {
+        font-size: 12px;
+        margin: 5px 0;
+      }
+
+      .line {
+        border-top: 1px solid #000;
+        margin: 50px 0 0 0;
+        padding-top: 5px;
+        min-width: 160px;
+      }
+
+      .checkbox-square {
+        width: 16px;
+        height: 16px;
+        border: 1px solid #000;
+        display: inline-block;
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+
+      .page-info {
+        display: flex;
+        justify-content: space-between;
+        margin: 15px 0;
+        font-size: 13px;
+      }
+
+      .info-text {
+        font-size: 12px;
+        margin: 10px 0;
+        line-height: 1.5;
+      }
+
+      .position-relative {
+        position: relative;
+      }
+
+      .text-left {
+        text-align: left !important;
+      }
+
+      .text-right {
+        text-align: right !important;
+      }
+
+      @media print {
+        body {
+          background: white;
+          padding: 0;
+        }
+        .container {
+          box-shadow: none;
+          margin: 0;
+          page-break-after: always;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container position-relative">
+      <div class="form-code">ใบแนบ ภ.ง.ด.3</div>
+
+      <div class="header">
+        <div class="form-title">ใบแนบ ภ.ง.ด.3</div>
+        <div class="form-subtitle">
+          รายละเอียดเกี่ยวกับการจ่ายเงินได้และการหักภาษี ณ ที่จ่าย
+        </div>
+        <div class="form-subtitle">
+          ตามมาตรา 3 แยกสี และมาตรา 50 (3) (4) (5)
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 30px; margin: 15px 0; font-size: 13px">
+        <div>
+          <span style="font-weight: bold">เลขประจำตัวผู้เสียภาษีอากร:</span>
+          <input
+            type="text"
+            placeholder="_____-_____-____-__"
+            value="{{ tax_id }}"
+            readonly
+            style="width: 140px; border: 1px solid #999; padding: 3px"
+          />
+        </div>
+        <div>
+          <span style="font-weight: bold">สาขาที่:</span>
+          <input
+            type="text"
+            value="{{ branch_code }}"
+            readonly
+            style="width: 80px; border: 1px solid #999; padding: 3px"
+          />
+        </div>
+      </div>
+
+      <div class="section-title">ประเภทเงินได้ (เลือกเพียงข้อเดียว)</div>
+      <div class="income-type-selector">
+        <div class="income-type-item">
+          <input type="checkbox" id="type1" />
+          <label for="type1"
+            >(1) เงินได้ตามมาตรา 40(5) ค่าธรรมเนียม ค่านายหน้า ค่าสัมนาทาน
+            ค่าโฆษณา</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type2" />
+          <label for="type2"
+            >(2) เงินได้ตามมาตรา 40(6) ค่าเช่า ค่าขนส่ง ค่าบริการ
+            ค่าเบี้ยประกันวินาศภัย</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type3" />
+          <label for="type3"
+            >(3) เงินได้ตามมาตรา 40(7) ค่าจ้างทำของ ค่าประกัน
+            ค่าบริการอื่น</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type4" />
+          <label for="type4"
+            >(4) เงินได้ตามมาตรา 40(8) เงินได้อื่นตามที่กฎกระทรวงกำหนด</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type5" />
+          <label for="type5"
+            >(5) เงินได้ตามมาตรา 3 แยกสี
+            (เงินได้ของธนาคารหรือบริษัทหรือห้างหุ้นส่วนนิติบุคคล)</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type6" />
+          <label for="type6">(6) เงินปันผล เงินส่วนแบ่งกำไร</label>
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type7" />
+          <label for="type7">(7) ดอกเบี้ย</label>
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type8" />
+          <label for="type8"
+            >(8) ค่าสิทธิ์ ค่าจ้างทำของหรือค่าบริการอื่น
+            ที่ผู้ประกอบการก่อสร้างจ่ายให้แก่ผู้รับจ้างช่วง</label
+          >
+        </div>
+        <div class="income-type-item">
+          <input type="checkbox" id="type9" />
+          <label for="type9"
+            >(9) อื่นๆ (โปรดระบุ):
+            <input
+              type="text"
+              style="
+                width: 300px;
+                border-bottom: 1px solid #000;
+                border-top: none;
+                border-left: none;
+                border-right: none;
+                padding: 2px;
+              "
+          /></label>
+        </div>
+      </div>
+
+      <div class="page-info">
+        <span
+          ><strong>แผ่นที่:</strong>
+          <input
+            type="text"
+            style="width: 50px; border: 1px solid #999; padding: 3px"
+          />
+          ในจำนวน
+          <input
+            type="text"
+            style="width: 50px; border: 1px solid #999; padding: 3px"
+          />
+          แผ่น</span
+        >
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th class="seq-col" rowspan="2">ลำดับที่</th>
+            <th class="tax-id-col" rowspan="2">
+              เลขประจำตัว<br />ผู้เสียภาษีอากร<br />(ของผู้มีเงินได้)
+            </th>
+            <th class="name-col" rowspan="2">ชื่อ-สกุล/ชื่อนิติบุคคล</th>
+            <th class="address-col" rowspan="2">ที่อยู่</th>
+            <th class="date-col" rowspan="2">วันที่<br />จ่ายเงิน</th>
+            <th class="income-type-col" rowspan="2">ประเภท<br />เงินได้</th>
+            <th colspan="3">รายละเอียดการจ่ายเงิน</th>
+            <th class="cond-col" rowspan="2">เงื่อนไข*</th>
+          </tr>
+          <tr>
+            <th class="amount-col">จำนวนเงิน<br />ที่จ่าย (บาท)</th>
+            <th class="tax-rate-col">อัตราภาษี<br />(%)</th>
+            <th class="tax-col">ภาษีที่หัก<br />นำส่ง (บาท)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in payment_items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.tax_id or '' }}</td>
+            <td class="text-left">{{ item.payee_name or '' }}</td>
+            <td class="text-left">{{ item.payee_address or '' }}</td>
+            <td>{{ item.payment_date or '' }}</td>
+            <td>{{ item.income_type_code or '' }}</td>
+            <td class="text-right">
+              {{ '%.2f'|format(item.gross_amount or 0) }}
+            </td>
+            <td>{{ item.tax_rate or '' }}</td>
+            <td class="text-right">
+              {{ '%.2f'|format(item.tax_amount or 0) }}
+            </td>
+            <td>{{ item.tax_condition or '1' }}</td>
+          </tr>
+          {% endfor %}
+          <!-- Empty rows for manual filling -->
+          {% if not payment_items or payment_items|length < 10 %} {% for i in
+          range(10 - (payment_items|length if payment_items else 0)) %}
+          <tr>
+            <td>
+              {{ (payment_items|length if payment_items else 0) + loop.index }}
+            </td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          {% endfor %} {% endif %}
+        </tbody>
+      </table>
+
+      <div
+        class="info-text"
+        style="background: #fffacd; padding: 10px; border: 1px solid #ddd"
+      >
+        <strong>หมายเหตุ * เงื่อนไขการหักภาษี:</strong>
+        <br /><strong>1</strong> = หัก ณ ที่จ่าย (ผู้จ่ายเงินเป็นผู้นำส่งภาษี)
+        <br /><strong>2</strong> = ออกให้ตลอดไป
+        (ผู้รับเงินต้องนำภาษีไปชำระเองตามประมวลรัษฎากร) <br /><strong>3</strong>
+        = ออกให้ครั้งเดียว
+        (กรณีผู้รับเงินได้พึงประเมินได้รับยกเว้นไม่ต้องเสียภาษีครั้งเดียว)
+      </div>
+
+      <div class="summary-table">
+        <table style="width: 100%; font-size: 13px">
+          <tr style="background: #f0f0f0">
+            <td style="font-weight: bold; width: 50%">
+              รวมยอดเงินได้และภาษีที่นำส่ง (ในแผ่นนี้)
+            </td>
+            <td style="text-align: right; width: 25%">
+              <strong>รวมเงินได้:</strong>
+              {{ '%.2f'|format(summary.total_income or 0) }} บาท
+            </td>
+            <td style="text-align: right; width: 25%">
+              <strong>รวมภาษี:</strong>
+              {{ '%.2f'|format(summary.total_tax or 0) }} บาท
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="section-title">ประกาศรับรอง</div>
+
+      <div class="info-text">
+        ข้าพเจ้าขอรับรองว่า รายการที่แจ้งไว้ข้างต้นนี้
+        เป็นรายการที่ถูกต้องและครบถ้วนทุกประการ
+      </div>
+
+      <div class="signature-section">
+        <div class="signature-box">
+          <div>ลงชื่อ</div>
+          <div class="line"></div>
+          <p>ผู้จ่ายเงิน</p>
+          <p>
+            ({{ payer_name or '........................................' }})
+          </p>
+          <div style="margin-top: 20px">ตำแหน่ง:</div>
+          <div class="line" style="margin-top: 10px"></div>
+        </div>
+
+        <div class="signature-box">
+          <div>ยื่นวันที่ ____ เดือน __________ พ.ศ. _______</div>
+          <div style="margin-top: 40px; margin-bottom: 10px">
+            <strong>ประทับตรา</strong>
+          </div>
+          <div
+            style="
+              width: 100px;
+              height: 100px;
+              border: 1px solid #999;
+              border-radius: 50%;
+              margin: 0 auto;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <span style="font-size: 11px">นิติบุคคล<br />(ถ้ามี)</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="info-text"
+        style="
+          margin-top: 30px;
+          padding-top: 15px;
+          border-top: 1px solid #ccc;
+          text-align: center;
+          font-size: 11px;
+        "
+      >
+        สอบถามข้อมูลเพิ่มเติมได้ที่ศูนย์สารนิเทศสรรพากร RD Intelligence Center
+        โทร. 1161
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,9 +1,80 @@
+from datetime import date
+from typing import Any, cast
+
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate, add_months
-from frappe.model.naming import make_autoname
+from frappe.utils import flt, getdate
 
-from print_designer.custom.payment_wht_certificate_link import set_issued_wht_certificate
+from print_designer.custom.document_permission import (
+    require_doctype_permission,
+    require_document_read,
+    require_document_write,
+)
+from print_designer.custom.wht_certificate_creator import (
+    build_certificate_values,
+    build_income_items,
+    create_certificate,
+    get_entity_type,
+    get_wht_rows,
+    resolve_certificate_income_type,
+)
+
+
+def _fallback_income_type(purchase_invoice, payment_entry_doc):
+    """The values of the certificate that the site cannot know by itself.
+
+    The line of the certificate, the line of its rows, the form of the tax
+    and the classification are the values of the canonical mapping of Print
+    Designer, which reads the kind of the payee; see
+    `print_designer.custom.wht_canonical_mapping`.  The fallback carries only
+    the values that come from the transaction: the description of the items
+    of the purchase invoice and the rate of the payment entry.
+    """
+    return {
+        "rate": flt(getattr(payment_entry_doc, "pd_custom_withholding_tax_pct_details", 0)),
+        "description": _get_income_description(purchase_invoice),
+    }
+
+
+def _create_the_certificate(payment_entry_doc, purchase_invoice, purchase_invoice_name):
+    """The certificate of the withholding tax of a payment entry.
+
+    The values of the certificate are the values of the income type of the
+    site, the `Thai WHT Income Type`, which works together with the
+    `Tax Withholding Category` of ERPNext; see
+    `print_designer.custom.wht_canonical_mapping`.
+    """
+    fallback = _fallback_income_type(purchase_invoice, payment_entry_doc)
+    entity_type = get_entity_type(payment_entry_doc)
+
+    # The rows of the withholding tax are the rows of the payment entry.
+    rows = get_wht_rows(payment_entry_doc)
+
+    items = build_income_items(payment_entry_doc, rows, entity_type, fallback)
+    values = build_certificate_values(
+        payment_entry_doc,
+        items,
+        entity_type,
+        remarks=(
+            f"Auto-generated from Payment Entry {payment_entry_doc.name} "
+            f"for Purchase Invoice {purchase_invoice_name}"
+        ),
+        fallback=fallback,
+    )
+    values["purchase_invoice"] = purchase_invoice_name
+
+    if purchase_invoice.tax_id:
+        values["supplier_tax_id"] = purchase_invoice.tax_id
+
+    total_payment = flt(getattr(payment_entry_doc, "pd_custom_total_payment_amount", 0))
+    if total_payment == 0:
+        total_payment = flt(values["tax_base_amount"]) + flt(
+            purchase_invoice.total_taxes_and_charges or 0
+        )
+    values["total_payment_amount"] = total_payment
+
+    return create_certificate(payment_entry_doc, values)
+
 
 def create_wht_certificate_from_payment_entry(payment_entry_doc):
     """
@@ -55,175 +126,30 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         return
 
     print(f"DEBUG: Getting Purchase Invoice doc: {purchase_invoice_name}")
-    purchase_invoice = frappe.get_doc("Purchase Invoice", purchase_invoice_name)
+    purchase_invoice = cast(Any, frappe.get_doc("Purchase Invoice", purchase_invoice_name))
 
     # Create WHT Certificate
     try:
-        print(f"DEBUG: Creating new WHT Certificate document")
-        wht_cert = frappe.new_doc("Withholding Tax Certificate")
+        print("DEBUG: Creating new WHT Certificate document")
+        wht_cert = _create_the_certificate(
+            payment_entry_doc, purchase_invoice, purchase_invoice_name
+        )
+        print(f"DEBUG: WHT Certificate saved successfully: {wht_cert.name}")
 
-        # Certificate Information
-        print(f"DEBUG: Processing posting date: {payment_entry_doc.posting_date}")
-        posting_date = getdate(payment_entry_doc.posting_date)
-        buddhist_year = posting_date.year + 543
-        buddhist_year_short = str(buddhist_year)[-2:]
-        month_num = posting_date.month
-
-        print(f"DEBUG: Date calculations - year: {buddhist_year}, month: {month_num}")
-
-        # Generate certificate number with zero-padded month for consistent naming
-        month_padded = str(month_num).zfill(2)
-        naming_pattern = f"WHTC-{buddhist_year_short}{month_padded}-.#####"
-        print(f"DEBUG: Generating certificate number with pattern: {naming_pattern}")
-        wht_cert.certificate_number = make_autoname(naming_pattern)
-        wht_cert.certificate_date = payment_entry_doc.posting_date
-        wht_cert.tax_year = f"{buddhist_year}"
-
-        # Map month number to the required format for Tax Month field
-        tax_month_options = {
-            1: "01 - มกราคม (January)",
-            2: "02 - กุมภาพันธ์ (February)",
-            3: "03 - มีนาคม (March)",
-            4: "04 - เมษายน (April)",
-            5: "05 - พฤษภาคม (May)",
-            6: "06 - มิถุนายน (June)",
-            7: "07 - กรกฎาคม (July)",
-            8: "08 - สิงหาคม (August)",
-            9: "09 - กันยายน (September)",
-            10: "10 - ตุลาคม (October)",
-            11: "11 - พฤศจิกายน (November)",
-            12: "12 - ธันวาคม (December)"
-        }
-        wht_cert.tax_month = tax_month_options.get(month_num, "")
-        print(f"DEBUG: Setting tax_month to: {wht_cert.tax_month}")
-
-        print(f"DEBUG: Certificate basic info set successfully")
-
-        # Supplier Information
-        print(f"DEBUG: Setting supplier information")
-        wht_cert.supplier = payment_entry_doc.party
-        print(f"DEBUG: Set supplier: {payment_entry_doc.party}")
-        wht_cert.supplier_name = payment_entry_doc.party_name
-        print(f"DEBUG: Set supplier_name: {payment_entry_doc.party_name}")
-
-        print(f"DEBUG: Checking purchase invoice tax_id")
-        if hasattr(purchase_invoice, 'tax_id') and purchase_invoice.tax_id:
-            print(f"DEBUG: Setting supplier_tax_id: {purchase_invoice.tax_id}")
-            wht_cert.supplier_tax_id = purchase_invoice.tax_id
-        else:
-            print(f"DEBUG: No tax_id found in purchase invoice")
-
-        # Get supplier address
-        print(f"DEBUG: Getting supplier doc: {payment_entry_doc.party}")
-        supplier_doc = frappe.get_doc("Supplier", payment_entry_doc.party)
-        print(f"DEBUG: Got supplier doc, checking primary address")
-
-        if supplier_doc.supplier_primary_address:
-            print(f"DEBUG: Getting address doc: {supplier_doc.supplier_primary_address}")
-            address_doc = frappe.get_doc("Address", supplier_doc.supplier_primary_address)
-            print(f"DEBUG: Setting supplier address from address_line1: {address_doc.address_line1}")
-            wht_cert.supplier_address = address_doc.address_line1
-            if address_doc.address_line2:
-                print(f"DEBUG: Adding address_line2: {address_doc.address_line2}")
-                wht_cert.supplier_address += f", {address_doc.address_line2}"
-            if address_doc.city:
-                print(f"DEBUG: Adding city: {address_doc.city}")
-                wht_cert.supplier_address += f", {address_doc.city}"
-            if address_doc.state:
-                print(f"DEBUG: Adding state: {address_doc.state}")
-                wht_cert.supplier_address += f", {address_doc.state}"
-        else:
-            print(f"DEBUG: No primary address found for supplier")
-
-        # Payment Information
-        print(f"DEBUG: Setting payment information")
-        wht_cert.payment_entry = payment_entry_doc.name
-        print(f"DEBUG: Set payment_entry: {payment_entry_doc.name}")
-        wht_cert.payment_date = payment_entry_doc.posting_date
-        print(f"DEBUG: Set payment_date: {payment_entry_doc.posting_date}")
-        wht_cert.purchase_invoice = purchase_invoice_name
-        print(f"DEBUG: Set purchase_invoice: {purchase_invoice_name}")
-        wht_cert.company = payment_entry_doc.company
-        print(f"DEBUG: Set company: {payment_entry_doc.company}")
-
-        # WHT Details
-        print(f"DEBUG: Setting WHT details")
-        print(f"DEBUG: Getting income type from purchase invoice")
-        wht_cert.income_type = _get_income_type_from_purchase_invoice(purchase_invoice)
-        print(f"DEBUG: Set income_type: {wht_cert.income_type}")
-
-        print(f"DEBUG: Getting income description")
-        wht_cert.income_description = _get_income_description(purchase_invoice)
-        print(f"DEBUG: Set income_description: {wht_cert.income_description}")
-
-        print(f"DEBUG: Setting WHT rate")
-        wht_cert.wht_rate = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_pct_details', 0))
-        print(f"DEBUG: Set wht_rate: {wht_cert.wht_rate}")
-
-        print(f"DEBUG: Setting WHT condition")
-        wht_cert.wht_condition = "1. หัก ณ ที่จ่าย (Withhold at Source)"
-        print(f"DEBUG: Set wht_condition: {wht_cert.wht_condition}")
-
-        # Amount Details
-        print(f"DEBUG: Setting amount details")
-        wht_cert.tax_base_amount = flt(getattr(payment_entry_doc, 'pd_custom_tax_base_amount', 0))
-        print(f"DEBUG: Set tax_base_amount: {wht_cert.tax_base_amount}")
-        wht_cert.wht_amount = wht_amount
-        print(f"DEBUG: Set wht_amount: {wht_cert.wht_amount}")
-
-        # Calculate other amounts
-        print(f"DEBUG: Calculating other amounts")
-        total_payment = flt(getattr(payment_entry_doc, 'pd_custom_total_payment_amount', 0))
-        print(f"DEBUG: Got total_payment: {total_payment}")
-        if total_payment == 0:
-            total_payment = wht_cert.tax_base_amount + flt(purchase_invoice.total_taxes_and_charges or 0)
-
-        wht_cert.total_payment_amount = total_payment
-        wht_cert.net_payment_amount = total_payment - wht_amount
-
-        # PND Form Type and supplier classification based on supplier type
-        pnd_form_type, supplier_classification = _get_pnd_form_and_classification(payment_entry_doc.party)
-        wht_cert.pnd_form_type = pnd_form_type
-        wht_cert.supplier_type_classification = supplier_classification
-
-        # Set initial status
-        print(f"DEBUG: Setting status and remarks")
-        wht_cert.status = "Draft"
-        print(f"DEBUG: Set status: {wht_cert.status}")
-
-        # Remarks
-        wht_cert.remarks = f"Auto-generated from Payment Entry {payment_entry_doc.name} for Purchase Invoice {purchase_invoice_name}"
-        print(f"DEBUG: Set remarks: {wht_cert.remarks}")
-
-        # Save and submit the certificate
-        print(f"DEBUG: About to save WHT Certificate")
-        try:
-            wht_cert.insert(ignore_permissions=True)
-            print(f"DEBUG: WHT Certificate saved successfully: {wht_cert.name}")
-        except Exception as insert_error:
-            print(f"DEBUG INSERT ERROR: {str(insert_error)}")
-            print(f"DEBUG INSERT ERROR TYPE: {type(insert_error)}")
-            import traceback
-            print(f"DEBUG INSERT TRACEBACK: {traceback.format_exc()}")
-            raise insert_error
-
-        # Create a link back to Payment Entry
-        # Update Payment Entry with certificate link
-        print(f"DEBUG: Linking WHT Certificate {wht_cert.name} to Payment Entry {payment_entry_doc.name}")
-        set_issued_wht_certificate(payment_entry_doc, wht_cert.name)
+        # The link of the payment entry and its certificate is kept by the
+        # creator of the certificate.
         # Update Payment Entry with certificate NUMBER for Pay scenario
         # This makes the certificate number visible in the PE UI (_details fields)
         print(f"DEBUG: Setting pd_custom_wht_number_details = {wht_cert.certificate_number}")
         if payment_entry_doc.meta.has_field("pd_custom_wht_number_details"):
             frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_number_details", wht_cert.certificate_number)
 
-        # Submit the certificate to finalize it
-        print(f"DEBUG: Submitting WHT Certificate {wht_cert.name}")
-        wht_cert.submit()
+        # The certificate is submitted by the creator of the certificate
+        print(f"DEBUG: Certificate {wht_cert.name} is submitted: {wht_cert.docstatus}")
 
         # Commit all changes to database before auto-refresh
         frappe.db.commit()  # Ensure everything is committed to database
-        print(f"DEBUG: All changes committed to database")
+        print("DEBUG: All changes committed to database")
 
         # Verify the link was created successfully
         linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate")
@@ -234,9 +160,9 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
                 message=f"WARNING: WHT Certificate link verification failed. Expected: {wht_cert.name}, Got: {linked_cert}",
                 title="WHT Certificate Link Warning"
             )
-            print(f"WARNING: Certificate link verification failed!")
+            print("WARNING: Certificate link verification failed!")
         else:
-            print(f"SUCCESS: Certificate link verified successfully")
+            print("SUCCESS: Certificate link verified successfully")
 
         # Auto-refresh PND53 Form using background job for production reliability
         print(f"DEBUG: Scheduling background job for auto-refresh of certificate {wht_cert.name}")
@@ -292,22 +218,6 @@ def _get_thai_month_display(month_num):
     return tax_month_options.get(month_num, f"{month_num:02d}")
 
 
-def _get_income_type_from_purchase_invoice(purchase_invoice):
-    """Determine income type based on Purchase Invoice items"""
-    # Check if there are service items
-    has_service = False
-    for item in purchase_invoice.items:
-        item_doc = frappe.get_doc("Item", item.item_code)
-        if item_doc.is_stock_item == 0:  # Service item
-            has_service = True
-            break
-
-    if has_service:
-        return "5. ค่าจ้างทำของ ค่าบริการ ฯลฯ 3 เตรส - Service"
-    else:
-        return "12. อื่นๆ - Others"
-
-
 def _get_income_description(purchase_invoice):
     """Get income description from Purchase Invoice"""
     descriptions = []
@@ -321,70 +231,32 @@ def _get_income_description(purchase_invoice):
         return "ค่าสินค้าและบริการ"
 
 
-def _get_pnd_form_and_classification(supplier_name):
-    """
-    Get PND form type and supplier classification based on supplier type according to Thai Revenue Department rules:
-    - Individual/Personal (Staff): PND.1 (ภ.ง.ด.1) - Salary
-    - Individual/Personal (Non-staff): PND.3 (ภ.ง.ด.3) - Services/Freelance
-    - Company/Juristic Person: PND.53 (ภ.ง.ด.53) - Corporate
-
-    Returns:
-        tuple: (pnd_form_doctype_name, supplier_classification)
-    """
-    try:
-        # Get supplier details to determine type
-        supplier_doc = frappe.get_doc("Supplier", supplier_name)
-
-        # Check supplier_type field if it exists
-        supplier_type = getattr(supplier_doc, 'supplier_type', '')
-
-        # Check if this is an individual or company based on name patterns and supplier type
-        supplier_name_lower = supplier_name.lower()
-
-        # Thai company indicators
-        company_indicators = [
-            'จำกัด', 'บริษัท', 'company', 'ltd', 'limited', 'corp', 'corporation',
-            'co.,ltd', 'co. ltd', 'มหาชน', 'public', 'partnership', 'ห้างหุ้นส่วน'
-        ]
-
-        # Check if supplier name contains company indicators
-        is_company = any(indicator in supplier_name_lower for indicator in company_indicators)
-
-        # Check supplier type
-        if supplier_type:
-            supplier_type_lower = supplier_type.lower()
-            if 'company' in supplier_type_lower or 'corporate' in supplier_type_lower or 'juristic' in supplier_type_lower:
-                is_company = True
-            elif 'individual' in supplier_type_lower or 'person' in supplier_type_lower:
-                is_company = False
-
-        if is_company:
-            # Company or Juristic Person - return the DocType name
-            return ("PND53 Form", "Company/Juristic Person (PND.53)")
-        else:
-            # Individual - For now, default to PND.3 (Services)
-            # Note: PND.1 is for salary/employee payments, which would need additional logic
-            # to determine if this is an employee vs. freelancer/service provider
-            return ("PND3 Form", "Individual - Non-staff (PND.3)")
-
-    except Exception as e:
-        frappe.log_error(f"Error determining PND form type for supplier {supplier_name}: {str(e)}")
-        # Default fallback - return the DocType name
-        return ("PND3 Form", "Individual - Non-staff (PND.3)")
-
-
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_wht_certificate_manually(payment_entry_name):
-    """Manual creation of WHT Certificate from Payment Entry"""
-    payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
+    """Manual creation of WHT Certificate from Payment Entry
+
+    The caller must be allowed to read the payment entry and to create the
+    certificate.  The refusal is made before the payment entry is loaded, so
+    that a caller without the right learns nothing about it.
+    """
+    require_document_read("Payment Entry", payment_entry_name)
+    require_doctype_permission("Withholding Tax Certificate", "create")
+
+    payment_entry_doc = cast(Any, frappe.get_doc("Payment Entry", payment_entry_name))
     create_wht_certificate_from_payment_entry(payment_entry_doc)
     return {"status": "success", "message": "WHT Certificate created successfully"}
 
 
 @frappe.whitelist()
 def get_wht_certificate_preview(payment_entry_name):
-    """Preview WHT Certificate data before creation"""
-    payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
+    """Preview WHT Certificate data before creation
+
+    The caller must be allowed to read the payment entry, because the
+    preview shows the data of the payment entry and of its purchase invoice.
+    """
+    require_document_read("Payment Entry", payment_entry_name)
+
+    payment_entry_doc = cast(Any, frappe.get_doc("Payment Entry", payment_entry_name))
 
     # Check if eligible for WHT certificate
     apply_wht = getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 0)
@@ -405,9 +277,17 @@ def get_wht_certificate_preview(payment_entry_name):
     if not purchase_invoice_name:
         return {"eligible": False, "message": "No Purchase Invoice reference found"}
 
-    purchase_invoice = frappe.get_doc("Purchase Invoice", purchase_invoice_name)
-    posting_date = getdate(payment_entry_doc.posting_date)
+    purchase_invoice = cast(Any, frappe.get_doc("Purchase Invoice", purchase_invoice_name))
+    posting_date = cast(date, getdate(payment_entry_doc.posting_date))
     buddhist_year = posting_date.year + 543
+
+    # The preview shows the values of the certificate that the creation
+    # makes; both read the same canonical mapping.
+    resolved = resolve_certificate_income_type(
+        payment_entry_doc,
+        get_entity_type(payment_entry_doc),
+        _fallback_income_type(purchase_invoice, payment_entry_doc),
+    )
 
     preview_data = {
         "eligible": True,
@@ -419,8 +299,8 @@ def get_wht_certificate_preview(payment_entry_name):
         "tax_base_amount": flt(getattr(payment_entry_doc, 'pd_custom_tax_base_amount', 0)),
         "wht_rate": flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_pct_details', 0)),
         "wht_amount": wht_amount,
-        "income_type": _get_income_type_from_purchase_invoice(purchase_invoice),
-        "pnd_form_type": _get_pnd_form_and_classification(payment_entry_doc.party)[0]  # Get only the PND form type
+        "income_type": resolved.get("income_type") or "",
+        "pnd_form_type": resolved.get("pnd_form"),
     }
 
     return preview_data
@@ -483,7 +363,7 @@ def _auto_refresh_pnd_form(wht_cert):
         for pnd_form in existing_pnd_forms:
             try:
                 print(f"DEBUG: Refreshing PND53 Form {pnd_form.name} (year: {pnd_form.tax_period_year}, month: {pnd_form.tax_period_month})")
-                pnd_doc = frappe.get_doc("PND53 Form", pnd_form.name)
+                pnd_doc = cast(Any, frappe.get_doc("PND53 Form", pnd_form.name))
 
                 # Count certificates before refresh
                 before_count = len(pnd_doc.items) if pnd_doc.items else 0
@@ -526,7 +406,7 @@ def _auto_refresh_pnd_form(wht_cert):
         )
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
     """
     Production-grade background job for auto-refreshing PND53 Forms
@@ -537,10 +417,16 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
     3. Retry capability - can be retried if it fails
     4. Proper logging - full audit trail for accounting system
 
+    The caller must be allowed to write the certificate.  The check is made
+    before the job runs as the Administrator, so that the right of the
+    caller is the right that counts.
+
     Args:
         wht_cert_name (str): Name of the WHT Certificate
         wht_cert_data (dict): Certificate data for refresh logic
     """
+    require_document_write("Withholding Tax Certificate", wht_cert_name)
+
     try:
         frappe.set_user("Administrator")  # Ensure proper permissions
 
@@ -548,7 +434,7 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
         print(f"DEBUG: Job data - tax_year: {wht_cert_data.get('tax_year')}, tax_month: {wht_cert_data.get('tax_month')}")
 
         # Verify certificate exists and is properly submitted
-        wht_cert = frappe.get_doc("Withholding Tax Certificate", wht_cert_name)
+        wht_cert = cast(Any, frappe.get_doc("Withholding Tax Certificate", wht_cert_name))
         if not wht_cert:
             raise frappe.DoesNotExistError(f"WHT Certificate {wht_cert_name} not found")
 
@@ -599,7 +485,7 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
         for pnd_form in existing_pnd_forms:
             try:
                 print(f"DEBUG: Processing PND53 Form {pnd_form.name}")
-                pnd_doc = frappe.get_doc("PND53 Form", pnd_form.name)
+                pnd_doc = cast(Any, frappe.get_doc("PND53 Form", pnd_form.name))
 
                 # Count certificates before refresh
                 before_count = len(pnd_doc.items) if pnd_doc.items else 0
@@ -636,7 +522,7 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
         # Final commit to ensure all changes are saved
         frappe.db.commit()
 
-        print(f"DEBUG: Background job completed successfully")
+        print("DEBUG: Background job completed successfully")
         print(f"DEBUG: Refreshed {len(refreshed_forms)} PND53 Forms: {refreshed_forms}")
 
         # Log successful completion for audit trail

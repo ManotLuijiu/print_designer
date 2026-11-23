@@ -104,7 +104,7 @@ All notable changes to this project will be documented in this file. See [standa
 * disable Apply Thai Withholding Tax Compliance in PI ([9845bd5](https://github.com/ManotLuijiu/print_designer/commit/9845bd51149a66a0c660225de0b14a63bfe0bb9e))
 * expose words fields to design preview ([14e3037](https://github.com/ManotLuijiu/print_designer/commit/14e30376d91121b6743b7007e3a7bad106976d6e))
 * Fixed Format ([a66747c](https://github.com/ManotLuijiu/print_designer/commit/a66747c49e6a26f040f6fb98c10c4d7dca189477))
-* inpac_selling/custom/customer.json ([4fab26d](https://github.com/ManotLuijiu/print_designer/commit/4fab26db351379f5b46759ce7fce4230deb9755b))
+* your_app_selling/custom/customer.json ([4fab26d](https://github.com/ManotLuijiu/print_designer/commit/4fab26db351379f5b46759ce7fce4230deb9755b))
 * mariadb-optimization ([31618a7](https://github.com/ManotLuijiu/print_designer/commit/31618a700145c3b6ddf82d44ffb68d4d71963b30))
 * modified:   print_designer/commands/install_company_thai_tax_fields.py ([1eca262](https://github.com/ManotLuijiu/print_designer/commit/1eca262aec276797c835a112161dd11bcb5efa81))
 * modified:   print_designer/commands/install_company_thai_tax_fields.py ([865e5e4](https://github.com/ManotLuijiu/print_designer/commit/865e5e4fdecb82a4cf8b16eb740dd0f6a0463daa))

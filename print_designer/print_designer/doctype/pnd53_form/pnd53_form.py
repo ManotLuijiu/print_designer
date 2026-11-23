@@ -14,11 +14,11 @@ class PND53Form(Document):
 
 	def autoname(self):
 		"""Custom naming using YYMM-NNNNN pattern with monthly reset"""
-		if self.tax_period_month and self.tax_period_year:
+		if self.get("tax_period_month") and self.get("tax_period_year"):
 			# Convert Buddhist year to 2-digit format (e.g., 2568 -> 68)
-			yy = str(self.tax_period_year)[-2:]
+			yy = str(self.get("tax_period_year"))[-2:]
 			# Zero-pad month (e.g., 9 -> 09)
-			mm = str(self.tax_period_month).zfill(2)
+			mm = str(self.get("tax_period_month")).zfill(2)
 			# Create YYMM period identifier
 			period = f"{yy}{mm}"
 
@@ -28,7 +28,7 @@ class PND53Form(Document):
 
 	def populate_wht_certificates(self):
 		"""Automatically populate WHT certificates based on tax period and form type"""
-		if not self.tax_period_year or not self.tax_period_month:
+		if not self.get("tax_period_year") or not self.get("tax_period_month"):
 			return
 
 		# Clear existing items first
@@ -36,7 +36,7 @@ class PND53Form(Document):
 
 		# Format tax month to match WHT certificate format (e.g., "09 - กันยายน (September)")
 		# Use string zfill to handle both string and int inputs safely
-		tax_month_formatted = str(self.tax_period_month).zfill(2)
+		tax_month_formatted = str(self.get("tax_period_month")).zfill(2)
 
 		# Get all WHT certificates and filter manually for complex matching
 		all_certificates = frappe.get_all(
@@ -44,7 +44,7 @@ class PND53Form(Document):
 			filters={
 				"docstatus": 1,  # Only submitted certificates
 				"status": "Issued",  # Only issued certificates
-				"tax_year": self.tax_period_year,
+				"tax_year": self.get("tax_period_year"),
 				"pnd_form_type": "PND53 Form",  # Only PND53 type
 			},
 			fields=[
@@ -60,7 +60,10 @@ class PND53Form(Document):
 		for cert in all_certificates:
 			# Check if tax month matches (handle both "09" and "09 - กันยายน (September)" formats)
 			cert_month = cert.tax_month
-			if cert_month and (cert_month.startswith(tax_month_formatted) or cert_month == str(self.tax_period_month)):
+			if cert_month and (
+				cert_month.startswith(tax_month_formatted)
+				or cert_month == str(self.get("tax_period_month"))
+			):
 				# Check if supplier classification is for companies/corporations (PND53 target)
 				classification = cert.supplier_type_classification or ""
 				if any(keyword in classification for keyword in ["Company", "Corporation", "Juristic Person", "PND.53"]):
@@ -129,7 +132,10 @@ class PND53Form(Document):
 		self.calculate_totals()
 		self.save()
 
-		frappe.msgprint(f"Refreshed with {len(self.items)} WHT certificates for {self.tax_period_month}/{self.tax_period_year}")
+		frappe.msgprint(
+			f"Refreshed with {len(self.items)} WHT certificates for "
+			f"{self.get('tax_period_month')}/{self.get('tax_period_year')}"
+		)
 
 		return {
 			"total_certificates": self.total_certificates,

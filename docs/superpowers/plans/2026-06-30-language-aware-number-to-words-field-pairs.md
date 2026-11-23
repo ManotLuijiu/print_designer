@@ -44,7 +44,7 @@ Also test rejection of missing fields, same source/target, nonnumeric sources, a
 - [ ] **Step 2: Run tests and verify RED**
 
 ```bash
-bench --site aws-solution.bunchee.online run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
+bench --site [site] run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
 ```
 
 Expected: FAIL because `print_designer.utils.number_to_words_fields` does not exist.
@@ -122,8 +122,8 @@ In `_handle_thai_amount_enhancement`, call the shared resolver using `doc`, `fra
 - [ ] **Step 5: Verify focused and render regression tests**
 
 ```bash
-bench --site aws-solution.bunchee.online run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
-bench --site aws-solution.bunchee.online run-tests --app print_designer --module print_designer.tests.test_print_designer_render_correctness
+bench --site [site] run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
+bench --site [site] run-tests --app print_designer --module print_designer.tests.test_print_designer_render_correctness
 ```
 
 Expected: PASS.
@@ -276,9 +276,9 @@ The patch loads `Receipt` only when present, verifies `doc_type == "Payment Entr
 - [ ] **Step 4: Run quality gates**
 
 ```bash
-bench --site aws-solution.bunchee.online run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
+bench --site [site] run-tests --app print_designer --module print_designer.tests.test_number_to_words_fields
 python -m unittest print_designer.tests.test_number_to_words_editor_contract -v
-bench --site aws-solution.bunchee.online run-tests --app print_designer --module print_designer.tests.test_print_designer_render_correctness
+bench --site [site] run-tests --app print_designer --module print_designer.tests.test_print_designer_render_correctness
 ruff check print_designer/utils/number_to_words_fields.py print_designer/print_designer/page/print_designer/print_designer.py print_designer/tests/test_number_to_words_fields.py
 bench build --app print_designer
 ```
@@ -288,8 +288,8 @@ Expected: every command exits 0. No Vue, Pinia, build-tool, package, or lockfile
 - [ ] **Step 5: Apply patch and clear target cache**
 
 ```bash
-bench --site aws-solution.bunchee.online migrate
-bench --site aws-solution.bunchee.online clear-cache
+bench --site [site] migrate
+bench --site [site] clear-cache
 ```
 
 Expected: exit 0. Obtain deployment authorization before this state-changing step.

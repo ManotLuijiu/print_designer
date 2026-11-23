@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>แบบยื่นรายการภาษีเงินได้หัก ณ ที่จ่าย (ภ.ง.ด.3)</title>
+    <style>
+      /* Thai Sarabun New font faces */
+      @font-face {
+        font-family: "THSarabunNew";
+        src: url("/assets/print_designer/fonts/thai/THSarabunNew/THSarabunNew.ttf") format("truetype");
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "THSarabunNew";
+        src: url("/assets/print_designer/fonts/thai/THSarabunNew/THSarabunNew Bold.ttf") format("truetype");
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "THSarabunNew";
+        src: url("/assets/print_designer/fonts/thai/THSarabunNew/THSarabunNew Italic.ttf") format("truetype");
+        font-weight: normal;
+        font-style: italic;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "THSarabunNew";
+        src: url("/assets/print_designer/fonts/thai/THSarabunNew/THSarabunNew BoldItalic.ttf") format("truetype");
+        font-weight: bold;
+        font-style: italic;
+        font-display: swap;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Print-ready styles - following 50Tawi pattern */
+      .print-preview iframe,
+      #print-preview iframe {
+        height: 1100px !important;
+        min-height: 1100px !important;
+      }
+
+      @page {
+        margin: 0 !important;
+        padding: 0 !important;
+        size: A4;
+        font-family: "THSarabunNew", "Sarabun", "Kanit", "Noto Sans Thai", Arial, sans-serif;
+      }
+
+      html,
+      body {
+        font-family: "THSarabunNew", "Sarabun", "Kanit", "Noto Sans Thai", Arial, sans-serif;
+        background: #fff;
+        padding: 0 !important;
+        line-height: 1.3;
+        font-size: 11pt;
+        color: #000;
+      }
+
+      .container {
+        width: 794px;
+        min-height: 1123px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 15px;
+        box-shadow: none;
+      }
+
+      /* Header */
+      .form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: center;
+        position: relative;
+      }
+
+      .header-left {
+        background-color: #E0F3FF;
+        display: flex;
+        justify-content: space-between;
+        width: 80%;
+        border-radius: 15px;
+        margin-right: 20px;
+        border-top-left-radius: 50px;
+        border-bottom-left-radius: 50px;
+      }
+
+      .form-name {
+        justify-content: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        line-height: 1.2;
+      }
+
+      .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding-left: 5px;
+      }
+
+      .revenue-logo {
+        width: 60px;
+        height: auto;
+        display: inline-block;
+      }
+
+      .form-title {
+        font-size: 18px;
+        font-weight: bold;
+        line-height: 1.5;
+      }
+
+      .form-subtitle {
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 1;
+      }
+
+      .form-code {
+        font-size: 40px;
+        font-weight: bold;
+        color: #000;
+        border:#E0F3FF solid 2px;
+        border-radius: 15px;
+        padding: 8px;
+        width: 20%;
+      }
+
+      /* Sections */
+      .sub-header {
+        display: flex;
+        flex-direction: row;
+        margin-top: 15px;
+        width: 100%;
+        border-bottom: 2px solid #E0F3FF;
+      }
+
+      .section-title {
+        font-size: 15px;
+        font-weight: bold;
+        background-color: #e8e8e8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 5px;
+      }
+
+      .section-title-calculation {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0 15px;
+      }
+
+      /* Info Section */
+      .info-section {
+        display: flex;
+        flex-direction: column;
+        width: 55%;
+      }
+      .first-address-row {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 8px;
+        padding-top: 5px;
+        width: 100%;
+        min-width: 0;
+      }
+      .first-address-row label {
+        font-weight: 500;
+        min-width: fit-content;
+        flex-shrink: 0;
+      }
+      .info-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        width: 100%;
+      }
+      .info-row label {
+        font-size: 13px;
+        font-weight: 500;
+        min-width: 120px;
+        flex-shrink: 0;
+      }
+      .input-field {
+        border: none;
+        border-bottom: 1px dotted #333;
+        padding: 4px 6px;
+        font-size: 13px;
+        font-family: inherit;
+      }
+
+      .input-field:focus {
+        outline: none;
+        background-color: #fffacd;
+      }
+
+      .input-field.full-width {
+        flex: 1;
+        min-width: 300px;
+      }
+
+      .filled-value-small {
+        border-bottom: 1px dotted #333;
+        display: inline-block;
+      }
+
+      /* Character boxes for Thai Tax ID, Branch Code, Postal Code */
+      .char-boxes {
+        display: inline-flex;
+        gap: 0;
+        align-items: center;
+      }
+
+      .char-box {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px dashed #999;
+        width: 18px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        margin-left: -1px;
+      }
+
+      .char-box-5 {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px dashed #999;
+        width: 18px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        margin-left: -1px;
+      }
+
+      .char-box:first-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box:last-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box-5:first-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px solid #999;
+        border-right: 1px dashed #999;
+      }
+
+      .char-box-5:last-child {
+        border-top: 1px solid #999;
+        border-bottom: 1px solid #999;
+        border-left: 1px dashed #999;
+        border-right: 1px solid #999;
+      }
+
+      .char-box.dash {
+        width: 8px;
+        border-top: none;
+        border-bottom: none;
+        border-left: 1px solid #999;
+        border-right: 1px solid #999;
+        background-color: transparent;
+      }
+
+      .address-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
+        min-width: 0;
+      }
+      .building-address-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        width: 100%;
+        justify-content: flex-start;
+        min-width: 0;
+      }
+      .address-row span,
+      .address-row .filled-value {
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .address-row span {
+        font-weight: 500;
+        flex-shrink: 0;
+      }
+      .filled-value {
+        border-bottom: 1px dotted #333;
+        display: inline-block;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+      }
+
+      /* Filing Section */
+      .filing-section {
+        border-left: 1px solid #E0F3FF;
+        margin-left: 5px;
+        display: flex;
+        flex-direction: column;
+        width: 45%;
+        /* height: 250px; */
+      }
+
+      .filing-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding-left: 5px;
+      }
+
+      .filing-row label {
+        font-size: 15px;
+      }
+
+      .filing-row input[type="radio"],
+      .filing-row input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .option-group {
+        padding-left: 15px;
+      }
+
+      .option-group input[type="radio"] {
+        margin-right: 8px;
+      }
+
+      .option-group label {
+        font-size: 15px;
+      }
+
+      .sub-options {
+        margin-left: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .sub-options input[type="radio"] {
+        margin-right: 4px;
+      }
+
+      .sub-options label {
+        font-size: 11px;
+        margin-right: 8px;
+      }
+
+      .months-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        padding-left: 5px;
+        line-height: 1.2;
+        gap: 0;
+      }
+
+      .month-option {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin: 0;
+        padding: 0;
+        height: auto;
+      }
+
+      .month-option input[type="checkbox"] {
+        cursor: pointer;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        width: 8px;
+        height: 8px;
+        border: 1px solid #999;
+        position: relative;
+      }
+
+      .month-option input[type="checkbox"]:checked {
+        background-color: #333;
+      }
+
+      .month-option input[type="checkbox"]:checked::after {
+        content: "";
+      }
+
+      .month-option label {
+        font-size: 15px;
+        cursor: pointer;
+        margin-left: 2px;
+      }
+      .inline-checkbox {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 1px solid #333;
+        margin-right: 4px;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+
+      .note {
+        font-size: 12px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .tax-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 14px;
+      }
+
+      .tax-table th {
+        border: none;
+        padding: 3px 8px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .tax-table td {
+        border: none;
+        padding: 2px 6px;
+        text-align: center;
+      }
+
+      .tax-table .col-num {
+        text-align: left;
+      }
+
+      .tax-table .col-desc {
+        text-align: left;
+        width: auto;
+      }
+
+      .tax-table .col-amount {
+        width: 80px;
+        text-align: right;
+      }
+      .tax-table .col-badge {
+        vertical-align: middle;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .tax-table .col-badge .badge-label:first-child {
+        height: 80px;
+      }
+
+      .tax-table .col-badge .badge-label {
+        display: inline-block;
+        font-weight: bold;
+        background-color: #E0F3FF;
+        color: white;
+        font-size: 16px;
+        padding: 5px 2px;
+        width: 29px;
+      }
+
+      .tax-table .group-separator td {
+        box-shadow: 0 3px 0 #E0F3FF;
+      }
+      .tax-table .group-separator td.col-badge {
+        box-shadow: 0 3px 0 #E0F3FF;
+      }
+
+      .amount-input {
+        width: 100%;
+        border: none;
+        text-align: right;
+        padding: 2px;
+        font-size: 12px;
+      }
+
+      .amount-input:focus {
+        outline: none;
+        background-color: #fffacd;
+      }
+
+      .highlight-row {
+        font-weight: bold;
+        font-size: 15px;
+      }
+
+      .amount-unit {
+        text-align: right;
+        font-size: 12px;
+        padding-right: 10px;
+      }
+
+      /* Refund Section */
+      .refund-section {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 4px;
+      }
+
+      .refund-text {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .refund-option {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .refund-option input[type="checkbox"] {
+        cursor: pointer;
+      }
+
+      .refund-option label {
+        font-size: 13px;
+        cursor: pointer;
+        width: 50%;
+      }
+
+      .refund-option .signature-line {
+        border-bottom: none;
+      }
+
+      .refund-section > .signature-line {
+        display: block;
+        text-align: right;
+        border-bottom: none;
+      }
+
+      .signature-section .signature-line {
+        border-bottom: none;
+      }
+
+      .signature-line {
+        border-bottom: 1px solid #333;
+        display: inline-block;
+        text-align: center;
+        font-size: 14px;
+        display: flex;
+        width: 100%;
+        justify-content: flex-end;
+      }
+
+      /* Declaration Section */
+      .declaration-section {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 4px;
+      }
+
+      .declaration-text {
+        font-size: 14px;
+        line-height: 1.6;
+        text-align: justify;
+      }
+
+      .signature-section {
+        display: inline-block;
+        vertical-align: top;
+        width: 65%;
+      }
+
+      .signature-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .signature-row span:first-child {
+        font-size: 12px;
+        min-width: 80px;
+      }
+
+      .seal-section {
+        display: inline-block;
+        vertical-align: top;
+        width: 30%;
+        text-align: right;
+      }
+
+      .seal-box {
+        border: 1px solid #333;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 8px;
+      }
+
+      /* Footer */
+      .footer-note {
+        text-align: right;
+        font-size: 11px;
+        color: #666;
+        border-top: 1px solid #ddd;
+        font-style: italic;
+        padding-top: 5px;
+        font-size: 14px;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .container {
+          padding: 15px;
+        }
+
+        .months-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .tax-table {
+          font-size: 11px;
+        }
+
+        .signature-line {
+          min-width: 200px;
+        }
+
+        .address-row {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      @media print {
+        body {
+          background-color: white;
+          padding: 0;
+        }
+
+        .container {
+          box-shadow: none;
+          max-width: 100%;
+        }
+
+        .input-field {
+          border-bottom: 1px solid #000;
+        }
+      }
+    </style>
+  </head>
+  <!-- Body Started Here -->
+  <body>
+    <div class="container">
+      <!-- Header Section -->
+      <div id="form__wrapper" class="form-header">
+        <div id="form__left" class="header-left">
+          <div id="form__logo" class="logo-container">
+            <img
+              src="{{ revenue_logo_url }}"
+              alt="Thai Revenue Department Logo"
+              class="revenue-logo"
+            />
+          </div>
+          <div id="form__name" class="form-name">
+            <div class="form-title">แบบยื่นรายการภาษีเงินได้หัก ณ ที่จ่าย</div>
+            <div class="form-subtitle">ตามมาตรา 59 แห่งประมวลรัษฎากร</div>
+            <p style="line-height: 1;">
+              สำหรับการหักภาษี ณ ที่จ่ายตามมาตรา 3 เตรส และมาตรา 50 (3) (4) (5)<br> กรณีการจ่ายเงินได้พึงประเมินตามมาตรา 40 (5) (6) (7) (8) และเสียภาษีตามมาตรา 48 ทวิ แห่งประมวลรัษฎากร
+            </p>
+          </div>
+        </div>
+
+        <div id="form__right" class="form-code">ภ.ง.ด.3</div>
+      </div>
+
+      <div id="sub__header" class="sub-header">
+        <!-- Taxpayer Information Section -->
+        <section class="info-section">
+          <div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2px;
+              "
+            >
+              <label style="font-size: 15px; font-weight: bold; display: flex; flex-direction: column; align-items: center;">เลขประจำตัวผู้เสียภาษีอากร <span style="font-size: 12px; font-style: italic;">(ของผู้มีหน้าที่หักภาษี ณ ที่จ่าย)</span></label>
+              <div style="margin-left: 2px" class="char-boxes">
+                {% set tax_id_clean = tax_id.replace('-', '') %} {% for i in
+                range(13) %} {% if i in [1, 5, 10, 12] %}
+                <span class="char-box dash">-</span>
+                {% endif %}
+                <span class="char-box"
+                  >{{ tax_id_clean[i:i+1] }}</span
+                >
+                {% endfor %}
+              </div>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2px;
+                margin-top: 5px;
+                width: 100%;
+              "
+            >
+              <div style="font-size: 15px; font-weight: bold; align-self: flex-start; display: flex; text-align: left; width: 50%;">ชื่อผู้มีหน้าที่หักภาษี ณ ที่จ่าย <span style="font-size: 14px; font-style: italic;">(หน่วยงาน):</span></div>
+
+              <div style="display: flex; width: 50%; justify-content: flex-end;">
+                <label style="font-size: 14px; align-self: flex-end; text-align: right; margin-right: 5px;">สาขาที่</label>
+                <div class="char-boxes">
+                  {% for i in range(5) %}
+                  <span class="char-box-5"
+                    >{{ (branch_code or '')[i:i+1] }}</span
+                  >
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <span class="filled-value" style="flex: 1">{{ company.pd_custom_company_register_name or company_name }}</span>
+          </div>
+
+          <div class="first-address-row">
+            <label style="font-size: 15px; font-weight: bold;">ที่อยู่:</label>
+            <div class="building-address-row">
+              <span>อาคาร</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('building', '') }}</span
+              >
+              <span>ห้องเลขที่</span>
+              <span class="filled-value" style="min-width: 60px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('room_no', '') }}</span
+              >
+              <span>ชั้นที่</span>
+              <span class="filled-value" style="min-width: 50px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('floor', '') }}</span
+              >
+            </div>
+          </div>
+          <div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 2px;
+              "
+            >
+              <span>เลขที่</span>
+              <span class="filled-value" style="min-width: 60px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('house_no', '') }}</span
+              >
+              <span>หมู่ที่</span>
+              <span class="filled-value" style="min-width: 50px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('moo', '') }}</span
+              >
+              <span>ตรอก/ซอย</span>
+              <span class="filled-value" style="min-width: 80px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('soi', '') }}</span
+              >
+              <span>ถนน</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('road', '') }}</span
+              >
+              <span>ตำบล/แขวง</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('subdistrict', '') }}</span
+              >
+            </div>
+          </div>
+          <div class="info-row">
+            <div class="address-row">
+              <span>อำเภอ/เขต</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('district', '') }}</span
+              >
+              <span>จังหวัด</span>
+              <span class="filled-value" style="min-width: 100px"
+                >{{ (pnd3_data.company_info.get('address_obj') or {}).get('province', '') }}</span
+              >
+            </div>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              gap: 2px;
+            "
+          >
+            <label>รหัสไปรษณีย์</label>
+            <div class="char-boxes">
+              {% set postal = (pnd3_data.company_info.get('address_obj') or {}).get('postal_code', '') %}
+              {% for i in range(5) %}
+              <span class="char-box-5">{{ (postal or '')[i:i+1] }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: flex-start;
+              align-items: center;
+              gap: 2px;
+            "
+          >
+            <label>โทรศัพท์</label>
+            <span class="filled-value" style="min-width: 120px"
+              >{{ (pnd3_data.company_info.get('address_obj') or {}).get('phone', '') }}</span
+            >
+          </div>
+          <div style="
+            margin-top: 5px;
+            text-align: center;
+            border-top: 2px solid #E0F3FF;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 100%;
+            gap: 5px;
+          ">
+          <div style="
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            font-size: 15px;
+          ">
+            <span>☐ (1) ยื่นปกติ</span>
+            <div>
+              <span>☐ (2) ยื่นเพิ่มเติมครั้งที่</span><span>......</span>
+            </div>
+          </div>
+
+          </div>
+        </section>
+
+        <!-- Filing Type Section -->
+        <section class="filing-section">
+          <div id="right__side__top" style="height: 100px;">
+            <div class="filing-row">
+              <label>เดือนที่จ่ายเงินได้พึงประเมิน</label>
+            </div>
+  
+            
+  
+            <!-- Timing of submit form -->
+  
+            <div
+              style="
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                padding-left: 5px;
+              "
+            >
+              <label>(ให้ทำเครื่องหมาย "✓" ลงใน "☐"
+                หน้าชื่อเดือน)</label
+              >
+              <label style="margin-left: 5px;">พ.ศ.</label>
+              <span class="filled-value-small"
+                >{{ filing_year }}</span
+              >
+            </div>
+  
+            <div class="months-grid">
+              <div class="month-option">
+                <input type="checkbox" id="jan" name="month" value="1" {% if
+                filing_month == 1 %}checked{% endif %} />
+                <label for="jan">(1) มกราคม</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="apr" name="month" value="4" {% if
+                filing_month == 4 %}checked{% endif %} />
+                <label for="apr">(4) เมษายน</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="jul" name="month" value="7" {% if
+                filing_month == 7 %}checked{% endif %} />
+                <label for="jul">(7) กรกฎาคม</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="oct" name="month" value="10" {% if
+                filing_month == 10 %}checked{% endif %} />
+                <label for="oct">(10) ตุลาคม</label>
+              </div>
+  
+              <div class="month-option">
+                <input type="checkbox" id="feb" name="month" value="2" {% if
+                filing_month == 2 %}checked{% endif %} />
+                <label for="feb">(2) กุมภาพันธ์</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="may" name="month" value="5" {% if
+                filing_month == 5 %}checked{% endif %} />
+                <label for="may">(5) พฤษภาคม</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="aug" name="month" value="8" {% if
+                filing_month == 8 %}checked{% endif %} />
+                <label for="aug">(8) สิงหาคม</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="nov" name="month" value="11" {% if
+                filing_month == 11 %}checked{% endif %} />
+                <label for="nov">(11) พฤศจิกายน</label>
+              </div>
+  
+              <div class="month-option">
+                <input type="checkbox" id="mar" name="month" value="3" {% if
+                filing_month == 3 %}checked{% endif %} />
+                <label for="mar">(3) มีนาคม</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="jun" name="month" value="6" {% if
+                filing_month == 6 %}checked{% endif %} />
+                <label for="jun">(6) มิถุนายน</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="sep" name="month" value="9" {% if
+                filing_month == 9 %}checked{% endif %} />
+                <label for="sep">(9) กันยายน</label>
+              </div>
+              <div class="month-option">
+                <input type="checkbox" id="dec" name="month" value="12" {% if
+                filing_month == 12 %}checked{% endif %} />
+                <label for="dec">(12) ธันวาคม</label>
+              </div>
+            </div>
+          </div>
+          
+          <div id="tcl-info" style="
+            border: 1px solid #E0F3FF;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            font-size: 15px;
+          ">
+            <p>สำหรับบันทึกข้อมูลจากระบบ TCL</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tax Calculation Table -->
+      <section class="calculation-section">
+
+        <div style="display: flex; justify-content: space-around; margin-top: 15px; font-size: 15px;">
+          <span>☐ นำส่งภาษีตาม</span>
+          <span>☐ (1) มาตรา <span style="font-weight: bold;">3 เตรส</span></span>
+          <span>☐ (2) มาตรา <span style="font-weight: bold;">48 ทวิ</span></span>
+          <span>☐ (3) มาตรา <span style="font-weight: bold;">50 (3) (4) (5)</span></span>
+        </div>
+
+        <!-- <div class="note">สำหรับบันทึกข้อมูลจากระบบ</div> -->
+        <div style="display: flex; justify-content: space-between; margin-top: 5px; padding: 15px; width: 100%; font-size: 15px;">
+          <div style="display: flex; flex-direction: column; gap: 5px; width: 40%;">
+            <span>มีรายละเอียดการหักเป็นรายผู้มีเงินได้ ปรากฏตาม</span>
+            <span style="font-style: italic;">(ให้แสดงรายละเอียดใน<span style="font-weight: bold;">
+              ใบแนบ ภ.ง.ด.3</span> หรือใน<span style="font-weight: bold;">
+                สื่อ</span>
+            </span>
+            <span style="font-style: italic;">
+              <span style="font-weight: bold;">บันทึกในระบบคอมพิวเตอร์</span>อย่างใดอย่างหนึ่งเท่านั้น)
+            </span>
+          </div>
+          <div style="width: 60%;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>
+                <span style="font-size: 16px; font-weight: bold;">
+                  ☐ ใบแนบ ภ.ง.ด.3
+                </span> ที่แนบมาพร้อมนี้:
+              </span>
+              <div style="display: flex; flex-direction: column;">
+                <span>จำนวน..................................ราย</span>
+                <span>จำนวน..................................แผ่น</span>
+              </div>
+            </div>
+
+            <div>หรือ</div>
+
+            <div style="display: flex; justify-content: space-between;">
+              <span>
+                <span style="font-size: 16px; font-weight: bold;">
+                  ☐ สื่อบันทึกในระบบคอมพิวเตอร์
+                </span> ที่แนบมาพร้อมนี้:
+              </span>
+              <div style="display: flex; flex-direction: column;">
+                <span>จำนวน...................................ราย</span>
+                <span>จำนวน...................................แผ่น</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px; font-style: italic;">
+              <span style="margin-left: 15px;">(ตามหนังสือแสดงความประสงค์ฯ ทะเบียนรับเลขที่......................................</span>
+              <span style="margin-left: 15px;">หรือตามหนังสือข้อตกลงการใช้งานฯ เลขอ้างอิงการลงทะเบียน...........................)</span>
+            </div>
+          </div>
+        </div>
+
+        <table class="tax-table">
+          <thead>
+            <tr style="display: flex; width: 100%; height: 30px; font-size: 16px;">
+              <th style="
+                justify-content: center;
+                display: flex;
+                background-color: #E0F3FF;
+                border-radius: 5px;
+                align-items: center;
+                width: 350px;
+              ">สรุปรายการนำส่ง</th>
+              
+              <th style="
+                display: flex;
+                justify-content: center;
+                width: 150px;
+                align-items: center;
+              ">จำนวนเงิน</th>
+            </tr>
+          </thead>
+          <tbody style="font-size: 15px;">
+            <tr>
+              <td class="col-num">1. <span style="font-weight: bold;">รวม</span>ยอดเงินได้ทั้งสิ้น</td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">2. <span>รวม</span>ยอดภาษีที่นำส่งทั้งสิ้น</td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">3. เงินเพิ่ม (ถ้ามี)</td>
+              <td class="col-amount"></td>
+            </tr>
+            <tr>
+              <td class="col-num">4. <span>รวม</span>ยอดภาษีที่นำส่งทั้งสิ้น และเงินเพิ่ม (2. + 3.)</td>
+              <td class="col-amount"></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div style="border-top: 2px solid #E0F3FF">
+        <!-- Tax Refund Section -->
+        <section>
+          <div style="
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 15px;
+          ">
+            <p>ข้าพเจ้าขอรับรองว่า รายที่แจ้งไว้ข้างต้นนี้ เป็นรายการที่ถูกต้องและครบถ้วนทุกประการ</p>
+            <div style="display: flex; flex-direction: column;">
+              <span>ลงชื่อ...................................................................ผู้ประกอบการ</span
+              >
+              <span>   (...................................................................)</span>
+              <span>ตำแหน่ง.....................................................................</span>
+              <span>ยื่นวันที่............เดือน............................พ.ศ.......................</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Footer Note -->
+      <div class="footer-note">(ก่อนกรอกรายการดูคำชี้แจงด้านหลัง)</div>
+      <div style="margin-top: 30px; font-size: 14px;">
+        <span style="font-weight: bold;">สอบถามข้อมูลเพิ่มเติมได้ที่ศูนย์สารนิเทศสรรพากร</span> <span>RD Intelligence Center</span> <span style="font-weight: bold;">โทร. 1161</span></div>
+    </div>
+  </body>
+</html>

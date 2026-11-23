@@ -338,6 +338,16 @@
   resolved "https://registry.yarnpkg.com/@types/normalize-package-data/-/normalize-package-data-2.4.4.tgz#56e2cc26c397c038fab0e3a917a12d5c5909e901"
   integrity sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==
 
+"@ui-sdk/core@^0.1.0-beta.16":
+  version "0.1.0-beta.16"
+  resolved "https://registry.yarnpkg.com/@ui-sdk/core/-/core-0.1.0-beta.16.tgz#2cf9297e292769cf9cef33d4693fda1c33b55276"
+  integrity sha512-I2GMqOviLS/lYfIj2lTqKLbae0V9uSnysK+bSdbhuw2De8zNvrLZiDTc0qzsPNiZvB/bMmUZJS5UDA5Q2Pq4Ng==
+
+"@ui-sdk/vue@^0.1.0-beta.16":
+  version "0.1.0-beta.16"
+  resolved "https://registry.yarnpkg.com/@ui-sdk/vue/-/vue-0.1.0-beta.16.tgz#8acaa2f008ccc108d9ad1192694690ee829c7b53"
+  integrity sha512-9Y4aMVrrYrYDNBgiJs1AWW1S6giJQ7wfmyEvN6fU0j3gyO5qmLQ1xLBmZmuCQv1Wt0AIL9VfGpAclW4ZF45IOA==
+
 "@vue/compiler-core@3.5.12":
   version "3.5.12"
   resolved "https://registry.yarnpkg.com/@vue/compiler-core/-/compiler-core-3.5.12.tgz#bd70b7dabd12b0b6f31bc53418ba3da77994c437"

@@ -10,6 +10,7 @@ account instead of the Asset WHT account.
 
 import frappe
 from collections import defaultdict
+from typing import Any, cast
 from frappe.utils import flt
 from erpnext.accounts.doctype.tax_withholding_entry.tax_withholding_entry import (
     PaymentTaxWithholding,
@@ -22,6 +23,15 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
     in the Advance Taxes and Charges child table.
     """
 
+    def _the_category_details(self) -> dict[str, Any]:
+        """The details of the categories of the withholding tax.
+
+        ERPNext annotates the answer of `_get_category_details` as a list,
+        but the method answers with a mapping of the name of the category to
+        the details of that category.  This helper carries that mapping.
+        """
+        return cast(dict[str, Any], self.category_details)
+
     def _get_category_names(self):
         result = super()._get_category_names()
         print(f"[Thai WHT] _get_category_names returned: {result}")
@@ -29,7 +39,8 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
 
     def _get_category_details(self):
         result = super()._get_category_details()
-        print(f"[Thai WHT] _get_category_details returned: {list(result.keys()) if result else None}")
+        details = cast(dict[str, Any], result)
+        print(f"[Thai WHT] _get_category_details returned: {list(details.keys()) if details else None}")
         return result
 
     def _update_taxable_amounts(self):
@@ -53,9 +64,9 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         if not self.category_details:
             print(f"[Thai WHT] WARNING: category_details is EMPTY — no categories found")
         else:
-            print(f"[Thai WHT] category_details keys: {list(self.category_details.keys())}")
+            print(f"[Thai WHT] category_details keys: {list(self._the_category_details().keys())}")
 
-        category = next(iter(self.category_details.values()))
+        category = next(iter(self._the_category_details().values()))
         print(f"[Thai WHT] category name: {category.get('name')}")
         print(f"[Thai WHT] category tax_rate: {category.get('tax_rate')}")
         print(f"[Thai WHT] category taxable_amount before: {category.get('taxable_amount')}")
@@ -146,7 +157,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         """
         print(f"[Thai WHT] _calculate_account_wise_amount called")
         print(f"[Thai WHT] doc.tax_withholding_entries count: {len(self.doc.tax_withholding_entries)}")
-        print(f"[Thai WHT] category_details keys: {list(self.category_details.keys())}")
+        print(f"[Thai WHT] category_details keys: {list(self._the_category_details().keys())}")
 
         account_amount_map = defaultdict(float)
 
@@ -156,7 +167,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
                 print(f"[Thai WHT]     skipping - withholding_name={entry.withholding_name} != doc.name={self.doc.name}")
                 continue
 
-            category = self.category_details.get(entry.tax_withholding_category)
+            category = self._the_category_details().get(entry.tax_withholding_category)
             if not category:
                 print(f"[Thai WHT]     skipping - no category found")
                 continue
@@ -254,8 +265,9 @@ def _get_twc_accounts_for_company(twc_name, company):
 
     try:
         twc = frappe.get_cached_doc("Tax Withholding Category", twc_name)
-        print(f"[Thai WHT]   TWC fetched: {twc.name}, accounts rows: {len(twc.accounts)}")
-        for row in twc.accounts:
+        accounts = cast(list[Any], twc.get("accounts"))
+        print(f"[Thai WHT]   TWC fetched: {twc.name}, accounts rows: {len(accounts)}")
+        for row in accounts:
             print(f"[Thai WHT]     TWC account row: company={row.company}, account={row.account}, liability={row.get('pd_custom_wht_liability_account')}")
             if row.company == company:
                 result = {
@@ -305,10 +317,9 @@ def get_tax_withholding_group(tax_withholding_category):
             "Thai WHT Income Type",
             {"tax_withholding_category": tax_withholding_category, "is_active": 1},
             "form_type_th",
-            as_dict=True
         )
-        if twi and twi.form_type_th:
-            return twi.form_type_th
+        if isinstance(twi, str) and twi:
+            return twi
     except Exception:
         pass
 

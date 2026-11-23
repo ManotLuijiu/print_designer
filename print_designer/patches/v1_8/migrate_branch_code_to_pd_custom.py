@@ -8,11 +8,15 @@ This patch runs ONCE via Frappe's patch system and migrates:
 Legacy fields that are migrated:
 - branch_code
 - custom_branch_code
-- dgs_custom_branch_code (from digisoft_erp app)
 - customer_branch_code / supplier_branch_code
+
+Every other branch field of the DocType is discovered from the Custom Field
+records of the DocType, so no client specific field name is listed here.
 """
 
 import frappe
+
+from print_designer.utils.db import sql_rows
 
 
 def execute():
@@ -54,13 +58,15 @@ def migrate_doctype_branch_codes(doctype):
         return stats
 
     # Get all existing custom fields with 'branch' in name (excluding target field)
-    existing_fields = frappe.db.sql("""
+    existing_fields = sql_rows(frappe.db.sql(
+        """
         SELECT fieldname, label
         FROM `tabCustom Field`
         WHERE dt = %s
         AND fieldname LIKE '%%branch%%'
         AND fieldname != 'pd_custom_branch_code'
     """, (doctype,), as_dict=True)
+    )
 
     if not existing_fields:
         print(f"   ℹ️  No legacy branch fields found for {doctype}")
@@ -68,7 +74,7 @@ def migrate_doctype_branch_codes(doctype):
 
     print(f"   Found {len(existing_fields)} legacy branch field(s):")
     for field in existing_fields:
-        print(f"      - {field.fieldname} ({field.label})")
+        print(f"      - {field['fieldname']} ({field['label']})")
 
     # Process each legacy field
     for legacy_field in existing_fields:
@@ -84,7 +90,7 @@ def migrate_doctype_branch_codes(doctype):
         # Find records with values in legacy field but NOT yet migrated
         # Only migrate if pd_custom_branch_code is NULL, empty, or has incorrect '0' value
         # Note: '0' should be '00000' for Thai tax compliance (head office branch code)
-        records_to_migrate = frappe.db.sql(f"""
+        records_to_migrate = sql_rows(frappe.db.sql(f"""
             SELECT name, `{fieldname}` as legacy_value
             FROM `{table_name}`
             WHERE `{fieldname}` IS NOT NULL
@@ -95,6 +101,7 @@ def migrate_doctype_branch_codes(doctype):
                 OR pd_custom_branch_code = '0'
             )
         """, as_dict=True)
+        )
 
         if not records_to_migrate:
             stats["skipped"] += 1
@@ -106,15 +113,15 @@ def migrate_doctype_branch_codes(doctype):
             try:
                 frappe.db.set_value(
                     doctype,
-                    record.name,
+                    record["name"],
                     "pd_custom_branch_code",
-                    record.legacy_value,
+                    record["legacy_value"],
                     update_modified=False
                 )
-                print(f"      ✓ {record.name}: '{record.legacy_value}' → pd_custom_branch_code")
+                print(f"      ✓ {record['name']}: '{record['legacy_value']}' → pd_custom_branch_code")
                 stats["migrated"] += 1
             except Exception as e:
-                print(f"      ✗ {record.name}: Migration failed - {str(e)}")
+                print(f"      ✗ {record['name']}: Migration failed - {str(e)}")
                 stats["errors"] += 1
 
         frappe.db.commit()

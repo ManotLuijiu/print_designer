@@ -1,4 +1,5 @@
 import re
+from typing import Any, cast
 
 import frappe
 
@@ -13,12 +14,12 @@ REPLACEMENTS = {LEGACY_FIELD: "pd_custom_vat_ref"}
 
 
 def execute():
-    legacy = frappe.db.get_value(
+    legacy = cast(Any, frappe.db.get_value(
         "Custom Field",
         {"dt": "Payment Entry", "fieldname": LEGACY_FIELD},
         ["name", "insert_after"],
         as_dict=True,
-    )
+    ))
     if not legacy:
         return 0
 

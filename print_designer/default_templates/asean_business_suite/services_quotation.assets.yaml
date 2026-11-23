@@ -2,7 +2,7 @@ kind: print_designer_template_assets
 version: 1
 template_file: services_quotation.json
 template_name: services_quotation
-source_site: aws-solution.bunchee.online
+source_site: [site]
 source_format: Quotation - AWS Solution
 source_modified: '2026-11-20 03:19:36.417706'
 assets: []

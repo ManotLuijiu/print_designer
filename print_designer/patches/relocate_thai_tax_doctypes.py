@@ -13,17 +13,16 @@ last.  This patch puts the ownership back after the model synchronisation, so
 that the records stay the ones of Print Designer, and so that a migration of
 Thai Business Suite cannot take them back.
 
+The ownership is only taken back from an owner that carries the DocType
+without records of its own, the modules of the Thai Business Suite.  A fork
+of a client carries the records of that client, and its DocType is kept; see
+`print_designer/custom/doctype_ownership.py`.
+
 The patch touches the metadata only.  It creates no record, it changes no
 record, and it posts no entry to the ledger.
 """
 
-import os
-
-import frappe
-from frappe.modules.import_file import import_file_by_path
-
-APP_PATH = frappe.get_app_path("print_designer")
-DOCTYPE_PATH = os.path.join(APP_PATH, "print_designer", "doctype")
+from print_designer.custom.doctype_ownership import take_the_ownership_back
 
 # The DocTypes of the tax of Print Designer, with the folder they live in.
 TAX_DOCTYPES = (
@@ -32,45 +31,16 @@ TAX_DOCTYPES = (
     "Thai Tax Invoice Intake",
 )
 
-OWNER = "Print Designer"
+# The DocTypes of the withholding tax of Print Designer.  The certificate of
+# the withholding tax of Thailand and its incomes are the canonical DocTypes;
+# the certificate that was deleted, `Withholding Tax Cert`, is not one of them.
+WITHHOLDING_DOCTYPES = (
+    "Withholding Tax Certificate",
+    "Withholding Tax Item",
+)
 
 
 def execute() -> None:
     """Put the ownership of the Thai tax DocTypes back to Print Designer."""
-    for doctype in TAX_DOCTYPES:
-        _relocate(doctype)
-
-
-def _relocate(doctype: str) -> None:
-    """Import the metadata of the DocType of Print Designer.
-
-    Args:
-            doctype: the name of the DocType.
-    """
-    before = frappe.db.get_value("DocType", doctype, "module")
-    after = before
-
-    if before != OWNER:
-        folder = _the_folder_of(doctype)
-        path = os.path.join(DOCTYPE_PATH, folder, f"{folder}.json")
-
-        if not os.path.exists(path):
-            print(f"  {doctype}: the file of Print Designer is missing, the owner stays {before}")
-            return
-
-        import_file_by_path(path, force=True, ignore_version=True)
-        after = frappe.db.get_value("DocType", doctype, "module")
-
-    print(f"  {doctype}: owner {before} -> {after}")
-
-
-def _the_folder_of(doctype: str) -> str:
-    """The folder of the DocType inside the app.
-
-    Args:
-            doctype: the name of the DocType.
-
-    Returns:
-            The name of the folder of the DocType.
-    """
-    return frappe.scrub(doctype)
+    for doctype in TAX_DOCTYPES + WITHHOLDING_DOCTYPES:
+        print(take_the_ownership_back(doctype))

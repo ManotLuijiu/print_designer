@@ -35,10 +35,10 @@ PASSWORD = os.getenv("SITE_PASSWORD", "")
 # Test data
 DOCTYPE = "Stock Entry"
 DOC_NAME = "MAT-STE-2026-00001"
-PRINT_FORMAT = "DGS Stock Transfer - Form 4"
+PRINT_FORMAT = "Stock Transfer - Form 4"
 
 # Log file to check
-LOG_FILE = "/home/frappe/frappe-bench/sites/digisoft-erp.bunchee.online/logs/print_designer/print_designer.log"
+LOG_FILE = "/home/frappe/frappe-bench/sites/[site]/logs/print_designer/print_designer.log"
 
 
 def get_log_content():

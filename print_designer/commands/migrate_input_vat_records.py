@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026, AWS Solution Ltd. and contributors
+# Copyright (c) 2026, MooCoding and contributors
 # For license information, please see license.txt
 """
 Migrate existing Input VAT records to populate new fields.
@@ -15,13 +15,17 @@ Run with:
 
 import frappe
 
+from print_designer.utils.db import sql_rows
+
 
 def main():
-    frappe.init(sites_path="/home/frappe/frappe-bench/sites")
-    site = frappe.utils.get_site_name(frappe.request.hostname) if frappe.request else None
+    # The bench command that executes this function initializes the site.
+    site = getattr(frappe.local, "site", None)
     if not site:
-        site = "inpac-pharma-v16.bunchee.online"
-    frappe.init(site)
+        frappe.throw(
+            "The site must be selected, for example: bench --site [site] execute "
+            "print_designer.commands.migrate_input_vat_records.main"
+        )
     frappe.connect()
 
     print("=" * 60)
@@ -32,7 +36,7 @@ def main():
     migrated_iuv = 0
 
     # 1. Thai Purchase VAT — set vat_type = "General" where missing
-    tpvs = frappe.db.sql(
+    tpvs = sql_rows(frappe.db.sql(
         """
         SELECT name, purchase_invoice, vat_type
         FROM `tabThai Purchase VAT`
@@ -40,20 +44,21 @@ def main():
         """,
         as_dict=True,
     )
+    )
 
     for tpv in tpvs:
         frappe.db.set_value(
-            "Thai Purchase VAT", tpv.name, "vat_type", "General"
+            "Thai Purchase VAT", tpv["name"], "vat_type", "General"
         )
         migrated_tpv += 1
-        print(f"  [TPV] {tpv.name} | PI: {tpv.purchase_invoice} → vat_type = General")
+        print(f"  [TPV] {tpv['name']} | PI: {tpv['purchase_invoice']} → vat_type = General")
 
     if migrated_tpv:
         frappe.db.commit()
         print(f"\nMigrated {migrated_tpv} Thai Purchase VAT records")
 
     # 2. Input VAT Undue — set source_doctype = "Purchase Invoice" where missing
-    iuvs = frappe.db.sql(
+    iuvs = sql_rows(frappe.db.sql(
         """
         SELECT name, purchase_invoice, source_doctype
         FROM `tabInput VAT Undue`
@@ -61,13 +66,14 @@ def main():
         """,
         as_dict=True,
     )
+    )
 
     for iuv in iuvs:
         frappe.db.set_value(
-            "Input VAT Undue", iuv.name, "source_doctype", "Purchase Invoice"
+            "Input VAT Undue", iuv["name"], "source_doctype", "Purchase Invoice"
         )
         migrated_iuv += 1
-        print(f"  [IUV] {iuv.name} | PI: {iuv.purchase_invoice} → source_doctype = Purchase Invoice")
+        print(f"  [IUV] {iuv['name']} | PI: {iuv['purchase_invoice']} → source_doctype = Purchase Invoice")
 
     if migrated_iuv:
         frappe.db.commit()

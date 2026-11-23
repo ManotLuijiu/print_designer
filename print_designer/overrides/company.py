@@ -1,10 +1,11 @@
 # Company DocType Override
 # Synchronizes retention data from Company form to Company Retention Settings
 
+from typing import Any, cast
+
 import frappe
-from frappe import _
-from frappe.utils import flt
 from erpnext.setup.doctype.company.company import Company
+from frappe import _
 
 
 class CustomCompany(Company):
@@ -70,13 +71,12 @@ class CustomCompany(Company):
         Raises:
             Exception: If import fails
         """
-        import tempfile
         import os
-        import json
+        import tempfile
 
         # Get CSV file content
         from frappe.utils.file_manager import get_file
-        csv_content = get_file(self.pd_coa_csv_file)[1]
+        csv_content = get_file(self.get("pd_coa_csv_file"))[1]
 
         # Decode if bytes
         if isinstance(csv_content, bytes):
@@ -95,7 +95,9 @@ class CustomCompany(Company):
             # Try to use thai_business_suite CoA mapper (advanced)
             thai_business_suite_available = False
             try:
-                from thai_business_suite.coa_mapper.chart_of_accounts_mapper import ChartOfAccountsMapper
+                from thai_business_suite.coa_mapper.chart_of_accounts_mapper import (
+                    ChartOfAccountsMapper,
+                )
                 thai_business_suite_available = True
                 frappe.msgprint(
                     _("Using advanced CSV mapper from thai_business_suite"),
@@ -111,20 +113,34 @@ class CustomCompany(Company):
 
             if thai_business_suite_available:
                 # Advanced import with thai_business_suite
-                mapping_template = self.get('pd_coa_mapping_template')
+                mapping_template = cast(str, self.get("pd_coa_mapping_template"))
 
                 if mapping_template:
                     # Use specified template
-                    template = frappe.get_doc('TBS CoA Mapping Template', mapping_template)
-                    config = template.get_mapping_config()
+                    template = frappe.get_doc("TBS CoA Mapping Template", mapping_template)
+                    config = cast(Any, template).get_mapping_config()
                 else:
-                    # Use default Standard Thai CoA template
-                    from thai_business_suite.coa_mapper.chart_of_accounts_mapper import get_coa_mapping_config
+                    # Use the default standard Thai CoA template
+                    from thai_business_suite.coa_mapper.chart_of_accounts_mapper import (
+                        COA_MAPPING_CONFIGS,
+                        get_coa_mapping_config,
+                    )
                     try:
-                        config = get_coa_mapping_config('standard_thai_coa')
+                        config = get_coa_mapping_config("standard_thai_coa")
                     except ValueError:
-                        # Fallback to inpac_pharma_format if standard not found
-                        config = get_coa_mapping_config('inpac_pharma_format')
+                        # Fall back to another mapping configuration that the
+                        # framework provides.  Read details in wiki/.
+                        fallback = next(
+                            (
+                                name
+                                for name in COA_MAPPING_CONFIGS
+                                if name != "standard_thai_coa"
+                            ),
+                            None,
+                        )
+                        if not fallback:
+                            raise
+                        config = get_coa_mapping_config(fallback)
 
                 # Override chart name to match company
                 config['coa_config']['chart_name'] = f"{self.name} Chart of Accounts"
@@ -183,26 +199,29 @@ class CustomCompany(Company):
         import json
 
         # Read JSON file
-        with open(json_path, 'r', encoding='utf-8') as f:
-            coa_data = json.load(f)
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                coa_data = json.load(f)
+        except (OSError, ValueError) as error:
+            frappe.throw(
+                _("The generated chart template could not be read: {0}").format(error),
+                title=_("Chart of Accounts Import Failed"),
+            )
 
         # Use ERPNext's chart import function
-        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import create_charts
 
-        # Create a temporary chart template
-        chart_name = coa_data.get('name', f"{self.name} Chart of Accounts")
-
-        # ERPNext expects chart template in specific location
-        # We'll use the import_chart function which handles JSON data
-        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import import_chart
+        # ERPNext imports a chart from the account tree of a chart template.
+        from erpnext.accounts.doctype.account.chart_of_accounts.chart_of_accounts import (
+            create_charts,
+        )
 
         frappe.local.flags.ignore_root_company_validation = True
 
         # Import the chart
-        import_chart(
+        create_charts(
             self.name,
-            chart_data=coa_data,
-            from_coa_importer=True
+            custom_chart=coa_data.get("tree", coa_data),
+            from_coa_importer=True,
         )
 
     def create_default_accounts(self):
@@ -236,9 +255,11 @@ class CustomCompany(Company):
         try:
             # Get or create Company Retention Settings record
             if frappe.db.exists("Company Retention Settings", self.name):
-                settings = frappe.get_doc("Company Retention Settings", self.name)
+                settings = cast(
+                    Any, frappe.get_doc("Company Retention Settings", cast(str, self.name))
+                )
             else:
-                settings = frappe.new_doc("Company Retention Settings")
+                settings = cast(Any, frappe.new_doc("Company Retention Settings"))
                 settings.company = self.name
 
             # Map Company fields to Company Retention Settings fields

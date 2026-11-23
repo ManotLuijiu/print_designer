@@ -234,16 +234,16 @@ def main(dry_run=False):
     changes = process_directory(pd_dir, renames, [".py", ".js", ".html"], dry_run)
     all_changes.update(changes)
 
-    # Phase E: digisoft_erp
-    print("\n--- Processing: digisoft_erp ---")
-    dgs_dir = os.path.join(BENCH_ROOT, "digisoft_erp")
-    if os.path.exists(dgs_dir):
-        changes = process_directory(dgs_dir, renames, [".py", ".js", ".html"], dry_run)
+    # Phase E: your_app
+    print("\n--- Processing: your_app ---")
+    peer_app_dir = os.path.join(BENCH_ROOT, "your_app")
+    if os.path.exists(peer_app_dir):
+        changes = process_directory(peer_app_dir, renames, [".py", ".js", ".html"], dry_run)
         all_changes.update(changes)
 
-    # Phase E: inpac_pharma
-    print("\n--- Processing: inpac_pharma ---")
-    ip_dir = os.path.join(BENCH_ROOT, "inpac_pharma")
+    # Phase E: your_app
+    print("\n--- Processing: your_app ---")
+    ip_dir = os.path.join(BENCH_ROOT, "your_app")
     if os.path.exists(ip_dir):
         changes = process_directory(ip_dir, renames, [".py", ".js", ".html"], dry_run)
         all_changes.update(changes)

@@ -785,9 +785,16 @@ const PDPageOrientationState = {
   lastAppliedFormat: null,
 };
 
+// The state of the advisory profile suggestion.
+const PDProfileSuggestionState = {
+  patchRetries: 0,
+  patchMaxRetries: 50,
+};
+
 apply_print_language();
 apply_page_orientation_from_print_format();
 patch_refresh_print_format();
+patch_profile_suggestion();
 
 $(document).on("change", 'input[data-fieldname="print_format"]', () => {
   queue_print_language_apply(150);
@@ -857,6 +864,129 @@ function patch_refresh_print_format() {
     return result;
   };
   PV.prototype._pdRefreshPatched = true;
+}
+
+/**
+ * Suggest the print format that matches the transaction profile.
+ *
+ * The suggestion is advisory. It preselects the matching format in the
+ * print selector of the print view, so the layout that matches the
+ * transaction is one click away. The user keeps the manual selection and
+ * the default print format of the DocType is never changed.
+ *
+ * A format without a profile stays a general purpose template and is
+ * never suggested. A transaction that the workflow could not classify
+ * keeps the manual selection.
+ */
+function patch_profile_suggestion() {
+  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+
+  if (!PV || !PV.prototype) {
+    // The PrintView is defined lazily by the print page JS, so the patch
+    // retries until it is there.  The retry is bounded, a page that never
+    // offers a PrintView does not keep a timer alive forever.
+    if (
+      PDProfileSuggestionState.patchRetries <
+      PDProfileSuggestionState.patchMaxRetries
+    ) {
+      PDProfileSuggestionState.patchRetries += 1;
+      setTimeout(patch_profile_suggestion, 200);
+    }
+    return;
+  }
+
+  if (PV.prototype._pdProfileSuggestionPatched) return;
+
+  const original = PV.prototype.set_default_print_format;
+  PV.prototype.set_default_print_format = function () {
+    const result = original.apply(this, arguments);
+
+    apply_profile_suggestion(this);
+
+    return result;
+  };
+  PV.prototype._pdProfileSuggestionPatched = true;
+}
+
+function apply_profile_suggestion(pv) {
+  const frm = pv.frm;
+  if (!frm || !frm.doc || !frm.doc.name || frm.doc.__islocal) return;
+
+  const selector = pv.print_format_selector;
+  if (!selector || !selector.length) return;
+
+  // The choice of the user is remembered, so a suggestion never
+  // overwrites it. The default print format of the DocType is not a
+  // choice of the user: the core puts it into the selector, so it does
+  // not block the suggestion.
+  track_user_choice(pv, selector);
+
+  if (pv._pdProfileUserChosenFormat) return;
+
+  // One suggestion per document, the selector is set up more than once.
+  if (pv._pdProfileSuggestedFor === frm.doc.name) return;
+  pv._pdProfileSuggestedFor = frm.doc.name;
+
+  frappe.call({
+    method:
+      "print_designer.api.print_format_suggestion.get_print_format_suggestions",
+    args: { doctype: frm.doctype, docname: frm.doc.name },
+    callback: (r) => select_suggested_format(pv, r),
+  });
+}
+
+function track_user_choice(pv, selector) {
+  // Remember the format that the user chose in the print selector.
+  if (pv._pdProfileUserChoiceTracked) return;
+  pv._pdProfileUserChoiceTracked = true;
+
+  selector.on("change", () => {
+    pv._pdProfileUserChosenFormat = selector.val();
+  });
+}
+
+function select_suggested_format(pv, r) {
+  const message = r && r.message;
+  if (!message || !message.available) return;
+
+  // The user may have chosen a format while the request was in flight.
+  if (pv._pdProfileUserChosenFormat) {
+    console.log(
+      "[PD Profile Suggestion] the user chose a format, no suggestion is applied",
+      pv._pdProfileUserChosenFormat,
+    );
+    return;
+  }
+
+  const suggestions = message.suggestions || [];
+  if (!suggestions.length) {
+    console.log(
+      "[PD Profile Suggestion] no matching format",
+      message.profile,
+    );
+    return;
+  }
+
+  const frm = pv.frm;
+  const available = frappe.meta.get_print_formats(frm.doctype);
+  const chosen = suggestions.find((name) => available.includes(name));
+  if (!chosen) return;
+
+  console.log(
+    "[PD Profile Suggestion] preselecting",
+    chosen,
+    "for",
+    frm.doc.name,
+    message.profile,
+  );
+
+  pv.print_format_selector.val(chosen);
+  pv.print_format_selector.attr("data-pd-suggested", "1");
+  pv.print_format_selector.attr(
+    "title",
+    __("Suggested for this transaction"),
+  );
+  pv.refresh_print_format();
 }
 
 /**

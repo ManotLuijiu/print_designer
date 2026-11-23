@@ -4,6 +4,7 @@ from print_designer.print_designer.doctype.receive_wht_register.receive_wht_regi
     fill_customer_branch,
     get_payment_income_type,
 )
+from print_designer.utils.db import set_values
 
 
 def execute():
@@ -24,4 +25,4 @@ def execute():
         fill_customer_branch(register)
         changes = {field: register.get(field) for field in fields if before[field] != register.get(field)}
         if changes:
-            frappe.db.set_value("Receive WHT Register", register.name, changes, update_modified=False)
+            set_values("Receive WHT Register", register.name, changes, update_modified=False)

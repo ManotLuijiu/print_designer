@@ -288,8 +288,8 @@ fixtures = [
     #                 "Sales Invoice-pd_custom_approved_by_signature",
     #                 # Sales Invoice - Watermark Field
     #                 "Sales Invoice-pd_custom_watermark_text",
-    #                 # Sales Invoice - Digisoft ERP Tab
-    #                 "Sales Invoice-digisoft_erp_tab",
+    #                 # Sales Invoice - AWS Solution Ltd. Tab
+    #                 "Sales Invoice-your_app_tab",
     #                 # Removed redundant Thai Tax Information Fields - using pd_custom_wht_preview_section instead
     #                 # Sales Invoice - Thai Compliance Fields
     #                 "Sales Invoice-thai_compliance_section",
@@ -480,6 +480,9 @@ jinja = {
         "print_designer.utils.thai_amount_to_word.is_thai_format",
         "print_designer.utils.thai_amount_to_word.smart_money_in_words",
         "print_designer.utils.thai_amount_to_word.get_smart_in_words",
+        # Thai withholding tax certificate form 50 ทวิ
+        "print_designer.custom.form_50_tawi.get_form_50_tawi_data",
+        "print_designer.custom.form_50_tawi.get_form_50_tawi_wrapper_class",
         # Delivery Note QR code methods
         "print_designer.custom.delivery_note_qr.generate_delivery_approval_qr",
         "print_designer.custom.delivery_note_qr.get_qr_code_image",
@@ -547,6 +550,7 @@ after_install = [
     # Consolidated installers own watermark fields; the legacy install.py hooks were removed.
     "print_designer.commands.install_print_settings_fields.install_print_settings_fields",  # Install Print Settings watermark/copy/page-number fields
     "print_designer.commands.install_print_format_fields.install_print_format_fields",  # Install Print Format custom fields (page_orientation)
+    "print_designer.custom.print_format_profile.install_profile_fields",  # Install Print Format transaction profile fields (direction/type)
     "print_designer.commands.install_quotation_fields.install_quotation_custom_fields",  # Install Quotation fields programmatically
     "print_designer.commands.install_company_thai_tax_fields.install_company_thai_tax_fields",  # Install Company Thai Tax fields
     "print_designer.commands.install_customer_fields.create_customer_fields",  # Install Customer branch_code field
@@ -603,6 +607,7 @@ after_migrate = [
     "print_designer.commands.install_address_fields.install_address_fields",
     # CRITICAL: Install core Print Designer custom fields first (fixes print_designer_template_app missing error)
     "print_designer.api.print_settings_api.ensure_custom_fields",
+    "print_designer.custom.print_format_profile.install_profile_fields",  # Install Print Format transaction profile fields (direction/type)
     "print_designer.utils.print_protection.initialize_print_protection",
     "print_designer.utils.override_thailand.override_thailand_monkey_patch",
     "print_designer.startup.initialize_print_designer",  # Initialize Print Designer components
@@ -735,7 +740,6 @@ doc_events = {
         "before_save": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
         "on_update": "print_designer.regional.purchase_invoice_wht_override.override_purchase_invoice_wht_calculation",
         "on_submit": [
-            "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice",
             "print_designer.custom.erpnext_tds_disabler.block_tds_gl_entries",
             "print_designer.regional.thai_purchase_vat.create_purchase_vat_records",
         ],

@@ -70,6 +70,162 @@ const setup_print_designer_ui = (frm) => {
 	}
 };
 
+/**
+ * Dialog of the "Export as Default Template" action.
+ *
+ * The dialog asks for the public format name, the filename and the
+ * destination category of the template.  The public name determines the
+ * installation collisions, the filename organizes the repository and the
+ * category is the folder of the template inside the app.
+ *
+ * The transaction profile of the format is part of the export, so it is
+ * shown and can be corrected here.
+ */
+const show_export_as_default_template_dialog = (frm) => {
+	const doc_type = frm.doc.doc_type;
+	const supports_direction = doc_type === "Payment Entry";
+	const supports_type =
+		doc_type === "Payment Entry" || doc_type === "Sales Invoice";
+	const default_filename = `${slugify_filename(frm.doc.name)}.json`;
+
+	frappe.call({
+		method: "print_designer.api.default_template_export.get_categories",
+		callback: (r) => {
+			const categories = (r && r.message) || [];
+
+			const dialog = new frappe.ui.Dialog({
+				title: __("Export as Default Template"),
+				fields: [
+					{
+						fieldname: "template_name",
+						fieldtype: "Data",
+						label: __("Public Format Name"),
+						reqd: 1,
+						default: frm.doc.name,
+						description: __(
+							"The name of the template. It determines the installation collisions.",
+						),
+					},
+					{
+						fieldname: "filename",
+						fieldtype: "Data",
+						label: __("Filename"),
+						reqd: 1,
+						default: default_filename,
+						description: __("The filename of the exported file."),
+					},
+					{
+						fieldname: "category",
+						fieldtype: "Select",
+						label: __("Destination Category"),
+						options: categories.map((item) => item.value),
+					},
+					{
+						fieldname: "profile_section",
+						fieldtype: "Section Break",
+						label: __("Transaction Profile"),
+					},
+					{
+						fieldname: "transaction_direction",
+						fieldtype: "Select",
+						label: __("Transaction Direction"),
+						options: ["", "Pay", "Receive"],
+						default: frm.doc.pd_custom_transaction_direction || "",
+						depends_on: "eval:doc.transaction_direction_shown",
+						hidden: !supports_direction,
+					},
+					{
+						fieldname: "transaction_direction_shown",
+						fieldtype: "Check",
+						label: __("Show Direction"),
+						hidden: 1,
+						default: supports_direction ? 1 : 0,
+					},
+					{
+						fieldname: "transaction_type",
+						fieldtype: "Select",
+						label: __("Transaction Type"),
+						options: ["", "Services", "Goods"],
+						default: frm.doc.pd_custom_transaction_type || "",
+						hidden: !supports_type,
+					},
+				],
+				primary_action_label: __("Export"),
+				primary_action: (values) => {
+					dialog.disable_primary_action();
+					export_as_default_template(frm, values, dialog);
+				},
+			});
+
+			dialog.show();
+		},
+	});
+};
+
+/**
+ * A file system friendly name for a template.
+ *
+ * The name of a saved format may carry spaces and slashes, so the default
+ * file name of the export is a slug of it.
+ */
+const slugify_filename = (value) =>
+	String(value || "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "") || "template";
+
+const export_as_default_template = (frm, values, dialog) => {
+	frappe.call({
+		method: "print_designer.api.default_template_export.export_as_default_template",
+		args: {
+			print_format_name: frm.doc.name,
+			template_name: values.template_name,
+			category: values.category,
+			transaction_direction: values.transaction_direction || "",
+			transaction_type: values.transaction_type || "",
+		},
+		callback: (r) => {
+			const message = r && r.message;
+			if (!message) {
+				// The export did not answer. The dialog stays open and the
+				// button comes back, so the export can be tried again.
+				if (dialog) {
+					dialog.enable_primary_action();
+				}
+				return;
+			}
+
+			const dataStr = JSON.stringify(message.template, null, 2);
+			const dataBlob = new Blob([dataStr], { type: "application/json" });
+			const url = URL.createObjectURL(dataBlob);
+
+			const downloadLink = document.createElement("a");
+			downloadLink.href = url;
+			downloadLink.download = values.filename || message.filename;
+			document.body.appendChild(downloadLink);
+			downloadLink.click();
+			document.body.removeChild(downloadLink);
+			URL.revokeObjectURL(url);
+
+			if (dialog) {
+				dialog.hide();
+			}
+
+			frappe.show_alert({
+				message: __("Default template exported successfully"),
+				indicator: "green",
+			});
+		},
+		error: () => {
+			// The export failed. The dialog stays open and the button comes
+			// back, so the export can be tried again.
+			if (dialog) {
+				dialog.enable_primary_action();
+			}
+		},
+	});
+};
+
 frappe.ui.form.on("Print Format", {
 	refresh: function (frm) {
 		frm.trigger("render_buttons");
@@ -220,6 +376,15 @@ frappe.ui.form.on("Print Format", {
 							indicator: 'red'
 						});
 					}
+				},
+				true
+			);
+
+			// Export as Default Template menu item - ships the format with the app
+			frm.page.add_menu_item(
+				__("Export as Default Template"),
+				function () {
+					show_export_as_default_template_dialog(frm);
 				},
 				true
 			);

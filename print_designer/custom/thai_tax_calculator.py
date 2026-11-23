@@ -19,16 +19,23 @@ the rate of an income type:
 - the address of a party, for the certificate of the withholding tax.
 
 The certificate of the withholding tax of a payment entry is created here
-exactly as Thai Business Suite created it, with the `Withholding Tax Cert`
-and one income item per row of the withholding tax of the payment entry.  The
-certificate of Print Designer (`Withholding Tax Certificate`) is a different
-document with a different shape and is not used by this path.
+with the certificate of Print Designer, the `Withholding Tax Certificate`.
+The income type of the certificate is the income type of the site, the
+`Thai WHT Income Type`, which works together with the `Tax Withholding
+Category` of ERPNext; see `print_designer.custom.wht_canonical_mapping`.
+The certificate is the certificate of an outgoing withholding: the incoming
+withholding of Thailand is the `Receive WHT Register`.
 """
 
 from typing import Any, cast
 
 import frappe
 from frappe.utils import flt, getdate, today
+
+from print_designer.custom.wht_certificate_creator import (
+    create_certificate_for_payment_entry,
+    entity_type_of_group,
+)
 
 # The rates of the withholding tax of the law of Thailand, by the name of
 # the income type.  They are the fallback of the rate of the `Thai WHT Rate
@@ -286,115 +293,7 @@ def create_withholding_tax_certificate(payment_entry: Any) -> Any:
     Every row of the withholding tax of the payment entry becomes a row of the
     income items of the certificate.
     """
-    wht_rows = [
-        tax
-        for tax in (payment_entry.get("taxes") or [])
-        if tax.get("is_tax_withholding_account") and flt(tax.get("tax_amount")) > 0
-    ]
-
-    if not wht_rows:
-        return None
-
-    company = payment_entry.get("company")
-    party_type = payment_entry.get("party_type")
-    party = payment_entry.get("party")
-
-    payee_type = "Company"
-    if party_type == "Supplier":
-        supplier_group = frappe.db.get_value("Supplier", party, "supplier_group") if party else None
-        if supplier_group:
-            payee_type = _entity_type_of_the_group(cast(Any, supplier_group))
-
-    company_tax_id = frappe.db.get_value("Company", company, "tax_id")
-    party_tax_id = frappe.db.get_value(party_type, party, "tax_id") if party else None
-
-    if not company_tax_id:
-        frappe.throw(frappe._("Company Tax ID is required to create withholding tax certificate"))
-    if not party_tax_id:
-        frappe.throw(frappe._("Party Tax ID is required to create withholding tax certificate"))
-
-    wht_direction = "Outgoing" if payment_entry.get("payment_type") == "Pay" else "Incoming"
-    payment_date = payment_entry.get("posting_date")
-
-    total_gross_amount = 0.0
-    total_tax_amount = 0.0
-    total_net_amount = 0.0
-    first_income_type = None
-    first_wht_rate = 0.0
-    income_items = []
-
-    for wht_row in wht_rows:
-        row_income_type = wht_row.get("tbs_income_type")
-        if not row_income_type:
-            row_income_type = "40(8) ค่าบริการ/ค่าวิชาชีพอิสระ"
-
-        row_rate = flt(wht_row.get("rate", 0.0))
-        if row_rate <= 0:
-            row_rate = get_withholding_tax_rate(row_income_type)
-
-        row_tax_amount = flt(wht_row.get("tax_amount", 0.0))
-        if row_rate > 0:
-            row_gross_amount = row_tax_amount / (row_rate / 100)
-        else:
-            row_gross_amount = row_tax_amount
-
-        row_net_amount = row_gross_amount - row_tax_amount
-
-        total_gross_amount += row_gross_amount
-        total_tax_amount += row_tax_amount
-        total_net_amount += row_net_amount
-
-        if first_income_type is None:
-            first_income_type = row_income_type
-            first_wht_rate = row_rate
-
-        income_items.append(
-            {
-                "income_type": row_income_type,
-                "gross_amount": row_gross_amount,
-                "tax_rate": row_rate,
-                "tax_amount": row_tax_amount,
-                "net_amount": row_net_amount,
-                "payment_date": payment_date,
-            }
-        )
-
-    cert_doc = frappe.get_doc(
-        {
-            "doctype": "Withholding Tax Cert",
-            "naming_series": "WHT-.YYYY.-.#####",
-            "payment_entry": payment_entry.name,
-            "company": company,
-            "wht_direction": wht_direction,
-            "issue_date": payment_entry.get("posting_date"),
-            "payment_date": payment_date,
-            "payer_name": frappe.db.get_value("Company", company, "company_name"),
-            "payer_tax_id": company_tax_id,
-            "payer_branch_code": "00000",
-            "payer_address": "-",
-            "payer_email": "",
-            "payer_phone": "",
-            "payee_name": payment_entry.get("party_name"),
-            "payee_tax_id": party_tax_id,
-            "payee_address": "-",
-            "payee_type": payee_type,
-            "total_gross_amount": total_gross_amount,
-            "total_tax_amount": total_tax_amount,
-            "total_net_amount": total_net_amount,
-            "tax_rate": first_wht_rate,
-            "income_type": first_income_type,
-            "tax_payment_type": "Withholding at Source",
-            "pnd_type": get_pnd_type_from_income_type(first_income_type) or "PND3",
-        }
-    )
-
-    for item in income_items:
-        cert_doc.append("income_items", item)
-
-    cert_doc.insert()
-    cert_doc.submit()
-
-    return cert_doc
+    return create_certificate_for_payment_entry(payment_entry)
 
 
 def get_party_address(party_type: str | None, party: str | None) -> str:
@@ -451,13 +350,4 @@ def _entity_type_of_the_group(group: str | None) -> str:
     A group that carries the name of the government or of an individual is
     the group of that kind of party.
     """
-    if not group:
-        return "Company"
-
-    group_lower = group.lower()
-    if "government" in group_lower or "รัฐ" in group_lower:
-        return "Government"
-    if "individual" in group_lower or "บุคคล" in group_lower:
-        return "Individual"
-
-    return "Company"
+    return entity_type_of_group(group)

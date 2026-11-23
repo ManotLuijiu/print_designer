@@ -46,6 +46,10 @@ DESIGN_BLOBS = (
     "print_designer_settings",
 )
 
+# The deepest nesting a design payload may have.  A template file is data
+# that a site downloads, so a walk over it is bounded.
+MAX_DESIGN_DEPTH = 50
+
 STATUS_IMPORTED = "imported"
 STATUS_EXISTING = "existing"
 STATUS_DEFERRED = "deferred"
@@ -181,8 +185,17 @@ def _scan_text_references(text: str) -> set[str]:
     }
 
 
-def _walk_references(node, references: set[str], skip_fieldname: bool = False) -> None:
-    """Collect the field references of a parsed design payload."""
+def _walk_references(
+    node, references: set[str], skip_fieldname: bool = False, depth: int = 0
+) -> None:
+    """Collect the field references of a parsed design payload.
+
+    The walk is bounded in depth: a template file is data, and a hostile
+    file must not be able to exhaust the stack of the installer.
+    """
+    if depth > MAX_DESIGN_DEPTH:
+        return
+
     if isinstance(node, dict):
         for key, value in node.items():
             if key in REFERENCE_KEYS and isinstance(value, str) and value.strip():
@@ -190,12 +203,12 @@ def _walk_references(node, references: set[str], skip_fieldname: bool = False) -
                     references.add(value.strip())
             if key == "image" and isinstance(value, dict):
                 # The image binding points at a field of the linked doctype.
-                _walk_references(value, references, skip_fieldname=True)
+                _walk_references(value, references, skip_fieldname=True, depth=depth + 1)
             else:
-                _walk_references(value, references)
+                _walk_references(value, references, depth=depth + 1)
     elif isinstance(node, list):
         for item in node:
-            _walk_references(item, references)
+            _walk_references(item, references, depth=depth + 1)
 
 
 def collect_required_amount_fields(data: dict) -> set[str]:
@@ -359,6 +372,39 @@ def summarize(results: dict) -> dict:
     }
 
 
+def normalize_stored_values(data: dict) -> dict:
+    """Serialize the values that Frappe cannot store as they are.
+
+    A field that is not a child table holds a scalar or a string.  A
+    template that carries a list or an object, for example the
+    ``format_data`` of the print format builder, would fail the insert
+    with "Value for Format Data cannot be a list".  Frappe stores such a
+    value as its JSON string, so the installer does the same.
+
+    The packages of this app carry the shape that Frappe stores, so this
+    is the safety net for the templates of other sources: a template that
+    an older version of the app exported, or a template of another app.
+
+    :param data: the document of the template.
+    :returns: the document with the storable values.
+    """
+    meta = frappe.get_meta("Print Format")
+    table_fields = {
+        df.fieldname for df in meta.fields if df.fieldtype in ("Table", "Table MultiSelect")
+    }
+
+    normalized = dict(data)
+
+    for fieldname, value in normalized.items():
+        if fieldname in table_fields:
+            continue
+
+        if isinstance(value, (list, dict)):
+            normalized[fieldname] = json.dumps(value, separators=(",", ":"), default=str)
+
+    return normalized
+
+
 def insert_template(candidate: dict) -> None:
     """Insert a template that is known to be missing.
 
@@ -366,7 +412,7 @@ def insert_template(candidate: dict) -> None:
     side effects (exporting a file into the app folder, refusing to touch a
     standard format) do not fire.  The caller owns the transaction.
     """
-    data = dict(candidate["data"])
+    data = normalize_stored_values(candidate["data"])
 
     previous_in_import = frappe.flags.in_import
     frappe.flags.in_import = True
@@ -378,6 +424,31 @@ def insert_template(candidate: dict) -> None:
         doc.insert()
     finally:
         frappe.flags.in_import = previous_in_import
+
+
+def ensure_profile_fields() -> None:
+    """Install the Print Format fields of a transaction profile.
+
+    A template that carries a profile stores it in the Print Designer-owned
+    Print Format fields.  The fields must exist before the template is
+    imported, otherwise the profile is dropped on the insert.
+
+    The installation of a custom field alters the table, and MySQL commits
+    the transaction implicitly on a schema change.  The caller must call
+    this outside of a savepoint, otherwise the savepoint is destroyed.
+    """
+    from print_designer.custom.print_format_profile import install_profile_fields
+
+    install_profile_fields()
+
+
+def candidate_has_profile(candidate: dict) -> bool:
+    """True when a template carries a transaction profile."""
+    from print_designer.custom.print_format_profile import DIRECTION_FIELD, TYPE_FIELD
+
+    data = candidate.get("data") or {}
+
+    return any(fieldname in data for fieldname in (DIRECTION_FIELD, TYPE_FIELD))
 
 
 def install_missing_default_formats(
@@ -450,6 +521,14 @@ def install_missing_default_formats(
 
     supported_generators = get_supported_pdf_generators()
 
+    # The profile fields of a template live in Print Designer-owned Print
+    # Format fields.  The fields must exist before the template is imported,
+    # otherwise the profile is dropped on the insert.  The installation
+    # alters the table, and MySQL commits implicitly on a schema change, so
+    # it happens before the savepoints of the import loop exist.
+    if not dry_run and any(candidate_has_profile(item) for item in winners):
+        ensure_profile_fields()
+
     for candidate in winners:
         name = candidate["name"]
         doc_type = candidate["doc_type"]
@@ -507,11 +586,26 @@ def install_missing_default_formats(
             )
             continue
 
-        missing_fields = find_missing_dependencies(
-            doc_type,
-            collect_referenced_fields(candidate["data"]),
-            collect_required_amount_fields(candidate["data"]),
-        )
+        try:
+            missing_fields = find_missing_dependencies(
+                doc_type,
+                collect_referenced_fields(candidate["data"]),
+                collect_required_amount_fields(candidate["data"]),
+            )
+        except Exception as error:
+            # A template that cannot be read is reported and skipped, so it
+            # cannot abort the run of the other templates.
+            results["failed"].append(
+                make_entry(
+                    STATUS_FAILED,
+                    relative_path,
+                    name=name,
+                    doc_type=doc_type,
+                    reason=f"{type(error).__name__}: {error}",
+                )
+            )
+            continue
+
         if missing_fields:
             results["deferred"].append(
                 make_entry(
