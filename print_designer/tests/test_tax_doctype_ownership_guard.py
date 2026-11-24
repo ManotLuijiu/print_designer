@@ -30,7 +30,7 @@ from print_designer.patches import relocate_thai_tax_doctypes as relocate_patch
 THE_DOCTYPE = "Withholding Tax Item"
 THE_OWNER = "Print Designer"
 THE_HISTORICAL = "Thai Tax"
-THE_FORK = "Digisoft Erp"
+THE_FORK = "A Fork Of A Client"
 
 
 class TestTaxDocTypeOwnershipGuard(unittest.TestCase):
@@ -91,7 +91,8 @@ class TestTaxDocTypeOwnershipGuard(unittest.TestCase):
         the_message, the_imports = self._the_step("An App of a Client")
 
         self.assertEqual(the_imports, [])
-        self.assertIn("the owner stays", the_message)
+        self.assertIn("is kept", the_message)
+        self.assertIn("An App of a Client", the_message)
 
     def test_a_doctype_without_metadata_is_created(self):
         """The DocType without metadata is created by Print Designer."""
@@ -128,8 +129,7 @@ class TestTaxDocTypeOwnershipGuard(unittest.TestCase):
             relocate_patch.TAX_DOCTYPES + relocate_patch.WITHHOLDING_DOCTYPES,
         )
 
-    def test_the_protected_owner_is_a_fork(self):
-        """The owner that is never taken is the fork of the client."""
-        self.assertIn(THE_FORK, doctype_ownership.PROTECTED_OWNERS)
+    def test_an_owner_that_is_not_relocatable_is_never_taken(self):
+        """Only the historical owners of the Thai tax are taken back."""
         self.assertNotIn(THE_FORK, doctype_ownership.RELOCATABLE_OWNERS)
         self.assertIn(THE_HISTORICAL, doctype_ownership.RELOCATABLE_OWNERS)

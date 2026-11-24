@@ -86,16 +86,18 @@ class TestTheCancellationOfTheCertificate(unittest.TestCase):
         self.payment_entry_names = []
 
     def _the_account(self, account_type: str) -> str:
-        """An account of the company of the test."""
+        """An account of the company of the test, in the currency of the company."""
         accounts = frappe.get_all(
             "Account",
             filters={
                 "company": COMPANY,
                 "account_type": account_type,
+                "account_currency": frappe.db.get_value("Company", COMPANY, "default_currency"),
                 "is_group": 0,
                 "disabled": 0,
             },
             pluck="name",
+            order_by="name",
         )
         if not accounts:
             self.skipTest(f"the site has no {account_type} account")
@@ -112,14 +114,14 @@ class TestTheCancellationOfTheCertificate(unittest.TestCase):
                 "posting_date": nowdate(),
                 "party_type": "Supplier",
                 "party": SUPPLIER,
-                "paid_from": self._the_account("Payable"),
-                "paid_to": self._the_account("Bank"),
+                "paid_from": self._the_account("Bank"),
+                "paid_to": self._the_account("Payable"),
                 "paid_amount": 1000,
                 "received_amount": 1000,
                 "source_exchange_rate": 1,
                 "target_exchange_rate": 1,
                 "paid_to_account_currency": frappe.db.get_value(
-                    "Account", self._the_account("Bank"), "account_currency"
+                    "Account", self._the_account("Payable"), "account_currency"
                 ),
                 "reference_no": "TEST-WHT-CANCEL",
                 "reference_date": nowdate(),

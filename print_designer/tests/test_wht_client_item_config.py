@@ -150,7 +150,7 @@ vm.runInContext(fs.readFileSync(path.join(baseDir, FILE[doctype]), 'utf8'), sand
 const doc = Object.assign(
 	{
 		doctype,
-		company: 'AWS Solution Ltd.',
+		company: 'Example Co., Ltd.',
 		tax_category: '',
 		items: [{item_code: 'Dashboard for BI', item_group: 'Services', qty: 40, rate: 7500}],
 		total: 300000,

@@ -13,14 +13,20 @@ frappe.ui.form.on("Sales Invoice", {
 		if (due?.available && due.report) {
 			frm.add_custom_button(
 				__("Output VAT Report"),
-				() => frappe.set_route("query-report", due.report, { ...filters }),
+				() =>
+					frappe.set_route("query-report", due.report, {
+						...filters,
+					}),
 				__("View"),
 			);
 		}
 		if (undue?.available && undue.report) {
 			frm.add_custom_button(
 				__("Output VAT Undue Report"),
-				() => frappe.set_route("query-report", undue.report, { ...filters }),
+				() =>
+					frappe.set_route("query-report", undue.report, {
+						...filters,
+					}),
 				__("View"),
 			);
 		}

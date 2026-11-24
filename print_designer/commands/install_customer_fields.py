@@ -60,16 +60,17 @@ def migrate_legacy_branch_data():
         print("\n🔍 Checking for legacy branch_code fields to migrate...")
 
         # Get all existing custom fields for Customer with 'branch' in name
-        existing_fields = sql_rows(frappe.db.sql(
-            """
+        existing_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
         """,
-            as_dict=True,
-        )
+                as_dict=True,
+            )
         )
 
         if not existing_fields:
@@ -100,16 +101,17 @@ def migrate_legacy_branch_data():
                 frappe.db.sql(f"SELECT {fieldname} FROM `tabCustomer` LIMIT 1")
 
                 # Find customers with values in legacy field but empty pd_custom_branch_code
-                customers_to_migrate = sql_rows(frappe.db.sql(
-                    f"""
+                customers_to_migrate = sql_rows(
+                    frappe.db.sql(
+                        f"""
                     SELECT name, {fieldname} as legacy_value
                     FROM `tabCustomer`
                     WHERE {fieldname} IS NOT NULL
                     AND {fieldname} != ''
                     AND (pd_custom_branch_code IS NULL OR pd_custom_branch_code = '' OR pd_custom_branch_code = '00000')
                 """,
-                    as_dict=True,
-                )
+                        as_dict=True,
+                    )
                 )
 
                 if customers_to_migrate:
@@ -230,16 +232,17 @@ def check_customer_fields():
         )
 
         # Check for legacy fields that might need migration
-        legacy_fields = sql_rows(frappe.db.sql(
-            """
+        legacy_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
         """,
-            as_dict=True,
-        )
+                as_dict=True,
+            )
         )
 
         if legacy_fields:
@@ -250,20 +253,20 @@ def check_customer_fields():
             # Check if any have data
             for legacy_field in legacy_fields:
                 try:
-                    count = sql_rows(frappe.db.sql(
-                        f"""
+                    count = sql_rows(
+                        frappe.db.sql(
+                            f"""
                         SELECT COUNT(*) as count
                         FROM `tabCustomer`
-                        WHERE {legacy_field['fieldname']} IS NOT NULL
-                        AND {legacy_field['fieldname']} != ''
+                        WHERE {legacy_field["fieldname"]} IS NOT NULL
+                        AND {legacy_field["fieldname"]} != ''
                     """,
-                        as_dict=True,
-                    ))[0]["count"]
+                            as_dict=True,
+                        )
+                    )[0]["count"]
 
                     if count > 0:
-                        print(
-                            f"      💡 {legacy_field['fieldname']} has data in {count} customers"
-                        )
+                        print(f"      💡 {legacy_field['fieldname']} has data in {count} customers")
                         print(
                             "         Run: bench execute 'print_designer.commands.install_customer_fields.migrate_legacy_branch_data()'"
                         )
@@ -307,15 +310,16 @@ def uninstall_customer_fields():
         print(f"✅ Successfully removed {removed_count} Customer custom field(s)!")
 
         # Check for legacy fields
-        legacy_fields = sql_rows(frappe.db.sql(
-            """
+        legacy_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname
             FROM `tabCustom Field`
             WHERE dt = 'Customer'
             AND fieldname LIKE '%branch%'
         """,
-            as_dict=True,
-        )
+                as_dict=True,
+            )
         )
 
         if legacy_fields:

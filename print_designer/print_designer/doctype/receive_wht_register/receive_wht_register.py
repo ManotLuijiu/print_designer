@@ -32,16 +32,18 @@ def fill_customer_branch(register):
     )
     existing_code = field_text(register, "customer_branch_code")
     code = _branch_code(existing_code) if existing_code else customer_code
-    register.set("customer_branch_code", code)
+    register.update({"customer_branch_code": code})
     if field_value(register, "customer_branch_name"):
         return
     if code == "00000":
-        register.set("customer_branch_name", "สำนักงานใหญ่")
+        register.update({"customer_branch_name": "สำนักงานใหญ่"})
     else:
         customer_name = customer_doc.get("pd_custom_branch_name") or customer_doc.get("branch_name")
-        register.set(
-            "customer_branch_name",
-            (customer_name if code == customer_code else None) or f"สาขา {code}",
+        register.update(
+            {
+                "customer_branch_name": (customer_name if code == customer_code else None)
+                or f"สาขา {code}",
+            },
         )
 
 

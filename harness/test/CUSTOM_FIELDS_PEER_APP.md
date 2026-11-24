@@ -17,7 +17,7 @@
   ❌ Problematic Fields in Fixtures (belong to your_app):
 
   These 11 fields should NOT be in print_designer:
-  1. your_app_tab - AWS Solution Ltd. Tab
+  1. your_app_tab - Example Co., Ltd. Tab
   2. thai_tax_information_section - Thai Tax Information Section
   3. thai_invoice_type - Invoice Type
   4. thai_tax_invoice_number - Thai Tax Invoice Number

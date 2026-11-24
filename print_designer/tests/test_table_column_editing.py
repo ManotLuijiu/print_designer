@@ -22,7 +22,7 @@ def test_select_and_resize_table_column_without_collapsing():
     load_dotenv(Path(__file__).parents[2] / ".env")
     site = os.environ["PRINT_DESIGNER_E2E_SITE_URL"].rstrip("/")
     print_format = os.environ.get(
-        "PRINT_DESIGNER_E2E_FORMAT", "Quotation - AWS Solution"
+        "PRINT_DESIGNER_E2E_FORMAT", "Quotation - Example"
     )
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
@@ -47,33 +47,39 @@ def test_select_and_resize_table_column_without_collapsing():
             expect(headers.nth(1)).to_be_visible(timeout=45000)
             # Allow the document preview fetch and its table refresh to finish.
             page.wait_for_timeout(1500)
-            initial_height = table.bounding_box()["height"]
+            def the_box(locator):
+                """The bounding box of an element, which is always present here."""
+                the_value = locator.bounding_box()
+                assert the_value is not None
+                return the_value
+
+            initial_height = the_box(table)["height"]
             assert initial_height > 0
             labels = headers.all_text_contents()
             header = headers.nth(1)
             header.click()
             expect(header).to_have_class("current-column")
             page.wait_for_timeout(300)
-            assert abs(table.bounding_box()["height"] - initial_height) < 1
+            assert abs(the_box(table)["height"] - initial_height) < 1
 
-            width_before = header.bounding_box()["width"]
-            handle = header.locator(".resizer").bounding_box()
+            width_before = the_box(header)["width"]
+            handle = the_box(header.locator(".resizer"))
             x, y = handle["x"] + 2, handle["y"] + 8
             page.mouse.move(x, y)
             page.mouse.down()
             page.mouse.move(x + 30, y, steps=8)
             page.mouse.up()
             expect(header).to_have_class("current-column")
-            assert header.bounding_box()["width"] > width_before + 10
+            assert the_box(header)["width"] > width_before + 10
             assert headers.all_text_contents() == labels
-            assert abs(table.bounding_box()["height"] - initial_height) < 1
+            assert abs(the_box(table)["height"] - initial_height) < 1
 
             # Reopening properties must not apply the default Min Rows height.
             page.locator(".table-container").nth(1).locator("th").nth(1).click()
             header.click()
             expect(header).to_have_class("current-column")
             page.wait_for_timeout(300)
-            assert abs(table.bounding_box()["height"] - initial_height) < 1
+            assert abs(the_box(table)["height"] - initial_height) < 1
             assert not errors, errors
         finally:
             browser.close()

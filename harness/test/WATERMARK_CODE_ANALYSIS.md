@@ -215,7 +215,7 @@ From meeting minutes (2025-10-17):
 
 #### 3. **Correct Implementation**
 
-✅ **Already correctly implemented in AWS Solution Ltd.**:
+✅ **Already correctly implemented in Example Co., Ltd.**:
 ```
 apps/your_app/your_app/commands/install_customer_fields.py
 
@@ -259,7 +259,7 @@ This belongs in **Customer DocType** (business logic), NOT Print Designer (forma
 ```
 
 This keeps:
-- **Customer preferences** in Customer DocType (AWS Solution Ltd.)
+- **Customer preferences** in Customer DocType (Example Co., Ltd.)
 - **Print rendering logic** in print templates (Print Designer)
 - **Clear separation** of business logic vs presentation logic
 
@@ -312,7 +312,7 @@ This keeps:
 ### Customer Bill Options Status: **CORRECTLY PLACED** ✅
 
 - Bill options **DO NOT** belong in Print Designer
-- Already **correctly implemented** in AWS Solution Ltd. (`install_customer_fields.py`)
+- Already **correctly implemented** in Example Co., Ltd. (`install_customer_fields.py`)
 - Should stay in **Customer DocType** (business logic)
 - Print templates can read Customer preferences via Jinja
 
@@ -327,4 +327,4 @@ This keeps:
 
 ---
 
-**Conclusion**: Significant refactoring needed for Print Designer watermark code, but Customer bill options are correctly placed in AWS Solution Ltd. and should NOT be moved to Print Designer.
+**Conclusion**: Significant refactoring needed for Print Designer watermark code, but Customer bill options are correctly placed in Example Co., Ltd. and should NOT be moved to Print Designer.

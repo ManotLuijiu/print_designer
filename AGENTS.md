@@ -35,7 +35,7 @@ then invoke the nextjs-doc skill for documentation.
 
 ## Table editing: collapse, selection, and column width fixes
 
-Regression investigated on 2026-11-19 in `Quotation - AWS Solution` on
+Regression investigated on 2026-11-19 in a saved quotation on
 `[site]` (tracking issue: `print_designer-wsg`).
 Symptoms: clicking a table collapsed it to one line, cleared the selected
 column, and prevented normal width editing. Removing the console exception
@@ -164,7 +164,7 @@ covers the current and legacy print renderers, with and without presets.
 
 ## Receipt designer save, footer, and preview language regression
 
-Verified on the AWS Solution Receipt designer (issue `print_designer-x1g`).
+Verified on the receipt designer of a live site (issue `print_designer-x1g`).
 The layout save, the thumbnail capture, and the language refresh each had a
 separate role in the reported behavior.
 
@@ -232,8 +232,8 @@ the Print Format. Regression coverage is in
 
 ## Desk preview watermark and page number routing
 
-Investigated on 2026-11-20 with `Quotation - AWS Solution` (issue
-`print_designer-5du`). PDF Forms is installed after Print Designer on the AWS
+Investigated on 2026-11-20 with a saved quotation (issue
+`print_designer-5du`). PDF Forms is installed after Print Designer on a live
 site and overrides `frappe.www.printview.get_html_and_style`; its fallback calls
 core directly, bypassing Print Designer overlays. Desk previews now use
 `print_designer.api.desk_preview.get_html_and_style`, which preserves PDF Forms
@@ -307,10 +307,15 @@ See [Minimax handoff](wiki/custom-default-templates-installer-minimax.md) and
 recursive missing-only installation. The exported
 `default_templates/asean_business_suite/services_quotation.json` is a copy of
 the approved quotation with dynamic `Company.company_logo` images and no
-source-site logo assets or sample document selection. It is not site neutral:
-the header and the footer still carry the source company's static text (name,
-tax id, contact, bank details), so a site that installs it has to replace that
-text before it prints. The category name is not an installed-app dependency.
+source-site logo assets or sample document selection. It is site neutral: the
+identity of the page is resolved at print time. The company name, the address,
+the tax id, the phone number and the e-mail address come from the Company of
+the printed Quotation. The address comes from the printed Quotation itself
+(`doc.get("company_address_display")`) and is shown as text. The bank details
+come from the Bank Account that carries the Account that the Company selects
+as its default bank account. The contact is shown with its full name. A site
+that installs the package therefore prints the identity of its own data and
+has no text to replace. The category name is not an installed-app dependency.
 The importer is implemented
 (`print_designer/default_templates_installer.py`) and runs from `after_install`;
 it only fills in formats that are missing and never overwrites an existing
@@ -319,7 +324,8 @@ through the admin API
 (`print_designer/api/default_templates_api.py::run_default_template_installation`),
 which is a separate step that needs its own authorization - see the tracked
 issue. Regression tests:
-`print_designer/tests/test_default_templates_installer.py`.
+`print_designer/tests/test_default_templates_installer.py` and
+`print_designer/tests/test_services_quotation_template.py`.
 
 ## Phase 2: export as default template, transaction profiles
 
@@ -1795,7 +1801,7 @@ table of the certificate that was deleted:
   and the link of the workspace name the canonical certificate.
 
 The one place that still names the deleted certificate is the manager of the
-workspace of AWS Solution Ltd.: the shortcut belongs to the workspace of `your_app`,
+workspace of a client site: the shortcut belongs to the workspace of `your_app`,
 whose records of the withholding tax are not moved.
 
 ## The ownership of the DocTypes of the tax is put back safely
@@ -1810,7 +1816,7 @@ was imported last.
 
 - a DocType of the modules of the Thai Business Suite (`Thai Tax`,
   `Thai Business Suite`) is taken back to Print Designer,
-- a DocType of a fork of a client (`AWS Solution Ltd.`) is **never** taken. The
+- a DocType of a fork of a client is **never** taken. The
   fork carries the records of the withholding tax of that client, and a
   DocType that is taken from such an owner changes the metadata of those
   records with it,
@@ -1828,7 +1834,7 @@ that the sites that already ran the first patches are guarded as well.
 On the demo site the guard is a no-op: every DocType is already owned by
 Print Designer and no metadata is imported. On
 `[site]` the `Withholding Tax Item` is owned by
-`AWS Solution Ltd.` and is kept; its schema is the same as the canonical one, so
+the fork of a client and is kept; its schema is the same as the canonical one, so
 the certificate of Print Designer reads its incomes unchanged.
 
 ## The rules of the income type of the certificate
@@ -1903,10 +1909,11 @@ Nothing on a live site of a client is written without the word of the client.
   certificate) in its second one. The view model gives `company_tax_id`
   (from the linked Company), `company` and `company_address` for the first,
   and `supplier_tax_id`, `supplier_name` and `supplier_address` (from the
-  certificate) for the second. A print format keeps the two apart; the the peer app
-  format is guarded by `test_the_section_of_the_withholder_carries_the_company`
-  and `test_the_section_of_the_withheld_carries_the_supplier` in
-  `your_app/tests/the Form 50 test of the peer app`.
+  certificate) for the second. A print format keeps the two apart; the format
+  of the client site is guarded by
+  `test_the_section_of_the_withholder_carries_the_company` and
+  `test_the_section_of_the_withheld_carries_the_supplier` in the test of that
+  client site.
 - Only the print format named exactly **Form 50 Tawi** is a Form 50 format.
   Every other print format follows the Print Designer path.
 - **Per format wrapper marker:** a form or report may put its own unique
@@ -1942,16 +1949,23 @@ Nothing on a live site of a client is written without the word of the client.
   (`/assets/frappe/...`) is also fine, because Frappe is installed on every
   site.
 - The guard is `print_designer/tests/test_template_asset_ownership.py`:
+  - `test_the_app_loads_a_font` proves that the guard sees the fonts of the
+    app, so it cannot pass without proving anything.
   - `test_no_font_of_the_app_comes_from_another_app` proves that every font
     of every source of the app is loaded from `/assets/print_designer/`.
   - `test_every_font_of_the_app_is_shipped_by_the_app` proves that every such
     font file exists in `print_designer/public/`.
-  - `test_the_only_asset_of_another_app_is_the_known_one` names the one
-    asset of another app that this app still uses, the emblem of the Revenue
-    Department of the PP30 form, so a new dependency fails loudly.
+  - `test_no_asset_of_the_app_comes_from_another_app` proves that every asset
+    of every source of the app, the fonts and the images, is loaded from
+    `/assets/print_designer/` or from `/assets/frappe/`.
+  - `test_every_asset_of_the_app_is_shipped_by_the_app` proves that every such
+    asset file exists in `print_designer/public/`. The bundle of a source is
+    skipped, because the build writes it under a hashed name.
 - The PND templates `PND/PND3/pnd3.html` and `PND/PND53/pnd53.html` used to
-  load the Thai font from `/assets/your_app/fonts/thai/THSarabunNew/`.
+  load the Thai font from the assets of another app.
   They now load it from the path of this app.
+- The print format of the Form 50 that this app ships loaded the Thai font
+  from the assets of another app. It now loads it from the path of this app.
 - **The digit boxes of the PND forms** render the character at an index with
   `x[i:i+1]` and not with `x[i] if i < x|length else ''`. A comparison
   operator in the text of an HTML template is flagged by the linter, and the

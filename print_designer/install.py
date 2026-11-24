@@ -107,10 +107,13 @@ def after_migrate():
     frappe.logger().info("Post-migration setup completed")
 
 
-def ensure_all_fields_after_migration():
+def ensure_all_fields_after_migration() -> bool:
     """
     Ensure print_designer fields exist after migration.
     Print Settings fields handled by commands/install_print_settings_fields.py
+
+    Returns:
+        bool: True when the fields are there, False when the installation failed.
     """
     try:
         frappe.logger().info("Ensuring print_designer fields after migration...")
@@ -127,9 +130,11 @@ def ensure_all_fields_after_migration():
 
         frappe.logger().info("🎉 Fields ensured after migration")
 
+        return True
+
     except Exception as e:
         frappe.logger().error(f"❌ Error ensuring fields after migration: {str(e)}")
-        pass
+        return False
 
 
 def setup_enhanced_print_settings():

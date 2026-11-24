@@ -2,6 +2,7 @@
 
 import sys
 from types import ModuleType
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -9,20 +10,23 @@ import pytest
 from print_designer.api.desk_preview import get_html_and_style
 
 
-@pytest.mark.parametrize("apps,template", [([], None), (["pdf_forms"], None), (["pdf_forms"], "Form-1")])
+@pytest.mark.parametrize(
+    "apps,template", [([], None), (["pdf_forms"], None), (["pdf_forms"], "Form-1")]
+)
 def test_preview_dispatch_preserves_settings_and_renderer(apps, template):
-    overlays = ModuleType("print_designer.overrides.printview_watermark")
+    overlays = cast(Any, ModuleType("print_designer.overrides.printview_watermark"))
     overlays.get_html_and_style_with_watermark = Mock(return_value={"html": "overlays"})
-    forms = ModuleType("pdf_forms.api.print_format")
+    forms = cast(Any, ModuleType("pdf_forms.api.print_format"))
     forms._get_form_template_id = Mock(return_value=template)
     forms.get_html_and_style = Mock(return_value={"html": "pdf form"})
     settings = {"watermark_settings": "Original on First Page", "page_number_display": "Show"}
-    with patch("frappe.get_installed_apps", return_value=apps), patch.dict(
-        sys.modules, {overlays.__name__: overlays, forms.__name__: forms}
+    with (
+        patch("frappe.get_installed_apps", return_value=apps),
+        patch.dict(sys.modules, {overlays.__name__: overlays, forms.__name__: forms}),
     ):
         result = get_html_and_style(
             doc={"doctype": "Quotation", "name": "TEST"},
-            print_format="Quotation - AWS Solution",
+            print_format="Quotation - Example",
             settings=settings,
             prompt_data={"test": True},
         )
@@ -35,9 +39,11 @@ def test_preview_dispatch_preserves_settings_and_renderer(apps, template):
 
 
 def test_print_permission_failure_is_not_swallowed():
-    overlays = ModuleType("print_designer.overrides.printview_watermark")
+    overlays = cast(Any, ModuleType("print_designer.overrides.printview_watermark"))
     overlays.get_html_and_style_with_watermark = Mock(side_effect=PermissionError("denied"))
-    with patch("frappe.get_installed_apps", return_value=[]), patch.dict(
-        sys.modules, {overlays.__name__: overlays}
-    ), pytest.raises(PermissionError):
+    with (
+        patch("frappe.get_installed_apps", return_value=[]),
+        patch.dict(sys.modules, {overlays.__name__: overlays}),
+        pytest.raises(PermissionError),
+    ):
         get_html_and_style(doc={"doctype": "Quotation", "name": "TEST"})

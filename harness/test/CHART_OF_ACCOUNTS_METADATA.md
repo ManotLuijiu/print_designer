@@ -150,13 +150,13 @@ Add `_meta` object for automation hints:
 
 ---
 
-## Complete Example: Enhanced AWS Solution Ltd. CoA
+## Complete Example: Enhanced Example Co., Ltd. CoA
 
 ### Before (Standard ERPNext Format)
 ```json
 {
   "country_code": "th",
-  "name": "AWS Solution Ltd. - Thai Pharmaceutical Chart of Accounts",
+  "name": "Example Co., Ltd. - Chart of Accounts",
   "tree": {
     "สินทรัพย์": {
       "root_type": "Asset",
@@ -172,13 +172,13 @@ Add `_meta` object for automation hints:
 ```json
 {
   "country_code": "th",
-  "name": "AWS Solution Ltd. - Thai Pharmaceutical Chart of Accounts",
+  "name": "Example Co., Ltd. - Chart of Accounts",
   "disabled": "No",
   "_meta": {
     "version": "1.0",
     "industry": "pharmaceutical",
     "supports_auto_config": true,
-    "created_by": "AWS Solution Ltd.",
+    "created_by": "Example Co., Ltd.",
     "last_updated": "2025-10-03",
     "bilingual": true,
     "languages": ["th", "en"]
@@ -547,7 +547,7 @@ interface AccountMetadata {
 
 ## Next Steps
 
-1. **Update AWS Solution Ltd. CoA** with `_meta` properties
+1. **Update Example Co., Ltd. CoA** with `_meta` properties
 2. **Create helper functions** to read metadata from JSON
 3. **Implement Phase 2** using metadata for auto-assignment
 4. **Test with multiple CoA templates** to validate approach

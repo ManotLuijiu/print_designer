@@ -35,38 +35,38 @@ const setup_print_designer_ui = (frm) => {
 		const toggle_text = frm.doc.print_designer
 			? "Disable Print Designer"
 			: "Enable Print Designer";
-		const button_class = frm.doc.print_designer ? "btn-warning" : "btn-primary";
+		const button_class = frm.doc.print_designer
+			? "btn-warning"
+			: "btn-primary";
 
-		frm
-			.add_custom_button(
-				__(toggle_text),
-				function () {
-					const new_value = frm.doc.print_designer ? 0 : 1;
-					const action = new_value ? "enable" : "disable";
+		frm.add_custom_button(
+			__(toggle_text),
+			function () {
+				const new_value = frm.doc.print_designer ? 0 : 1;
+				const action = new_value ? "enable" : "disable";
 
-					frappe.confirm(
-						__(
-							`Are you sure you want to ${action} Print Designer for this format?`,
-						),
-						function () {
-							frm.set_value("print_designer", new_value);
-							frm.save().then(() => {
-								const message = new_value
-									? "Print Designer enabled. The 'Edit Format' button will now open Print Designer."
-									: "Print Designer disabled. The 'Edit Format' button will now open Print Format Builder.";
-								frappe.show_alert({
-									message: __(message),
-									indicator: new_value ? "green" : "orange",
-								});
-								// Refresh to update UI
-								frm.refresh();
+				frappe.confirm(
+					__(
+						`Are you sure you want to ${action} Print Designer for this format?`,
+					),
+					function () {
+						frm.set_value("print_designer", new_value);
+						frm.save().then(() => {
+							const message = new_value
+								? "Print Designer enabled. The 'Edit Format' button will now open Print Designer."
+								: "Print Designer disabled. The 'Edit Format' button will now open Print Format Builder.";
+							frappe.show_alert({
+								message: __(message),
+								indicator: new_value ? "green" : "orange",
 							});
-						},
-					);
-				},
-				__("Actions"),
-			)
-			.addClass(button_class);
+							// Refresh to update UI
+							frm.refresh();
+						});
+					},
+				);
+			},
+			__("Actions"),
+		).addClass(button_class);
 	}
 };
 
@@ -233,8 +233,11 @@ frappe.ui.form.on("Print Format", {
 		setup_print_designer_ui(frm);
 		// Add Export/Import menu items for Print Designer formats (only once per refresh)
 		if (!frm.is_new() && frm.doc.print_designer) {
-			console.log("Adding Export/Import menu items for Print Designer format:", frm.doc.name);
-			
+			console.log(
+				"Adding Export/Import menu items for Print Designer format:",
+				frm.doc.name,
+			);
+
 			// Add menu items using the same pattern as Frappe's Print and Duplicate
 			// Export Format menu item
 			frm.page.add_menu_item(
@@ -243,35 +246,47 @@ frappe.ui.form.on("Print Format", {
 					frappe.call({
 						method: "print_designer.api.print_format_export_import.export_print_format",
 						args: {
-							print_format_name: frm.doc.name
+							print_format_name: frm.doc.name,
 						},
 						callback: function (r) {
 							if (r.message) {
 								// Create a downloadable JSON file
 								const export_data = r.message;
-								const dataStr = JSON.stringify(export_data, null, 2);
-								const dataBlob = new Blob([dataStr], { type: 'application/json' });
+								const dataStr = JSON.stringify(
+									export_data,
+									null,
+									2,
+								);
+								const dataBlob = new Blob([dataStr], {
+									type: "application/json",
+								});
 								const url = URL.createObjectURL(dataBlob);
-								
+
 								// Create download link
-								const downloadLink = document.createElement('a');
+								const downloadLink =
+									document.createElement("a");
 								downloadLink.href = url;
-								const timestamp = new Date().toISOString().replace(/:/g, '-').substring(0, 19);
+								const timestamp = new Date()
+									.toISOString()
+									.replace(/:/g, "-")
+									.substring(0, 19);
 								downloadLink.download = `${frm.doc.name}_${timestamp}.json`;
 								document.body.appendChild(downloadLink);
 								downloadLink.click();
 								document.body.removeChild(downloadLink);
 								URL.revokeObjectURL(url);
-								
+
 								frappe.show_alert({
-									message: __("Print Format exported successfully"),
-									indicator: "green"
+									message: __(
+										"Print Format exported successfully",
+									),
+									indicator: "green",
 								});
 							}
-						}
+						},
 					});
 				},
-				true
+				true,
 			);
 
 			// Import Format menu item
@@ -287,79 +302,104 @@ frappe.ui.form.on("Print Format", {
 								fieldtype: "Attach",
 								label: __("Select Export File (JSON)"),
 								reqd: 1,
-								description: __("Select a previously exported Print Designer format JSON file")
+								description: __(
+									"Select a previously exported Print Designer format JSON file",
+								),
 							},
 							{
 								fieldname: "column_break",
-								fieldtype: "Column Break"
+								fieldtype: "Column Break",
 							},
 							{
 								fieldname: "new_name",
 								fieldtype: "Data",
 								label: __("New Format Name"),
-								description: __("Leave empty to use the original name or auto-generate if exists")
+								description: __(
+									"Leave empty to use the original name or auto-generate if exists",
+								),
 							},
 							{
 								fieldname: "section_break",
-								fieldtype: "Section Break"
+								fieldtype: "Section Break",
 							},
 							{
 								fieldname: "overwrite",
 								fieldtype: "Check",
 								label: __("Overwrite if exists"),
-								description: __("Warning: This will replace existing format with same name"),
-								default: 0
-							}
+								description: __(
+									"Warning: This will replace existing format with same name",
+								),
+								default: 0,
+							},
 						],
 						primary_action_label: __("Import"),
 						primary_action: function (values) {
 							// Read the file content
 							if (!values.import_file) {
-								frappe.msgprint(__("Please select a file to import"));
+								frappe.msgprint(
+									__("Please select a file to import"),
+								);
 								return;
 							}
 
 							// Fetch the file content
 							$.ajax({
 								url: values.import_file,
-								type: 'GET',
+								type: "GET",
 								success: function (data) {
 									// Import the format
 									frappe.call({
 										method: "print_designer.api.print_format_export_import.import_print_format",
 										args: {
-											export_data: typeof data === 'string' ? data : JSON.stringify(data),
+											export_data:
+												typeof data === "string"
+													? data
+													: JSON.stringify(data),
 											new_name: values.new_name,
-											overwrite: values.overwrite
+											overwrite: values.overwrite,
 										},
 										callback: function (r) {
 											if (r.message) {
 												dialog.hide();
-												frappe.show_alert({
-													message: __("Print Format imported successfully as {0}", [r.message]),
-													indicator: "green"
-												}, 5);
+												frappe.show_alert(
+													{
+														message: __(
+															"Print Format imported successfully as {0}",
+															[r.message],
+														),
+														indicator: "green",
+													},
+													5,
+												);
 
 												// Ask if user wants to open the imported format
 												frappe.confirm(
-													__("Do you want to open the imported Print Format?"),
+													__(
+														"Do you want to open the imported Print Format?",
+													),
 													function () {
-														frappe.set_route("Form", "Print Format", r.message);
-													}
+														frappe.set_route(
+															"Form",
+															"Print Format",
+															r.message,
+														);
+													},
 												);
 											}
-										}
+										},
 									});
 								},
 								error: function (xhr, status, error) {
-									frappe.msgprint(__("Error reading file: {0}", [error]));
-								}
+									frappe.msgprint(
+										__("Error reading file: {0}", [error]),
+									);
+								},
 							});
-						}
+						},
 					});
 					dialog.show();
 				},
-				true
+				true,
 			);
 
 			// Convert to Print Designer Export menu item - Opens dialog for file path conversion
@@ -371,13 +411,15 @@ frappe.ui.form.on("Print Format", {
 						window.show_print_format_conversion_dialog();
 					} else {
 						frappe.msgprint({
-							title: __('Dialog Not Available'),
-							message: __('Conversion dialog script not loaded. Please refresh the page.'),
-							indicator: 'red'
+							title: __("Dialog Not Available"),
+							message: __(
+								"Conversion dialog script not loaded. Please refresh the page.",
+							),
+							indicator: "red",
 						});
 					}
 				},
-				true
+				true,
 			);
 
 			// Export as Default Template menu item - ships the format with the app
@@ -386,7 +428,7 @@ frappe.ui.form.on("Print Format", {
 				function () {
 					show_export_as_default_template_dialog(frm);
 				},
-				true
+				true,
 			);
 		}
 	},
@@ -402,7 +444,10 @@ frappe.ui.form.on("Print Format", {
 						return;
 					}
 					if (frm.doc.print_format_builder_beta) {
-						frappe.set_route("print-format-builder-beta", frm.doc.name);
+						frappe.set_route(
+							"print-format-builder-beta",
+							frm.doc.name,
+						);
 					} else if (frm.doc.print_designer) {
 						frappe.set_route("print-designer", frm.doc.name);
 					} else {
@@ -423,8 +468,7 @@ frappe.ui.form.on("Print Format", {
 
 					frm.add_custom_button(__("Set as Default"), function () {
 						frappe.call({
-							method:
-								"frappe.printing.doctype.print_format.print_format.make_default",
+							method: "frappe.printing.doctype.print_format.print_format.make_default",
 							args: {
 								name: frm.doc.name,
 							},
@@ -436,5 +480,5 @@ frappe.ui.form.on("Print Format", {
 				});
 			}
 		}
-	}
+	},
 });

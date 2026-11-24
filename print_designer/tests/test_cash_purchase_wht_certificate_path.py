@@ -22,9 +22,7 @@ COMPANY = "_Test Company"
 SUPPLIER = "_Test Supplier"
 ITEM = "_TEST WHT Cash Service"
 
-RETIRED_HOOK = (
-    "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice"
-)
+RETIRED_HOOK = "print_designer.custom.purchase_invoice_wht_generator.on_submit_purchase_invoice"
 
 
 class TestTheRetiredCashPurchasePath(unittest.TestCase):

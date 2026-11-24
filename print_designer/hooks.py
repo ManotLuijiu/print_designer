@@ -288,7 +288,7 @@ fixtures = [
     #                 "Sales Invoice-pd_custom_approved_by_signature",
     #                 # Sales Invoice - Watermark Field
     #                 "Sales Invoice-pd_custom_watermark_text",
-    #                 # Sales Invoice - AWS Solution Ltd. Tab
+    #                 # Sales Invoice - Example Co., Ltd. Tab
     #                 "Sales Invoice-your_app_tab",
     #                 # Removed redundant Thai Tax Information Fields - using pd_custom_wht_preview_section instead
     #                 # Sales Invoice - Thai Compliance Fields

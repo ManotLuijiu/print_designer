@@ -52,16 +52,18 @@ class TestTheCreatorOfTheCertificate(unittest.TestCase):
         frappe.db.rollback(save_point=SAVEPOINT)
 
     def _the_account(self, account_type: str) -> str:
-        """An account of the company of the test."""
+        """An account of the company of the test, in the currency of the company."""
         accounts = frappe.get_all(
             "Account",
             filters={
                 "company": COMPANY,
                 "account_type": account_type,
+                "account_currency": frappe.db.get_value("Company", COMPANY, "default_currency"),
                 "is_group": 0,
                 "disabled": 0,
             },
             pluck="name",
+            order_by="name",
         )
         if not accounts:
             self.skipTest(f"the site has no {account_type} account")
@@ -91,14 +93,14 @@ class TestTheCreatorOfTheCertificate(unittest.TestCase):
             "posting_date": nowdate(),
             "party_type": "Supplier",
             "party": SUPPLIER,
-            "paid_from": self._the_account("Payable"),
-            "paid_to": self._the_account("Bank"),
+            "paid_from": self._the_account("Bank"),
+            "paid_to": self._the_account("Payable"),
             "paid_amount": 1000,
             "received_amount": 1000,
             "source_exchange_rate": 1,
             "target_exchange_rate": 1,
             "paid_to_account_currency": frappe.db.get_value(
-                "Account", self._the_account("Bank"), "account_currency"
+                "Account", self._the_account("Payable"), "account_currency"
             ),
             "reference_no": "TEST-WHT-CREATOR",
             "reference_date": nowdate(),
@@ -118,26 +120,20 @@ class TestTheCreatorOfTheCertificate(unittest.TestCase):
         certificate = creator.create_certificate_for_payment_entry(payment_entry)
 
         self.assertEqual(
-            frappe.db.get_value(
-                "Payment Entry", payment_entry.name, "pd_custom_wht_certificate"
-            ),
+            frappe.db.get_value("Payment Entry", payment_entry.name, "pd_custom_wht_certificate"),
             certificate.name,
         )
 
     def test_the_link_of_the_payment_entry_is_kept_when_the_certificate_exists(self):
         payment_entry = self._the_payment_entry()
         certificate = creator.create_certificate_for_payment_entry(payment_entry)
-        frappe.db.set_value(
-            "Payment Entry", payment_entry.name, "pd_custom_wht_certificate", None
-        )
+        frappe.db.set_value("Payment Entry", payment_entry.name, "pd_custom_wht_certificate", None)
 
         again = creator.create_certificate_for_payment_entry(payment_entry)
 
         self.assertEqual(again.name, certificate.name)
         self.assertEqual(
-            frappe.db.get_value(
-                "Payment Entry", payment_entry.name, "pd_custom_wht_certificate"
-            ),
+            frappe.db.get_value("Payment Entry", payment_entry.name, "pd_custom_wht_certificate"),
             certificate.name,
         )
 
@@ -202,9 +198,7 @@ class TestTheCreatorOfTheCertificate(unittest.TestCase):
 
         self.assertEqual(first.name, second.name)
         self.assertEqual(
-            frappe.db.count(
-                "Withholding Tax Certificate", {"payment_entry": payment_entry.name}
-            ),
+            frappe.db.count("Withholding Tax Certificate", {"payment_entry": payment_entry.name}),
             1,
         )
 

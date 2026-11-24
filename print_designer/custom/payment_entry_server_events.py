@@ -38,7 +38,7 @@ def after_insert(doc: Any, method: Any):
     print(f"DEBUG after_insert: Payment Entry {doc.name}, Type: {doc.payment_type}")
     frappe.log_error(
         message=f"after_insert called for Payment Entry {doc.name}, Type: {doc.payment_type}",
-        title="Payment Entry after_insert Debug"
+        title="Payment Entry after_insert Debug",
     )
 
     # Only process if this Payment Entry was created from Purchase Invoice with WHT
@@ -47,11 +47,15 @@ def after_insert(doc: Any, method: Any):
         return
 
     # Check if user enabled WHT certificate generation
-    apply_wht = getattr(doc, 'pd_custom_subject_to_wht', 0)
+    apply_wht = getattr(doc, "pd_custom_subject_to_wht", 0)
 
     print(f"DEBUG: pd_custom_subject_to_wht = {apply_wht}")
 
-    if not apply_wht or doc.flags.skip_wht_certificate or not flt(doc.get("pd_custom_withholding_tax_amount_details")):
+    if (
+        not apply_wht
+        or doc.flags.skip_wht_certificate
+        or not flt(doc.get("pd_custom_withholding_tax_amount_details"))
+    ):
         print("DEBUG: Skipping - WHT not enabled by user")
         return
 
@@ -71,13 +75,15 @@ def after_insert(doc: Any, method: Any):
         print(f"DEBUG ERROR: Failed to create WHT Certificate: {str(e)}")
         frappe.log_error(
             message=f"Error in Payment Entry after_insert WHT certificate creation: {str(e)}",
-            title="WHT Certificate Auto-Creation Error"
+            title="WHT Certificate Auto-Creation Error",
         )
         # Don't prevent Payment Entry creation if certificate creation fails
         frappe.msgprint(
-            _("Payment Entry created successfully, but WHT Certificate creation failed: {0}").format(str(e)),
+            _(
+                "Payment Entry created successfully, but WHT Certificate creation failed: {0}"
+            ).format(str(e)),
             alert=True,
-            indicator="orange"
+            indicator="orange",
         )
 
 
@@ -94,24 +100,30 @@ def on_submit(doc: Any, method: Any):
         if wht_certificate_name:
             try:
                 # Get the WHT Certificate and submit it
-                wht_cert = cast(Any, frappe.get_doc("Withholding Tax Certificate", wht_certificate_name))
+                wht_cert = cast(
+                    Any, frappe.get_doc("Withholding Tax Certificate", wht_certificate_name)
+                )
                 if wht_cert.docstatus == 0:  # Only submit if it's in Draft status
                     wht_cert.status = "Issued"
                     wht_cert.submit()
                     frappe.msgprint(
-                        _("Withholding Tax Certificate {0} has been submitted and issued").format(wht_certificate_name),
+                        _("Withholding Tax Certificate {0} has been submitted and issued").format(
+                            wht_certificate_name
+                        ),
                         alert=True,
-                        indicator="green"
+                        indicator="green",
                     )
             except Exception as e:
                 frappe.log_error(
                     message=f"Error submitting WHT Certificate {wht_certificate_name}: {str(e)}",
-                    title="WHT Certificate Submission Error"
+                    title="WHT Certificate Submission Error",
                 )
                 frappe.msgprint(
-                    _("Payment Entry submitted, but WHT Certificate submission failed: {0}").format(str(e)),
+                    _("Payment Entry submitted, but WHT Certificate submission failed: {0}").format(
+                        str(e)
+                    ),
                     alert=True,
-                    indicator="orange"
+                    indicator="orange",
                 )
         # Create Input VAT conversion GL entries
         _create_input_vat_conversion_gl_entries(doc)
@@ -154,7 +166,7 @@ def _create_thai_purchase_vat_from_pe_simple(doc: Any):
         # Company details
         thai_vat.purchase_for_company = doc.company
         company_doc = cast(Any, frappe.get_doc("Company", doc.company))
-        thai_vat.purchase_for_branch = getattr(company_doc, 'branch', '') or '00000'
+        thai_vat.purchase_for_branch = getattr(company_doc, "branch", "") or "00000"
 
         # Get Purchase Invoice details from references
         purchase_invoice = ""
@@ -168,19 +180,21 @@ def _create_thai_purchase_vat_from_pe_simple(doc: Any):
         if doc.party_type == "Supplier":
             thai_vat.supplier = doc.party
             supplier_doc = cast(Any, frappe.get_doc("Supplier", doc.party))
-            thai_vat.supplier_name = getattr(supplier_doc, 'supplier_name', doc.party)
-            thai_vat.supplier_tax_id = getattr(supplier_doc, 'tax_id', '') or ""
-            thai_vat.supplier_branch = getattr(supplier_doc, 'pd_custom_branch_code', '') or '00000'
+            thai_vat.supplier_name = getattr(supplier_doc, "supplier_name", doc.party)
+            thai_vat.supplier_tax_id = getattr(supplier_doc, "tax_id", "") or ""
+            thai_vat.supplier_branch = getattr(supplier_doc, "pd_custom_branch_code", "") or "00000"
 
         thai_vat.posting_date = doc.posting_date
         thai_vat.bill_date = doc.posting_date
 
         # Tax Invoice details
-        thai_vat.bill_no = getattr(doc, 'pd_custom_tax_invoice_number', '') or doc.name
-        thai_vat.tax_invoice_number = getattr(doc, 'pd_custom_tax_invoice_number', '')
-        thai_vat.tax_invoice_date = getattr(doc, 'pd_custom_tax_invoice_date', '') or doc.posting_date
-        thai_vat.tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
-        thai_vat.bill_series = getattr(doc, 'pd_custom_bill_series', '') or ""
+        thai_vat.bill_no = getattr(doc, "pd_custom_tax_invoice_number", "") or doc.name
+        thai_vat.tax_invoice_number = getattr(doc, "pd_custom_tax_invoice_number", "")
+        thai_vat.tax_invoice_date = (
+            getattr(doc, "pd_custom_tax_invoice_date", "") or doc.posting_date
+        )
+        thai_vat.tax_base_amount = flt(getattr(doc, "pd_custom_tax_base_amount", 0))
+        thai_vat.bill_series = getattr(doc, "pd_custom_bill_series", "") or ""
 
         # Payment Entry link
         thai_vat.payment_entry = doc.name
@@ -191,7 +205,7 @@ def _create_thai_purchase_vat_from_pe_simple(doc: Any):
         thai_vat.vat_year = str(posting_date.year)
 
         # Amounts - calculate VAT from tax base
-        tax_base = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
+        tax_base = flt(getattr(doc, "pd_custom_tax_base_amount", 0))
         vat_amount = tax_base * 0.07 if tax_base > 0 else 0
         thai_vat.base_amount = tax_base
         thai_vat.vat_amount = vat_amount
@@ -205,25 +219,28 @@ def _create_thai_purchase_vat_from_pe_simple(doc: Any):
 
         frappe.log_error(
             message=f"SUCCESS: Created Thai Purchase VAT {thai_vat.name} for {doc.name}",
-            title="Thai Purchase VAT Created"
+            title="Thai Purchase VAT Created",
         )
 
         frappe.msgprint(
             _("Thai Purchase VAT record created: {0}").format(thai_vat.name),
             alert=True,
-            indicator="green"
+            indicator="green",
         )
 
     except Exception as e:
         import traceback
+
         frappe.log_error(
             message=f"Error creating Thai Purchase VAT for {doc.name}: {str(e)}\n{traceback.format_exc()}",
-            title="Thai Purchase VAT Creation Error"
+            title="Thai Purchase VAT Creation Error",
         )
         frappe.msgprint(
-            _("Payment Entry submitted, but Thai Purchase VAT record creation failed: {0}").format(str(e)),
+            _("Payment Entry submitted, but Thai Purchase VAT record creation failed: {0}").format(
+                str(e)
+            ),
             alert=True,
-            indicator="orange"
+            indicator="orange",
         )
 
 
@@ -255,14 +272,16 @@ def on_cancel(doc: Any, method: Any):
             if wht_cert.docstatus == 1:
                 wht_cert.cancel()
                 frappe.msgprint(
-                    _("Withholding Tax Certificate {0} has been cancelled").format(wht_certificate_name),
+                    _("Withholding Tax Certificate {0} has been cancelled").format(
+                        wht_certificate_name
+                    ),
                     alert=True,
-                    indicator="orange"
+                    indicator="orange",
                 )
         except Exception as e:
             frappe.log_error(
                 message=f"Error cancelling WHT Certificate {wht_certificate_name}: {str(e)}",
-                title="WHT Certificate Cancellation Error"
+                title="WHT Certificate Cancellation Error",
             )
 
     # C.2 Delete Input VAT GL entries created from this PE
@@ -281,7 +300,7 @@ def on_update_after_submit(doc: Any, method: Any):
     """
     if doc.payment_type != "Pay":
         return
-    
+
     # Get current WHTC ref
     wht_cert_ref = get_issued_wht_certificate(doc)
     if wht_cert_ref:
@@ -293,7 +312,7 @@ def on_update_after_submit(doc: Any, method: Any):
             frappe.msgprint(
                 _("Cleared cancelled WHT Certificate reference from {0}").format(doc.name),
                 alert=True,
-                indicator="orange"
+                indicator="orange",
             )
 
 
@@ -304,30 +323,35 @@ def _delete_input_vat_gl_entries(doc: Any):
     try:
         # Get accounts from Company
         input_vat_account = frappe.get_value("Company", doc.company, "default_input_vat_account")
-        input_vat_undue_account = frappe.get_value("Company", doc.company, "default_input_vat_undue_account")
-        
+        input_vat_undue_account = frappe.get_value(
+            "Company", doc.company, "default_input_vat_undue_account"
+        )
+
         if not input_vat_account or not input_vat_undue_account:
             return
-        
+
         # Find and delete GL entries for Input VAT accounts linked to this PE
-        frappe.db.sql("""
+        frappe.db.sql(
+            """
             DELETE FROM `tabGL Entry` 
             WHERE voucher_no = %s 
             AND voucher_type = 'Payment Entry'
             AND account IN (%s, %s)
-        """, (doc.name, input_vat_account, input_vat_undue_account))
-        
+        """,
+            (doc.name, input_vat_account, input_vat_undue_account),
+        )
+
         frappe.db.commit()
-        
+
         frappe.msgprint(
             _("Input VAT GL entries deleted for {0}").format(doc.name),
             alert=True,
-            indicator="orange"
+            indicator="orange",
         )
     except Exception as e:
         frappe.log_error(
             message=f"Error deleting Input VAT GL entries for {doc.name}: {str(e)}",
-            title="Input VAT GL Entry Deletion Error"
+            title="Input VAT GL Entry Deletion Error",
         )
 
 
@@ -339,9 +363,7 @@ def _delete_thai_purchase_vat_record(doc: Any):
     try:
         # Find Thai Purchase VAT records linked to this PE
         thai_vat_records = frappe.db.get_all(
-            "Thai Purchase VAT",
-            filters={"payment_entry": doc.name},
-            pluck="name"
+            "Thai Purchase VAT", filters={"payment_entry": doc.name}, pluck="name"
         )
 
         if not thai_vat_records:
@@ -355,33 +377,37 @@ def _delete_thai_purchase_vat_record(doc: Any):
                 deleted_count += 1
                 frappe.log_error(
                     message=f"Deleted Thai Purchase VAT: {record_name} (linked to cancelled PE: {doc.name})",
-                    title="Thai Purchase VAT Cancelled"
+                    title="Thai Purchase VAT Cancelled",
                 )
             except Exception as del_e:
                 frappe.log_error(
                     message=f"Error deleting Thai Purchase VAT {record_name}: {str(del_e)}",
-                    title="Thai Purchase VAT Deletion Error"
+                    title="Thai Purchase VAT Deletion Error",
                 )
 
         if deleted_count > 0:
             frappe.db.commit()
             frappe.msgprint(
-                _("Thai Purchase VAT record(s) deleted for cancelled Payment Entry {0}").format(doc.name),
+                _("Thai Purchase VAT record(s) deleted for cancelled Payment Entry {0}").format(
+                    doc.name
+                ),
                 alert=True,
-                indicator="orange"
+                indicator="orange",
             )
 
     except Exception as e:
         frappe.log_error(
             message=f"Error processing Thai Purchase VAT deletion for {doc.name}: {str(e)}",
-            title="Thai Purchase VAT Cancellation Error"
+            title="Thai Purchase VAT Cancellation Error",
         )
 
 
 def _clear_pe_vat_fields(doc: Any):
     """Clear the recorded VAT amount on cancellation."""
     if doc.meta.has_field("pd_custom_vat_amount"):
-        frappe.db.set_value("Payment Entry", doc.name, "pd_custom_vat_amount", 0, update_modified=False)
+        frappe.db.set_value(
+            "Payment Entry", doc.name, "pd_custom_vat_amount", 0, update_modified=False
+        )
         doc.pd_custom_vat_amount = 0
 
 
@@ -407,6 +433,8 @@ def validate(doc: Any, method: Any):
     _validate_mandatory_tax_invoice_fields(doc)
     # Step 4: Validate Thai tax fields consistency
     _validate_thai_tax_consistency(doc)
+
+
 def _sync_total_expense_from_balance(doc: Any):
     """
     Sync tbs_total_expense_amount = tbs_balance_payable when an advance PE exists.
@@ -436,20 +464,20 @@ def _auto_fill_tax_base_amount(doc: Any):
     Tax base = base_net_total or (total_allocated_amount - VAT amount)
     """
     # Check if already set
-    current_tax_base = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
+    current_tax_base = flt(getattr(doc, "pd_custom_tax_base_amount", 0))
     if current_tax_base > 0:
         return  # Already has value, don't override
     # Calculate tax base amount
     # Method 1: Use base_net_total from PI references
-    total_allocated = flt(getattr(doc, 'total_allocated_amount', 0))
+    total_allocated = flt(getattr(doc, "total_allocated_amount", 0))
     # Method 2: Try to get from references (sum of PI base_net_total)
     tax_base = 0
-    if hasattr(doc, 'references') and doc.references:
+    if hasattr(doc, "references") and doc.references:
         for ref in doc.references:
-            if hasattr(ref, 'ref_docname') and ref.ref_docname:
+            if hasattr(ref, "ref_docname") and ref.ref_docname:
                 try:
                     pi = cast(Any, frappe.get_doc("Purchase Invoice", ref.ref_docname))
-                    if hasattr(pi, 'net_total') and pi.net_total:
+                    if hasattr(pi, "net_total") and pi.net_total:
                         tax_base += flt(pi.net_total)
                 except Exception:
                     # A reference of another document type carries no net total
@@ -458,9 +486,9 @@ def _auto_fill_tax_base_amount(doc: Any):
     if tax_base <= 0 and total_allocated > 0:
         # Get VAT amount from taxes
         vat_amount = 0
-        if hasattr(doc, 'taxes') and doc.taxes:
+        if hasattr(doc, "taxes") and doc.taxes:
             for tax in doc.taxes:
-                if hasattr(tax, 'rate') and flt(tax.rate) == 7:  # VAT 7%
+                if hasattr(tax, "rate") and flt(tax.rate) == 7:  # VAT 7%
                     # The row of the taxes of a Payment Entry is an
                     # "Advance Taxes and Charges" row, and it carries the
                     # amount in "tax_amount".  A row has no "amount".
@@ -468,8 +496,10 @@ def _auto_fill_tax_base_amount(doc: Any):
         if vat_amount > 0:
             tax_base = total_allocated - vat_amount
     # Set the value if calculated
-    if tax_base > 0 and hasattr(doc, 'pd_custom_tax_base_amount'):
+    if tax_base > 0 and hasattr(doc, "pd_custom_tax_base_amount"):
         doc.pd_custom_tax_base_amount = tax_base
+
+
 def _validate_mandatory_tax_invoice_fields(doc: Any):
     """
     Validate mandatory Thai tax invoice fields.
@@ -477,7 +507,7 @@ def _validate_mandatory_tax_invoice_fields(doc: Any):
     """
     # Check if this PE has VAT (non-zero taxes)
     has_vat = False
-    if hasattr(doc, 'taxes') and doc.taxes:
+    if hasattr(doc, "taxes") and doc.taxes:
         for tax in doc.taxes:
             # The row of the taxes of a Payment Entry is an "Advance Taxes
             # and Charges" row, and it carries the amount in "tax_amount".
@@ -490,8 +520,8 @@ def _validate_mandatory_tax_invoice_fields(doc: Any):
     if not has_vat:
         return
     # Get field values
-    tax_invoice_number = getattr(doc, 'pd_custom_tax_invoice_number', None)
-    tax_invoice_date = getattr(doc, 'pd_custom_tax_invoice_date', None)
+    tax_invoice_number = getattr(doc, "pd_custom_tax_invoice_number", None)
+    tax_invoice_date = getattr(doc, "pd_custom_tax_invoice_date", None)
     # Build error list
     missing_fields = []
     if not tax_invoice_number:
@@ -501,10 +531,10 @@ def _validate_mandatory_tax_invoice_fields(doc: Any):
     # Raise validation error if any field is missing
     if missing_fields:
         frappe.throw(
-            _("Missing mandatory Thai Tax Invoice fields: {0}. Please fill in before saving.").format(
-                ", ".join(missing_fields)
-            ),
-            title=_("Thai Tax Invoice Validation")
+            _(
+                "Missing mandatory Thai Tax Invoice fields: {0}. Please fill in before saving."
+            ).format(", ".join(missing_fields)),
+            title=_("Thai Tax Invoice Validation"),
         )
 
     # COMMENTED OUT: Set has_thai_taxes flag based on actual tax amounts
@@ -517,9 +547,9 @@ def _validate_thai_tax_consistency(doc: Any):
     Validate that Thai tax calculations are consistent.
     """
     # Get tax amounts
-    tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
-    wht_rate = flt(getattr(doc, 'pd_custom_withholding_tax_pct_details', 0))
-    wht_amount = flt(getattr(doc, 'pd_custom_withholding_tax_amount_details', 0))
+    tax_base_amount = flt(getattr(doc, "pd_custom_tax_base_amount", 0))
+    wht_rate = flt(getattr(doc, "pd_custom_withholding_tax_pct_details", 0))
+    wht_amount = flt(getattr(doc, "pd_custom_withholding_tax_amount_details", 0))
 
     # If WHT rate and tax base exist, validate calculated WHT amount
     if tax_base_amount > 0 and wht_rate > 0:
@@ -528,11 +558,11 @@ def _validate_thai_tax_consistency(doc: Any):
         # Allow small rounding differences (within 0.01)
         if abs(calculated_wht - wht_amount) > 0.01:
             frappe.msgprint(
-                _("Warning: WHT Amount ({0}) doesn't match calculated amount ({1}) based on Tax Base ({2}) and WHT Rate ({3}%)").format(
-                    wht_amount, calculated_wht, tax_base_amount, wht_rate
-                ),
+                _(
+                    "Warning: WHT Amount ({0}) doesn't match calculated amount ({1}) based on Tax Base ({2}) and WHT Rate ({3}%)"
+                ).format(wht_amount, calculated_wht, tax_base_amount, wht_rate),
                 alert=True,
-                indicator="orange"
+                indicator="orange",
             )
 
 
@@ -559,7 +589,9 @@ def create_wht_certificate_from_payment_entry(payment_entry_name):
     certificate.  The refusal is made before the payment entry is loaded, so
     that a caller without the right learns nothing about it.
     """
-    print(f"DEBUG API create_wht_certificate_from_payment_entry: Called with payment_entry_name={payment_entry_name}")
+    print(
+        f"DEBUG API create_wht_certificate_from_payment_entry: Called with payment_entry_name={payment_entry_name}"
+    )
 
     require_document_read("Payment Entry", payment_entry_name)
     require_doctype_permission("Withholding Tax Certificate", "create")
@@ -567,36 +599,44 @@ def create_wht_certificate_from_payment_entry(payment_entry_name):
     try:
         payment_entry_doc = cast(Any, frappe.get_doc("Payment Entry", payment_entry_name))
 
-        print(f"DEBUG: Payment Entry loaded - Name: {payment_entry_doc.name}, Type: {payment_entry_doc.payment_type}")
-        print(f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, flags: {payment_entry_doc.flags}")
+        print(
+            f"DEBUG: Payment Entry loaded - Name: {payment_entry_doc.name}, Type: {payment_entry_doc.payment_type}"
+        )
+        print(
+            f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, flags: {payment_entry_doc.flags}"
+        )
         print(f"DEBUG: Payment Entry is_new: {payment_entry_doc.is_new()}")
-        print(f"DEBUG: WHT fields - apply_wht: {getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 'NOT_SET')}, wht_amount: {getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 'NOT_SET')}")
+        print(
+            f"DEBUG: WHT fields - apply_wht: {getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 'NOT_SET')}, wht_amount: {getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 'NOT_SET')}"
+        )
 
         # Import and call the certificate generator
         from print_designer.custom.wht_certificate_generator import (
             create_wht_certificate_from_payment_entry,
         )
+
         create_wht_certificate_from_payment_entry(payment_entry_doc)
 
         print("DEBUG: Certificate creation completed successfully")
         return {
             "status": "success",
-            "message": _("Withholding Tax Certificate created successfully")
+            "message": _("Withholding Tax Certificate created successfully"),
         }
 
     except Exception as e:
         print(f"DEBUG ERROR: Certificate creation failed: {str(e)}")
         import traceback
+
         print(f"DEBUG ERROR traceback: {traceback.format_exc()}")
 
         frappe.log_error(
             message=f"Manual WHT Certificate creation failed for {payment_entry_name}: {str(e)}\n\nTraceback:\n{traceback.format_exc()}",
-            title="Manual WHT Certificate Creation Error"
+            title="Manual WHT Certificate Creation Error",
         )
 
         return {
             "status": "error",
-            "message": _("Failed to create WHT Certificate: {0}").format(str(e))
+            "message": _("Failed to create WHT Certificate: {0}").format(str(e)),
         }
 
 
@@ -613,18 +653,17 @@ def get_wht_certificate_preview(payment_entry_name):
     try:
         # Import and call the preview function
         from print_designer.custom.wht_certificate_generator import get_wht_certificate_preview
+
         return get_wht_certificate_preview(payment_entry_name)
 
     except Exception as e:
         frappe.log_error(
             message=f"WHT Certificate preview failed for {payment_entry_name}: {str(e)}",
-            title="WHT Certificate Preview Error"
+            title="WHT Certificate Preview Error",
         )
 
-        return {
-            "eligible": False,
-            "message": _("Preview failed: {0}").format(str(e))
-        }
+        return {"eligible": False, "message": _("Preview failed: {0}").format(str(e))}
+
 
 def _create_input_vat_conversion_gl_entries(doc: Any):
     """
@@ -635,65 +674,68 @@ def _create_input_vat_conversion_gl_entries(doc: Any):
     # Log entry for debugging
     frappe.log_error(
         message=f"DEBUG _create_input_vat: PE={doc.name}, type={doc.payment_type}",
-        title="Input VAT Debug"
+        title="Input VAT Debug",
     )
-    
+
     # Only process for Pay payment type
     if doc.payment_type != "Pay":
         return
-    
+
     # Check if this PE has VAT Undue treatment
     vat_treatment = get_payment_vat_treatment(doc)
     if not vat_treatment or vat_treatment != "VAT Undue":
         return
-    
+
     # Check if tax invoice details exist
-    tax_invoice_number = getattr(doc, 'pd_custom_tax_invoice_number', None)
-    tax_base_amount = flt(getattr(doc, 'pd_custom_tax_base_amount', 0))
-    
+    tax_invoice_number = getattr(doc, "pd_custom_tax_invoice_number", None)
+    tax_base_amount = flt(getattr(doc, "pd_custom_tax_base_amount", 0))
+
     frappe.log_error(
         message=f"DEBUG _create_input_vat: PE={doc.name}, vat_treatment={vat_treatment}, tax_inv={tax_invoice_number}, tax_base={tax_base_amount}",
-        title="Input VAT Debug 2"
+        title="Input VAT Debug 2",
     )
-    
+
     if not tax_invoice_number or tax_base_amount <= 0:
         return
-    
+
     # Calculate VAT amount (7%)
     vat_amount = tax_base_amount * 0.07
-    
+
     # Get accounts from Company
     input_vat_account = frappe.get_value("Company", doc.company, "default_input_vat_account")
-    input_vat_undue_account = frappe.get_value("Company", doc.company, "default_input_vat_undue_account")
-    
+    input_vat_undue_account = frappe.get_value(
+        "Company", doc.company, "default_input_vat_undue_account"
+    )
+
     frappe.log_error(
         message=f"DEBUG _create_input_vat: PE={doc.name}, accounts: input_vat={input_vat_account}, undue={input_vat_undue_account}, vat_amount={vat_amount}",
-        title="Input VAT Debug 3"
+        title="Input VAT Debug 3",
     )
-    
+
     if not input_vat_account or not input_vat_undue_account:
         frappe.msgprint(
-            _("Input VAT accounts not configured in Company settings. Skipping Input VAT GL entries."),
+            _(
+                "Input VAT accounts not configured in Company settings. Skipping Input VAT GL entries."
+            ),
             alert=True,
-            indicator="orange"
+            indicator="orange",
         )
         return
-    
+
     # Check if GL entries already exist for this conversion (prevent duplicates on re-submit)
-    existing = frappe.db.exists("GL Entry", {
-        "voucher_no": doc.name,
-        "voucher_type": "Payment Entry",
-        "account": input_vat_account
-    })
+    existing = frappe.db.exists(
+        "GL Entry",
+        {"voucher_no": doc.name, "voucher_type": "Payment Entry", "account": input_vat_account},
+    )
     if existing:
         return
-    
+
     try:
         # Get cost center from PE or Company default
-        cost_center = getattr(doc, 'cost_center', None)
+        cost_center = getattr(doc, "cost_center", None)
         if not cost_center:
             cost_center = frappe.get_value("Company", doc.company, "cost_center")
-        
+
         # Create GL Entry - Debit to Input VAT account
         gle_debit = cast(Any, frappe.new_doc("GL Entry"))
         gle_debit.account = input_vat_account
@@ -710,7 +752,7 @@ def _create_input_vat_conversion_gl_entries(doc: Any):
             gle_debit.cost_center = cost_center
         gle_debit.flags.ignore_permissions = True
         gle_debit.insert()
-        
+
         # Create GL Entry - Credit to Input VAT Undue account
         gle_credit = cast(Any, frappe.new_doc("GL Entry"))
         gle_credit.account = input_vat_undue_account
@@ -727,30 +769,33 @@ def _create_input_vat_conversion_gl_entries(doc: Any):
             gle_credit.cost_center = cost_center
         gle_credit.flags.ignore_permissions = True
         gle_credit.insert()
-        
+
         frappe.db.commit()
-        
+
         frappe.log_error(
             message=f"SUCCESS: Created Input VAT GL entries for {doc.name}: Debit={input_vat_account} {vat_amount}, Credit={input_vat_undue_account} {vat_amount}",
-            title="Input VAT GL Success"
+            title="Input VAT GL Success",
         )
-        
+
         frappe.msgprint(
             _("Input VAT GL entries created: Debit {0} / Credit {1} = ฿{2:,.2f}").format(
                 input_vat_account, input_vat_undue_account, vat_amount
             ),
             alert=True,
-            indicator="green"
+            indicator="green",
         )
-        
+
     except Exception as e:
         import traceback
+
         frappe.log_error(
             message=f"Error creating Input VAT GL entries for {doc.name}: {str(e)}\n{traceback.format_exc()}",
-            title="Input VAT GL Entry Error"
+            title="Input VAT GL Entry Error",
         )
         frappe.msgprint(
-            _("Payment Entry submitted, but Input VAT GL entry creation failed: {0}").format(str(e)),
+            _("Payment Entry submitted, but Input VAT GL entry creation failed: {0}").format(
+                str(e)
+            ),
             alert=True,
-            indicator="orange"
+            indicator="orange",
         )

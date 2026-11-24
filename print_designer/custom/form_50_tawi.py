@@ -1,9 +1,9 @@
 """Print Designer owned helpers for the Thai withholding tax certificate form 50 ทวิ.
 
-The statutory form itself is rendered by client specific print formats (for
-example ``DGS Form 50 Tawi``).  Every reusable mapping rule - statutory row
-selection, totals, amount in words and the checkbox derivation - lives here so
-that a print format only binds presentation values and never repeats tax logic.
+The statutory form itself is rendered by a print format of a client site.
+Every reusable mapping rule - statutory row selection, totals, amount in words
+and the checkbox derivation - lives here so that a print format only binds
+presentation values and never repeats tax logic.
 """
 
 import re
@@ -15,13 +15,18 @@ from frappe.utils import flt, getdate
 from print_designer.utils.thai_amount_to_word import thai_money_in_words
 
 FORM_50_TAWI_FORMAT_NAME = "DGS Form 50 Tawi"
-"""Exact print format name that belongs to the client specific DGS form.
+"""Exact print format name of the form of a client site.
 
-Every other print format is handled by the Print Designer path.
+The value is a compatibility identifier of a site that is already live.  It
+must not be changed without a rename of that format on that site.  Every other
+print format is handled by the Print Designer path.
 """
 
 FORM_50_TAWI_WRAPPER_CLASS = "dgs-form-50-tawi"
-"""Marker class the form puts on its wrapper so its own CSS can be scoped."""
+"""Marker class the form puts on its wrapper so its own CSS can be scoped.
+
+Like the name above, the value belongs to the format of that client site.
+"""
 
 STATUTORY_ROW_KEYS = ("1", "2", "3", "4a", "4b", "5", "6")
 """The labeled rows of form 50 ทวิ (row 4 is split into 4a and 4b)."""
@@ -80,7 +85,7 @@ _CATEGORY_PREFIX = re.compile(r"^\s*(\d{1,2})\s*\.")
 _TAX_ID_SEPARATORS = re.compile(r"[\s\-]")
 
 
-def is_dgs_form_50_tawi(print_format_name: str | None = None) -> bool:
+def is_the_client_form_50_tawi(print_format_name: str | None = None) -> bool:
     """Return True only for the print format named exactly ``DGS Form 50 Tawi``."""
     return (print_format_name or "") == FORM_50_TAWI_FORMAT_NAME
 
@@ -88,10 +93,11 @@ def is_dgs_form_50_tawi(print_format_name: str | None = None) -> bool:
 def get_form_50_tawi_wrapper_class(print_format_name: str | None = None) -> str:
     """Marker class a form puts on its wrapper so its CSS can be scoped to it.
 
-    Only the DGS form owns a marker today.  Other forms/reports may declare
-    their own unique marker (class or id) in their own template.
+    Only the form of that client site owns a marker today.  Other forms and
+    reports may declare their own unique marker (class or id) in their own
+    template.
     """
-    if is_dgs_form_50_tawi(print_format_name):
+    if is_the_client_form_50_tawi(print_format_name):
         return FORM_50_TAWI_WRAPPER_CLASS
     return ""
 

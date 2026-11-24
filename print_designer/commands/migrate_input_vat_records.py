@@ -36,20 +36,19 @@ def main():
     migrated_iuv = 0
 
     # 1. Thai Purchase VAT — set vat_type = "General" where missing
-    tpvs = sql_rows(frappe.db.sql(
-        """
+    tpvs = sql_rows(
+        frappe.db.sql(
+            """
         SELECT name, purchase_invoice, vat_type
         FROM `tabThai Purchase VAT`
         WHERE (vat_type IS NULL OR vat_type = '')
         """,
-        as_dict=True,
-    )
+            as_dict=True,
+        )
     )
 
     for tpv in tpvs:
-        frappe.db.set_value(
-            "Thai Purchase VAT", tpv["name"], "vat_type", "General"
-        )
+        frappe.db.set_value("Thai Purchase VAT", tpv["name"], "vat_type", "General")
         migrated_tpv += 1
         print(f"  [TPV] {tpv['name']} | PI: {tpv['purchase_invoice']} → vat_type = General")
 
@@ -58,22 +57,23 @@ def main():
         print(f"\nMigrated {migrated_tpv} Thai Purchase VAT records")
 
     # 2. Input VAT Undue — set source_doctype = "Purchase Invoice" where missing
-    iuvs = sql_rows(frappe.db.sql(
-        """
+    iuvs = sql_rows(
+        frappe.db.sql(
+            """
         SELECT name, purchase_invoice, source_doctype
         FROM `tabInput VAT Undue`
         WHERE (source_doctype IS NULL OR source_doctype = '')
         """,
-        as_dict=True,
-    )
+            as_dict=True,
+        )
     )
 
     for iuv in iuvs:
-        frappe.db.set_value(
-            "Input VAT Undue", iuv["name"], "source_doctype", "Purchase Invoice"
-        )
+        frappe.db.set_value("Input VAT Undue", iuv["name"], "source_doctype", "Purchase Invoice")
         migrated_iuv += 1
-        print(f"  [IUV] {iuv['name']} | PI: {iuv['purchase_invoice']} → source_doctype = Purchase Invoice")
+        print(
+            f"  [IUV] {iuv['name']} | PI: {iuv['purchase_invoice']} → source_doctype = Purchase Invoice"
+        )
 
     if migrated_iuv:
         frappe.db.commit()

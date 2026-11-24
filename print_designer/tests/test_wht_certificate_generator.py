@@ -67,16 +67,18 @@ class TestTheGeneratorOfTheCertificate(unittest.TestCase):
         frappe.db.rollback(save_point=SAVEPOINT)
 
     def _the_account(self, account_type: str) -> str:
-        """An account of the company of the test."""
+        """An account of the company of the test, in the currency of the company."""
         accounts = frappe.get_all(
             "Account",
             filters={
                 "company": COMPANY,
                 "account_type": account_type,
+                "account_currency": frappe.db.get_value("Company", COMPANY, "default_currency"),
                 "is_group": 0,
                 "disabled": 0,
             },
             pluck="name",
+            order_by="name",
         )
         if not accounts:
             self.skipTest(f"the site has no {account_type} account")
@@ -92,14 +94,14 @@ class TestTheGeneratorOfTheCertificate(unittest.TestCase):
             "posting_date": nowdate(),
             "party_type": "Supplier",
             "party": SUPPLIER,
-            "paid_from": self._the_account("Payable"),
-            "paid_to": self._the_account("Bank"),
+            "paid_from": self._the_account("Bank"),
+            "paid_to": self._the_account("Payable"),
             "paid_amount": 1000,
             "received_amount": 1000,
             "source_exchange_rate": 1,
             "target_exchange_rate": 1,
             "paid_to_account_currency": frappe.db.get_value(
-                "Account", self._the_account("Bank"), "account_currency"
+                "Account", self._the_account("Payable"), "account_currency"
             ),
             "reference_no": "TEST-WHT-GENERATOR",
             "reference_date": nowdate(),
@@ -143,9 +145,7 @@ class TestTheGeneratorOfTheCertificate(unittest.TestCase):
     def test_the_amounts_of_the_certificate_of_the_generator_come_from_the_tax(self):
         payment_entry = self._the_payment_entry()
 
-        certificate = generator._create_the_certificate(
-            payment_entry, _PurchaseInvoice(), None
-        )
+        certificate = generator._create_the_certificate(payment_entry, _PurchaseInvoice(), None)
 
         self.assertAlmostEqual(certificate.tax_base_amount, 1000.0, places=2)
         self.assertAlmostEqual(certificate.wht_amount, 30.0, places=2)
@@ -159,25 +159,17 @@ class TestTheGeneratorOfTheCertificate(unittest.TestCase):
 
         self.assertEqual(first.name, second.name)
         self.assertEqual(
-            frappe.db.count(
-                "Withholding Tax Certificate", {"payment_entry": payment_entry.name}
-            ),
+            frappe.db.count("Withholding Tax Certificate", {"payment_entry": payment_entry.name}),
             1,
         )
 
     def test_the_line_of_every_certificate_is_an_option_of_the_certificate(self):
         payment_entry = self._the_payment_entry()
 
-        certificate = generator._create_the_certificate(
-            payment_entry, _PurchaseInvoice(), None
-        )
+        certificate = generator._create_the_certificate(payment_entry, _PurchaseInvoice(), None)
 
-        parent_field = frappe.get_meta(mapping.CERTIFICATE_INCOME_TYPE).get_field(
-            "income_type"
-        )
-        item_field = frappe.get_meta(mapping.CERTIFICATE_ITEM_INCOME_TYPE).get_field(
-            "income_type"
-        )
+        parent_field = frappe.get_meta(mapping.CERTIFICATE_INCOME_TYPE).get_field("income_type")
+        item_field = frappe.get_meta(mapping.CERTIFICATE_ITEM_INCOME_TYPE).get_field("income_type")
         if not parent_field or not item_field:
             raise AssertionError("the certificate has no income_type field")
 

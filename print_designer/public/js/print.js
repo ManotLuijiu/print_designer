@@ -13,52 +13,62 @@ console.log("[DEBUG] print_designer/public/js/print.js LOADED!");
 // DEBUG: Intercept API calls to get_print_settings_to_show
 const originalXcall = frappe.xcall.bind(frappe);
 frappe.xcall = function () {
-  const args = Array.from(arguments);
-  const methodName =
-    typeof args[0] === "string" ? args[0] : (args[0] && args[0].method) || "";
-  if (methodName.includes("get_print_settings_to_show")) {
-    console.log("[DEBUG] API CALLED: get_print_settings_to_show", args);
-    // Intercept the promise and log response
-    if (args[0] && typeof args[0].then === "function") {
-      args[0] = args[0].then(function (result) {
-        console.log("[DEBUG] API RESPONSE: get_print_settings_to_show", result);
-        console.log(
-          "[DEBUG] Number of fields returned:",
-          result ? result.length : 0,
-        );
-        if (result) {
-          result.forEach((field, i) => {
-            console.log(
-              `[DEBUG] Field ${i}:`,
-              field.fieldname,
-              "-",
-              field.label,
-            );
-          });
-        }
-        return result;
-      });
-    }
-  }
-  return originalXcall.apply(this, arguments);
+	const args = Array.from(arguments);
+	const methodName =
+		typeof args[0] === "string"
+			? args[0]
+			: (args[0] && args[0].method) || "";
+	if (methodName.includes("get_print_settings_to_show")) {
+		console.log("[DEBUG] API CALLED: get_print_settings_to_show", args);
+		// Intercept the promise and log response
+		if (args[0] && typeof args[0].then === "function") {
+			args[0] = args[0].then(function (result) {
+				console.log(
+					"[DEBUG] API RESPONSE: get_print_settings_to_show",
+					result,
+				);
+				console.log(
+					"[DEBUG] Number of fields returned:",
+					result ? result.length : 0,
+				);
+				if (result) {
+					result.forEach((field, i) => {
+						console.log(
+							`[DEBUG] Field ${i}:`,
+							field.fieldname,
+							"-",
+							field.label,
+						);
+					});
+				}
+				return result;
+			});
+		}
+	}
+	return originalXcall.apply(this, arguments);
 };
 
 // DEBUG: Watch for sidebar items being added
 const observer = new MutationObserver((mutations) => {
-  mutations.forEach((mutation) => {
-    if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-      mutation.addedNodes.forEach((node) => {
-        if (node.classList && node.classList.contains("dynamic-settings")) {
-          console.log("[DEBUG] dynamic-settings container added to DOM!");
-          const fields = node.querySelectorAll("[data-fieldname]");
-          console.log(
-            "[DEBUG] Fields in dynamic-settings:",
-            Array.from(fields).map((f) => f.dataset.fieldname),
-          );
-        }
-      });
-    }
-  });
+	mutations.forEach((mutation) => {
+		if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+			mutation.addedNodes.forEach((node) => {
+				if (
+					node.classList &&
+					node.classList.contains("dynamic-settings")
+				) {
+					console.log(
+						"[DEBUG] dynamic-settings container added to DOM!",
+					);
+					const fields = node.querySelectorAll("[data-fieldname]");
+					console.log(
+						"[DEBUG] Fields in dynamic-settings:",
+						Array.from(fields).map((f) => f.dataset.fieldname),
+					);
+				}
+			});
+		}
+	});
 });
 
 // Global reference to PrintView instance (set in constructor patch)
@@ -66,41 +76,43 @@ let _pdPrintViewInstance = null;
 
 // DEBUG: Intercept PrintView.add_settings_to_sidebar to reorder watermark fields
 function patchPrintViewForDebug() {
-  let PrintViewClass = frappe.ui.form && frappe.ui.form.PrintView;
-  if (!PrintViewClass || !PrintViewClass.prototype) {
-    setTimeout(patchPrintViewForDebug, 200);
-    return;
-  }
-  if (PrintViewClass.prototype._debugPatched) return;
+	let PrintViewClass = frappe.ui.form && frappe.ui.form.PrintView;
+	if (!PrintViewClass || !PrintViewClass.prototype) {
+		setTimeout(patchPrintViewForDebug, 200);
+		return;
+	}
+	if (PrintViewClass.prototype._debugPatched) return;
 
-  patchDeskPreviewRenderer(PrintViewClass);
+	patchDeskPreviewRenderer(PrintViewClass);
 
-  // Override setup_print_format_dom to add landscape class
-  const original_setup = PrintViewClass.prototype.setup_print_format_dom;
-  PrintViewClass.prototype.setup_print_format_dom = function (
-    out,
-    $print_format,
-  ) {
-    console.log(
-      "[PD DEBUG] setup_print_format_dom called, page_orientation:",
-      this.additional_settings?.page_orientation,
-    );
-    // Add landscape class if orientation is Landscape
-    const orientationClass =
-      this.additional_settings?.page_orientation === "Landscape"
-        ? "landscape"
-        : "";
-    console.log("[PD DEBUG] orientationClass:", orientationClass);
-    // Continue with original
-    original_setup.call(this, out, $print_format);
+	// Override setup_print_format_dom to add landscape class
+	const original_setup = PrintViewClass.prototype.setup_print_format_dom;
+	PrintViewClass.prototype.setup_print_format_dom = function (
+		out,
+		$print_format,
+	) {
+		console.log(
+			"[PD DEBUG] setup_print_format_dom called, page_orientation:",
+			this.additional_settings?.page_orientation,
+		);
+		// Add landscape class if orientation is Landscape
+		const orientationClass =
+			this.additional_settings?.page_orientation === "Landscape"
+				? "landscape"
+				: "";
+		console.log("[PD DEBUG] orientationClass:", orientationClass);
+		// Continue with original
+		original_setup.call(this, out, $print_format);
 
-    // After original setup, update the div class and iframe width if needed
-    if (orientationClass) {
-      // Add landscape class to print-format inside iframe
-      this.$print_format_body?.find(".print-format").addClass("landscape");
+		// After original setup, update the div class and iframe width if needed
+		if (orientationClass) {
+			// Add landscape class to print-format inside iframe
+			this.$print_format_body
+				?.find(".print-format")
+				.addClass("landscape");
 
-      // Inject landscape CSS into IFRAME (for .print-format.landscape)
-      const iframeLandscapeCSS = `
+			// Inject landscape CSS into IFRAME (for .print-format.landscape)
+			const iframeLandscapeCSS = `
         @media screen {
           .print-format.landscape {
             min-height: 8.27in !important;
@@ -111,27 +123,27 @@ function patchPrintViewForDebug() {
           }
         }
       `;
-      this.$print_format_body
-        ?.find("head")
-        .append(
-          `<style id="pd-landscape-iframe">${iframeLandscapeCSS}</style>`,
-        );
+			this.$print_format_body
+				?.find("head")
+				.append(
+					`<style id="pd-landscape-iframe">${iframeLandscapeCSS}</style>`,
+				);
 
-      // Inject landscape CSS into MAIN DOCUMENT (for .print-preview)
-      // .print-preview is in the parent document, NOT inside the iframe
-      // First, add .landscape class to .print-preview element
-      const printPreviewEl = document.querySelector(".print-preview");
-      if (printPreviewEl) {
-        printPreviewEl.classList.add("landscape");
-      }
+			// Inject landscape CSS into MAIN DOCUMENT (for .print-preview)
+			// .print-preview is in the parent document, NOT inside the iframe
+			// First, add .landscape class to .print-preview element
+			const printPreviewEl = document.querySelector(".print-preview");
+			if (printPreviewEl) {
+				printPreviewEl.classList.add("landscape");
+			}
 
-      let mainStyle = document.getElementById("pd-landscape-main");
-      if (!mainStyle) {
-        mainStyle = document.createElement("style");
-        mainStyle.id = "pd-landscape-main";
-        document.head.appendChild(mainStyle);
-      }
-      mainStyle.textContent = `
+			let mainStyle = document.getElementById("pd-landscape-main");
+			if (!mainStyle) {
+				mainStyle = document.createElement("style");
+				mainStyle.id = "pd-landscape-main";
+				document.head.appendChild(mainStyle);
+			}
+			mainStyle.textContent = `
         @media screen {
           .print-preview.landscape {
             max-width: 297mm !important;  /* Landscape A4 width */
@@ -139,656 +151,706 @@ function patchPrintViewForDebug() {
           }
         }
       `;
-      console.log(
-        "[PD DEBUG] Landscape CSS injected: iframe (.print-format) + main doc (.print-preview)",
-      );
-    } else {
-      // Portrait - remove landscape CSS from both iframe and main doc
-      this.$print_format_body?.find(".print-format").removeClass("landscape");
-      this.$print_format_body?.find("head style#pd-landscape-iframe").remove();
+			console.log(
+				"[PD DEBUG] Landscape CSS injected: iframe (.print-format) + main doc (.print-preview)",
+			);
+		} else {
+			// Portrait - remove landscape CSS from both iframe and main doc
+			this.$print_format_body
+				?.find(".print-format")
+				.removeClass("landscape");
+			this.$print_format_body
+				?.find("head style#pd-landscape-iframe")
+				.remove();
 
-      // Remove .landscape class from .print-preview in main doc
-      const printPreviewEl = document.querySelector(".print-preview");
-      if (printPreviewEl) {
-        printPreviewEl.classList.remove("landscape");
-      }
+			// Remove .landscape class from .print-preview in main doc
+			const printPreviewEl = document.querySelector(".print-preview");
+			if (printPreviewEl) {
+				printPreviewEl.classList.remove("landscape");
+			}
 
-      // Remove main document style
-      const mainStyle = document.getElementById("pd-landscape-main");
-      if (mainStyle) {
-        mainStyle.textContent = "";
-      }
-    }
-  };
+			// Remove main document style
+			const mainStyle = document.getElementById("pd-landscape-main");
+			if (mainStyle) {
+				mainStyle.textContent = "";
+			}
+		}
+	};
 
-  // Also patch the constructor to store instance globally
-  const OriginalPrintView = PrintViewClass;
-  const NewPrintView = function (wrapper) {
-    const instance = new OriginalPrintView(wrapper);
-    _pdPrintViewInstance = instance;
-    console.log("[DEBUG] PrintView instance stored globally");
-    return instance;
-  };
-  NewPrintView.prototype = OriginalPrintView.prototype;
-  frappe.ui.form.PrintView = NewPrintView;
-  PrintViewClass = NewPrintView; // Update for subsequent patches
+	// Also patch the constructor to store instance globally
+	const OriginalPrintView = PrintViewClass;
+	const NewPrintView = function (wrapper) {
+		const instance = new OriginalPrintView(wrapper);
+		_pdPrintViewInstance = instance;
+		console.log("[DEBUG] PrintView instance stored globally");
+		return instance;
+	};
+	NewPrintView.prototype = OriginalPrintView.prototype;
+	frappe.ui.form.PrintView = NewPrintView;
+	PrintViewClass = NewPrintView; // Update for subsequent patches
 
-  const original_add = PrintViewClass.prototype.add_settings_to_sidebar;
-  PrintViewClass.prototype.add_settings_to_sidebar = function (settings) {
-    // REORDER: watermark_settings -> position -> font_family -> font_size -> margins
-    const desiredOrder = [
-      "watermark_settings",
-      "watermark_position",
-      "watermark_font_family",
-      "watermark_font_size",
-      "watermark_top",
-      "watermark_right",
-      "watermark_bottom",
-      "watermark_left",
-    ];
+	const original_add = PrintViewClass.prototype.add_settings_to_sidebar;
+	PrintViewClass.prototype.add_settings_to_sidebar = function (settings) {
+		// REORDER: watermark_settings -> position -> font_family -> font_size -> margins
+		const desiredOrder = [
+			"watermark_settings",
+			"watermark_position",
+			"watermark_font_family",
+			"watermark_font_size",
+			"watermark_top",
+			"watermark_right",
+			"watermark_bottom",
+			"watermark_left",
+		];
 
-    // Find watermark fields in settings and reorder them
-    const watermarkFields = settings.filter((s) =>
-      desiredOrder.includes(s.fieldname),
-    );
-    const otherFields = settings.filter(
-      (s) => !desiredOrder.includes(s.fieldname),
-    );
+		// Find watermark fields in settings and reorder them
+		const watermarkFields = settings.filter((s) =>
+			desiredOrder.includes(s.fieldname),
+		);
+		const otherFields = settings.filter(
+			(s) => !desiredOrder.includes(s.fieldname),
+		);
 
-    // Sort watermark fields by desired order
-    watermarkFields.sort((a, b) => {
-      return (
-        desiredOrder.indexOf(a.fieldname) - desiredOrder.indexOf(b.fieldname)
-      );
-    });
+		// Sort watermark fields by desired order
+		watermarkFields.sort((a, b) => {
+			return (
+				desiredOrder.indexOf(a.fieldname) -
+				desiredOrder.indexOf(b.fieldname)
+			);
+		});
 
-    // Combine: ERPNext fields first, then reordered watermark fields
-    const reorderedSettings = [...otherFields, ...watermarkFields];
+		// Combine: ERPNext fields first, then reordered watermark fields
+		const reorderedSettings = [...otherFields, ...watermarkFields];
 
-    // INJECT COLUMN BREAK between 2nd and 3rd margin field
-    // This splits margins into 2 columns: Top/Right | Bottom/Left
-    const marginBottomIndex = reorderedSettings.findIndex(
-      (s) => s.fieldname === "watermark_bottom",
-    );
-    if (marginBottomIndex > 0) {
-      reorderedSettings.splice(marginBottomIndex, 0, {
-        fieldname: "watermark_col_break",
-        fieldtype: "Column Break",
-      });
-    }
+		// INJECT COLUMN BREAK between 2nd and 3rd margin field
+		// This splits margins into 2 columns: Top/Right | Bottom/Left
+		const marginBottomIndex = reorderedSettings.findIndex(
+			(s) => s.fieldname === "watermark_bottom",
+		);
+		if (marginBottomIndex > 0) {
+			reorderedSettings.splice(marginBottomIndex, 0, {
+				fieldname: "watermark_col_break",
+				fieldtype: "Column Break",
+			});
+		}
 
-    console.log(
-      "[DEBUG] add_settings_to_sidebar - reordered settings:",
-      reorderedSettings.map((s) => s.fieldname),
-    );
+		console.log(
+			"[DEBUG] add_settings_to_sidebar - reordered settings:",
+			reorderedSettings.map((s) => s.fieldname),
+		);
 
-    // Frappe uses set_input(default), which does not fire change for Selects
-    // and Checks. Send the values already shown in the sidebar on first render.
-    initializeDeskPreviewSettings(this, reorderedSettings);
-    const result = original_add.call(this, reorderedSettings);
+		// Frappe uses set_input(default), which does not fire change for Selects
+		// and Checks. Send the values already shown in the sidebar on first render.
+		initializeDeskPreviewSettings(this, reorderedSettings);
+		const result = original_add.call(this, reorderedSettings);
 
-    // WRAP SIDEBAR FIELDS IN 2-COLUMN GRIDS
-    // After rendering, find divs and wrap them in CSS grids
-    setTimeout(() => {
-      const container = document.querySelector(".dynamic-settings");
-      if (!container) return;
+		// WRAP SIDEBAR FIELDS IN 2-COLUMN GRIDS
+		// After rendering, find divs and wrap them in CSS grids
+		setTimeout(() => {
+			const container = document.querySelector(".dynamic-settings");
+			if (!container) return;
 
-      // 0. COPY COUNT + PDF PAGE SIZE + PAGE ORIENTATION + PDF GENERATOR IN 2x2 GRID
-      // Enable Multiple Copies stays standalone
-      const copyFields = [
-        "default_copy_count",
-        "pdf_page_size",
-        "page_orientation",
-        "pdf_generator",
-      ];
-      const copyWrapper = document.createElement("div");
-      copyWrapper.className = "copy-controls-grid";
-      copyWrapper.style.cssText =
-        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
-      copyFields.forEach((fieldname) => {
-        const fieldDiv = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (fieldDiv) copyWrapper.appendChild(fieldDiv);
-      });
-      container.appendChild(copyWrapper);
+			// 0. COPY COUNT + PDF PAGE SIZE + PAGE ORIENTATION + PDF GENERATOR IN 2x2 GRID
+			// Enable Multiple Copies stays standalone
+			const copyFields = [
+				"default_copy_count",
+				"pdf_page_size",
+				"page_orientation",
+				"pdf_generator",
+			];
+			const copyWrapper = document.createElement("div");
+			copyWrapper.className = "copy-controls-grid";
+			copyWrapper.style.cssText =
+				"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
+			copyFields.forEach((fieldname) => {
+				const fieldDiv = container.querySelector(
+					`[data-fieldname="${fieldname}"]`,
+				);
+				if (fieldDiv) copyWrapper.appendChild(fieldDiv);
+			});
+			container.appendChild(copyWrapper);
 
-      // NOTE: We do NOT add a separate change listener here.
-      // The page_orientation change is handled by Frappe's core change callback
-      // in add_settings_to_sidebar (which calls this.preview() when the field changes).
-      // We only need to ensure the .landscape class is added in setup_print_format_dom.
+			// NOTE: We do NOT add a separate change listener here.
+			// The page_orientation change is handled by Frappe's core change callback
+			// in add_settings_to_sidebar (which calls this.preview() when the field changes).
+			// We only need to ensure the .landscape class is added in setup_print_format_dom.
 
-      // 1. WRAP COPY LABELS (Original Label, Copy Label) IN 2-COLUMN GRID
-      // This comes after Copy Count, before Watermark settings
-      const labelFields = ["default_original_label", "default_copy_label"];
-      const labelWrapper = document.createElement("div");
-      labelWrapper.className = "copy-labels-grid";
-      labelWrapper.style.cssText =
-        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
-      labelFields.forEach((fieldname) => {
-        const fieldDiv = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (fieldDiv) labelWrapper.appendChild(fieldDiv);
-      });
-      container.appendChild(labelWrapper);
+			// 1. WRAP COPY LABELS (Original Label, Copy Label) IN 2-COLUMN GRID
+			// This comes after Copy Count, before Watermark settings
+			const labelFields = [
+				"default_original_label",
+				"default_copy_label",
+			];
+			const labelWrapper = document.createElement("div");
+			labelWrapper.className = "copy-labels-grid";
+			labelWrapper.style.cssText =
+				"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+			labelFields.forEach((fieldname) => {
+				const fieldDiv = container.querySelector(
+					`[data-fieldname="${fieldname}"]`,
+				);
+				if (fieldDiv) labelWrapper.appendChild(fieldDiv);
+			});
+			container.appendChild(labelWrapper);
 
-      // Disable label fields in preview sidebar - Watermark per Page is source of truth.
-      ["default_original_label", "default_copy_label"].forEach((fieldname) => {
-        const input = container.querySelector(
-          `[data-fieldname="${fieldname}"] input`,
-        );
-        const field = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (input) {
-          input.readOnly = true;
-          input.disabled = true;
-          input.classList.add("disabled");
-        }
-        if (field) {
-          field.style.opacity = "0.7";
-          field.style.pointerEvents = "none";
-        }
-      });
+			// Disable label fields in preview sidebar - Watermark per Page is source of truth.
+			["default_original_label", "default_copy_label"].forEach(
+				(fieldname) => {
+					const input = container.querySelector(
+						`[data-fieldname="${fieldname}"] input`,
+					);
+					const field = container.querySelector(
+						`[data-fieldname="${fieldname}"]`,
+					);
+					if (input) {
+						input.readOnly = true;
+						input.disabled = true;
+						input.classList.add("disabled");
+					}
+					if (field) {
+						field.style.opacity = "0.7";
+						field.style.pointerEvents = "none";
+					}
+				},
+			);
 
-      // 2. WRAP WATERMARK SETTINGS (4 fields) IN 2-COLUMN GRID
-      const watermarkSettingsFields = [
-        "watermark_settings",
-        "watermark_position",
-        "watermark_font_family",
-        "watermark_font_size",
-      ];
-      const watermarkWrapper = document.createElement("div");
-      watermarkWrapper.className = "watermark-settings-grid";
-      watermarkWrapper.style.cssText =
-        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
-      watermarkSettingsFields.forEach((fieldname) => {
-        const fieldDiv = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (fieldDiv) watermarkWrapper.appendChild(fieldDiv);
-      });
-      container.appendChild(watermarkWrapper);
+			// 2. WRAP WATERMARK SETTINGS (4 fields) IN 2-COLUMN GRID
+			const watermarkSettingsFields = [
+				"watermark_settings",
+				"watermark_position",
+				"watermark_font_family",
+				"watermark_font_size",
+			];
+			const watermarkWrapper = document.createElement("div");
+			watermarkWrapper.className = "watermark-settings-grid";
+			watermarkWrapper.style.cssText =
+				"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
+			watermarkSettingsFields.forEach((fieldname) => {
+				const fieldDiv = container.querySelector(
+					`[data-fieldname="${fieldname}"]`,
+				);
+				if (fieldDiv) watermarkWrapper.appendChild(fieldDiv);
+			});
+			container.appendChild(watermarkWrapper);
 
-      // DEBUG: Track watermark_font_size changes
-      const fontSizeInput = container.querySelector(
-        '[data-fieldname="watermark_font_size"] input',
-      );
-      if (fontSizeInput) {
-        console.log(
-          "[DEBUG] watermark_font_size input found:",
-          fontSizeInput.value,
-        );
-        fontSizeInput.addEventListener("input", (e) => {
-          console.log(
-            "[DEBUG] watermark_font_size CHANGED to:",
-            e.target.value,
-          );
-        });
-        fontSizeInput.addEventListener("change", (e) => {
-          console.log("[DEBUG] watermark_font_size onchange:", e.target.value);
-        });
-      }
+			// DEBUG: Track watermark_font_size changes
+			const fontSizeInput = container.querySelector(
+				'[data-fieldname="watermark_font_size"] input',
+			);
+			if (fontSizeInput) {
+				console.log(
+					"[DEBUG] watermark_font_size input found:",
+					fontSizeInput.value,
+				);
+				fontSizeInput.addEventListener("input", (e) => {
+					console.log(
+						"[DEBUG] watermark_font_size CHANGED to:",
+						e.target.value,
+					);
+				});
+				fontSizeInput.addEventListener("change", (e) => {
+					console.log(
+						"[DEBUG] watermark_font_size onchange:",
+						e.target.value,
+					);
+				});
+			}
 
-      // DEBUG: Track watermark_font_family changes
-      const fontFamilySelect = container.querySelector(
-        '[data-fieldname="watermark_font_family"] select',
-      );
-      if (fontFamilySelect) {
-        console.log(
-          "[DEBUG] watermark_font_family found, current value:",
-          fontFamilySelect.value,
-        );
-        fontFamilySelect.addEventListener("change", (e) => {
-          console.log(
-            "[DEBUG] watermark_font_family CHANGED to:",
-            e.target.value,
-          );
-        });
-      }
+			// DEBUG: Track watermark_font_family changes
+			const fontFamilySelect = container.querySelector(
+				'[data-fieldname="watermark_font_family"] select',
+			);
+			if (fontFamilySelect) {
+				console.log(
+					"[DEBUG] watermark_font_family found, current value:",
+					fontFamilySelect.value,
+				);
+				fontFamilySelect.addEventListener("change", (e) => {
+					console.log(
+						"[DEBUG] watermark_font_family CHANGED to:",
+						e.target.value,
+					);
+				});
+			}
 
-      // DEBUG: Track margin changes
-      [
-        "watermark_top",
-        "watermark_right",
-        "watermark_bottom",
-        "watermark_left",
-      ].forEach((fieldname) => {
-        const marginInput = container.querySelector(
-          `[data-fieldname="${fieldname}"] input`,
-        );
-        if (marginInput) {
-          marginInput.addEventListener("input", (e) => {
-            console.log(`[DEBUG] ${fieldname} CHANGED to:`, e.target.value);
-          });
-        }
-      });
+			// DEBUG: Track margin changes
+			[
+				"watermark_top",
+				"watermark_right",
+				"watermark_bottom",
+				"watermark_left",
+			].forEach((fieldname) => {
+				const marginInput = container.querySelector(
+					`[data-fieldname="${fieldname}"] input`,
+				);
+				if (marginInput) {
+					marginInput.addEventListener("input", (e) => {
+						console.log(
+							`[DEBUG] ${fieldname} CHANGED to:`,
+							e.target.value,
+						);
+					});
+				}
+			});
 
-      // SMART DEFAULT: when Top Right is selected for the first time,
-      // seed Top/Right margins with 10mm if those fields are still untouched/zero.
-      const positionSelect = container.querySelector(
-        '[data-fieldname="watermark_position"] select',
-      );
-      const topInput = container.querySelector(
-        '[data-fieldname="watermark_top"] input',
-      );
-      const rightInput = container.querySelector(
-        '[data-fieldname="watermark_right"] input',
-      );
+			// SMART DEFAULT: when Top Right is selected for the first time,
+			// seed Top/Right margins with 10mm if those fields are still untouched/zero.
+			const positionSelect = container.querySelector(
+				'[data-fieldname="watermark_position"] select',
+			);
+			const topInput = container.querySelector(
+				'[data-fieldname="watermark_top"] input',
+			);
+			const rightInput = container.querySelector(
+				'[data-fieldname="watermark_right"] input',
+			);
 
-      const syncFieldValue = (input, value) => {
-        if (!input) return;
-        input.value = String(value);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-      };
+			const syncFieldValue = (input, value) => {
+				if (!input) return;
+				input.value = String(value);
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new Event("change", { bubbles: true }));
+			};
 
-      const shouldSeedTopRightDefaults = () => {
-        const topValue = (topInput?.value || "").trim();
-        const rightValue = (rightInput?.value || "").trim();
-        return ["", "0"].includes(topValue) && ["", "0"].includes(rightValue);
-      };
+			const shouldSeedTopRightDefaults = () => {
+				const topValue = (topInput?.value || "").trim();
+				const rightValue = (rightInput?.value || "").trim();
+				return (
+					["", "0"].includes(topValue) &&
+					["", "0"].includes(rightValue)
+				);
+			};
 
-      const applySmartPositionDefaults = () => {
-        if (!positionSelect || positionSelect.value !== "Top Right") return;
-        if (!shouldSeedTopRightDefaults()) return;
+			const applySmartPositionDefaults = () => {
+				if (!positionSelect || positionSelect.value !== "Top Right")
+					return;
+				if (!shouldSeedTopRightDefaults()) return;
 
-        console.log(
-          "[DEBUG] Auto-seeding Top Right watermark margins to top=10, right=10",
-        );
-        syncFieldValue(topInput, 10);
-        syncFieldValue(rightInput, 10);
-      };
+				console.log(
+					"[DEBUG] Auto-seeding Top Right watermark margins to top=10, right=10",
+				);
+				syncFieldValue(topInput, 10);
+				syncFieldValue(rightInput, 10);
+			};
 
-      if (positionSelect && !positionSelect.dataset.pdSmartDefaultsBound) {
-        positionSelect.dataset.pdSmartDefaultsBound = "1";
-        positionSelect.addEventListener("change", () => {
-          setTimeout(applySmartPositionDefaults, 0);
-        });
-        setTimeout(applySmartPositionDefaults, 0);
-      }
+			if (
+				positionSelect &&
+				!positionSelect.dataset.pdSmartDefaultsBound
+			) {
+				positionSelect.dataset.pdSmartDefaultsBound = "1";
+				positionSelect.addEventListener("change", () => {
+					setTimeout(applySmartPositionDefaults, 0);
+				});
+				setTimeout(applySmartPositionDefaults, 0);
+			}
 
-      // SMART DEFAULT: Page Number Position auto-set margins to align with watermark
-      const pagePositionSelect = container.querySelector(
-        '[data-fieldname="page_number_position"] select',
-      );
-      const pnTopInput = container.querySelector(
-        '[data-fieldname="page_number_top"] input',
-      );
-      const pnRightInput = container.querySelector(
-        '[data-fieldname="page_number_right"] input',
-      );
-      const pnBottomInput = container.querySelector(
-        '[data-fieldname="page_number_bottom"] input',
-      );
-      const pnLeftInput = container.querySelector(
-        '[data-fieldname="page_number_left"] input',
-      );
+			// SMART DEFAULT: Page Number Position auto-set margins to align with watermark
+			const pagePositionSelect = container.querySelector(
+				'[data-fieldname="page_number_position"] select',
+			);
+			const pnTopInput = container.querySelector(
+				'[data-fieldname="page_number_top"] input',
+			);
+			const pnRightInput = container.querySelector(
+				'[data-fieldname="page_number_right"] input',
+			);
+			const pnBottomInput = container.querySelector(
+				'[data-fieldname="page_number_bottom"] input',
+			);
+			const pnLeftInput = container.querySelector(
+				'[data-fieldname="page_number_left"] input',
+			);
 
-      const shouldSeedPnMargins = () => {
-        const topVal = (pnTopInput?.value || "").trim();
-        const rightVal = (pnRightInput?.value || "").trim();
-        const bottomVal = (pnBottomInput?.value || "").trim();
-        const leftVal = (pnLeftInput?.value || "").trim();
-        return (
-          ["", "0", "2"].includes(topVal) &&
-          ["", "0", "2"].includes(rightVal) &&
-          ["", "0", "2"].includes(bottomVal) &&
-          ["", "0", "2"].includes(leftVal)
-        );
-      };
+			const shouldSeedPnMargins = () => {
+				const topVal = (pnTopInput?.value || "").trim();
+				const rightVal = (pnRightInput?.value || "").trim();
+				const bottomVal = (pnBottomInput?.value || "").trim();
+				const leftVal = (pnLeftInput?.value || "").trim();
+				return (
+					["", "0", "2"].includes(topVal) &&
+					["", "0", "2"].includes(rightVal) &&
+					["", "0", "2"].includes(bottomVal) &&
+					["", "0", "2"].includes(leftVal)
+				);
+			};
 
-      const applyPnSmartDefaults = () => {
-        if (!pagePositionSelect || !shouldSeedPnMargins()) return;
-        const pos = pagePositionSelect.value;
-        console.log("[DEBUG] Applying page number smart margins for:", pos);
+			const applyPnSmartDefaults = () => {
+				if (!pagePositionSelect || !shouldSeedPnMargins()) return;
+				const pos = pagePositionSelect.value;
+				console.log(
+					"[DEBUG] Applying page number smart margins for:",
+					pos,
+				);
 
-        // Reset all to 2 (default)
-        syncFieldValue(pnTopInput, 2);
-        syncFieldValue(pnRightInput, 2);
-        syncFieldValue(pnBottomInput, 2);
-        syncFieldValue(pnLeftInput, 2);
+				// Reset all to 2 (default)
+				syncFieldValue(pnTopInput, 2);
+				syncFieldValue(pnRightInput, 2);
+				syncFieldValue(pnBottomInput, 2);
+				syncFieldValue(pnLeftInput, 2);
 
-        // Add 8 to align with watermark (watermark default is 10mm)
-        // Function already adds 2, so 2 + 8 = 10
-        if (pos === "Top Right") {
-          syncFieldValue(pnRightInput, 8); // 2 + 8 = 10
-        } else if (pos === "Top Left") {
-          syncFieldValue(pnLeftInput, 8); // 2 + 8 = 10
-        } else if (pos === "Bottom Right") {
-          syncFieldValue(pnRightInput, 8);
-        } else if (pos === "Bottom Left") {
-          syncFieldValue(pnLeftInput, 8);
-        }
-        // Top Center, Bottom Center, Middle positions keep default 2
-      };
+				// Add 8 to align with watermark (watermark default is 10mm)
+				// Function already adds 2, so 2 + 8 = 10
+				if (pos === "Top Right") {
+					syncFieldValue(pnRightInput, 8); // 2 + 8 = 10
+				} else if (pos === "Top Left") {
+					syncFieldValue(pnLeftInput, 8); // 2 + 8 = 10
+				} else if (pos === "Bottom Right") {
+					syncFieldValue(pnRightInput, 8);
+				} else if (pos === "Bottom Left") {
+					syncFieldValue(pnLeftInput, 8);
+				}
+				// Top Center, Bottom Center, Middle positions keep default 2
+			};
 
-      if (pagePositionSelect && !pagePositionSelect.dataset.pdPnSmartBound) {
-        pagePositionSelect.dataset.pdPnSmartBound = "1";
-        pagePositionSelect.addEventListener("change", () => {
-          setTimeout(applyPnSmartDefaults, 0);
-        });
-        setTimeout(applyPnSmartDefaults, 0);
-      }
+			if (
+				pagePositionSelect &&
+				!pagePositionSelect.dataset.pdPnSmartBound
+			) {
+				pagePositionSelect.dataset.pdPnSmartBound = "1";
+				pagePositionSelect.addEventListener("change", () => {
+					setTimeout(applyPnSmartDefaults, 0);
+				});
+				setTimeout(applyPnSmartDefaults, 0);
+			}
 
-      // Disable label fields in preview sidebar - Watermark per Page is source of truth.
+			// Disable label fields in preview sidebar - Watermark per Page is source of truth.
 
-      // 2. WRAP MARGIN FIELDS (4 fields) IN 2-COLUMN GRID
-      const marginFields = [
-        "watermark_top",
-        "watermark_right",
-        "watermark_bottom",
-        "watermark_left",
-      ];
-      const marginWrapper = document.createElement("div");
-      marginWrapper.className = "margin-fields-grid";
-      marginWrapper.style.cssText =
-        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
-      marginFields.forEach((fieldname) => {
-        const fieldDiv = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (fieldDiv) marginWrapper.appendChild(fieldDiv);
-      });
-      container.appendChild(marginWrapper);
+			// 2. WRAP MARGIN FIELDS (4 fields) IN 2-COLUMN GRID
+			const marginFields = [
+				"watermark_top",
+				"watermark_right",
+				"watermark_bottom",
+				"watermark_left",
+			];
+			const marginWrapper = document.createElement("div");
+			marginWrapper.className = "margin-fields-grid";
+			marginWrapper.style.cssText =
+				"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+			marginFields.forEach((fieldname) => {
+				const fieldDiv = container.querySelector(
+					`[data-fieldname="${fieldname}"]`,
+				);
+				if (fieldDiv) marginWrapper.appendChild(fieldDiv);
+			});
+			container.appendChild(marginWrapper);
 
-      // 3. SET SIDEBAR MAX-WIDTH AND WRAP LANGUAGE + LETTER HEAD IN 2-COLUMN GRID
-      const sidebar = document.querySelector(".print-preview-sidebar");
-      if (sidebar) {
-        // Set max-width on sidebar itself
-        sidebar.style.maxWidth = "220px";
+			// 3. SET SIDEBAR MAX-WIDTH AND WRAP LANGUAGE + LETTER HEAD IN 2-COLUMN GRID
+			const sidebar = document.querySelector(".print-preview-sidebar");
+			if (sidebar) {
+				// Set max-width on sidebar itself
+				sidebar.style.maxWidth = "220px";
 
-        const topFields = ["language", "letterhead"];
-        const topWrapper = document.createElement("div");
-        topWrapper.className = "top-fields-grid";
-        topWrapper.style.cssText =
-          "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
-        topFields.forEach((fieldname) => {
-          const fieldDiv = sidebar.querySelector(
-            `[data-fieldname="${fieldname}"]`,
-          );
-          if (fieldDiv) topWrapper.appendChild(fieldDiv);
-        });
-        // Insert wrapper before dynamic-settings (right under Print Format)
-        const dynamicSettings = sidebar.querySelector(".dynamic-settings");
-        if (dynamicSettings) {
-          sidebar.insertBefore(topWrapper, dynamicSettings);
-        } else {
-          sidebar.insertBefore(topWrapper, sidebar.firstChild.nextSibling);
-        }
-      }
+				const topFields = ["language", "letterhead"];
+				const topWrapper = document.createElement("div");
+				topWrapper.className = "top-fields-grid";
+				topWrapper.style.cssText =
+					"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px;";
+				topFields.forEach((fieldname) => {
+					const fieldDiv = sidebar.querySelector(
+						`[data-fieldname="${fieldname}"]`,
+					);
+					if (fieldDiv) topWrapper.appendChild(fieldDiv);
+				});
+				// Insert wrapper before dynamic-settings (right under Print Format)
+				const dynamicSettings =
+					sidebar.querySelector(".dynamic-settings");
+				if (dynamicSettings) {
+					sidebar.insertBefore(topWrapper, dynamicSettings);
+				} else {
+					sidebar.insertBefore(
+						topWrapper,
+						sidebar.firstChild.nextSibling,
+					);
+				}
+			}
 
-      // 4. WRAP PAGE NUMBER FIELDS IN 2-COLUMN GRID
-      // NOTE: page_number_col_break and page_number_col_break_02 are internal - not included
-      const pageNumberFields = [
-        "page_number_display",
-        "page_number_position",
-        "page_number_font_family",
-        "page_number_font_size",
-        "page_number_font_color",
-        "page_number_border",
-        "page_number_top",
-        "page_number_right",
-        "page_number_bottom",
-        "page_number_left",
-      ];
-      const pageNumberWrapper = document.createElement("div");
-      pageNumberWrapper.className = "page-number-grid";
-      pageNumberWrapper.style.cssText =
-        "display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
-      pageNumberFields.forEach((fieldname) => {
-        const fieldDiv = container.querySelector(
-          `[data-fieldname="${fieldname}"]`,
-        );
-        if (fieldDiv) pageNumberWrapper.appendChild(fieldDiv);
-      });
-      container.appendChild(pageNumberWrapper);
+			// 4. WRAP PAGE NUMBER FIELDS IN 2-COLUMN GRID
+			// NOTE: page_number_col_break and page_number_col_break_02 are internal - not included
+			const pageNumberFields = [
+				"page_number_display",
+				"page_number_position",
+				"page_number_font_family",
+				"page_number_font_size",
+				"page_number_font_color",
+				"page_number_border",
+				"page_number_top",
+				"page_number_right",
+				"page_number_bottom",
+				"page_number_left",
+			];
+			const pageNumberWrapper = document.createElement("div");
+			pageNumberWrapper.className = "page-number-grid";
+			pageNumberWrapper.style.cssText =
+				"display: grid; grid-template-columns: 1fr 1fr; column-gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+			pageNumberFields.forEach((fieldname) => {
+				const fieldDiv = container.querySelector(
+					`[data-fieldname="${fieldname}"]`,
+				);
+				if (fieldDiv) pageNumberWrapper.appendChild(fieldDiv);
+			});
+			container.appendChild(pageNumberWrapper);
 
-      // 5. LOCALSTORAGE HELPER FUNCTIONS
-      const lsKey = "pd_print_settings_" + frappe.session.user;
+			// 5. LOCALSTORAGE HELPER FUNCTIONS
+			const lsKey = "pd_print_settings_" + frappe.session.user;
 
-      // Save settings to localStorage
-      window.savePDPrintSettings = () => {
-        const settings = {};
-        // Get all print settings fields
-        const fields = [
-          "compact_item_print",
-          "print_uom_after_quantity",
-          "enable_multiple_copies",
-          "pd_print_document_number",
-          "default_copy_count",
-          "pdf_page_size",
-          "page_orientation",
-          "pdf_generator",
-          "watermark_settings",
-          "watermark_position",
-          "watermark_font_family",
-          "watermark_font_size",
-          "watermark_top",
-          "watermark_right",
-          "watermark_bottom",
-          "watermark_left",
-          "page_number_display",
-          "page_number_position",
-          "page_number_font_family",
-          "page_number_font_size",
-          "page_number_font_color",
-          "page_number_border",
-          "page_number_top",
-          "page_number_right",
-          "page_number_bottom",
-          "page_number_left",
-        ];
+			// Save settings to localStorage
+			window.savePDPrintSettings = () => {
+				const settings = {};
+				// Get all print settings fields
+				const fields = [
+					"compact_item_print",
+					"print_uom_after_quantity",
+					"enable_multiple_copies",
+					"pd_print_document_number",
+					"default_copy_count",
+					"pdf_page_size",
+					"page_orientation",
+					"pdf_generator",
+					"watermark_settings",
+					"watermark_position",
+					"watermark_font_family",
+					"watermark_font_size",
+					"watermark_top",
+					"watermark_right",
+					"watermark_bottom",
+					"watermark_left",
+					"page_number_display",
+					"page_number_position",
+					"page_number_font_family",
+					"page_number_font_size",
+					"page_number_font_color",
+					"page_number_border",
+					"page_number_top",
+					"page_number_right",
+					"page_number_bottom",
+					"page_number_left",
+				];
 
-        fields.forEach((fieldname) => {
-          const input = container.querySelector(
-            `[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
-          );
-          if (input) {
-            settings[fieldname] = input.value;
-          }
-          // Handle checkbox
-          const checkbox = container.querySelector(
-            `[data-fieldname="${fieldname}"] input[type="checkbox"]`,
-          );
-          if (checkbox) {
-            settings[fieldname] = checkbox.checked ? 1 : 0;
-          }
-        });
+				fields.forEach((fieldname) => {
+					const input = container.querySelector(
+						`[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
+					);
+					if (input) {
+						settings[fieldname] = input.value;
+					}
+					// Handle checkbox
+					const checkbox = container.querySelector(
+						`[data-fieldname="${fieldname}"] input[type="checkbox"]`,
+					);
+					if (checkbox) {
+						settings[fieldname] = checkbox.checked ? 1 : 0;
+					}
+				});
 
-        localStorage.setItem(lsKey, JSON.stringify(settings));
-        console.log("[DEBUG] Print settings saved to localStorage", settings);
-        return settings;
-      };
+				localStorage.setItem(lsKey, JSON.stringify(settings));
+				console.log(
+					"[DEBUG] Print settings saved to localStorage",
+					settings,
+				);
+				return settings;
+			};
 
-      // Load settings from localStorage
-      window.loadPDPrintSettings = () => {
-        const saved = localStorage.getItem(lsKey);
-        if (!saved) return null;
+			// Load settings from localStorage
+			window.loadPDPrintSettings = () => {
+				const saved = localStorage.getItem(lsKey);
+				if (!saved) return null;
 
-        try {
-          const settings = JSON.parse(saved);
-          console.log(
-            "[DEBUG] Print settings loaded from localStorage",
-            settings,
-          );
+				try {
+					const settings = JSON.parse(saved);
+					console.log(
+						"[DEBUG] Print settings loaded from localStorage",
+						settings,
+					);
 
-          // Apply settings to form fields
-          Object.keys(settings).forEach((fieldname) => {
-            const input = container.querySelector(
-              `[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
-            );
-            if (input) {
-              input.value = settings[fieldname];
-              // Trigger change event for Frappe to update
-              input.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-            // Handle checkbox
-            const checkbox = container.querySelector(
-              `[data-fieldname="${fieldname}"] input[type="checkbox"]`,
-            );
-            if (checkbox) {
-              checkbox.checked =
-                settings[fieldname] === 1 || settings[fieldname] === true;
-              checkbox.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-          });
+					// Apply settings to form fields
+					Object.keys(settings).forEach((fieldname) => {
+						const input = container.querySelector(
+							`[data-fieldname="${fieldname}"] input, [data-fieldname="${fieldname}"] select`,
+						);
+						if (input) {
+							input.value = settings[fieldname];
+							// Trigger change event for Frappe to update
+							input.dispatchEvent(
+								new Event("change", { bubbles: true }),
+							);
+						}
+						// Handle checkbox
+						const checkbox = container.querySelector(
+							`[data-fieldname="${fieldname}"] input[type="checkbox"]`,
+						);
+						if (checkbox) {
+							checkbox.checked =
+								settings[fieldname] === 1 ||
+								settings[fieldname] === true;
+							checkbox.dispatchEvent(
+								new Event("change", { bubbles: true }),
+							);
+						}
+					});
 
-          return settings;
-        } catch (e) {
-          console.error("[DEBUG] Failed to load print settings", e);
-          return null;
-        }
-      };
+					return settings;
+				} catch (e) {
+					console.error("[DEBUG] Failed to load print settings", e);
+					return null;
+				}
+			};
 
-      // 6. ADD SAVE BUTTON AT BOTTOM OF SIDEBAR
-      const saveButtonWrapper = document.createElement("div");
-      saveButtonWrapper.style.cssText =
-        "margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);";
+			// 6. ADD SAVE BUTTON AT BOTTOM OF SIDEBAR
+			const saveButtonWrapper = document.createElement("div");
+			saveButtonWrapper.style.cssText =
+				"margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);";
 
-      const saveButton = document.createElement("button");
-      saveButton.className = "btn btn-primary btn-sm btn-block";
-      saveButton.style.cssText = "width: 100%; align-items: center;";
+			const saveButton = document.createElement("button");
+			saveButton.className = "btn btn-primary btn-sm btn-block";
+			saveButton.style.cssText = "width: 100%; align-items: center;";
 
-      // Create SVG icon
-      const svgIcon = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      );
-      svgIcon.setAttribute("class", "icon icon-sm");
-      svgIcon.setAttribute("aria-hidden", "true");
-      const useIcon = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "use",
-      );
-      useIcon.setAttribute("href", "#icon-save");
-      svgIcon.appendChild(useIcon);
+			// Create SVG icon
+			const svgIcon = document.createElementNS(
+				"http://www.w3.org/2000/svg",
+				"svg",
+			);
+			svgIcon.setAttribute("class", "icon icon-sm");
+			svgIcon.setAttribute("aria-hidden", "true");
+			const useIcon = document.createElementNS(
+				"http://www.w3.org/2000/svg",
+				"use",
+			);
+			useIcon.setAttribute("href", "#icon-save");
+			svgIcon.appendChild(useIcon);
 
-      // Create text span
-      const spanText = document.createElement("span");
-      spanText.textContent = "Save Settings";
+			// Create text span
+			const spanText = document.createElement("span");
+			spanText.textContent = "Save Settings";
 
-      saveButton.appendChild(svgIcon);
-      saveButton.appendChild(spanText);
+			saveButton.appendChild(svgIcon);
+			saveButton.appendChild(spanText);
 
-      saveButton.addEventListener("click", async () => {
-        window.savePDPrintSettings();
-        frappe.show_alert({
-          message: __("Settings saved successfully"),
-          indicator: "green",
-        });
-      });
+			saveButton.addEventListener("click", async () => {
+				window.savePDPrintSettings();
+				frappe.show_alert({
+					message: __("Settings saved successfully"),
+					indicator: "green",
+				});
+			});
 
-      saveButtonWrapper.appendChild(saveButton);
-      container.appendChild(saveButtonWrapper);
+			saveButtonWrapper.appendChild(saveButton);
+			container.appendChild(saveButtonWrapper);
 
-      // Load saved settings after a short delay (wait for fields to render)
-      setTimeout(() => {
-        window.loadPDPrintSettings();
-      }, 500);
+			// Load saved settings after a short delay (wait for fields to render)
+			setTimeout(() => {
+				window.loadPDPrintSettings();
+			}, 500);
 
-      // 6. SET MIN-HEIGHT ON ALL LABELS IN GRID WRAPPERS (prevent label overflow)
-      document
-        .querySelectorAll(
-          ".watermark-settings-grid label, .margin-fields-grid label, .top-fields-grid label, .page-number-grid label",
-        )
-        .forEach((label) => {
-          label.style.minHeight = "42px";
-          label.style.display = "flex";
-          label.style.alignItems = "flex-start";
-        });
+			// 6. SET MIN-HEIGHT ON ALL LABELS IN GRID WRAPPERS (prevent label overflow)
+			document
+				.querySelectorAll(
+					".watermark-settings-grid label, .margin-fields-grid label, .top-fields-grid label, .page-number-grid label",
+				)
+				.forEach((label) => {
+					label.style.minHeight = "42px";
+					label.style.display = "flex";
+					label.style.alignItems = "flex-start";
+				});
 
-      // 6. HIDE ALL DESCRIPTION (HELP-BOX) IN SIDEBAR - saves space
-      document
-        .querySelectorAll(".print-preview-sidebar .help-box")
-        .forEach((el) => {
-          el.style.display = "none";
-        });
+			// 6. HIDE ALL DESCRIPTION (HELP-BOX) IN SIDEBAR - saves space
+			document
+				.querySelectorAll(".print-preview-sidebar .help-box")
+				.forEach((el) => {
+					el.style.display = "none";
+				});
 
-      console.log("[DEBUG] Sidebar fields wrapped in 2-column grids");
-    }, 100);
+			console.log("[DEBUG] Sidebar fields wrapped in 2-column grids");
+		}, 100);
 
-    return result;
-  };
-  PrintViewClass.prototype._debugPatched = true;
-  console.log(
-    "[DEBUG] PrintView.add_settings_to_sidebar patched for field reordering!",
-  );
+		return result;
+	};
+	PrintViewClass.prototype._debugPatched = true;
+	console.log(
+		"[DEBUG] PrintView.add_settings_to_sidebar patched for field reordering!",
+	);
 }
 patchPrintViewForDebug();
 
 function patchDeskPreviewRenderer(PrintViewClass) {
-  const original = PrintViewClass.prototype.get_print_html;
-  PrintViewClass.prototype.get_print_html = function (callback) {
-    if (this.get_print_format().raw_printing) {
-      return original.call(this, callback);
-    }
-    if (this._req) this._req.abort();
-    console.log("[PD Preview] Rendering sidebar overlays through Print Designer", {
-      watermark: this.additional_settings?.watermark_settings,
-      page_number: this.additional_settings?.page_number_display,
-    });
-    this._req = frappe.call({
-      method: "print_designer.api.desk_preview.get_html_and_style",
-      args: {
-        doc: this.frm.doc,
-        print_format: this.selected_format(),
-        no_letterhead: this.with_letterhead() ? 0 : 1,
-        letterhead: this.get_letterhead(),
-        settings: this.additional_settings,
-        _lang: this.lang_code,
-      },
-      callback: (r) => {
-        if (!r.exc) callback(r.message);
-      },
-    });
-  };
+	const original = PrintViewClass.prototype.get_print_html;
+	PrintViewClass.prototype.get_print_html = function (callback) {
+		if (this.get_print_format().raw_printing) {
+			return original.call(this, callback);
+		}
+		if (this._req) this._req.abort();
+		console.log(
+			"[PD Preview] Rendering sidebar overlays through Print Designer",
+			{
+				watermark: this.additional_settings?.watermark_settings,
+				page_number: this.additional_settings?.page_number_display,
+			},
+		);
+		this._req = frappe.call({
+			method: "print_designer.api.desk_preview.get_html_and_style",
+			args: {
+				doc: this.frm.doc,
+				print_format: this.selected_format(),
+				no_letterhead: this.with_letterhead() ? 0 : 1,
+				letterhead: this.get_letterhead(),
+				settings: this.additional_settings,
+				_lang: this.lang_code,
+			},
+			callback: (r) => {
+				if (!r.exc) callback(r.message);
+			},
+		});
+	};
 }
 
 function initializeDeskPreviewSettings(view, fields) {
-  view.additional_settings ||= {};
-  for (const field of fields) {
-    if (
-      field.fieldname && field.default != null &&
-      !["Section Break", "Column Break", "HTML"].includes(field.fieldtype) &&
-      !Object.prototype.hasOwnProperty.call(view.additional_settings, field.fieldname)
-    ) {
-      view.additional_settings[field.fieldname] = field.default;
-    }
-  }
+	view.additional_settings ||= {};
+	for (const field of fields) {
+		if (
+			field.fieldname &&
+			field.default != null &&
+			!["Section Break", "Column Break", "HTML"].includes(
+				field.fieldtype,
+			) &&
+			!Object.prototype.hasOwnProperty.call(
+				view.additional_settings,
+				field.fieldname,
+			)
+		) {
+			view.additional_settings[field.fieldname] = field.default;
+		}
+	}
 }
 
 // Start observing when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
+	document.addEventListener("DOMContentLoaded", () => {
+		observer.observe(document.body, { childList: true, subtree: true });
+	});
 } else {
-  observer.observe(document.body, { childList: true, subtree: true });
+	observer.observe(document.body, { childList: true, subtree: true });
 }
 
 const PDPrintLanguageState = {
-  retries: 0,
-  maxRetries: 20,
-  applying: false,
-  lastAppliedFormat: null,
-  patchRetries: 0,
-  patchMaxRetries: 50,
+	retries: 0,
+	maxRetries: 20,
+	applying: false,
+	lastAppliedFormat: null,
+	patchRetries: 0,
+	patchMaxRetries: 50,
 };
 
 // Page Orientation state - defined before first use
 const PDPageOrientationState = {
-  retries: 0,
-  maxRetries: 20,
-  applying: false,
-  lastAppliedFormat: null,
+	retries: 0,
+	maxRetries: 20,
+	applying: false,
+	lastAppliedFormat: null,
 };
 
 // The state of the advisory profile suggestion.
 const PDProfileSuggestionState = {
-  patchRetries: 0,
-  patchMaxRetries: 50,
+	patchRetries: 0,
+	patchMaxRetries: 50,
 };
 
 apply_print_language();
@@ -797,29 +859,29 @@ patch_refresh_print_format();
 patch_profile_suggestion();
 
 $(document).on("change", 'input[data-fieldname="print_format"]', () => {
-  queue_print_language_apply(150);
-  PDPageOrientationState.lastAppliedFormat = null;
-  apply_page_orientation_from_print_format();
+	queue_print_language_apply(150);
+	PDPageOrientationState.lastAppliedFormat = null;
+	apply_page_orientation_from_print_format();
 });
 
 // Trigger preview when page_orientation changes in the sidebar
 $(document).on("change", 'select[data-fieldname="page_orientation"]', () => {
-  console.log(
-    "[PD Page Orientation] User changed orientation, triggering preview",
-  );
-  // Find PrintView instance and trigger preview
-  if (
-    _pdPrintViewInstance &&
-    typeof _pdPrintViewInstance.preview === "function"
-  ) {
-    _pdPrintViewInstance.preview();
-  }
+	console.log(
+		"[PD Page Orientation] User changed orientation, triggering preview",
+	);
+	// Find PrintView instance and trigger preview
+	if (
+		_pdPrintViewInstance &&
+		typeof _pdPrintViewInstance.preview === "function"
+	) {
+		_pdPrintViewInstance.preview();
+	}
 });
 
 function apply_print_language() {
-  const route = frappe.get_route();
-  if (route[0] !== "print") return;
-  queue_print_language_apply(500);
+	const route = frappe.get_route();
+	if (route[0] !== "print") return;
+	queue_print_language_apply(500);
 }
 
 /**
@@ -837,33 +899,34 @@ function apply_print_language() {
  * lastAppliedFormat guard and re-apply via the same path used on load.
  */
 function patch_refresh_print_format() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+	const PV = frappe.ui.form && frappe.ui.form.PrintView;
 
-  if (!PV || !PV.prototype) {
-    // PrintView is defined lazily by the print page JS; retry until present.
-    if (
-      PDPrintLanguageState.patchRetries < PDPrintLanguageState.patchMaxRetries
-    ) {
-      PDPrintLanguageState.patchRetries += 1;
-      setTimeout(patch_refresh_print_format, 200);
-    }
-    return;
-  }
+	if (!PV || !PV.prototype) {
+		// PrintView is defined lazily by the print page JS; retry until present.
+		if (
+			PDPrintLanguageState.patchRetries <
+			PDPrintLanguageState.patchMaxRetries
+		) {
+			PDPrintLanguageState.patchRetries += 1;
+			setTimeout(patch_refresh_print_format, 200);
+		}
+		return;
+	}
 
-  if (PV.prototype._pdRefreshPatched) return;
+	if (PV.prototype._pdRefreshPatched) return;
 
-  const original_refresh = PV.prototype.refresh_print_format;
-  PV.prototype.refresh_print_format = function () {
-    const result = original_refresh.apply(this, arguments);
+	const original_refresh = PV.prototype.refresh_print_format;
+	PV.prototype.refresh_print_format = function () {
+		const result = original_refresh.apply(this, arguments);
 
-    // Core just reset lang_code back to the customer's language; let the
-    // original refresh settle, then re-assert the Print Format default.
-    PDPrintLanguageState.lastAppliedFormat = null;
-    queue_print_language_apply(250);
+		// Core just reset lang_code back to the customer's language; let the
+		// original refresh settle, then re-assert the Print Format default.
+		PDPrintLanguageState.lastAppliedFormat = null;
+		queue_print_language_apply(250);
 
-    return result;
-  };
-  PV.prototype._pdRefreshPatched = true;
+		return result;
+	};
+	PV.prototype._pdRefreshPatched = true;
 }
 
 /**
@@ -879,114 +942,113 @@ function patch_refresh_print_format() {
  * keeps the manual selection.
  */
 function patch_profile_suggestion() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+	const PV = frappe.ui.form && frappe.ui.form.PrintView;
 
-  if (!PV || !PV.prototype) {
-    // The PrintView is defined lazily by the print page JS, so the patch
-    // retries until it is there.  The retry is bounded, a page that never
-    // offers a PrintView does not keep a timer alive forever.
-    if (
-      PDProfileSuggestionState.patchRetries <
-      PDProfileSuggestionState.patchMaxRetries
-    ) {
-      PDProfileSuggestionState.patchRetries += 1;
-      setTimeout(patch_profile_suggestion, 200);
-    }
-    return;
-  }
+	if (!PV || !PV.prototype) {
+		// The PrintView is defined lazily by the print page JS, so the patch
+		// retries until it is there.  The retry is bounded, a page that never
+		// offers a PrintView does not keep a timer alive forever.
+		if (
+			PDProfileSuggestionState.patchRetries <
+			PDProfileSuggestionState.patchMaxRetries
+		) {
+			PDProfileSuggestionState.patchRetries += 1;
+			setTimeout(patch_profile_suggestion, 200);
+		}
+		return;
+	}
 
-  if (PV.prototype._pdProfileSuggestionPatched) return;
+	if (PV.prototype._pdProfileSuggestionPatched) return;
 
-  const original = PV.prototype.set_default_print_format;
-  PV.prototype.set_default_print_format = function () {
-    const result = original.apply(this, arguments);
+	const original = PV.prototype.set_default_print_format;
+	PV.prototype.set_default_print_format = function () {
+		const result = original.apply(this, arguments);
 
-    apply_profile_suggestion(this);
+		apply_profile_suggestion(this);
 
-    return result;
-  };
-  PV.prototype._pdProfileSuggestionPatched = true;
+		return result;
+	};
+	PV.prototype._pdProfileSuggestionPatched = true;
 }
 
 function apply_profile_suggestion(pv) {
-  const frm = pv.frm;
-  if (!frm || !frm.doc || !frm.doc.name || frm.doc.__islocal) return;
+	const frm = pv.frm;
+	if (!frm || !frm.doc || !frm.doc.name || frm.doc.__islocal) return;
 
-  const selector = pv.print_format_selector;
-  if (!selector || !selector.length) return;
+	const selector = pv.print_format_selector;
+	if (!selector || !selector.length) return;
 
-  // The choice of the user is remembered, so a suggestion never
-  // overwrites it. The default print format of the DocType is not a
-  // choice of the user: the core puts it into the selector, so it does
-  // not block the suggestion.
-  track_user_choice(pv, selector);
+	// The choice of the user is remembered, so a suggestion never
+	// overwrites it. The default print format of the DocType is not a
+	// choice of the user: the core puts it into the selector, so it does
+	// not block the suggestion.
+	track_user_choice(pv, selector);
 
-  if (pv._pdProfileUserChosenFormat) return;
+	if (pv._pdProfileUserChosenFormat) return;
 
-  // One suggestion per document, the selector is set up more than once.
-  if (pv._pdProfileSuggestedFor === frm.doc.name) return;
-  pv._pdProfileSuggestedFor = frm.doc.name;
+	// One suggestion per document, the selector is set up more than once.
+	if (pv._pdProfileSuggestedFor === frm.doc.name) return;
+	pv._pdProfileSuggestedFor = frm.doc.name;
 
-  frappe.call({
-    method:
-      "print_designer.api.print_format_suggestion.get_print_format_suggestions",
-    args: { doctype: frm.doctype, docname: frm.doc.name },
-    callback: (r) => select_suggested_format(pv, r),
-  });
+	frappe.call({
+		method: "print_designer.api.print_format_suggestion.get_print_format_suggestions",
+		args: { doctype: frm.doctype, docname: frm.doc.name },
+		callback: (r) => select_suggested_format(pv, r),
+	});
 }
 
 function track_user_choice(pv, selector) {
-  // Remember the format that the user chose in the print selector.
-  if (pv._pdProfileUserChoiceTracked) return;
-  pv._pdProfileUserChoiceTracked = true;
+	// Remember the format that the user chose in the print selector.
+	if (pv._pdProfileUserChoiceTracked) return;
+	pv._pdProfileUserChoiceTracked = true;
 
-  selector.on("change", () => {
-    pv._pdProfileUserChosenFormat = selector.val();
-  });
+	selector.on("change", () => {
+		pv._pdProfileUserChosenFormat = selector.val();
+	});
 }
 
 function select_suggested_format(pv, r) {
-  const message = r && r.message;
-  if (!message || !message.available) return;
+	const message = r && r.message;
+	if (!message || !message.available) return;
 
-  // The user may have chosen a format while the request was in flight.
-  if (pv._pdProfileUserChosenFormat) {
-    console.log(
-      "[PD Profile Suggestion] the user chose a format, no suggestion is applied",
-      pv._pdProfileUserChosenFormat,
-    );
-    return;
-  }
+	// The user may have chosen a format while the request was in flight.
+	if (pv._pdProfileUserChosenFormat) {
+		console.log(
+			"[PD Profile Suggestion] the user chose a format, no suggestion is applied",
+			pv._pdProfileUserChosenFormat,
+		);
+		return;
+	}
 
-  const suggestions = message.suggestions || [];
-  if (!suggestions.length) {
-    console.log(
-      "[PD Profile Suggestion] no matching format",
-      message.profile,
-    );
-    return;
-  }
+	const suggestions = message.suggestions || [];
+	if (!suggestions.length) {
+		console.log(
+			"[PD Profile Suggestion] no matching format",
+			message.profile,
+		);
+		return;
+	}
 
-  const frm = pv.frm;
-  const available = frappe.meta.get_print_formats(frm.doctype);
-  const chosen = suggestions.find((name) => available.includes(name));
-  if (!chosen) return;
+	const frm = pv.frm;
+	const available = frappe.meta.get_print_formats(frm.doctype);
+	const chosen = suggestions.find((name) => available.includes(name));
+	if (!chosen) return;
 
-  console.log(
-    "[PD Profile Suggestion] preselecting",
-    chosen,
-    "for",
-    frm.doc.name,
-    message.profile,
-  );
+	console.log(
+		"[PD Profile Suggestion] preselecting",
+		chosen,
+		"for",
+		frm.doc.name,
+		message.profile,
+	);
 
-  pv.print_format_selector.val(chosen);
-  pv.print_format_selector.attr("data-pd-suggested", "1");
-  pv.print_format_selector.attr(
-    "title",
-    __("Suggested for this transaction"),
-  );
-  pv.refresh_print_format();
+	pv.print_format_selector.val(chosen);
+	pv.print_format_selector.attr("data-pd-suggested", "1");
+	pv.print_format_selector.attr(
+		"title",
+		__("Suggested for this transaction"),
+	);
+	pv.refresh_print_format();
 }
 
 /**
@@ -994,59 +1056,59 @@ function select_suggested_format(pv, r) {
  * Line 514: this.$print_format_body.find("body").html(`<div class="print-format print-format-preview">`)
  */
 function patch_setup_print_format_dom() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
+	const PV = frappe.ui.form && frappe.ui.form.PrintView;
 
-  if (!PV || !PV.prototype) {
-    setTimeout(patch_setup_print_format_dom, 200);
-    return;
-  }
+	if (!PV || !PV.prototype) {
+		setTimeout(patch_setup_print_format_dom, 200);
+		return;
+	}
 
-  if (PV.prototype._pdSetupPrintFormatDomPatched) return;
+	if (PV.prototype._pdSetupPrintFormatDomPatched) return;
 
-  const original = PV.prototype.setup_print_format_dom;
-  PV.prototype.setup_print_format_dom = function (_out, _$print_format) {
-    original.apply(this, arguments);
+	const original = PV.prototype.setup_print_format_dom;
+	PV.prototype.setup_print_format_dom = function (_out, _$print_format) {
+		original.apply(this, arguments);
 
-    // Add id to the print-format div (line 514 equivalent)
-    const $el = this.$print_format_body.find(".print-format");
-    $el.attr("id", "tbs__print__page__preview");
+		// Add id to the print-format div (line 514 equivalent)
+		const $el = this.$print_format_body.find(".print-format");
+		$el.attr("id", "tbs__print__page__preview");
 
-    applyPDPreviewTableBorders(this.$print_format_body[0]);
+		applyPDPreviewTableBorders(this.$print_format_body[0]);
 
-    // Add position relative (needed for .section-footer absolute positioning)
-    // DO NOT unset max-width - it breaks iframe aspect ratio
-    // See orientation_table.md: unset=835px, 11.69in=797px (correct for A4 Landscape)
-    $el.attr(
-      "style",
-      ($el.attr("style") || "") + "; position: relative !important",
-    );
+		// Add position relative (needed for .section-footer absolute positioning)
+		// DO NOT unset max-width - it breaks iframe aspect ratio
+		// See orientation_table.md: unset=835px, 11.69in=797px (correct for A4 Landscape)
+		$el.attr(
+			"style",
+			($el.attr("style") || "") + "; position: relative !important",
+		);
 
-    // Debug: measure height of tbs__print__page__preview
-    const height = $el[0]?.offsetHeight;
-    console.log(
-      "[PD DEBUG] tbs__print__page__preview height(expected 793.91):",
-      height,
-      "px",
-    );
+		// Debug: measure height of tbs__print__page__preview
+		const height = $el[0]?.offsetHeight;
+		console.log(
+			"[PD DEBUG] tbs__print__page__preview height(expected 793.91):",
+			height,
+			"px",
+		);
 
-    // Measure section-header and section-footer
-    const $sectionHeader = this.$print_format_body.find(".section-header");
-    const $sectionFooter = this.$print_format_body.find(".section-footer");
-    const headerHeight = $sectionHeader[0]?.offsetHeight || 0;
-    const footerHeight = $sectionFooter[0]?.offsetHeight || 0;
-    console.log(
-      "[PD DEBUG] section-header height(expected 188.97px;):",
-      headerHeight,
-      "px",
-    );
-    console.log(
-      "[PD DEBUG] section-footer height(expected 136.21px;):",
-      footerHeight,
-      "px",
-    );
-  };
+		// Measure section-header and section-footer
+		const $sectionHeader = this.$print_format_body.find(".section-header");
+		const $sectionFooter = this.$print_format_body.find(".section-footer");
+		const headerHeight = $sectionHeader[0]?.offsetHeight || 0;
+		const footerHeight = $sectionFooter[0]?.offsetHeight || 0;
+		console.log(
+			"[PD DEBUG] section-header height(expected 188.97px;):",
+			headerHeight,
+			"px",
+		);
+		console.log(
+			"[PD DEBUG] section-footer height(expected 136.21px;):",
+			footerHeight,
+			"px",
+		);
+	};
 
-  PV.prototype._pdSetupPrintFormatDomPatched = true;
+	PV.prototype._pdSetupPrintFormatDomPatched = true;
 }
 
 // Start the patch
@@ -1065,78 +1127,88 @@ patch_setup_print_format_dom();
  * but Print Format has its own default_print_language="th" which should WIN.
  */
 function patch_set_default_print_language() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
-  if (!PV || !PV.prototype) {
-    setTimeout(patch_set_default_print_language, 200);
-    return;
-  }
-  if (PV.prototype._pdSetDefaultLangPatched) return;
+	const PV = frappe.ui.form && frappe.ui.form.PrintView;
+	if (!PV || !PV.prototype) {
+		setTimeout(patch_set_default_print_language, 200);
+		return;
+	}
+	if (PV.prototype._pdSetDefaultLangPatched) return;
 
-  const original = PV.prototype.set_default_print_language;
-  PV.prototype.set_default_print_language = function () {
-    // Call original to get all the Frappe-side initialization
-    original.apply(this, arguments);
+	const original = PV.prototype.set_default_print_language;
+	PV.prototype.set_default_print_language = function () {
+		// Call original to get all the Frappe-side initialization
+		original.apply(this, arguments);
 
-    // FIXED PRIORITY: Print Format > Document > System
-    // This ensures Print Format's default_print_language wins over document's language
-    if (this.frm && this.frm.doc) {
-      const docLang = this.frm.doc.language;
-      const systemLang = frappe.boot.lang;
+		// FIXED PRIORITY: Print Format > Document > System
+		// This ensures Print Format's default_print_language wins over document's language
+		if (this.frm && this.frm.doc) {
+			const docLang = this.frm.doc.language;
+			const systemLang = frappe.boot.lang;
 
-      // FIX: Use this.get_print_format() instead of this.print_format
-      // this.print_format may not be populated yet in the lifecycle,
-      // causing pfLang to be undefined and demoting to document/system language
-      let pfLang = null;
-      if (typeof this.get_print_format === "function") {
-        const printFormat = this.get_print_format();
-        pfLang = printFormat && printFormat.default_print_language;
-      }
+			// FIX: Use this.get_print_format() instead of this.print_format
+			// this.print_format may not be populated yet in the lifecycle,
+			// causing pfLang to be undefined and demoting to document/system language
+			let pfLang = null;
+			if (typeof this.get_print_format === "function") {
+				const printFormat = this.get_print_format();
+				pfLang = printFormat && printFormat.default_print_language;
+			}
 
-      // Priority: Print Format > Document > System
-      const resolvedLang = pfLang || docLang || systemLang;
+			// Priority: Print Format > Document > System
+			const resolvedLang = pfLang || docLang || systemLang;
 
-      // NON-DESTRUCTIVE: Only demote if we have a valid Print Format language.
-      // If pfLang is undefined/null, keep the current lang_code (don't demote th -> en).
-      // This prevents demoting th -> en when this.print_format is temporarily undefined.
-      const shouldUpdate =
-        pfLang || // Has Print Format language - use it
-        (!pfLang && !this.lang_code); // No PF lang AND no current lang - use fallback
+			// NON-DESTRUCTIVE: Only demote if we have a valid Print Format language.
+			// If pfLang is undefined/null, keep the current lang_code (don't demote th -> en).
+			// This prevents demoting th -> en when this.print_format is temporarily undefined.
+			const shouldUpdate =
+				pfLang || // Has Print Format language - use it
+				(!pfLang && !this.lang_code); // No PF lang AND no current lang - use fallback
 
-      if (shouldUpdate && resolvedLang !== this.lang_code) {
-        console.log(
-          "[PD Language Override] set_default_print_language - NEW priority:",
-        );
-        console.log("  Original lang_code:", this.lang_code);
-        console.log("  Print Format language:", pfLang, "(WINS if set)");
-        console.log("  Document language:", docLang, "(fallback)");
-        console.log("  System language:", systemLang, "(last fallback)");
-        console.log("  NEW lang_code:", resolvedLang);
-        this.lang_code = resolvedLang;
-      } else if (!pfLang && this.lang_code) {
-        // pfLang unavailable but we have a current lang_code - keep it (non-destructive)
-        console.log(
-          "[PD Language Override] set_default_print_language - SKIPPED demotion:",
-        );
-        console.log(
-          "  Current lang_code:",
-          this.lang_code,
-          "(kept - pfLang unavailable)",
-        );
-        console.log(
-          "  Print Format language:",
-          pfLang,
-          "(not available in this moment)",
-        );
-        console.log("  Will re-assert via async path when Print Format loads");
-        // Queue async path to re-assert when Print Format is available
-        PDPrintLanguageState.lastAppliedFormat = null;
-        queue_print_language_apply(250);
-      }
-    }
-  };
+			if (shouldUpdate && resolvedLang !== this.lang_code) {
+				console.log(
+					"[PD Language Override] set_default_print_language - NEW priority:",
+				);
+				console.log("  Original lang_code:", this.lang_code);
+				console.log(
+					"  Print Format language:",
+					pfLang,
+					"(WINS if set)",
+				);
+				console.log("  Document language:", docLang, "(fallback)");
+				console.log(
+					"  System language:",
+					systemLang,
+					"(last fallback)",
+				);
+				console.log("  NEW lang_code:", resolvedLang);
+				this.lang_code = resolvedLang;
+			} else if (!pfLang && this.lang_code) {
+				// pfLang unavailable but we have a current lang_code - keep it (non-destructive)
+				console.log(
+					"[PD Language Override] set_default_print_language - SKIPPED demotion:",
+				);
+				console.log(
+					"  Current lang_code:",
+					this.lang_code,
+					"(kept - pfLang unavailable)",
+				);
+				console.log(
+					"  Print Format language:",
+					pfLang,
+					"(not available in this moment)",
+				);
+				console.log(
+					"  Will re-assert via async path when Print Format loads",
+				);
+				// Queue async path to re-assert when Print Format is available
+				PDPrintLanguageState.lastAppliedFormat = null;
+				queue_print_language_apply(250);
+			}
+		}
+	};
 
-  PV.prototype._pdSetDefaultLangPatched = true;
-  console.log("[PD Language Override] set_default_print_language() patched!");
+	PV.prototype._pdSetDefaultLangPatched = true;
+	console.log("[PD Language Override] set_default_print_language() patched!");
 }
 
 /**
@@ -1144,72 +1216,77 @@ function patch_set_default_print_language() {
  * Logs column labels from print_designer_print_format to help debug mixed language issues
  */
 function patch_print_format_render() {
-  const PV = frappe.ui.form && frappe.ui.form.PrintView;
-  if (!PV || !PV.prototype) {
-    setTimeout(patch_print_format_render, 200);
-    return;
-  }
-  if (PV.prototype._pdPrintFormatRenderPatched) return;
+	const PV = frappe.ui.form && frappe.ui.form.PrintView;
+	if (!PV || !PV.prototype) {
+		setTimeout(patch_print_format_render, 200);
+		return;
+	}
+	if (PV.prototype._pdPrintFormatRenderPatched) return;
 
-  // Override the method that sets up print format content
-  const original_render = PV.prototype.render_page;
-  PV.prototype.render_page = function () {
-    // Call original
-    const result = original_render.apply(this, arguments);
+	// Override the method that sets up print format content
+	const original_render = PV.prototype.render_page;
+	PV.prototype.render_page = function () {
+		// Call original
+		const result = original_render.apply(this, arguments);
 
-    // DEBUG: Log print format data after render
-    setTimeout(() => {
-      console.log(
-        "[PD Column Labels DEBUG] ════════════════════════════════════════",
-      );
-      console.log("[PD Column Labels DEBUG] Print Format columns from DB:");
+		// DEBUG: Log print format data after render
+		setTimeout(() => {
+			console.log(
+				"[PD Column Labels DEBUG] ════════════════════════════════════════",
+			);
+			console.log(
+				"[PD Column Labels DEBUG] Print Format columns from DB:",
+			);
 
-      // Find table columns in the DOM
-      const tables = document.querySelectorAll(
-        '.print-format-table, [data-fieldname="items"]',
-      );
-      tables.forEach((table, tIdx) => {
-        console.log(`[PD Column Labels DEBUG] Table ${tIdx}:`, table.tagName);
-        const headers = table.querySelectorAll("th, .column-header");
-        headers.forEach((header, hIdx) => {
-          const text = header.textContent.trim();
-          const hasThai = /[\u0e00-\u0e7f]/.test(text);
-          const lang = hasThai ? "TH" : "EN";
-          console.log(
-            `[PD Column Labels DEBUG]   [${lang}] Column ${hIdx}: "${text}"`,
-          );
-        });
-      });
+			// Find table columns in the DOM
+			const tables = document.querySelectorAll(
+				'.print-format-table, [data-fieldname="items"]',
+			);
+			tables.forEach((table, tIdx) => {
+				console.log(
+					`[PD Column Labels DEBUG] Table ${tIdx}:`,
+					table.tagName,
+				);
+				const headers = table.querySelectorAll("th, .column-header");
+				headers.forEach((header, hIdx) => {
+					const text = header.textContent.trim();
+					const hasThai = /[\u0e00-\u0e7f]/.test(text);
+					const lang = hasThai ? "TH" : "EN";
+					console.log(
+						`[PD Column Labels DEBUG]   [${lang}] Column ${hIdx}: "${text}"`,
+					);
+				});
+			});
 
-      // Also log print format name and language
-      const pfInput = document.querySelector(
-        'input[data-fieldname="print_format"]',
-      );
-      const langInput = document.querySelector(
-        'input[data-fieldname="language"]',
-      );
-      console.log(
-        "[PD Column Labels DEBUG] Print Format:",
-        pfInput ? pfInput.value : "unknown",
-      );
-      console.log(
-        "[PD Column Labels DEBUG] Language:",
-        langInput ? langInput.value : "unknown",
-      );
-      console.log(
-        "[PD Column Labels DEBUG] URL _lang param:",
-        new URLSearchParams(window.location.search).get("_lang"),
-      );
-      console.log(
-        "[PD Column Labels DEBUG] ════════════════════════════════════════",
-      );
-    }, 100);
+			// Also log print format name and language
+			const pfInput = document.querySelector(
+				'input[data-fieldname="print_format"]',
+			);
+			const langInput = document.querySelector(
+				'input[data-fieldname="language"]',
+			);
+			console.log(
+				"[PD Column Labels DEBUG] Print Format:",
+				pfInput ? pfInput.value : "unknown",
+			);
+			console.log(
+				"[PD Column Labels DEBUG] Language:",
+				langInput ? langInput.value : "unknown",
+			);
+			console.log(
+				"[PD Column Labels DEBUG] URL _lang param:",
+				new URLSearchParams(window.location.search).get("_lang"),
+			);
+			console.log(
+				"[PD Column Labels DEBUG] ════════════════════════════════════════",
+			);
+		}, 100);
 
-    return result;
-  };
+		return result;
+	};
 
-  PV.prototype._pdPrintFormatRenderPatched = true;
-  console.log("[PD Column Labels DEBUG] render_page() patched!");
+	PV.prototype._pdPrintFormatRenderPatched = true;
+	console.log("[PD Column Labels DEBUG] render_page() patched!");
 }
 
 // Start the patch
@@ -1217,74 +1294,74 @@ patch_set_default_print_language();
 patch_print_format_render();
 
 function queue_print_language_apply(delay = 0) {
-  setTimeout(() => {
-    apply_language_from_print_format();
-  }, delay);
+	setTimeout(() => {
+		apply_language_from_print_format();
+	}, delay);
 }
 
 function apply_language_from_print_format() {
-  const route = frappe.get_route();
-  if (route[0] !== "print") return;
+	const route = frappe.get_route();
+	if (route[0] !== "print") return;
 
-  const print_format = $('input[data-fieldname="print_format"]').val();
-  const lang_input = $('input[data-fieldname="language"]');
+	const print_format = $('input[data-fieldname="print_format"]').val();
+	const lang_input = $('input[data-fieldname="language"]');
 
-  if (!lang_input.length || !print_format || print_format === "Standard") {
-    if (PDPrintLanguageState.retries < PDPrintLanguageState.maxRetries) {
-      PDPrintLanguageState.retries += 1;
-      queue_print_language_apply(250);
-    }
-    return;
-  }
+	if (!lang_input.length || !print_format || print_format === "Standard") {
+		if (PDPrintLanguageState.retries < PDPrintLanguageState.maxRetries) {
+			PDPrintLanguageState.retries += 1;
+			queue_print_language_apply(250);
+		}
+		return;
+	}
 
-  PDPrintLanguageState.retries = 0;
+	PDPrintLanguageState.retries = 0;
 
-  if (
-    PDPrintLanguageState.applying ||
-    PDPrintLanguageState.lastAppliedFormat === print_format
-  ) {
-    return;
-  }
+	if (
+		PDPrintLanguageState.applying ||
+		PDPrintLanguageState.lastAppliedFormat === print_format
+	) {
+		return;
+	}
 
-  PDPrintLanguageState.applying = true;
+	PDPrintLanguageState.applying = true;
 
-  frappe.call({
-    method: "frappe.client.get",
-    args: {
-      doctype: "Print Format",
-      name: print_format,
-    },
-    callback: function (r) {
-      PDPrintLanguageState.applying = false;
+	frappe.call({
+		method: "frappe.client.get",
+		args: {
+			doctype: "Print Format",
+			name: print_format,
+		},
+		callback: function (r) {
+			PDPrintLanguageState.applying = false;
 
-      if (r && r.message && r.message.default_print_language) {
-        PDPrintLanguageState.lastAppliedFormat = print_format;
-        set_language(r.message.default_print_language);
-      }
-    },
-    error: function () {
-      PDPrintLanguageState.applying = false;
-    },
-  });
+			if (r && r.message && r.message.default_print_language) {
+				PDPrintLanguageState.lastAppliedFormat = print_format;
+				set_language(r.message.default_print_language);
+			}
+		},
+		error: function () {
+			PDPrintLanguageState.applying = false;
+		},
+	});
 }
 
 function set_language(lang_code) {
-  const lang_input = $('input[data-fieldname="language"]');
-  const lang_display = $(
-    '.frappe-control[data-fieldname="language"] .control-value a',
-  );
+	const lang_input = $('input[data-fieldname="language"]');
+	const lang_display = $(
+		'.frappe-control[data-fieldname="language"] .control-value a',
+	);
 
-  if (!lang_input.length || !lang_code) return;
-  if (lang_input.val() === lang_code) return;
+	if (!lang_input.length || !lang_code) return;
+	if (lang_input.val() === lang_code) return;
 
-  lang_input.val(lang_code).trigger("change");
+	lang_input.val(lang_code).trigger("change");
 
-  if (lang_display.length) {
-    lang_display.text(lang_code);
-    lang_display.attr("href", "/desk/language/" + lang_code);
-    lang_display.attr("data-name", lang_code);
-    lang_display.attr("data-value", lang_code);
-  }
+	if (lang_display.length) {
+		lang_display.text(lang_code);
+		lang_display.attr("href", "/desk/language/" + lang_code);
+		lang_display.attr("data-name", lang_code);
+		lang_display.attr("data-value", lang_code);
+	}
 }
 
 // =============================================================================
@@ -1296,110 +1373,116 @@ function set_language(lang_code) {
  * Called on page load and when print format changes.
  */
 function apply_page_orientation_from_print_format() {
-  const route = frappe.get_route();
-  if (route[0] !== "print") {
-    console.log("[PD Page Orientation] DEBUG: Not on print route, skipping");
-    return;
-  }
+	const route = frappe.get_route();
+	if (route[0] !== "print") {
+		console.log(
+			"[PD Page Orientation] DEBUG: Not on print route, skipping",
+		);
+		return;
+	}
 
-  const print_format = $('input[data-fieldname="print_format"]').val();
-  const orientation_select = $('select[data-fieldname="page_orientation"]');
+	const print_format = $('input[data-fieldname="print_format"]').val();
+	const orientation_select = $('select[data-fieldname="page_orientation"]');
 
-  console.log("[PD Page Orientation] DEBUG: Called", {
-    route: route,
-    print_format: print_format,
-    hasOrientationField: orientation_select.length > 0,
-    orientationValue:
-      orientation_select.length > 0 ? orientation_select.val() : null,
-    retries: PDPageOrientationState.retries,
-    lastAppliedFormat: PDPageOrientationState.lastAppliedFormat,
-    applying: PDPageOrientationState.applying,
-  });
+	console.log("[PD Page Orientation] DEBUG: Called", {
+		route: route,
+		print_format: print_format,
+		hasOrientationField: orientation_select.length > 0,
+		orientationValue:
+			orientation_select.length > 0 ? orientation_select.val() : null,
+		retries: PDPageOrientationState.retries,
+		lastAppliedFormat: PDPageOrientationState.lastAppliedFormat,
+		applying: PDPageOrientationState.applying,
+	});
 
-  // FIXED: Separate checks for print_format vs dropdown
-  // Check 1: No print format yet (or Standard) → retry
-  if (!print_format || print_format === "Standard") {
-    console.log(
-      "[PD Page Orientation] DEBUG: Skipping - no print_format or Standard",
-    );
-    if (PDPageOrientationState.retries < PDPageOrientationState.maxRetries) {
-      PDPageOrientationState.retries += 1;
-      console.log(
-        "[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
-        PDPageOrientationState.retries + ")",
-      );
-      setTimeout(apply_page_orientation_from_print_format, 250);
-    }
-    return;
-  }
+	// FIXED: Separate checks for print_format vs dropdown
+	// Check 1: No print format yet (or Standard) → retry
+	if (!print_format || print_format === "Standard") {
+		console.log(
+			"[PD Page Orientation] DEBUG: Skipping - no print_format or Standard",
+		);
+		if (
+			PDPageOrientationState.retries < PDPageOrientationState.maxRetries
+		) {
+			PDPageOrientationState.retries += 1;
+			console.log(
+				"[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
+				PDPageOrientationState.retries + ")",
+			);
+			setTimeout(apply_page_orientation_from_print_format, 250);
+		}
+		return;
+	}
 
-  // Check 2: Print format exists but dropdown not ready yet → retry
-  if (!orientation_select.length) {
-    console.log(
-      "[PD Page Orientation] DEBUG: Print format exists but dropdown not ready yet",
-    );
-    if (PDPageOrientationState.retries < PDPageOrientationState.maxRetries) {
-      PDPageOrientationState.retries += 1;
-      console.log(
-        "[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
-        PDPageOrientationState.retries + ")",
-      );
-      setTimeout(apply_page_orientation_from_print_format, 250);
-    }
-    return;
-  }
+	// Check 2: Print format exists but dropdown not ready yet → retry
+	if (!orientation_select.length) {
+		console.log(
+			"[PD Page Orientation] DEBUG: Print format exists but dropdown not ready yet",
+		);
+		if (
+			PDPageOrientationState.retries < PDPageOrientationState.maxRetries
+		) {
+			PDPageOrientationState.retries += 1;
+			console.log(
+				"[PD Page Orientation] DEBUG: Retrying in 250ms (attempt",
+				PDPageOrientationState.retries + ")",
+			);
+			setTimeout(apply_page_orientation_from_print_format, 250);
+		}
+		return;
+	}
 
-  PDPageOrientationState.retries = 0;
+	PDPageOrientationState.retries = 0;
 
-  // Skip if already applied this format
-  if (
-    PDPageOrientationState.applying ||
-    PDPageOrientationState.lastAppliedFormat === print_format
-  ) {
-    console.log(
-      "[PD Page Orientation] DEBUG: Skipping - already applied for this format:",
-      print_format,
-    );
-    return;
-  }
+	// Skip if already applied this format
+	if (
+		PDPageOrientationState.applying ||
+		PDPageOrientationState.lastAppliedFormat === print_format
+	) {
+		console.log(
+			"[PD Page Orientation] DEBUG: Skipping - already applied for this format:",
+			print_format,
+		);
+		return;
+	}
 
-  PDPageOrientationState.applying = true;
-  console.log(
-    "[PD Page Orientation] DEBUG: Fetching Print Format:",
-    print_format,
-  );
+	PDPageOrientationState.applying = true;
+	console.log(
+		"[PD Page Orientation] DEBUG: Fetching Print Format:",
+		print_format,
+	);
 
-  frappe.call({
-    method: "frappe.client.get",
-    args: {
-      doctype: "Print Format",
-      name: print_format,
-    },
-    callback: function (r) {
-      PDPageOrientationState.applying = false;
+	frappe.call({
+		method: "frappe.client.get",
+		args: {
+			doctype: "Print Format",
+			name: print_format,
+		},
+		callback: function (r) {
+			PDPageOrientationState.applying = false;
 
-      console.log("[PD Page Orientation] DEBUG: API callback", {
-        success: !r.exc,
-        hasMessage: !!r.message,
-        page_orientation: r.message?.page_orientation,
-        watermark_settings: r.message?.watermark_settings,
-        pdf_page_size: r.message?.pdf_page_size,
-      });
+			console.log("[PD Page Orientation] DEBUG: API callback", {
+				success: !r.exc,
+				hasMessage: !!r.message,
+				page_orientation: r.message?.page_orientation,
+				watermark_settings: r.message?.watermark_settings,
+				pdf_page_size: r.message?.pdf_page_size,
+			});
 
-      if (r && r.message) {
-        PDPageOrientationState.lastAppliedFormat = print_format;
-        console.log(
-          "[PD Page Orientation] DEBUG: Calling set_page_orientation with:",
-          r.message.page_orientation,
-        );
-        set_page_orientation(r.message.page_orientation);
-      }
-    },
-    error: function (err) {
-      PDPageOrientationState.applying = false;
-      console.log("[PD Page Orientation] DEBUG: API error:", err);
-    },
-  });
+			if (r && r.message) {
+				PDPageOrientationState.lastAppliedFormat = print_format;
+				console.log(
+					"[PD Page Orientation] DEBUG: Calling set_page_orientation with:",
+					r.message.page_orientation,
+				);
+				set_page_orientation(r.message.page_orientation);
+			}
+		},
+		error: function (err) {
+			PDPageOrientationState.applying = false;
+			console.log("[PD Page Orientation] DEBUG: API error:", err);
+		},
+	});
 }
 
 /**
@@ -1407,37 +1490,37 @@ function apply_page_orientation_from_print_format() {
  * After setting, triggers a preview refresh to apply the orientation CSS.
  */
 function set_page_orientation(orientation) {
-  const orientation_select = $('select[data-fieldname="page_orientation"]');
-  if (!orientation_select.length || !orientation) return;
+	const orientation_select = $('select[data-fieldname="page_orientation"]');
+	if (!orientation_select.length || !orientation) return;
 
-  const currentValue = orientation_select.val();
-  if (currentValue === orientation) return;
+	const currentValue = orientation_select.val();
+	if (currentValue === orientation) return;
 
-  console.log("[PD Page Orientation] Setting to:", orientation);
+	console.log("[PD Page Orientation] Setting to:", orientation);
 
-  // Set the select value and trigger change
-  orientation_select.val(orientation).trigger("change");
+	// Set the select value and trigger change
+	orientation_select.val(orientation).trigger("change");
 
-  // Also update the display value
-  const displayEl = orientation_select
-    .closest(".frappe-control")
-    .find(".control-value");
-  if (displayEl.length) {
-    displayEl.text(orientation);
-  }
+	// Also update the display value
+	const displayEl = orientation_select
+		.closest(".frappe-control")
+		.find(".control-value");
+	if (displayEl.length) {
+		displayEl.text(orientation);
+	}
 
-  // Trigger preview to apply the orientation CSS (since initial render already happened)
-  setTimeout(() => {
-    if (
-      _pdPrintViewInstance &&
-      typeof _pdPrintViewInstance.preview === "function"
-    ) {
-      console.log(
-        "[PD Page Orientation] Triggering preview refresh after setting orientation",
-      );
-      _pdPrintViewInstance.preview();
-    }
-  }, 100);
+	// Trigger preview to apply the orientation CSS (since initial render already happened)
+	setTimeout(() => {
+		if (
+			_pdPrintViewInstance &&
+			typeof _pdPrintViewInstance.preview === "function"
+		) {
+			console.log(
+				"[PD Page Orientation] Triggering preview refresh after setting orientation",
+			);
+			_pdPrintViewInstance.preview();
+		}
+	}, 100);
 }
 
 /**
@@ -1449,119 +1532,127 @@ function set_page_orientation(orientation) {
  * Frappe print preview renders inside an iframe
  */
 function getPrintFrame() {
-  // Try to find the iframe containing .items-bg
-  for (let i = 0; i < window.frames.length; i++) {
-    try {
-      const frame = window.frames[i];
-      if (frame.document.querySelector(".items-bg")) {
-        return frame;
-      }
-    } catch (e) {
-      // Cross-origin frame, skip
-    }
-  }
-  // Fallback to first frame if it looks like print preview
-  if (window.frames.length > 0) {
-    try {
-      return window.frames[0];
-    } catch (e) {}
-  }
-  return null;
+	// Try to find the iframe containing .items-bg
+	for (let i = 0; i < window.frames.length; i++) {
+		try {
+			const frame = window.frames[i];
+			if (frame.document.querySelector(".items-bg")) {
+				return frame;
+			}
+		} catch (e) {
+			// Cross-origin frame, skip
+		}
+	}
+	// Fallback to first frame if it looks like print preview
+	if (window.frames.length > 0) {
+		try {
+			return window.frames[0];
+		} catch (e) {}
+	}
+	return null;
 }
 
 function generateDynamicTableRows() {
-  // Get the iframe containing print format
-  const frame = getPrintFrame();
-  if (!frame) {
-    console.log("[PD Dynamic Rows] Print frame not found, skipping");
-    return;
-  }
+	// Get the iframe containing print format
+	const frame = getPrintFrame();
+	if (!frame) {
+		console.log("[PD Dynamic Rows] Print frame not found, skipping");
+		return;
+	}
 
-  const doc = frame.document;
-  const itemsBg = doc.querySelector(".items-bg");
-  const thead = doc.querySelector(".items-bg table.items thead");
-  const tbody = doc.querySelector(".items-bg table.items tbody");
-  const sectionFooter = doc.querySelector(".section-footer");
-  const sectionContent = doc.querySelector(".section-content");
-  const sectionContentHeight = sectionContent ? sectionContent.offsetHeight : 0;
+	const doc = frame.document;
+	const itemsBg = doc.querySelector(".items-bg");
+	const thead = doc.querySelector(".items-bg table.items thead");
+	const tbody = doc.querySelector(".items-bg table.items tbody");
+	const sectionFooter = doc.querySelector(".section-footer");
+	const sectionContent = doc.querySelector(".section-content");
+	const sectionContentHeight = sectionContent
+		? sectionContent.offsetHeight
+		: 0;
 
-  if (!itemsBg || !tbody) {
-    console.log("[PD Dynamic Rows] Elements not found in frame, skipping");
-    return;
-  }
+	if (!itemsBg || !tbody) {
+		console.log("[PD Dynamic Rows] Elements not found in frame, skipping");
+		return;
+	}
 
-  // Get actual computed heights from DOM
-  const bgHeight = itemsBg.offsetHeight;
-  const headerHeight = thead ? thead.offsetHeight : 50;
-  const footerHeight = sectionFooter ? sectionFooter.offsetHeight : 0;
+	// Get actual computed heights from DOM
+	const bgHeight = itemsBg.offsetHeight;
+	const headerHeight = thead ? thead.offsetHeight : 50;
+	const footerHeight = sectionFooter ? sectionFooter.offsetHeight : 0;
 
-  console.log("[PD Dynamic Rows] thead:", thead);
-  console.log("[PD Dynamic Rows] bgHeight:", bgHeight);
-  console.log("[PD Dynamic Rows] headerHeight:", headerHeight);
-  console.log("[PD Dynamic Rows] sectionFooter:", sectionFooter);
-  console.log("[PD Dynamic Rows] footerHeight(expected 136px):", footerHeight);
-  console.log("[PD Dynamic Rows] sectionContent:", sectionContent);
-  console.log("[PD Dynamic Rows] sectionContentHeight:", sectionContentHeight);
+	console.log("[PD Dynamic Rows] thead:", thead);
+	console.log("[PD Dynamic Rows] bgHeight:", bgHeight);
+	console.log("[PD Dynamic Rows] headerHeight:", headerHeight);
+	console.log("[PD Dynamic Rows] sectionFooter:", sectionFooter);
+	console.log(
+		"[PD Dynamic Rows] footerHeight(expected 136px):",
+		footerHeight,
+	);
+	console.log("[PD Dynamic Rows] sectionContent:", sectionContent);
+	console.log(
+		"[PD Dynamic Rows] sectionContentHeight:",
+		sectionContentHeight,
+	);
 
-  // Row height from CSS
-  const rowHeight = 20;
-  const headerHeightFixed = 46; // Hardcoded to avoid timing measurement bugs
-  const totalRowReserve = 2; // Reserve 2 rows worth (40px) for Total Row (36px)
+	// Row height from CSS
+	const rowHeight = 20;
+	const headerHeightFixed = 46; // Hardcoded to avoid timing measurement bugs
+	const totalRowReserve = 2; // Reserve 2 rows worth (40px) for Total Row (36px)
 
-  // Calculate how many rows can fit
-  // Use sectionContentHeight instead of bgHeight, reserve 2 rows for Total Row
-  const availableHeight = sectionContentHeight - headerHeightFixed;
-  const computedRows = availableHeight / rowHeight;
-  const rowCount = Math.max(1, Math.floor(computedRows - totalRowReserve));
+	// Calculate how many rows can fit
+	// Use sectionContentHeight instead of bgHeight, reserve 2 rows for Total Row
+	const availableHeight = sectionContentHeight - headerHeightFixed;
+	const computedRows = availableHeight / rowHeight;
+	const rowCount = Math.max(1, Math.floor(computedRows - totalRowReserve));
 
-  console.log(
-    "[PD Dynamic Rows] sectionContent:",
-    sectionContentHeight,
-    "headerFixed:",
-    headerHeightFixed,
-    "computedRows:",
-    computedRows,
-    "reserveRows:",
-    totalRowReserve,
-    "finalRowCount:",
-    rowCount,
-  );
+	console.log(
+		"[PD Dynamic Rows] sectionContent:",
+		sectionContentHeight,
+		"headerFixed:",
+		headerHeightFixed,
+		"computedRows:",
+		computedRows,
+		"reserveRows:",
+		totalRowReserve,
+		"finalRowCount:",
+		rowCount,
+	);
 
-  // Clear existing rows
-  while (tbody.firstChild) {
-    tbody.removeChild(tbody.firstChild);
-  }
+	// Clear existing rows
+	while (tbody.firstChild) {
+		tbody.removeChild(tbody.firstChild);
+	}
 
-  // Generate rows using DOM methods (avoid innerHTML for XSS safety)
-  const fragment = document.createDocumentFragment();
-  for (let i = 0; i < rowCount; i++) {
-    const tr = document.createElement("tr");
-    tr.style.height = rowHeight + "px";
-    if (i === rowCount - 1) {
-      tr.classList.add("last-row");
-    }
+	// Generate rows using DOM methods (avoid innerHTML for XSS safety)
+	const fragment = document.createDocumentFragment();
+	for (let i = 0; i < rowCount; i++) {
+		const tr = document.createElement("tr");
+		tr.style.height = rowHeight + "px";
+		if (i === rowCount - 1) {
+			tr.classList.add("last-row");
+		}
 
-    // Create 14 cells
-    for (let j = 0; j < 14; j++) {
-      const td = document.createElement("td");
-      if (j === 13) {
-        td.classList.add("col-unit");
-      }
-      tr.appendChild(td);
-    }
-    fragment.appendChild(tr);
-  }
-  tbody.appendChild(fragment);
+		// Create 14 cells
+		for (let j = 0; j < 14; j++) {
+			const td = document.createElement("td");
+			if (j === 13) {
+				td.classList.add("col-unit");
+			}
+			tr.appendChild(td);
+		}
+		fragment.appendChild(tr);
+	}
+	tbody.appendChild(fragment);
 
-  console.log("[PD Dynamic Rows] Generated", rowCount, "rows");
+	console.log("[PD Dynamic Rows] Generated", rowCount, "rows");
 }
 
 // Call dynamic row generation after preview renders
 // We need to wait for the print format HTML to be in the DOM
 function scheduleDynamicRows(delay = 500) {
-  setTimeout(() => {
-    generateDynamicTableRows();
-  }, delay);
+	setTimeout(() => {
+		generateDynamicTableRows();
+	}, delay);
 }
 
 /**
@@ -1571,82 +1662,84 @@ function scheduleDynamicRows(delay = 500) {
 let dynamicRowsObserver = null;
 
 function startDynamicRowsObserver() {
-  // Clean up existing observer
-  if (dynamicRowsObserver) {
-    dynamicRowsObserver.disconnect();
-  }
+	// Clean up existing observer
+	if (dynamicRowsObserver) {
+		dynamicRowsObserver.disconnect();
+	}
 
-  const frame = getPrintFrame();
-  if (!frame) return;
+	const frame = getPrintFrame();
+	if (!frame) return;
 
-  // Watch .print-format for .landscape class changes (orientation changes)
-  const printFormat = frame.document.querySelector(".print-format");
-  if (!printFormat) return;
+	// Watch .print-format for .landscape class changes (orientation changes)
+	const printFormat = frame.document.querySelector(".print-format");
+	if (!printFormat) return;
 
-  let lastOrientation = printFormat.classList.contains("landscape")
-    ? "landscape"
-    : "portrait";
+	let lastOrientation = printFormat.classList.contains("landscape")
+		? "landscape"
+		: "portrait";
 
-  dynamicRowsObserver = new MutationObserver(() => {
-    const currentOrientation = printFormat.classList.contains("landscape")
-      ? "landscape"
-      : "portrait";
-    if (currentOrientation !== lastOrientation) {
-      console.log(
-        "[PD Dynamic Rows] Orientation changed:",
-        lastOrientation,
-        "->",
-        currentOrientation,
-        ", waiting for CSS to apply...",
-      );
-      lastOrientation = currentOrientation;
-      // Use requestAnimationFrame to wait for CSS media query to apply
-      // Need 2 frames to ensure paint is complete
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          generateDynamicTableRows();
-        });
-      });
-    }
-  });
+	dynamicRowsObserver = new MutationObserver(() => {
+		const currentOrientation = printFormat.classList.contains("landscape")
+			? "landscape"
+			: "portrait";
+		if (currentOrientation !== lastOrientation) {
+			console.log(
+				"[PD Dynamic Rows] Orientation changed:",
+				lastOrientation,
+				"->",
+				currentOrientation,
+				", waiting for CSS to apply...",
+			);
+			lastOrientation = currentOrientation;
+			// Use requestAnimationFrame to wait for CSS media query to apply
+			// Need 2 frames to ensure paint is complete
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					generateDynamicTableRows();
+				});
+			});
+		}
+	});
 
-  // Watch for class changes on .print-format (where .landscape is added)
-  dynamicRowsObserver.observe(printFormat, {
-    attributes: true,
-    attributeFilter: ["class"],
-  });
+	// Watch for class changes on .print-format (where .landscape is added)
+	dynamicRowsObserver.observe(printFormat, {
+		attributes: true,
+		attributeFilter: ["class"],
+	});
 
-  console.log(
-    "[PD Dynamic Rows] Observer started on .print-format for class changes",
-  );
+	console.log(
+		"[PD Dynamic Rows] Observer started on .print-format for class changes",
+	);
 }
 
 // Listen for orientation changes and regenerate rows
 $(document).on("change", 'select[data-fieldname="page_orientation"]', () => {
-  console.log("[PD Dynamic Rows] User changed orientation, regenerating rows");
-  // Delay to let Frappe apply the CSS first
-  scheduleDynamicRows(800);
-  // Also restart observer
-  setTimeout(startDynamicRowsObserver, 1000);
+	console.log(
+		"[PD Dynamic Rows] User changed orientation, regenerating rows",
+	);
+	// Delay to let Frappe apply the CSS first
+	scheduleDynamicRows(800);
+	// Also restart observer
+	setTimeout(startDynamicRowsObserver, 1000);
 });
 
 // Also call on format changes
 $(document).on("change", 'input[data-fieldname="print_format"]', () => {
-  console.log("[PD Dynamic Rows] Format changed, scheduling rows");
-  // Longer delay for format changes
-  scheduleDynamicRows(1500);
+	console.log("[PD Dynamic Rows] Format changed, scheduling rows");
+	// Longer delay for format changes
+	scheduleDynamicRows(1500);
 });
 
 // Initial call when print page loads
 $(document).ready(() => {
-  // Use requestAnimationFrame to wait for initial CSS to apply
-  // Need multiple frames for reliable measurement
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        generateDynamicTableRows();
-        startDynamicRowsObserver();
-      });
-    });
-  });
+	// Use requestAnimationFrame to wait for initial CSS to apply
+	// Need multiple frames for reliable measurement
+	requestAnimationFrame(() => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				generateDynamicTableRows();
+				startDynamicRowsObserver();
+			});
+		});
+	});
 });

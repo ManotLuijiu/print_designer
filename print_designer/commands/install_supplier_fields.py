@@ -60,13 +60,17 @@ def migrate_legacy_branch_data():
         print("\n🔍 Checking for legacy branch_code fields to migrate...")
 
         # Get all existing custom fields for Supplier with 'branch' in name
-        existing_fields = sql_rows(frappe.db.sql("""
+        existing_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Supplier'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
-        """, as_dict=True)
+        """,
+                as_dict=True,
+            )
         )
 
         if not existing_fields:
@@ -81,7 +85,9 @@ def migrate_legacy_branch_data():
         try:
             frappe.db.sql("SELECT pd_custom_branch_code FROM `tabSupplier` LIMIT 1")
         except Exception:
-            print("   ⚠️  Target field pd_custom_branch_code doesn't exist yet - will migrate after field creation")
+            print(
+                "   ⚠️  Target field pd_custom_branch_code doesn't exist yet - will migrate after field creation"
+            )
             return {"migrated": 0, "skipped": 0, "errors": 0, "deferred": True}
 
         # Get all suppliers that need migration
@@ -95,13 +101,17 @@ def migrate_legacy_branch_data():
                 frappe.db.sql(f"SELECT {fieldname} FROM `tabSupplier` LIMIT 1")
 
                 # Find suppliers with values in legacy field but empty pd_custom_branch_code
-                suppliers_to_migrate = sql_rows(frappe.db.sql(f"""
+                suppliers_to_migrate = sql_rows(
+                    frappe.db.sql(
+                        f"""
                     SELECT name, {fieldname} as legacy_value
                     FROM `tabSupplier`
                     WHERE {fieldname} IS NOT NULL
                     AND {fieldname} != ''
                     AND (pd_custom_branch_code IS NULL OR pd_custom_branch_code = '' OR pd_custom_branch_code = '00000')
-                """, as_dict=True)
+                """,
+                        as_dict=True,
+                    )
                 )
 
                 if suppliers_to_migrate:
@@ -115,10 +125,12 @@ def migrate_legacy_branch_data():
                                 supplier["name"],
                                 "pd_custom_branch_code",
                                 supplier["legacy_value"],
-                                update_modified=False  # Don't update modified timestamp
+                                update_modified=False,  # Don't update modified timestamp
                             )
 
-                            print(f"      ✓ {supplier['name']}: '{supplier['legacy_value']}' → pd_custom_branch_code")
+                            print(
+                                f"      ✓ {supplier['name']}: '{supplier['legacy_value']}' → pd_custom_branch_code"
+                            )
                             migration_stats["migrated"] += 1
 
                         except Exception as e:
@@ -130,7 +142,9 @@ def migrate_legacy_branch_data():
 
             except Exception:
                 # Legacy field column doesn't exist in database - skip
-                print(f"   ℹ️  Field {fieldname} defined in Custom Field but no database column - skipping")
+                print(
+                    f"   ℹ️  Field {fieldname} defined in Custom Field but no database column - skipping"
+                )
                 continue
 
         # Summary
@@ -139,8 +153,10 @@ def migrate_legacy_branch_data():
         print(f"   ⏭️  Skipped: {migration_stats['skipped']} suppliers")
         print(f"   ❌ Errors: {migration_stats['errors']} suppliers")
 
-        if migration_stats['migrated'] > 0:
-            print("\n💡 Tip: Legacy fields are preserved. You can safely delete them after verifying data.")
+        if migration_stats["migrated"] > 0:
+            print(
+                "\n💡 Tip: Legacy fields are preserved. You can safely delete them after verifying data."
+            )
 
         return migration_stats
 
@@ -171,10 +187,9 @@ def create_supplier_fields():
         print("   - pd_custom_branch_code (Branch Code for Thai tax invoices)")
 
         # Verify field exists
-        field_exists = frappe.db.exists("Custom Field", {
-            "dt": "Supplier",
-            "fieldname": "pd_custom_branch_code"
-        })
+        field_exists = frappe.db.exists(
+            "Custom Field", {"dt": "Supplier", "fieldname": "pd_custom_branch_code"}
+        )
 
         if field_exists:
             print("✅ Installation completed successfully!")
@@ -212,16 +227,22 @@ def check_supplier_fields():
                 print(f"   - {field}")
             return False
 
-        print(f"✅ All {len(SUPPLIER_CUSTOM_FIELDS['Supplier'])} Supplier custom fields are installed!")
+        print(
+            f"✅ All {len(SUPPLIER_CUSTOM_FIELDS['Supplier'])} Supplier custom fields are installed!"
+        )
 
         # Check for legacy fields that might need migration
-        legacy_fields = sql_rows(frappe.db.sql("""
+        legacy_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname, label
             FROM `tabCustom Field`
             WHERE dt = 'Supplier'
             AND fieldname LIKE '%branch%'
             AND fieldname != 'pd_custom_branch_code'
-        """, as_dict=True)
+        """,
+                as_dict=True,
+            )
         )
 
         if legacy_fields:
@@ -232,16 +253,23 @@ def check_supplier_fields():
             # Check if any have data
             for legacy_field in legacy_fields:
                 try:
-                    count = sql_rows(frappe.db.sql(f"""
+                    count = sql_rows(
+                        frappe.db.sql(
+                            f"""
                         SELECT COUNT(*) as count
                         FROM `tabSupplier`
-                        WHERE {legacy_field['fieldname']} IS NOT NULL
-                        AND {legacy_field['fieldname']} != ''
-                    """, as_dict=True))[0]["count"]
+                        WHERE {legacy_field["fieldname"]} IS NOT NULL
+                        AND {legacy_field["fieldname"]} != ''
+                    """,
+                            as_dict=True,
+                        )
+                    )[0]["count"]
 
                     if count > 0:
                         print(f"      💡 {legacy_field['fieldname']} has data in {count} suppliers")
-                        print("         Run: bench execute 'print_designer.commands.install_supplier_fields.migrate_legacy_branch_data()'")
+                        print(
+                            "         Run: bench execute 'print_designer.commands.install_supplier_fields.migrate_legacy_branch_data()'"
+                        )
                 except Exception:
                     pass
 
@@ -282,12 +310,16 @@ def uninstall_supplier_fields():
         print(f"✅ Successfully removed {removed_count} Supplier custom field(s)!")
 
         # Check for legacy fields
-        legacy_fields = sql_rows(frappe.db.sql("""
+        legacy_fields = sql_rows(
+            frappe.db.sql(
+                """
             SELECT fieldname
             FROM `tabCustom Field`
             WHERE dt = 'Supplier'
             AND fieldname LIKE '%branch%'
-        """, as_dict=True)
+        """,
+                as_dict=True,
+            )
         )
 
         if legacy_fields:

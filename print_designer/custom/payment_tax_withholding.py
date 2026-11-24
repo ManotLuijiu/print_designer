@@ -8,13 +8,14 @@ This ensures Advance Taxes and Charges in Payment Entry shows the WHT Liability
 account instead of the Asset WHT account.
 """
 
-import frappe
 from collections import defaultdict
 from typing import Any, cast
-from frappe.utils import flt
+
+import frappe
 from erpnext.accounts.doctype.tax_withholding_entry.tax_withholding_entry import (
     PaymentTaxWithholding,
 )
+from frappe.utils import flt
 
 
 class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
@@ -40,7 +41,9 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
     def _get_category_details(self):
         result = super()._get_category_details()
         details = cast(dict[str, Any], result)
-        print(f"[Thai WHT] _get_category_details returned: {list(details.keys()) if details else None}")
+        print(
+            f"[Thai WHT] _get_category_details returned: {list(details.keys()) if details else None}"
+        )
         return result
 
     def _update_taxable_amounts(self):
@@ -53,7 +56,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
           - withholding = taxable_amount × rate
         Otherwise → use standard ERPNext calculation.
         """
-        print(f"[Thai WHT] _update_taxable_amounts called")
+        print("[Thai WHT] _update_taxable_amounts called")
         print(f"[Thai WHT] references count: {len(self.doc.references)}")
         print(f"[Thai WHT] payment_type: {self.doc.payment_type}")
         print(f"[Thai WHT] base_paid_amount: {self.doc.base_paid_amount}")
@@ -62,7 +65,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         print(f"[Thai WHT] taxes count: {len(self.doc.taxes)}")
 
         if not self.category_details:
-            print(f"[Thai WHT] WARNING: category_details is EMPTY — no categories found")
+            print("[Thai WHT] WARNING: category_details is EMPTY — no categories found")
         else:
             print(f"[Thai WHT] category_details keys: {list(self._the_category_details().keys())}")
 
@@ -73,9 +76,11 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
 
         # If references has rows → not an advance (invoice-based) → use standard
         if self.doc.references:
-            print(f"[Thai WHT] Has references - using standard calculation")
+            print("[Thai WHT] Has references - using standard calculation")
             super()._update_taxable_amounts()
-            print(f"[Thai WHT] category taxable_amount after standard: {category.get('taxable_amount')}")
+            print(
+                f"[Thai WHT] category taxable_amount after standard: {category.get('taxable_amount')}"
+            )
             return
 
         # Advance case - check if any tax row uses Gross-up type.
@@ -84,17 +89,16 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         # row typically has charge_type="Gross-up" but is_tax_withholding_account=0. Requiring
         # both on the same row means gross_up_rows is always empty → falls back to standard
         # calculation (taxable = 9700) → withholding = 291 instead of 300.
-        gross_up_rows = [
-            t for t in self.doc.taxes
-            if t.get("charge_type") == "Gross-up"
-        ]
+        gross_up_rows = [t for t in self.doc.taxes if t.get("charge_type") == "Gross-up"]
         print(f"[Thai WHT] Gross-up rows count: {len(gross_up_rows)}")
 
         if not gross_up_rows:
             # No Gross-up row → use standard calculation
-            print(f"[Thai WHT] No Gross-up row - using standard calculation")
+            print("[Thai WHT] No Gross-up row - using standard calculation")
             super()._update_taxable_amounts()
-            print(f"[Thai WHT] category taxable_amount after standard: {category.get('taxable_amount')}")
+            print(
+                f"[Thai WHT] category taxable_amount after standard: {category.get('taxable_amount')}"
+            )
             return
 
         # Gross-up calculation for advance payments
@@ -106,7 +110,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
             net_amount = flt(self.doc.base_received_amount, self.precision)
         else:
             # Internal transfer - use standard
-            print(f"[Thai WHT] Internal transfer - using standard calculation")
+            print("[Thai WHT] Internal transfer - using standard calculation")
             super()._update_taxable_amounts()
             return
 
@@ -155,21 +159,27 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
         Override to use pd_custom_wht_liability_account from TWC accounts child table
         instead of category.account_head (which is the asset account).
         """
-        print(f"[Thai WHT] _calculate_account_wise_amount called")
-        print(f"[Thai WHT] doc.tax_withholding_entries count: {len(self.doc.tax_withholding_entries)}")
+        print("[Thai WHT] _calculate_account_wise_amount called")
+        print(
+            f"[Thai WHT] doc.tax_withholding_entries count: {len(self.doc.tax_withholding_entries)}"
+        )
         print(f"[Thai WHT] category_details keys: {list(self._the_category_details().keys())}")
 
         account_amount_map = defaultdict(float)
 
         for entry in self.doc.tax_withholding_entries:
-            print(f"[Thai WHT]   entry: name={entry.name}, withholding_amount={entry.withholding_amount}, tax_rate={entry.tax_rate}")
+            print(
+                f"[Thai WHT]   entry: name={entry.name}, withholding_amount={entry.withholding_amount}, tax_rate={entry.tax_rate}"
+            )
             if entry.withholding_name != self.doc.name:
-                print(f"[Thai WHT]     skipping - withholding_name={entry.withholding_name} != doc.name={self.doc.name}")
+                print(
+                    f"[Thai WHT]     skipping - withholding_name={entry.withholding_name} != doc.name={self.doc.name}"
+                )
                 continue
 
             category = self._the_category_details().get(entry.tax_withholding_category)
             if not category:
-                print(f"[Thai WHT]     skipping - no category found")
+                print("[Thai WHT]     skipping - no category found")
                 continue
 
             print(f"[Thai WHT]   category.account_head (asset): {category.get('account_head')}")
@@ -177,9 +187,7 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
             # Thai WHT: use liability account if set, otherwise fall back to asset account
             liability_account = None
             if self.doc.company:
-                twc_accounts = _get_twc_accounts_for_company(
-                    category.name, self.doc.company
-                )
+                twc_accounts = _get_twc_accounts_for_company(category.name, self.doc.company)
                 liability_account = twc_accounts.get("liability_account")
                 print(f"[Thai WHT]   liability_account from TWC: {liability_account}")
 
@@ -187,16 +195,20 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
             print(f"[Thai WHT]   final account used: {account}")
 
             account_amount_map[account] += entry.withholding_amount
-            print(f"[Thai WHT]   account_amount_map[{account}] += {entry.withholding_amount} => {account_amount_map[account]}")
+            print(
+                f"[Thai WHT]   account_amount_map[{account}] += {entry.withholding_amount} => {account_amount_map[account]}"
+            )
 
         print(f"[Thai WHT] _calculate_account_wise_amount returning: {dict(account_amount_map)}")
         return account_amount_map
 
     def update_tax_rows(self):
         """Override to call apply_taxes() instead of calculate_taxes_and_totals()."""
-        print(f"[Thai WHT] update_tax_rows called")
+        print("[Thai WHT] update_tax_rows called")
         print(f"[Thai WHT] doc.taxes count: {len(self.doc.taxes)}")
-        print(f"[Thai WHT] doc.tax_withholding_entries count: {len(self.doc.tax_withholding_entries)}")
+        print(
+            f"[Thai WHT] doc.tax_withholding_entries count: {len(self.doc.tax_withholding_entries)}"
+        )
 
         account_amount_map = self._calculate_account_wise_amount()
         print(f"[Thai WHT] account_amount_map: {dict(account_amount_map)}")
@@ -220,7 +232,9 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
 
         for account_head, base_amount in account_amount_map.items():
             tax_amount = flt(base_amount / conversion_rate, precision)
-            print(f"[Thai WHT] account={account_head}, base_amount={base_amount}, tax_amount={tax_amount}")
+            print(
+                f"[Thai WHT] account={account_head}, base_amount={base_amount}, tax_amount={tax_amount}"
+            )
             if not tax_amount:
                 continue
 
@@ -249,8 +263,12 @@ class ThaiPaymentTaxWithholding(PaymentTaxWithholding):
             flt(t.tax_amount) for t in self.doc.taxes if t.get("is_tax_withholding_account")
         )
         print(f"[Thai WHT] total_taxes calculated: {total_taxes}")
-        self.doc.total_taxes_and_charges = flt(total_taxes, self.doc.precision("total_taxes_and_charges"))
-        self.doc.base_total_taxes_and_charges = flt(total_taxes, self.doc.precision("base_total_taxes_and_charges"))
+        self.doc.total_taxes_and_charges = flt(
+            total_taxes, self.doc.precision("total_taxes_and_charges")
+        )
+        self.doc.base_total_taxes_and_charges = flt(
+            total_taxes, self.doc.precision("base_total_taxes_and_charges")
+        )
         print(f"[Thai WHT] final doc.total_taxes_and_charges: {self.doc.total_taxes_and_charges}")
 
 
@@ -259,7 +277,9 @@ def _get_twc_accounts_for_company(twc_name, company):
     Get the TWC accounts row for the given company, returning both
     asset account (account) and liability account (pd_custom_wht_liability_account).
     """
-    print(f"[Thai WHT] _get_twc_accounts_for_company called: twc_name={twc_name}, company={company}")
+    print(
+        f"[Thai WHT] _get_twc_accounts_for_company called: twc_name={twc_name}, company={company}"
+    )
     if not twc_name or not company:
         return {}
 
@@ -268,7 +288,9 @@ def _get_twc_accounts_for_company(twc_name, company):
         accounts = cast(list[Any], twc.get("accounts"))
         print(f"[Thai WHT]   TWC fetched: {twc.name}, accounts rows: {len(accounts)}")
         for row in accounts:
-            print(f"[Thai WHT]     TWC account row: company={row.company}, account={row.account}, liability={row.get('pd_custom_wht_liability_account')}")
+            print(
+                f"[Thai WHT]     TWC account row: company={row.company}, account={row.account}, liability={row.get('pd_custom_wht_liability_account')}"
+            )
             if row.company == company:
                 result = {
                     "account": row.account,

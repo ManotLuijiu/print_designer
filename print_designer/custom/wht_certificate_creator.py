@@ -278,7 +278,13 @@ def build_certificate_values(
     `Tax Withholding Category` of ERPNext.  A transaction that carries none
     falls back to the income type of the kind of the payee.
 
-    The rate of the certificate is the rate of its first row of the incomes.
+    The rate of the certificate is the rate of the income type of the
+    transaction, the rate of the catalogue of that income type.  The rows of
+    the incomes keep their own rate, which the payment entry carries.  The
+    rate of the parent therefore never follows the rows, exactly as the
+    legacy model wrote the rate of the document out of a map of the income
+    types.  An income type that carries no rate of its own falls back to the
+    rate of the first row of the incomes.
     """
     resolved = resolve_certificate_income_type(payment_entry, entity_type, fallback)
 
@@ -288,6 +294,7 @@ def build_certificate_values(
     total_tax_amount = sum(flt(item.get("tax_amount")) for item in items)
 
     first_rate = flt(items[0].get("tax_rate")) if items else 0.0
+    parent_rate = flt(resolved.get("rate")) or first_rate
 
     company = payment_entry.get("company")
     party = payment_entry.get("party")
@@ -318,7 +325,7 @@ def build_certificate_values(
         "company_branch": "00000",
         "income_type": resolved.get("income_type") or "",
         "income_description": resolved.get("description") or "",
-        "wht_rate": first_rate,
+        "wht_rate": parent_rate,
         "wht_condition": WHT_CONDITION,
         "tax_base_amount": total_gross_amount,
         "wht_amount": total_tax_amount,

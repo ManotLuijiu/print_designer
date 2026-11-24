@@ -7,6 +7,7 @@ from frappe.defaults import get_user_default
 OUTPUT_VAT_REPORT = "Output VAT Report"
 OUTPUT_VAT_UNDUE_REPORT = "Output VAT Undue Report"
 
+
 def boot_session(bootinfo):
     """Consolidated boot session with Print Designer + Thai Billing workspace"""
 

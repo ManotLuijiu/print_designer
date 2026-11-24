@@ -14,14 +14,14 @@ class CustomCompany(Company):
         super().after_insert()
 
         # Check for CSV-based CoA import first (print_designer custom fields)
-        if self.get('pd_use_csv_coa') and self.get('pd_coa_csv_file'):
+        if self.get("pd_use_csv_coa") and self.get("pd_coa_csv_file"):
             try:
                 self.import_coa_from_csv()
                 return  # Skip standard CoA import if CSV import successful
             except Exception as e:
                 frappe.log_error(
                     f"Error importing Chart of Accounts from CSV for {self.name}: {str(e)}",
-                    "CSV CoA Import Error"
+                    "CSV CoA Import Error",
                 )
                 # Fall through to standard import if CSV import fails
 
@@ -32,7 +32,7 @@ class CustomCompany(Company):
             except Exception as e:
                 frappe.log_error(
                     f"Error importing Chart of Accounts for {self.name}: {str(e)}",
-                    "Chart of Accounts Import Error"
+                    "Chart of Accounts Import Error",
                 )
 
     def on_update(self):
@@ -58,7 +58,9 @@ class CustomCompany(Company):
         """Delete linked Company Retention Settings before Company deletion"""
         # Clean up any existing Company Retention Settings to prevent LinkExistsError
         if frappe.db.exists("Company Retention Settings", self.name):
-            frappe.delete_doc("Company Retention Settings", self.name, force=True, ignore_permissions=True)
+            frappe.delete_doc(
+                "Company Retention Settings", self.name, force=True, ignore_permissions=True
+            )
             frappe.db.commit()
 
     def import_coa_from_csv(self):
@@ -76,19 +78,24 @@ class CustomCompany(Company):
 
         # Get CSV file content
         from frappe.utils.file_manager import get_file
+
         csv_content = get_file(self.get("pd_coa_csv_file"))[1]
 
         # Decode if bytes
         if isinstance(csv_content, bytes):
-            csv_content = csv_content.decode('utf-8')
+            csv_content = csv_content.decode("utf-8")
 
         # Write CSV to temporary file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as tmp_csv:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".csv", delete=False, encoding="utf-8"
+        ) as tmp_csv:
             tmp_csv.write(csv_content)
             tmp_csv_path = tmp_csv.name
 
         # Write JSON to temporary file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as tmp_json:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as tmp_json:
             tmp_json_path = tmp_json.name
 
         try:
@@ -98,17 +105,18 @@ class CustomCompany(Company):
                 from thai_business_suite.coa_mapper.chart_of_accounts_mapper import (
                     ChartOfAccountsMapper,
                 )
+
                 thai_business_suite_available = True
                 frappe.msgprint(
                     _("Using advanced CSV mapper from thai_business_suite"),
-                    indicator='blue',
-                    alert=True
+                    indicator="blue",
+                    alert=True,
                 )
             except ImportError:
                 frappe.msgprint(
                     _("thai_business_suite not available - Using basic CSV import"),
-                    indicator='orange',
-                    alert=True
+                    indicator="orange",
+                    alert=True,
                 )
 
             if thai_business_suite_available:
@@ -125,17 +133,14 @@ class CustomCompany(Company):
                         COA_MAPPING_CONFIGS,
                         get_coa_mapping_config,
                     )
+
                     try:
                         config = get_coa_mapping_config("standard_thai_coa")
                     except ValueError:
                         # Fall back to another mapping configuration that the
                         # framework provides.  Read details in wiki/.
                         fallback = next(
-                            (
-                                name
-                                for name in COA_MAPPING_CONFIGS
-                                if name != "standard_thai_coa"
-                            ),
+                            (name for name in COA_MAPPING_CONFIGS if name != "standard_thai_coa"),
                             None,
                         )
                         if not fallback:
@@ -143,28 +148,30 @@ class CustomCompany(Company):
                         config = get_coa_mapping_config(fallback)
 
                 # Override chart name to match company
-                config['coa_config']['chart_name'] = f"{self.name} Chart of Accounts"
+                config["coa_config"]["chart_name"] = f"{self.name} Chart of Accounts"
 
                 # Create mapper and convert
                 mapper = ChartOfAccountsMapper(mapping_config=config)
                 result = mapper.csv_to_json_template(
-                    source_csv=tmp_csv_path,
-                    output_json=tmp_json_path,
-                    validate=True
+                    source_csv=tmp_csv_path, output_json=tmp_json_path, validate=True
                 )
 
                 # Import the generated JSON
                 self._import_coa_json(tmp_json_path)
 
                 # Update status
-                self.db_set('pd_coa_import_status', f"✅ Imported {result['statistics']['total_accounts']} accounts", update_modified=False)
+                self.db_set(
+                    "pd_coa_import_status",
+                    f"✅ Imported {result['statistics']['total_accounts']} accounts",
+                    update_modified=False,
+                )
 
                 frappe.msgprint(
                     _("Chart of Accounts imported successfully from CSV: {0} accounts").format(
-                        result['statistics']['total_accounts']
+                        result["statistics"]["total_accounts"]
                     ),
-                    indicator='green',
-                    alert=True
+                    indicator="green",
+                    alert=True,
                 )
 
             else:
@@ -179,7 +186,7 @@ class CustomCompany(Company):
                         2. Use standard ERPNext Chart of Accounts templates instead<br>
                         3. Manually import accounts after company creation
                     """),
-                    title=_("Advanced CSV Import Not Available")
+                    title=_("Advanced CSV Import Not Available"),
                 )
 
         finally:
@@ -244,12 +251,14 @@ class CustomCompany(Company):
 
     def has_retention_data(self):
         """Check if company has any retention-related data"""
-        return any([
-            getattr(self, 'construction_service', False),
-            getattr(self, 'default_retention_rate', 0) > 0,
-            getattr(self, 'default_retention_account', None)
-        ])
-    
+        return any(
+            [
+                getattr(self, "construction_service", False),
+                getattr(self, "default_retention_rate", 0) > 0,
+                getattr(self, "default_retention_account", None),
+            ]
+        )
+
     def sync_retention_settings(self):
         """Synchronize retention data to Company Retention Settings DocType"""
         try:
@@ -264,9 +273,9 @@ class CustomCompany(Company):
 
             # Map Company fields to Company Retention Settings fields
             field_mapping = {
-                'construction_service': 'construction_service_enabled',
-                'default_retention_rate': 'default_retention_rate',
-                'default_retention_account': 'retention_account'
+                "construction_service": "construction_service_enabled",
+                "default_retention_rate": "default_retention_rate",
+                "default_retention_account": "retention_account",
             }
 
             # Track if any changes were made
@@ -301,7 +310,7 @@ class CustomCompany(Company):
             # Silently log error - don't fail Company save
             frappe.log_error(
                 f"Error syncing Company retention settings for {self.name}: {str(e)}",
-                "Company Retention Sync"
+                "Company Retention Sync",
             )
             pass
 
@@ -312,10 +321,10 @@ def sync_company_retention_settings(doc, method=None):
     This is called via hooks.py for the Company DocType.
     """
     try:
-        if hasattr(doc, 'sync_retention_settings'):
+        if hasattr(doc, "sync_retention_settings"):
             doc.sync_retention_settings()
     except Exception as e:
         frappe.log_error(
             f"Error in Company retention sync hook for {doc.name}: {str(e)}",
-            "Company Retention Hook Error"
+            "Company Retention Hook Error",
         )

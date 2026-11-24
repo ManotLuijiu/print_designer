@@ -98,7 +98,7 @@ class CustomCompany(Company):
 # - account_name_th: Can be auto-filled from account_name
 # - account_number: "1130-01"
 # - account_type: "Receivable"
-# - company: "AWS Solution Ltd."
+# - company: "Example Co., Ltd."
 ```
 
 **Implementation Strategy**:
@@ -941,7 +941,7 @@ class CustomCompany(Company):
 
 **User Experience Flow**:
 
-1. **Company Creation**: User creates new company and selects "AWS Solution Ltd. - Thai Pharmaceutical Chart of Accounts"
+1. **Company Creation**: User creates new company and selects "Example Co., Ltd. - Chart of Accounts"
 2. **Bank Setup Modal**: Interactive dialog appears showing:
    - List of all Thai banks (Kasikorn, Bangkok Bank, SCB, etc.)
    - Checkboxes to select which banks the company uses
@@ -1368,7 +1368,7 @@ CUSTOM_FIELDS = {
 def test_auto_import_coa():
     """Test automatic CoA import on company creation"""
     company = create_test_company(
-        chart_of_accounts="AWS Solution Ltd. - Thai Pharmaceutical Chart of Accounts"
+        chart_of_accounts="Example Co., Ltd. - Chart of Accounts"
     )
     assert frappe.db.count("Account", {"company": company.name}) > 0
 

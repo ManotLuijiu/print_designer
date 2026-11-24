@@ -3,7 +3,7 @@ version: 1
 template_file: services_quotation.json
 template_name: services_quotation
 source_site: [site]
-source_format: Quotation - AWS Solution
+source_format: Quotation - Example
 source_modified: '2026-11-20 03:19:36.417706'
 assets: []
 missing_assets: []
@@ -20,9 +20,10 @@ portability_changes:
     dynamic image binding.
   - Branded thumbnail omitted; no source-site files are distributed.
   - >-
-    The static header and footer text of the source company (name, tax id,
-    contact person, bank details) is kept as it is. The template is therefore
-    not site neutral, a site that installs it has to replace that text before
-    it prints. Only the logos are dynamic.
+    The static header and footer text of the source company (name, address,
+    tax id, phone, email, bank account name, bank, branch, account number and
+    contact person) is resolved at print time from the Company, its default
+    bank account and the contact person of the printed document. The template
+    ships no company identity of its own, so it is site neutral.
   - Saved currentDoc reset to null; each site chooses a local Quotation.
   - Source owner/modified_by and transient export keys omitted.

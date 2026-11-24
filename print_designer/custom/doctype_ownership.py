@@ -38,10 +38,6 @@ OWNER = "Print Designer"
 #: Thailand before the relocation.
 RELOCATABLE_OWNERS = ("Thai Tax", "Thai Business Suite")
 
-#: The owners whose DocType is never taken.  A fork of a client carries the
-#: records of that client.
-PROTECTED_OWNERS = ("Digisoft Erp",)
-
 
 def the_owner_of(doctype: str) -> str | None:
     """The module that owns the DocType.
@@ -87,11 +83,8 @@ def take_the_ownership_back(doctype: str) -> str:
     if before == OWNER:
         return f"  {doctype}: owner {before}"
 
-    if before in PROTECTED_OWNERS:
-        return f"  {doctype}: owner {before} is kept, the records of that app are never taken"
-
     if before and before not in RELOCATABLE_OWNERS:
-        return f"  {doctype}: owner {before} is not an owner of the Thai tax, the owner stays"
+        return f"  {doctype}: owner {before} is kept, the records of that app are never taken"
 
     path = the_path_of(doctype)
     if not os.path.exists(path):

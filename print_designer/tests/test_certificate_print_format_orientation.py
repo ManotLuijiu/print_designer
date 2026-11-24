@@ -12,7 +12,9 @@ class TestCertificatePrintFormatOrientation(unittest.TestCase):
     """The certificate print formats default to A4 Portrait."""
 
     def setUp(self):
-        if not frappe.db.exists("Custom Field", {"dt": "Print Format", "fieldname": ORIENTATION_FIELD}):
+        if not frappe.db.exists(
+            "Custom Field", {"dt": "Print Format", "fieldname": ORIENTATION_FIELD}
+        ):
             self.skipTest("page_orientation custom field is not installed on this site")
         self.created = []
 
@@ -54,7 +56,9 @@ class TestCertificatePrintFormatOrientation(unittest.TestCase):
         self.assertEqual(self._orientation_of(name), "Portrait")
 
     def test_explicit_orientation_is_preserved(self):
-        name = self._make_print_format("_Test Certificate Format Landscape", CERTIFICATE_DOCTYPE, "Landscape")
+        name = self._make_print_format(
+            "_Test Certificate Format Landscape", CERTIFICATE_DOCTYPE, "Landscape"
+        )
 
         orientation_patch.execute()
 

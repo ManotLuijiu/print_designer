@@ -19,7 +19,7 @@ test('Desk preview forwards settings, language and letterhead; cancels obsolete 
   const view = new View();
   Object.assign(view, {
     get_print_format: () => ({}), frm: { doc: { name: 'TEST' } },
-    selected_format: () => 'Quotation - AWS Solution',
+    selected_format: () => 'Quotation - Example',
     with_letterhead: () => false, get_letterhead: () => '', lang_code: 'th',
     additional_settings: { watermark_settings: 'Original on First Page', page_number_display: 'Show' },
     _req: { abort: () => { aborted = true; } },

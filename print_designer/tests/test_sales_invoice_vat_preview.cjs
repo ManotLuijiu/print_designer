@@ -100,7 +100,7 @@ previewData = {
   marker: "Draft Preview — Not Posted",
   note: "This is a proposal of the VAT of a draft invoice. It is not a posted ledger, not a tax invoice, not a filing and not a recognition event.",
   sales_invoice: "ACC-SINV-2601-00001",
-  company: "AWS Solution Co., Ltd.",
+  company: "Example Co., Ltd.",
   posting_date: "2026-01-31",
   customer: "Customer",
   treatment: "VAT Undue",

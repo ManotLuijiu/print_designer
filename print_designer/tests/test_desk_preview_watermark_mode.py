@@ -28,7 +28,7 @@ def test_sidebar_watermark_wins_over_global_none(mode, expected):
     ):
         result = renderer.get_html_and_style_with_watermark(
             doc={"doctype": "Quotation", "name": "TEST"},
-            print_format="Quotation - AWS Solution",
+            print_format="Quotation - Example",
             settings=settings,
         )
     assert result["html"].count('class="pd-preview-copy-watermark"') == expected

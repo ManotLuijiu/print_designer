@@ -15,14 +15,20 @@ def execute():
         return
 
     fields = ("income_type", "legacy_income_type", "customer_branch_code", "customer_branch_name")
-    for register in frappe.get_all("Receive WHT Register", fields=["name", "payment_entry", "customer", *fields]):
+    for register in frappe.get_all(
+        "Receive WHT Register", fields=["name", "payment_entry", "customer", *fields]
+    ):
         before = {field: register.get(field) for field in fields}
-        if register.income_type and not frappe.db.exists("Tax Withholding Category", register.income_type):
+        if register.income_type and not frappe.db.exists(
+            "Tax Withholding Category", register.income_type
+        ):
             register.legacy_income_type = register.legacy_income_type or register.income_type
             register.income_type = None
         if not register.income_type:
             register.income_type = get_payment_income_type(register.payment_entry)
         fill_customer_branch(register)
-        changes = {field: register.get(field) for field in fields if before[field] != register.get(field)}
+        changes = {
+            field: register.get(field) for field in fields if before[field] != register.get(field)
+        }
         if changes:
             set_values("Receive WHT Register", register.name, changes, update_modified=False)

@@ -82,29 +82,39 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
     from Purchase Invoice with WHT amount
     """
     print(f"DEBUG wht_certificate_generator: Starting for Payment Entry {payment_entry_doc.name}")
-    print(f"DEBUG: Document properties - name: {payment_entry_doc.name}, payment_type: {payment_entry_doc.payment_type}")
-    print(f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, is_new: {payment_entry_doc.is_new()}")
+    print(
+        f"DEBUG: Document properties - name: {payment_entry_doc.name}, payment_type: {payment_entry_doc.payment_type}"
+    )
+    print(
+        f"DEBUG: Document state - docstatus: {payment_entry_doc.docstatus}, is_new: {payment_entry_doc.is_new()}"
+    )
 
     # Only process Payment Entry documents where user enabled WHT
-    apply_wht = getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 0)
+    apply_wht = getattr(payment_entry_doc, "pd_custom_subject_to_wht", 0)
     print(f"DEBUG: pd_custom_subject_to_wht = {apply_wht} (type: {type(apply_wht)})")
 
     if not apply_wht:
         print("DEBUG: Skipping - WHT not enabled by user")
-        raise frappe.ValidationError("WHT Certificate creation not enabled. Please check 'Subject to Withholding Tax' checkbox.")
+        raise frappe.ValidationError(
+            "WHT Certificate creation not enabled. Please check 'Subject to Withholding Tax' checkbox."
+        )
 
     # Check if WHT amount exists
-    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 0))
-    print(f"DEBUG: pd_custom_withholding_tax_amount_details = {wht_amount} (type: {type(wht_amount)})")
+    wht_amount = flt(getattr(payment_entry_doc, "pd_custom_withholding_tax_amount_details", 0))
+    print(
+        f"DEBUG: pd_custom_withholding_tax_amount_details = {wht_amount} (type: {type(wht_amount)})"
+    )
 
     if wht_amount <= 0:
         print(f"DEBUG: Skipping - WHT amount is {wht_amount}")
-        raise frappe.ValidationError(f"Invalid WHT amount: {wht_amount}. WHT amount must be greater than 0.")
+        raise frappe.ValidationError(
+            f"Invalid WHT amount: {wht_amount}. WHT amount must be greater than 0."
+        )
 
     # Skip if certificate already exists
-    existing_cert = frappe.db.exists("Withholding Tax Certificate", {
-        "payment_entry": payment_entry_doc.name
-    })
+    existing_cert = frappe.db.exists(
+        "Withholding Tax Certificate", {"payment_entry": payment_entry_doc.name}
+    )
     print(f"DEBUG: Existing certificate check: {existing_cert}")
 
     if existing_cert:
@@ -142,7 +152,12 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         # This makes the certificate number visible in the PE UI (_details fields)
         print(f"DEBUG: Setting pd_custom_wht_number_details = {wht_cert.certificate_number}")
         if payment_entry_doc.meta.has_field("pd_custom_wht_number_details"):
-            frappe.db.set_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_number_details", wht_cert.certificate_number)
+            frappe.db.set_value(
+                "Payment Entry",
+                payment_entry_doc.name,
+                "pd_custom_wht_number_details",
+                wht_cert.certificate_number,
+            )
 
         # The certificate is submitted by the creator of the certificate
         print(f"DEBUG: Certificate {wht_cert.name} is submitted: {wht_cert.docstatus}")
@@ -152,13 +167,17 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
         print("DEBUG: All changes committed to database")
 
         # Verify the link was created successfully
-        linked_cert = frappe.db.get_value("Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate")
-        print(f"DEBUG: Verification - Payment Entry {payment_entry_doc.name} now linked to certificate: {linked_cert}")
+        linked_cert = frappe.db.get_value(
+            "Payment Entry", payment_entry_doc.name, "pd_custom_wht_certificate"
+        )
+        print(
+            f"DEBUG: Verification - Payment Entry {payment_entry_doc.name} now linked to certificate: {linked_cert}"
+        )
 
         if linked_cert != wht_cert.name:
             frappe.log_error(
                 message=f"WARNING: WHT Certificate link verification failed. Expected: {wht_cert.name}, Got: {linked_cert}",
-                title="WHT Certificate Link Warning"
+                title="WHT Certificate Link Warning",
             )
             print("WARNING: Certificate link verification failed!")
         else:
@@ -175,22 +194,22 @@ def create_wht_certificate_from_payment_entry(payment_entry_doc):
             wht_cert_data={
                 "tax_year": wht_cert.tax_year,
                 "tax_month": wht_cert.tax_month,
-                "pnd_form_type": wht_cert.pnd_form_type
+                "pnd_form_type": wht_cert.pnd_form_type,
             },
-            is_async=True
+            is_async=True,
         )
 
         frappe.msgprint(
             _("Withholding Tax Certificate {0} created successfully").format(wht_cert.name),
             alert=True,
-            indicator="green"
+            indicator="green",
         )
 
     except Exception as e:
         # Log full error details
         frappe.log_error(
             message=f"Error creating WHT Certificate for Payment Entry {payment_entry_doc.name}: {str(e)}",
-            title="WHT Certificate Error"
+            title="WHT Certificate Error",
         )
         # Show concise message to user
         frappe.throw(_("Failed to create WHT Certificate. Check error log for details."))
@@ -213,7 +232,7 @@ def _get_thai_month_display(month_num):
         9: "09 - กันยายน (September)",
         10: "10 - ตุลาคม (October)",
         11: "11 - พฤศจิกายน (November)",
-        12: "12 - ธันวาคม (December)"
+        12: "12 - ธันวาคม (December)",
     }
     return tax_month_options.get(month_num, f"{month_num:02d}")
 
@@ -259,11 +278,11 @@ def get_wht_certificate_preview(payment_entry_name):
     payment_entry_doc = cast(Any, frappe.get_doc("Payment Entry", payment_entry_name))
 
     # Check if eligible for WHT certificate
-    apply_wht = getattr(payment_entry_doc, 'pd_custom_subject_to_wht', 0)
+    apply_wht = getattr(payment_entry_doc, "pd_custom_subject_to_wht", 0)
     if not apply_wht:
         return {"eligible": False, "message": "WHT not enabled"}
 
-    wht_amount = flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_amount_details', 0))
+    wht_amount = flt(getattr(payment_entry_doc, "pd_custom_withholding_tax_amount_details", 0))
     if wht_amount <= 0:
         return {"eligible": False, "message": "No WHT amount found"}
 
@@ -296,8 +315,8 @@ def get_wht_certificate_preview(payment_entry_name):
         "tax_year": f"{buddhist_year}",
         "tax_month": _get_thai_month_display(posting_date.month),
         "supplier": payment_entry_doc.party_name,
-        "tax_base_amount": flt(getattr(payment_entry_doc, 'pd_custom_tax_base_amount', 0)),
-        "wht_rate": flt(getattr(payment_entry_doc, 'pd_custom_withholding_tax_pct_details', 0)),
+        "tax_base_amount": flt(getattr(payment_entry_doc, "pd_custom_tax_base_amount", 0)),
+        "wht_rate": flt(getattr(payment_entry_doc, "pd_custom_withholding_tax_pct_details", 0)),
         "wht_amount": wht_amount,
         "income_type": resolved.get("income_type") or "",
         "pnd_form_type": resolved.get("pnd_form"),
@@ -314,11 +333,15 @@ def _auto_refresh_pnd_form(wht_cert):
     try:
         # Only handle PND53 Form type certificates
         if wht_cert.pnd_form_type != "PND53 Form":
-            print(f"DEBUG: Skipping auto-refresh - Certificate is for {wht_cert.pnd_form_type}, not PND53 Form")
+            print(
+                f"DEBUG: Skipping auto-refresh - Certificate is for {wht_cert.pnd_form_type}, not PND53 Form"
+            )
             return
 
         print(f"DEBUG: Auto-refresh starting for WHT Certificate {wht_cert.name}")
-        print(f"DEBUG: Certificate details - tax_year: {wht_cert.tax_year}, tax_month: {wht_cert.tax_month}")
+        print(
+            f"DEBUG: Certificate details - tax_year: {wht_cert.tax_year}, tax_month: {wht_cert.tax_month}"
+        )
 
         # Extract year and month from certificate
         tax_year = wht_cert.tax_year
@@ -335,15 +358,20 @@ def _auto_refresh_pnd_form(wht_cert):
         print(f"DEBUG: Looking for PND53 Form with year={tax_year}, month={month_num}")
 
         # Verify this certificate actually exists in database before refresh
-        cert_exists = frappe.db.exists("Withholding Tax Certificate", {
-            "name": wht_cert.name,
-            "docstatus": 1,  # Submitted
-            "status": "Issued"
-        })
+        cert_exists = frappe.db.exists(
+            "Withholding Tax Certificate",
+            {
+                "name": wht_cert.name,
+                "docstatus": 1,  # Submitted
+                "status": "Issued",
+            },
+        )
         print(f"DEBUG: Certificate {wht_cert.name} exists and submitted: {cert_exists}")
 
         if not cert_exists:
-            print(f"DEBUG: Certificate {wht_cert.name} not found in database as submitted - skipping refresh")
+            print(
+                f"DEBUG: Certificate {wht_cert.name} not found in database as submitted - skipping refresh"
+            )
             return
 
         # Find existing PND53 Form for this tax period
@@ -352,57 +380,74 @@ def _auto_refresh_pnd_form(wht_cert):
             filters={
                 "tax_period_year": tax_year,
                 "tax_period_month": month_num,
-                "docstatus": ["!=", 2]  # Not cancelled
+                "docstatus": ["!=", 2],  # Not cancelled
             },
-            fields=["name", "tax_period_year", "tax_period_month"]
+            fields=["name", "tax_period_year", "tax_period_month"],
         )
 
-        print(f"DEBUG: Found {len(existing_pnd_forms)} existing PND53 Forms for year {tax_year}, month {month_num}")
+        print(
+            f"DEBUG: Found {len(existing_pnd_forms)} existing PND53 Forms for year {tax_year}, month {month_num}"
+        )
 
         # Refresh each matching PND53 Form
         for pnd_form in existing_pnd_forms:
             try:
-                print(f"DEBUG: Refreshing PND53 Form {pnd_form.name} (year: {pnd_form.tax_period_year}, month: {pnd_form.tax_period_month})")
+                print(
+                    f"DEBUG: Refreshing PND53 Form {pnd_form.name} (year: {pnd_form.tax_period_year}, month: {pnd_form.tax_period_month})"
+                )
                 pnd_doc = cast(Any, frappe.get_doc("PND53 Form", pnd_form.name))
 
                 # Count certificates before refresh
                 before_count = len(pnd_doc.items) if pnd_doc.items else 0
-                print(f"DEBUG: PND Form {pnd_form.name} had {before_count} certificates before refresh")
+                print(
+                    f"DEBUG: PND Form {pnd_form.name} had {before_count} certificates before refresh"
+                )
 
                 pnd_doc.refresh_certificates()
 
                 # Count certificates after refresh
                 after_count = len(pnd_doc.items) if pnd_doc.items else 0
-                print(f"DEBUG: PND Form {pnd_form.name} now has {after_count} certificates after refresh")
+                print(
+                    f"DEBUG: PND Form {pnd_form.name} now has {after_count} certificates after refresh"
+                )
 
                 # Check if our certificate is now included
-                cert_names = [item.withholding_tax_cert for item in pnd_doc.items if item.withholding_tax_cert]
+                cert_names = [
+                    item.withholding_tax_cert for item in pnd_doc.items if item.withholding_tax_cert
+                ]
                 is_included = wht_cert.name in cert_names
                 print(f"DEBUG: Certificate {wht_cert.name} is included in PND Form: {is_included}")
 
                 if is_included:
-                    print(f"DEBUG: SUCCESS - Certificate {wht_cert.name} successfully added to PND53 Form {pnd_form.name}")
+                    print(
+                        f"DEBUG: SUCCESS - Certificate {wht_cert.name} successfully added to PND53 Form {pnd_form.name}"
+                    )
                 else:
-                    print(f"DEBUG: WARNING - Certificate {wht_cert.name} not found in refreshed PND53 Form {pnd_form.name}")
+                    print(
+                        f"DEBUG: WARNING - Certificate {wht_cert.name} not found in refreshed PND53 Form {pnd_form.name}"
+                    )
                     print(f"DEBUG: PND Form certificates: {cert_names}")
 
             except Exception as refresh_error:
                 print(f"DEBUG: Error refreshing PND53 Form {pnd_form.name}: {str(refresh_error)}")
                 frappe.log_error(
                     message=f"Error auto-refreshing PND53 Form {pnd_form.name}: {str(refresh_error)}",
-                    title="PND53 Auto-Refresh Error"
+                    title="PND53 Auto-Refresh Error",
                 )
 
         if not existing_pnd_forms:
-            print(f"DEBUG: No PND53 Forms found for year {tax_year}, month {month_num} - auto-refresh not needed")
+            print(
+                f"DEBUG: No PND53 Forms found for year {tax_year}, month {month_num} - auto-refresh not needed"
+            )
 
     except Exception as e:
         print(f"DEBUG: Error in auto-refresh function: {str(e)}")
         import traceback
+
         print(f"DEBUG: Auto-refresh traceback: {traceback.format_exc()}")
         frappe.log_error(
             message=f"Error in PND53 auto-refresh for WHT Certificate {wht_cert.name}: {str(e)}",
-            title="PND53 Auto-Refresh Error"
+            title="PND53 Auto-Refresh Error",
         )
 
 
@@ -431,7 +476,9 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
         frappe.set_user("Administrator")  # Ensure proper permissions
 
         print(f"DEBUG: Background job starting for WHT Certificate {wht_cert_name}")
-        print(f"DEBUG: Job data - tax_year: {wht_cert_data.get('tax_year')}, tax_month: {wht_cert_data.get('tax_month')}")
+        print(
+            f"DEBUG: Job data - tax_year: {wht_cert_data.get('tax_year')}, tax_month: {wht_cert_data.get('tax_month')}"
+        )
 
         # Verify certificate exists and is properly submitted
         wht_cert = cast(Any, frappe.get_doc("Withholding Tax Certificate", wht_cert_name))
@@ -439,19 +486,25 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
             raise frappe.DoesNotExistError(f"WHT Certificate {wht_cert_name} not found")
 
         if wht_cert.docstatus != 1:
-            print(f"DEBUG: Certificate {wht_cert_name} not submitted (docstatus: {wht_cert.docstatus}), skipping refresh")
+            print(
+                f"DEBUG: Certificate {wht_cert_name} not submitted (docstatus: {wht_cert.docstatus}), skipping refresh"
+            )
             return
 
-        print(f"DEBUG: Certificate {wht_cert_name} verified - docstatus: {wht_cert.docstatus}, status: {wht_cert.status}")
+        print(
+            f"DEBUG: Certificate {wht_cert_name} verified - docstatus: {wht_cert.docstatus}, status: {wht_cert.status}"
+        )
 
         # Only handle PND53 Form type certificates
-        if wht_cert_data.get('pnd_form_type') != "PND53 Form":
-            print(f"DEBUG: Skipping job - Certificate is for {wht_cert_data.get('pnd_form_type')}, not PND53 Form")
+        if wht_cert_data.get("pnd_form_type") != "PND53 Form":
+            print(
+                f"DEBUG: Skipping job - Certificate is for {wht_cert_data.get('pnd_form_type')}, not PND53 Form"
+            )
             return
 
         # Extract tax period information
-        tax_year = wht_cert_data.get('tax_year')
-        tax_month = wht_cert_data.get('tax_month')
+        tax_year = wht_cert_data.get("tax_year")
+        tax_month = wht_cert_data.get("tax_month")
 
         # Extract month number from tax_month (format: "09 - กันยายน (September)")
         month_num = None
@@ -469,15 +522,19 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
             filters={
                 "tax_period_year": tax_year,
                 "tax_period_month": month_num,
-                "docstatus": ["!=", 2]  # Not cancelled
+                "docstatus": ["!=", 2],  # Not cancelled
             },
-            fields=["name", "tax_period_year", "tax_period_month"]
+            fields=["name", "tax_period_year", "tax_period_month"],
         )
 
-        print(f"DEBUG: Found {len(existing_pnd_forms)} existing PND53 Forms for year {tax_year}, month {month_num}")
+        print(
+            f"DEBUG: Found {len(existing_pnd_forms)} existing PND53 Forms for year {tax_year}, month {month_num}"
+        )
 
         if not existing_pnd_forms:
-            print(f"DEBUG: No PND53 Forms found for year {tax_year}, month {month_num} - job completed")
+            print(
+                f"DEBUG: No PND53 Forms found for year {tax_year}, month {month_num} - job completed"
+            )
             return
 
         # Refresh each matching PND53 Form
@@ -489,7 +546,9 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
 
                 # Count certificates before refresh
                 before_count = len(pnd_doc.items) if pnd_doc.items else 0
-                print(f"DEBUG: PND Form {pnd_form.name} had {before_count} certificates before refresh")
+                print(
+                    f"DEBUG: PND Form {pnd_form.name} had {before_count} certificates before refresh"
+                )
 
                 # Perform the refresh using the same method as manual refresh
                 pnd_doc.populate_wht_certificates()
@@ -498,25 +557,33 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
 
                 # Count certificates after refresh
                 after_count = len(pnd_doc.items) if pnd_doc.items else 0
-                print(f"DEBUG: PND Form {pnd_form.name} now has {after_count} certificates after refresh")
+                print(
+                    f"DEBUG: PND Form {pnd_form.name} now has {after_count} certificates after refresh"
+                )
 
                 # Check if our certificate is now included
-                cert_names = [item.withholding_tax_cert for item in pnd_doc.items if item.withholding_tax_cert]
+                cert_names = [
+                    item.withholding_tax_cert for item in pnd_doc.items if item.withholding_tax_cert
+                ]
                 is_included = wht_cert_name in cert_names
                 print(f"DEBUG: Certificate {wht_cert_name} is included in PND Form: {is_included}")
 
                 if is_included:
-                    print(f"DEBUG: SUCCESS - Certificate {wht_cert_name} successfully added to PND53 Form {pnd_form.name}")
+                    print(
+                        f"DEBUG: SUCCESS - Certificate {wht_cert_name} successfully added to PND53 Form {pnd_form.name}"
+                    )
                     refreshed_forms.append(pnd_form.name)
                 else:
-                    print(f"DEBUG: WARNING - Certificate {wht_cert_name} not found in refreshed PND53 Form {pnd_form.name}")
+                    print(
+                        f"DEBUG: WARNING - Certificate {wht_cert_name} not found in refreshed PND53 Form {pnd_form.name}"
+                    )
                     print(f"DEBUG: PND Form certificates: {cert_names}")
 
             except Exception as refresh_error:
                 print(f"DEBUG: Error refreshing PND53 Form {pnd_form.name}: {str(refresh_error)}")
                 frappe.log_error(
                     message=f"Background job error refreshing PND53 Form {pnd_form.name}: {str(refresh_error)}",
-                    title="PND53 Background Job Error"
+                    title="PND53 Background Job Error",
                 )
 
         # Final commit to ensure all changes are saved
@@ -526,15 +593,18 @@ def auto_refresh_pnd_form_job(wht_cert_name, wht_cert_data):
         print(f"DEBUG: Refreshed {len(refreshed_forms)} PND53 Forms: {refreshed_forms}")
 
         # Log successful completion for audit trail
-        frappe.logger().info(f"Auto-refresh job completed for WHT Certificate {wht_cert_name}, refreshed PND Forms: {refreshed_forms}")
+        frappe.logger().info(
+            f"Auto-refresh job completed for WHT Certificate {wht_cert_name}, refreshed PND Forms: {refreshed_forms}"
+        )
 
     except Exception as e:
         print(f"DEBUG: Background job error: {str(e)}")
         import traceback
+
         print(f"DEBUG: Background job traceback: {traceback.format_exc()}")
 
         frappe.log_error(
             message=f"Background job error for WHT Certificate {wht_cert_name}: {str(e)}\n\nTraceback:\n{traceback.format_exc()}",
-            title="PND53 Background Job Error"
+            title="PND53 Background Job Error",
         )
         raise  # Re-raise to mark job as failed for retry

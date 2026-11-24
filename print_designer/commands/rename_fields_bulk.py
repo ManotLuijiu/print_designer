@@ -118,7 +118,7 @@ def replace_in_file(filepath, renames, dry_run=False):
     E.g., won't replace 'subject_to_wht' inside 'pd_custom_subject_to_wht'.
     """
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             original = f.read()
     except (UnicodeDecodeError, PermissionError):
         return []
@@ -149,40 +149,58 @@ def replace_in_file(filepath, renames, dry_run=False):
 
         # Use word boundary that works for field names (letters, digits, underscores)
         # Negative lookbehind for alphanumeric/underscore to avoid partial match
-        pattern = r'(?<![a-zA-Z0-9_])' + re.escape(old_name) + r'(?![a-zA-Z0-9_])'
+        pattern = r"(?<![a-zA-Z0-9_])" + re.escape(old_name) + r"(?![a-zA-Z0-9_])"
 
-        matches = list(re.finditer(pattern, content))
+        try:
+            the_pattern = re.compile(pattern)
+        except re.error:
+            # A pattern that cannot compile is skipped, the other renames continue.
+            continue
+
+        matches = _the_real_matches(content, the_pattern)
         if not matches:
             continue
 
-        # Filter out matches that are inside the new_name (already renamed)
-        real_matches = []
-        for m in matches:
-            start = m.start()
-            # Check if this match is part of the new_name
-            # Look backwards for pd_custom_ prefix
-            prefix_start = max(0, start - len("pd_custom_"))
-            preceding = content[prefix_start:start]
-            if "pd_custom_" in preceding:
-                continue  # Already part of a pd_custom_ name
-            real_matches.append(m)
-
-        if not real_matches:
+        # Do the replacement
+        try:
+            new_content = the_pattern.sub(
+                lambda m: new_name if not _is_already_prefixed(content, m.start()) else m.group(),
+                content,
+            )
+        except re.error:
+            # A substitution that cannot run is skipped, the other renames continue.
             continue
 
-        # Do the replacement
-        new_content = re.sub(pattern, lambda m: new_name if not _is_already_prefixed(content, m.start()) else m.group(), content)
-
         if new_content != content:
-            count = len(real_matches)
+            count = len(matches)
             changes.append(f"  {old_name} → {new_name} ({count} occurrences)")
             content = new_content
 
     if changes and not dry_run:
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(content)
+        except (OSError, UnicodeError) as the_error:
+            raise OSError(f"could not write {filepath}: {the_error}") from the_error
 
     return changes
+
+
+def _the_real_matches(content, the_pattern):
+    """The matches of a pattern that are not already inside a renamed name.
+
+    A name that already carries the prefix of the new name is left alone, so
+    that a second run of the command renames nothing.
+    """
+    the_matches = []
+    for the_match in the_pattern.finditer(content):
+        the_start = the_match.start()
+        the_prefix_start = max(0, the_start - len("pd_custom_"))
+        if "pd_custom_" in content[the_prefix_start:the_start]:
+            continue
+        the_matches.append(the_match)
+
+    return the_matches
 
 
 def _is_already_prefixed(content, pos):
@@ -216,12 +234,22 @@ def process_directory(directory, renames, extensions, dry_run=False):
     return total_changes
 
 
+def the_peer_apps():
+    """The other apps of the bench whose references are renamed.
+
+    The apps are read from the environment, so the script does not name an
+    app of a client of a site.
+    """
+    the_names = os.environ.get("PRINT_DESIGNER_PEER_APPS", "")
+    return [the_name.strip() for the_name in the_names.split(",") if the_name.strip()]
+
+
 def main(dry_run=False):
     """Main execution function."""
     mode = "DRY RUN" if dry_run else "LIVE"
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Field Rename Bulk Update ({mode})")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     renames = get_all_renames()
     print(f"Total rename mappings: {len(renames)}")
@@ -234,19 +262,13 @@ def main(dry_run=False):
     changes = process_directory(pd_dir, renames, [".py", ".js", ".html"], dry_run)
     all_changes.update(changes)
 
-    # Phase E: your_app
-    print("\n--- Processing: your_app ---")
-    peer_app_dir = os.path.join(BENCH_ROOT, "your_app")
-    if os.path.exists(peer_app_dir):
-        changes = process_directory(peer_app_dir, renames, [".py", ".js", ".html"], dry_run)
-        all_changes.update(changes)
-
-    # Phase E: your_app
-    print("\n--- Processing: your_app ---")
-    ip_dir = os.path.join(BENCH_ROOT, "your_app")
-    if os.path.exists(ip_dir):
-        changes = process_directory(ip_dir, renames, [".py", ".js", ".html"], dry_run)
-        all_changes.update(changes)
+    # Phase E: the other apps of the bench
+    for peer_app in the_peer_apps():
+        print(f"\n--- Processing: {peer_app} ---")
+        peer_app_dir = os.path.join(BENCH_ROOT, peer_app)
+        if os.path.exists(peer_app_dir):
+            changes = process_directory(peer_app_dir, renames, [".py", ".js", ".html"], dry_run)
+            all_changes.update(changes)
 
     # Phase E: thai_business_suite
     print("\n--- Processing: thai_business_suite ---")
@@ -256,9 +278,9 @@ def main(dry_run=False):
         all_changes.update(changes)
 
     # Print summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  SUMMARY ({mode})")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if all_changes:
         total_files = len(all_changes)
@@ -280,5 +302,6 @@ def main(dry_run=False):
 
 if __name__ == "__main__":
     import sys
+
     dry_run = "--dry-run" in sys.argv or "-n" in sys.argv
     main(dry_run=dry_run)

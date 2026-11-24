@@ -25,7 +25,7 @@ def render_context(settings, format_mode=None, defaults=None):
         patch.object(printview, 'core_get_context', return_value={'body': BASE_HTML}),
         patch.object(printview, 'log_to_print_designer'),
         patch.object(frappe, 'form_dict', frappe._dict(
-            format='Quotation - AWS Solution', settings=json.dumps(settings),
+            format='Quotation - Example', settings=json.dumps(settings),
         )),
         patch.object(frappe, 'get_doc', return_value=format_doc),
         patch.object(frappe, 'get_single', return_value=frappe._dict(defaults or {})),

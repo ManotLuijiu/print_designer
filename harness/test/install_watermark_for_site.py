@@ -1,57 +1,48 @@
 #!/usr/bin/env python3
-"""
-Utility script to install watermark fields for Print Designer on any site.
+"""Install the watermark fields of the print designer on a site.
 
-Usage:
-    python install_watermark_for_site.py <site_name>
-    
-Example:
-    python install_watermark_for_site.py [site]
+The script writes to the site, so it needs the name of the site.
+
+    python harness/test/install_watermark_for_site.py your_site
 """
 
-import os
 import sys
+from pathlib import Path
+
+# The root of the app, so that the package of the app can be imported.
+THE_APP_ROOT = Path(__file__).resolve().parents[2]
 
 
-def check_site_has_print_designer(site_name):
-    """Check if print_designer app is installed on the site"""
-    bench_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
-    sys.path.insert(0, bench_path)
-    
+def check_site_has_print_designer() -> bool:
+    """Whether the site of the current connection has the app of the print designer."""
+    import frappe
+
+    return "print_designer" in frappe.get_installed_apps()
+
+
+def install_watermark_fields(site_name: str) -> bool:
+    """Install the watermark fields for the specified site"""
+    sys.path.insert(0, str(THE_APP_ROOT))
+
+    import frappe
+
     try:
-        import frappe
-        frappe.init(site_name)
-        frappe.connect()
-        
-        # Check if print_designer is in installed apps
-        installed_apps = frappe.get_installed_apps()
-        return 'print_designer' in installed_apps
-        
-    except frappe.exceptions.IncorrectSitePath:
-        return False
-    except Exception:
-        return False
-
-def install_watermark_fields(site_name):
-    """Install watermark fields for the specified site"""
-    
-    # Add the frappe-bench path to sys.path so we can import frappe
-    bench_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
-    sys.path.insert(0, bench_path)
-    
-    try:
-        import frappe
-        
         # Initialize the site
         frappe.init(site_name)
         frappe.connect()
-        
+    except frappe.exceptions.IncorrectSitePath:
+        print(f"❌ Error: Site '{site_name}' does not exist")
+        return False
+
+    try:
         # Check if print_designer is installed
-        if not check_site_has_print_designer(site_name):
+        if not check_site_has_print_designer():
             print(f"❌ Error: print_designer app is not installed on site '{site_name}'")
-            print(f"Install print_designer first with: bench --site {site_name} install-app print_designer")
+            print(
+                f"Install print_designer first with: bench --site {site_name} install-app print_designer"
+            )
             return False
-        
+
         # Import the installation function of the app.
         from print_designer.install import ensure_all_fields_after_migration
 
@@ -59,17 +50,17 @@ def install_watermark_fields(site_name):
 
         # The custom fields and the enhanced Print Settings, which carry the
         # watermark fields, are installed by this function.
-        ensure_all_fields_after_migration()
-        
+        if not ensure_all_fields_after_migration():
+            print("❌ Error: the fields of the print designer were not installed")
+            frappe.db.rollback()
+            return False
+
         # Commit the changes
         frappe.db.commit()
-        
+
         print("✅ Watermark fields installed successfully!")
         return True
-        
-    except frappe.exceptions.IncorrectSitePath:
-        print(f"❌ Error: Site '{site_name}' does not exist")
-        return False
+
     except Exception as e:
         print(f"❌ Error installing watermark fields: {str(e)}")
         try:
@@ -78,15 +69,18 @@ def install_watermark_fields(site_name):
             pass
         return False
 
-def main():
+
+def main() -> int:
     if len(sys.argv) != 2:
-        print("Usage: python install_watermark_for_site.py <site_name>")
-        print("Example: python install_watermark_for_site.py [site]")
-        sys.exit(1)
-    
+        print("Usage: python harness/test/install_watermark_for_site.py <site_name>")
+        print("Example: python harness/test/install_watermark_for_site.py your_site")
+        return 1
+
     site_name = sys.argv[1]
     success = install_watermark_fields(site_name)
-    sys.exit(0 if success else 1)
+
+    return 0 if success else 1
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

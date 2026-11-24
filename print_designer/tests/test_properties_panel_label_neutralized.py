@@ -71,8 +71,7 @@ class TestPropertiesPanelLabelNeutralized(unittest.TestCase):
         self.assertIn(
             'dc.tableName=currentEL["table"].fieldname',
             source,
-            "the dynamic content of a column is not bound to the selected "
-            "table any more",
+            "the dynamic content of a column is not bound to the selected table any more",
         )
 
 

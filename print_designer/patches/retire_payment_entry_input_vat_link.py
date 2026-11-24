@@ -14,12 +14,15 @@ REPLACEMENTS = {LEGACY_FIELD: "pd_custom_vat_ref"}
 
 
 def execute():
-    legacy = cast(Any, frappe.db.get_value(
-        "Custom Field",
-        {"dt": "Payment Entry", "fieldname": LEGACY_FIELD},
-        ["name", "insert_after"],
-        as_dict=True,
-    ))
+    legacy = cast(
+        Any,
+        frappe.db.get_value(
+            "Custom Field",
+            {"dt": "Payment Entry", "fieldname": LEGACY_FIELD},
+            ["name", "insert_after"],
+            as_dict=True,
+        ),
+    )
     if not legacy:
         return 0
 
@@ -40,7 +43,9 @@ def execute():
         "Custom Field", filters={"dt": "Payment Entry", "insert_after": LEGACY_FIELD}, pluck="name"
     ):
         if field != "Payment Entry-pd_custom_vat_ref":
-            frappe.db.set_value("Custom Field", field, "insert_after", anchor, update_modified=False)
+            frappe.db.set_value(
+                "Custom Field", field, "insert_after", anchor, update_modified=False
+            )
 
     _update_print_formats(REPLACEMENTS, re.compile(r"\b" + LEGACY_FIELD + r"\b"))
     frappe.delete_doc("Custom Field", legacy.name)

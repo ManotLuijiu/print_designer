@@ -8,7 +8,9 @@ that decide them:
   of a `Thai WHT Income Type` or the name of a `Tax Withholding Category` of
   ERPNext,
 - a row of the incomes keeps its own type when it carries one,
-- the rate of the certificate is the rate of its first row,
+- the rate of the certificate is the rate of the income type of the
+  transaction, the rate of the catalogue of that income type, and an income
+  type that carries no rate falls back to the rate of the first row,
 - a party that is not a supplier has no tax id and no address.
 
 The tests read the site.  The one test that needs a category of ERPNext
@@ -206,8 +208,38 @@ class TestTheRulesOfTheIncomeType(unittest.TestCase):
         self.assertEqual(the_items[0].get("income_type"), RENT_ITEM_LINE)
         self.assertEqual(the_items[1].get("income_type"), "40(8) ค่าโฆษณา 2%")
 
-    def test_the_rate_of_the_certificate_is_the_rate_of_its_first_row(self):
-        """The rate of the certificate is the rate of its first row."""
+    def test_the_rate_of_the_certificate_is_the_rate_of_its_income_type(self):
+        """The rate of the certificate is the rate of the type of the transaction.
+
+        The rule of the legacy model wrote the rate of the document out of a
+        map of the income types, with the income type of the document as its
+        key.  The rows keep the rate that the payment entry carries.
+        """
+        the_rental = self._the_income_type("Rental Income")
+        the_payment_entry = self._the_payment_entry(pd_custom_wht_income_type=the_rental)
+
+        the_values = self._the_certificate(the_payment_entry)
+
+        self.assertEqual(the_values.get("wht_rate"), 5.0)
+
+    def test_a_mixed_transaction_keeps_the_rate_of_every_row(self):
+        """The rows of a mixed transaction keep their own rate."""
+        the_service = self._the_income_type("Service Fees")
+        the_payment_entry = self._the_payment_entry(pd_custom_wht_income_type=the_service)
+
+        the_items = creator.build_income_items(the_payment_entry, THE_ROWS, THE_ENTITY)
+        the_values = creator.build_certificate_values(the_payment_entry, the_items, THE_ENTITY)
+
+        self.assertEqual([item.get("tax_rate") for item in the_items], [3.0, 5.0])
+        self.assertEqual(the_values.get("wht_rate"), 3.0)
+
+    def test_without_a_rate_of_the_income_type_the_first_row_keeps_the_rate(self):
+        """An income type that carries no rate falls back to the first row.
+
+        The statutory sections of the legacy model carry no rate of their own,
+        so the rate of the first row of the incomes remains the rate of the
+        certificate.
+        """
         the_payment_entry = self._the_payment_entry()
 
         the_values = self._the_certificate(the_payment_entry)
